@@ -1,0 +1,1433 @@
+\HDRa{Semantic Calculations}\label{ha:sem-calcs}
+
+Some of the calculations here were done with a slightly older version
+of the semantics that talked about names ($n$) and places ($ps$).
+Now these are labels ($\ell$) and label-sets ($ls$).
+
+\HDRb{$\A(A)$}
+
+\begin{verbatim}
+A(A)
+ = "defn. of A"
+ps(in) /\ A /\ ps' = ps (-/+) (in,out)
+\end{verbatim}
+
+\HDRc{$run(\A(A))$}
+\begin{verbatim}
+run(A(A))
+
+ = "defn. of run.3"
+
+A(A)[g::,lg,lg:,lg/g,in,out,ps] ; ~ps(lg:) * A(A)[g::,lg,lg:/g,in,out]
+
+ = "defn. of A"
+
+   (ps(in) /\ A /\ ps' = ps (-/+) (in,out))[g::,lg,lg:,lg/g,in,out,ps]
+ ; ~ps(lg:) * A(A)[g::,lg,lg:/g,in,out]
+
+ = "simplify"
+
+   lg(lg) /\ A[g::,lg,lg:,lg/g,in,out,ps] /\ ps' = lg (-/+) (lg,lg:)
+ ; ~ps(lg:) * A(A)[g::,lg,lg:/g,in,out]
+
+ = "simplify"
+
+   A[g::,lg,lg:,lg/g,in,out,ps] /\ ps' = {lg:}
+ ; ~ps(lg:) * A(A)[g::,lg,lg:/g,in,out]
+
+ = "obs'-;-*-prop, given ps = {lg:} => ps(lg:)"
+
+A[g::,lg,lg:,lg/g,in,out,ps] /\ ps' = {lg:}
+\end{verbatim}
+
+\HDRc{$run(Idle)$}
+\begin{verbatim}
+run(Idle)
+
+ = "defn. of run.3"
+
+Idle[g::,lg,lg:,lg/g,in,out,ps] ; ~ps(lg:) * Idle[g::,lg,lg:/g,in,out]
+
+ = "defn. of Idle"
+
+A(s' = s)[g::,lg,lg:,lg/g,in,out,ps] ; ~ps(lg:) * Idle[g::,lg,lg:/g,in,out]
+
+ = "defn. of A"
+
+   (ps(in) /\ s' = s /\ ps' = ps (-/+) (in,out))[g::,lg,lg:,lg/g,in,out,ps]
+ ; ~ps(lg:) * Idle[g::,lg,lg:/g,in,out]
+
+ = "simplify"
+
+   lg(lg) /\ s' = s /\ ps' = lg (-/+) (lg,lg:)
+ ; ~ps(lg:) * Idle[g::,lg,lg:/g,in,out]
+
+ = "obs'-;-*-prop, given ps = {lg:} => ps(lg:)"
+
+lg(lg) /\ s' = s /\ ps' = lg (-/+) (lg,lg:)
+
+ = "simplify"
+
+s' = s /\ ps' = {lg:}
+\end{verbatim}
+
+\newpage
+\HDRb{$\A(A) \lseq \A(B)$}
+
+\begin{verbatim}
+A(A) ;; A(B)
+
+ = "defn. of ;;"
+
+A(A)[g:1,lg/g,out] \/ A(B)[g:2,lg/g,in]
+
+ = "defn. of A"
+
+(ps(in) /\ A /\ ps' = ps (-/+) (in,out))[g:1,lg/g,out] \/ A(B)[g:2,lg/g,in]
+
+ = "simplify"
+
+ps(in) /\ A[g:1,lg/g,out] /\ ps' = ps (-/+) (in,lg) \/ A(B)[g:2,lg/g,in]
+
+ = "defn. of A"
+
+    ps(in) /\ A[g:1,lg/g,out] /\ ps' = ps (-/+) (in,lg)
+ \/ (ps(in) /\ B /\ ps' = ps (-/+) (in,out))[g:2,lg/g,in]
+
+ = "simplify"
+
+    ps(in) /\ A[g:1,lg/g,out] /\ ps' = ps (-/+) (in,lg)
+ \/ ps(lg) /\ B[g:2,lg/g,in] /\ ps' = ps (-/+) (lg,out)
+\end{verbatim}
+
+\newpage
+\HDRc{$run(\A(A) \lseq \A(B))$}
+
+\begin{verbatim}
+
+UTCP-0.6, PP-0.6, CP-0.6, CS-0.6, CR-0.6
+
+run(A(A) ;; A(B))
+
+ = "defn. of run.3"
+
+   (A(A) ;; A(B))[g::,lg,lg,lg:/g,in,ls,out]
+ ; ~ls(lg:) * (A(A) ;; A(B))[g::,lg,lg:/g,in,out]
+
+ = "defn. of ;;"
+
+   (A(A)[g:1,lg/g,out] \/ A(B)[g:2,lg/g,in])[g::,lg,lg,lg:/g,in,ls,out]
+ ; ~ls(lg:) * (A(A) ;; A(B))[g::,lg,lg:/g,in,out]
+
+ = "simplify"
+
+   A(A)[g:::1,lg,lg,lg::/g,in,ls,out] \/ A(B)[g:::2,lg::,lg,lg:/g,in,ls,out]
+ ; ~ls(lg:) * (A(A) ;; A(B))[g::,lg,lg:/g,in,out]
+
+ = "sub-atomic"
+
+       A /\ lg(lg) /\ ls' = lg (-/+) (lg,lg::)
+    \/ A(B)[g:::2,lg::,lg,lg:/g,in,ls,out]
+ ; ~ls(lg:) * (A(A) ;; A(B))[g::,lg,lg:/g,in,out]
+
+ = "sub-atomic"
+
+       A /\ lg(lg) /\ ls' = lg (-/+) (lg,lg::)
+    \/ B /\ lg(lg::) /\ ls' = lg (-/+) (lg::,lg:)
+ ; ~ls(lg:) * (A(A) ;; A(B))[g::,lg,lg:/g,in,out]
+
+ = "simplify"
+
+A /\ ls' = {lg::} ; ~ls(lg:) * (A(A) ;; A(B))[g::,lg,lg:/g,in,out]
+
+ = "obs'-;-*-prop, given ls = {lg::} => ~ls(lg:)"
+
+   A /\ ls' = {lg::}
+ ;    (A(A) ;; A(B))[g::,lg,lg:/g,in,out][{lg::}/ls]
+    ; ~ls(lg:) * (A(A) ;; A(B))[g::,lg,lg:/g,in,out]
+
+ = "defn. of ;;"
+
+   A /\ ls' = {lg::}
+ ;    (A(A)[g:1,lg/g,out] \/ A(B)[g:2,lg/g,in])[g::,lg,lg:/g,in,out][{lg::}/ls]
+    ; ~ls(lg:) * (A(A) ;; A(B))[g::,lg,lg:/g,in,out]
+
+ = "sub-atomic"
+
+   A /\ ls' = {lg::}
+ ;    (A /\ ls(in) /\ ls' = ls (-/+) (in,lg) \/ A(B)[g:2,lg/g,in])
+      [g::,lg,lg:/g,in,out]
+      [{lg::}/ls]
+    ; ~ls(lg:) * (A(A) ;; A(B))[g::,lg,lg:/g,in,out]
+
+ = "simplify"
+
+   A /\ ls' = {lg::}
+ ;            A[g::,lg,lg:,{lg::}/g,in,out,ls]
+           /\ {lg::}(lg)
+           /\ ls' = {lg::} (-/+) (lg,lg::)
+       \/ A(B)[g:::2,lg::,{lg::},lg:/g,in,ls,out]
+    ; ~ls(lg:) * (A(A) ;; A(B))[g::,lg,lg:/g,in,out]
+
+ = "sub-atomic"
+
+   A /\ ls' = {lg::}
+ ;            A[g::,lg,lg:,{lg::}/g,in,out,ls]
+           /\ {lg::}(lg)
+           /\ ls' = {lg::} (-/+) (lg,lg::)
+       \/ B /\ {lg::}(lg::) /\ ls' = {lg::} (-/+) (lg::,lg:)
+    ; ~ls(lg:) * (A(A) ;; A(B))[g::,lg,lg:/g,in,out]
+
+ = "simplify"
+
+   A /\ ls' = {lg::}
+ ; B /\ ls' = {lg:} ; ~ls(lg:) * (A(A) ;; A(B))[g::,lg,lg:/g,in,out]
+
+ = "obs'-;-*-prop, given ls = {lg:} => ls(lg:)"
+
+A /\ ls' = {lg::} ; B /\ ls' = {lg:}
+
+ = "ls'-cleanup"
+
+(A ; B) /\ ls' = {lg:}
+\end{verbatim}
+
+\newpage
+\HDRb{$\A(A) \parallel \A(B)$}
+
+\begin{verbatim}
+A(A) || A(B)
+
+ = "defn. of ||"
+
+    ps(in) /\ s' = s /\ ps' = ps (-/+) (in,{lg1,lg2})
+ \/ A(A)[g1::,lg1,lg1:/g,in,out]
+ \/ A(B)[g2::,lg2,lg2:/g,in,out]
+ \/ ps(lg1:,lg2:) /\ s' = s /\ ps' = ps (-/+) ({lg1:,lg2:},out)
+
+ = "defn. of A"
+
+    ps(in) /\ s' = s /\ ps' = ps (-/+) (in,{lg1,lg2})
+ \/ (ps(in) /\ A /\ ps' = ps (-/+) (in,out))[g1::,lg1,lg1:/g,in,out]
+ \/ A(B)[g2::,lg2,lg2:/g,in,out]
+ \/ ps(lg1:,lg2:) /\ s' = s /\ ps' = ps (-/+) ({lg1:,lg2:},out)
+
+ = "defn. of A"
+
+    ps(in) /\ s' = s /\ ps' = ps (-/+) (in,{lg1,lg2})
+ \/ (ps(in) /\ A /\ ps' = ps (-/+) (in,out))[g1::,lg1,lg1:/g,in,out]
+ \/ (ps(in) /\ B /\ ps' = ps (-/+) (in,out))[g2::,lg2,lg2:/g,in,out]
+ \/ ps(lg1:,lg2:) /\ s' = s /\ ps' = ps (-/+) ({lg1:,lg2:},out)
+
+ = "simplify"
+
+    ps(in) /\ s' = s /\ ps' = ps (-/+) (in,{lg1,lg2})
+ \/ ps(lg1) /\ A[g1::,lg1,lg1:/g,in,out] /\ ps' = ps (-/+) (lg1,lg1:)
+ \/ ps(lg2) /\ B[g2::,lg2,lg2:/g,in,out] /\ ps' = ps (-/+) (lg2,lg2:)
+ \/ ps(lg1:,lg2:) /\ s' = s /\ ps' = ps (-/+) ({lg1:,lg2:},out)
+\end{verbatim}
+
+\newpage
+\HDRc{$run(\A(A) \parallel \A(B))$}
+\begin{verbatim}
+run(A(A) || A(B))
+
+ = "defn. of run.3"
+
+   (A(A) || A(B))[g::,lg,lg:,lg/g,in,out,ps]
+ ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out]
+
+ = "defn. of ||"
+
+   (   ps(in) /\ s' = s /\ ps' = ps (-/+) (in,{lg1,lg2})
+    \/ A(A)[g1::,lg1,lg1:/g,in,out]
+    \/ A(B)[g2::,lg2,lg2:/g,in,out]
+    \/ ps(lg1:,lg2:) /\ s' = s /\ ps' = ps (-/+) ({lg1:,lg2:},out))
+   [g::,lg,lg:,lg/g,in,out,ps]
+ ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out]
+
+ = "simplify"
+
+       lg(lg) /\ s' = s /\ ps' = lg (-/+) (lg,{lg::1,lg::2})
+    \/ A(A)[g::1::,lg::1,lg::1:,lg/g,in,out,ps]
+    \/ A(B)[g::2::,lg::2,lg::2:,lg/g,in,out,ps]
+    \/ lg(lg::1:,lg::2:) /\ s' = s /\ ps' = lg (-/+) ({lg::1:,lg::2:},lg:)
+ ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out]
+
+ = "simplify"
+
+       s' = s /\ ps' = {lg::1,lg::2}
+    \/ A(A)[g::1::,lg::1,lg::1:,lg/g,in,out,ps]
+    \/ A(B)[g::2::,lg::2,lg::2:,lg/g,in,out,ps]
+ ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out]
+
+ = "defn. of A"
+
+       s' = s /\ ps' = {lg::1,lg::2}
+    \/ (ps(in) /\ A /\ ps' = ps (-/+) (in,out))
+       [g::1::,lg::1,lg::1:,lg/g,in,out,ps]
+    \/ A(B)[g::2::,lg::2,lg::2:,lg/g,in,out,ps]
+ ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out]
+
+ = "simplify"
+
+       s' = s /\ ps' = {lg::1,lg::2}
+    \/     lg(lg::1)
+        /\ A[g::1::,lg::1,lg::1:,lg/g,in,out,ps]
+        /\ ps' = lg (-/+) (lg::1,lg::1:)
+    \/ A(B)[g::2::,lg::2,lg::2:,lg/g,in,out,ps]
+ ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out]
+
+ = "simplify"
+
+   s' = s /\ ps' = {lg::1,lg::2} \/ A(B)[g::2::,lg::2,lg::2:,lg/g,in,out,ps]
+ ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out]
+
+ = "defn. of A"
+
+       s' = s /\ ps' = {lg::1,lg::2}
+    \/ (ps(in) /\ B /\ ps' = ps (-/+) (in,out))
+       [g::2::,lg::2,lg::2:,lg/g,in,out,ps]
+ ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out]
+
+ = "simplify"
+
+       s' = s /\ ps' = {lg::1,lg::2}
+    \/     lg(lg::2)
+        /\ B[g::2::,lg::2,lg::2:,lg/g,in,out,ps]
+        /\ ps' = lg (-/+) (lg::2,lg::2:)
+ ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out]
+
+ = "simplify"
+
+s' = s /\ ps' = {lg::1,lg::2} ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out]
+
+ = "obs'-;-*-prop, given ps = {lg::1,lg::2} => ~ps(lg:)"
+
+   s' = s /\ ps' = {lg::1,lg::2}
+ ;    (A(A) || A(B))[g::,lg,lg:/g,in,out][{lg::1,lg::2}/ps]
+    ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out]
+
+ = "defn. of ||"
+
+   s' = s /\ ps' = {lg::1,lg::2}
+ ;    (   ps(in) /\ s' = s /\ ps' = ps (-/+) (in,{lg1,lg2})
+       \/ A(A)[g1::,lg1,lg1:/g,in,out]
+       \/ A(B)[g2::,lg2,lg2:/g,in,out]
+       \/ ps(lg1:,lg2:) /\ s' = s /\ ps' = ps (-/+) ({lg1:,lg2:},out))
+      [g::,lg,lg:/g,in,out]
+      [{lg::1,lg::2}/ps]
+    ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out]
+
+ = "simplify"
+
+   s' = s /\ ps' = {lg::1,lg::2}
+ ;            {lg::1,lg::2}(lg)
+           /\ s' = s
+           /\ ps' = {lg::1,lg::2} (-/+) (lg,{lg::1,lg::2})
+       \/ A(A)[g::1::,lg::1,lg::1:,{lg::1,lg::2}/g,in,out,ps]
+       \/ A(B)[g::2::,lg::2,lg::2:,{lg::1,lg::2}/g,in,out,ps]
+       \/     {lg::1,lg::2}(lg::1:,lg::2:)
+           /\ s' = s
+           /\ ps' = {lg::1,lg::2} (-/+) ({lg::1:,lg::2:},lg:)
+    ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out]
+
+ = "simplify"
+
+   s' = s /\ ps' = {lg::1,lg::2}
+ ;        A(A)[g::1::,lg::1,lg::1:,{lg::1,lg::2}/g,in,out,ps]
+       \/ A(B)[g::2::,lg::2,lg::2:,{lg::1,lg::2}/g,in,out,ps]
+    ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out]
+
+ = ";-\\/-3distr"
+
+    (  s' = s /\ ps' = {lg::1,lg::2}
+     ;    A(A)[g::1::,lg::1,lg::1:,{lg::1,lg::2}/g,in,out,ps]
+        ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+ \/ (  s' = s /\ ps' = {lg::1,lg::2}
+     ;    A(B)[g::2::,lg::2,lg::2:,{lg::1,lg::2}/g,in,out,ps]
+        ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+
+ = "defn. of A"
+
+    (  s' = s /\ ps' = {lg::1,lg::2}
+     ;    (ps(in) /\ A /\ ps' = ps (-/+) (in,out))
+          [g::1::,lg::1,lg::1:,{lg::1,lg::2}/g,in,out,ps]
+        ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+ \/ (  s' = s /\ ps' = {lg::1,lg::2}
+     ;    A(B)[g::2::,lg::2,lg::2:,{lg::1,lg::2}/g,in,out,ps]
+        ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+
+ = "simplify"
+
+    (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        {lg::1,lg::2}(lg::1)
+           /\ A[g::1::,lg::1,lg::1:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::1,lg::2} (-/+) (lg::1,lg::1:)
+        ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+ \/ (  s' = s /\ ps' = {lg::1,lg::2}
+     ;    A(B)[g::2::,lg::2,lg::2:,{lg::1,lg::2}/g,in,out,ps]
+        ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+
+ = "simplify"
+
+    (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        A[g::1::,lg::1,lg::1:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::1:,lg::2}
+        ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+ \/ (  s' = s /\ ps' = {lg::1,lg::2}
+     ;    A(B)[g::2::,lg::2,lg::2:,{lg::1,lg::2}/g,in,out,ps]
+        ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+
+ = "obs'-;-*-prop, given ps = {lg::1:,lg::2} => ~ps(lg:)"
+
+    (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        A[g::1::,lg::1,lg::1:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::1:,lg::2}
+        ;    (A(A) || A(B))[g::,lg,lg:/g,in,out][{lg::1:,lg::2}/ps]
+           ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+ \/ (  s' = s /\ ps' = {lg::1,lg::2}
+     ;    A(B)[g::2::,lg::2,lg::2:,{lg::1,lg::2}/g,in,out,ps]
+        ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+
+ = "defn. of ||"
+
+    (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        A[g::1::,lg::1,lg::1:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::1:,lg::2}
+        ;    (   ps(in) /\ s' = s /\ ps' = ps (-/+) (in,{lg1,lg2})
+              \/ A(A)[g1::,lg1,lg1:/g,in,out]
+              \/ A(B)[g2::,lg2,lg2:/g,in,out]
+              \/ ps(lg1:,lg2:) /\ s' = s /\ ps' = ps (-/+) ({lg1:,lg2:},out))
+             [g::,lg,lg:/g,in,out]
+             [{lg::1:,lg::2}/ps]
+           ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+ \/ (  s' = s /\ ps' = {lg::1,lg::2}
+     ;    A(B)[g::2::,lg::2,lg::2:,{lg::1,lg::2}/g,in,out,ps]
+        ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+
+ = "simplify"
+
+    (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        A[g::1::,lg::1,lg::1:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::1:,lg::2}
+        ;            {lg::1:,lg::2}(lg)
+                  /\ s' = s
+                  /\ ps' = {lg::1:,lg::2} (-/+) (lg,{lg::1,lg::2})
+              \/ A(A)[g::1::,lg::1,lg::1:,{lg::1:,lg::2}/g,in,out,ps]
+              \/ A(B)[g::2::,lg::2,lg::2:,{lg::1:,lg::2}/g,in,out,ps]
+              \/     {lg::1:,lg::2}(lg::1:,lg::2:)
+                  /\ s' = s
+                  /\ ps' = {lg::1:,lg::2} (-/+) ({lg::1:,lg::2:},lg:)
+           ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+ \/ (  s' = s /\ ps' = {lg::1,lg::2}
+     ;    A(B)[g::2::,lg::2,lg::2:,{lg::1,lg::2}/g,in,out,ps]
+        ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+
+ = "simplify"
+
+    (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        A[g::1::,lg::1,lg::1:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::1:,lg::2}
+        ;        A(A)[g::1::,lg::1,lg::1:,{lg::1:,lg::2}/g,in,out,ps]
+              \/ A(B)[g::2::,lg::2,lg::2:,{lg::1:,lg::2}/g,in,out,ps]
+           ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+ \/ (  s' = s /\ ps' = {lg::1,lg::2}
+     ;    A(B)[g::2::,lg::2,lg::2:,{lg::1,lg::2}/g,in,out,ps]
+        ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+
+ = "defn. of A"
+
+    (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        A[g::1::,lg::1,lg::1:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::1:,lg::2}
+        ;        (ps(in) /\ A /\ ps' = ps (-/+) (in,out))
+                 [g::1::,lg::1,lg::1:,{lg::1:,lg::2}/g,in,out,ps]
+              \/ A(B)[g::2::,lg::2,lg::2:,{lg::1:,lg::2}/g,in,out,ps]
+           ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+ \/ (  s' = s /\ ps' = {lg::1,lg::2}
+     ;    A(B)[g::2::,lg::2,lg::2:,{lg::1,lg::2}/g,in,out,ps]
+        ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+
+ = "simplify"
+
+    (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        A[g::1::,lg::1,lg::1:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::1:,lg::2}
+        ;            {lg::1:,lg::2}(lg::1)
+                  /\ A[g::1::,lg::1,lg::1:,{lg::1:,lg::2}/g,in,out,ps]
+                  /\ ps' = {lg::1:,lg::2} (-/+) (lg::1,lg::1:)
+              \/ A(B)[g::2::,lg::2,lg::2:,{lg::1:,lg::2}/g,in,out,ps]
+           ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+ \/ (  s' = s /\ ps' = {lg::1,lg::2}
+     ;    A(B)[g::2::,lg::2,lg::2:,{lg::1,lg::2}/g,in,out,ps]
+        ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+
+ = "simplify"
+
+    (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        A[g::1::,lg::1,lg::1:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::1:,lg::2}
+        ;    A(B)[g::2::,lg::2,lg::2:,{lg::1:,lg::2}/g,in,out,ps]
+           ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+ \/ (  s' = s /\ ps' = {lg::1,lg::2}
+     ;    A(B)[g::2::,lg::2,lg::2:,{lg::1,lg::2}/g,in,out,ps]
+        ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+
+ = "defn. of A"
+
+    (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        A[g::1::,lg::1,lg::1:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::1:,lg::2}
+        ;    (ps(in) /\ B /\ ps' = ps (-/+) (in,out))
+             [g::2::,lg::2,lg::2:,{lg::1:,lg::2}/g,in,out,ps]
+           ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+ \/ (  s' = s /\ ps' = {lg::1,lg::2}
+     ;    A(B)[g::2::,lg::2,lg::2:,{lg::1,lg::2}/g,in,out,ps]
+        ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+
+ = "simplify"
+
+    (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        A[g::1::,lg::1,lg::1:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::1:,lg::2}
+        ;        {lg::1:,lg::2}(lg::2)
+              /\ B[g::2::,lg::2,lg::2:,{lg::1:,lg::2}/g,in,out,ps]
+              /\ ps' = {lg::1:,lg::2} (-/+) (lg::2,lg::2:)
+           ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+ \/ (  s' = s /\ ps' = {lg::1,lg::2}
+     ;    A(B)[g::2::,lg::2,lg::2:,{lg::1,lg::2}/g,in,out,ps]
+        ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+
+ = "simplify"
+
+    (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        A[g::1::,lg::1,lg::1:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::1:,lg::2}
+        ;        B[g::2::,lg::2,lg::2:,{lg::1:,lg::2}/g,in,out,ps]
+              /\ ps' = {lg::1:,lg::2:}
+           ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+ \/ (  s' = s /\ ps' = {lg::1,lg::2}
+     ;    A(B)[g::2::,lg::2,lg::2:,{lg::1,lg::2}/g,in,out,ps]
+        ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+
+ = "obs'-;-*-prop, given ps = {lg::1:,lg::2:} => ~ps(lg:)"
+
+    (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        A[g::1::,lg::1,lg::1:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::1:,lg::2}
+        ;        B[g::2::,lg::2,lg::2:,{lg::1:,lg::2}/g,in,out,ps]
+              /\ ps' = {lg::1:,lg::2:}
+           ;    (A(A) || A(B))[g::,lg,lg:/g,in,out][{lg::1:,lg::2:}/ps]
+              ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+ \/ (  s' = s /\ ps' = {lg::1,lg::2}
+     ;    A(B)[g::2::,lg::2,lg::2:,{lg::1,lg::2}/g,in,out,ps]
+        ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+
+ = "defn. of ||"
+
+    (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        A[g::1::,lg::1,lg::1:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::1:,lg::2}
+        ;        B[g::2::,lg::2,lg::2:,{lg::1:,lg::2}/g,in,out,ps]
+              /\ ps' = {lg::1:,lg::2:}
+           ;    (   ps(in) /\ s' = s /\ ps' = ps (-/+) (in,{lg1,lg2})
+                 \/ A(A)[g1::,lg1,lg1:/g,in,out]
+                 \/ A(B)[g2::,lg2,lg2:/g,in,out]
+                 \/     ps(lg1:,lg2:)
+                     /\ s' = s
+                     /\ ps' = ps (-/+) ({lg1:,lg2:},out))
+                [g::,lg,lg:/g,in,out]
+                [{lg::1:,lg::2:}/ps]
+              ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+ \/ (  s' = s /\ ps' = {lg::1,lg::2}
+     ;    A(B)[g::2::,lg::2,lg::2:,{lg::1,lg::2}/g,in,out,ps]
+        ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+
+ = "simplify"
+
+    (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        A[g::1::,lg::1,lg::1:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::1:,lg::2}
+        ;        B[g::2::,lg::2,lg::2:,{lg::1:,lg::2}/g,in,out,ps]
+              /\ ps' = {lg::1:,lg::2:}
+           ;            {lg::1:,lg::2:}(lg)
+                     /\ s' = s
+                     /\ ps' = {lg::1:,lg::2:} (-/+) (lg,{lg::1,lg::2})
+                 \/ A(A)[g::1::,lg::1,lg::1:,{lg::1:,lg::2:}/g,in,out,ps]
+                 \/ A(B)[g::2::,lg::2,lg::2:,{lg::1:,lg::2:}/g,in,out,ps]
+                 \/     {lg::1:,lg::2:}(lg::1:,lg::2:)
+                     /\ s' = s
+                     /\ ps' = {lg::1:,lg::2:} (-/+) ({lg::1:,lg::2:},lg:)
+              ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+ \/ (  s' = s /\ ps' = {lg::1,lg::2}
+     ;    A(B)[g::2::,lg::2,lg::2:,{lg::1,lg::2}/g,in,out,ps]
+        ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+
+ = "simplify"
+
+    (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        A[g::1::,lg::1,lg::1:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::1:,lg::2}
+        ;        B[g::2::,lg::2,lg::2:,{lg::1:,lg::2}/g,in,out,ps]
+              /\ ps' = {lg::1:,lg::2:}
+           ;        A(A)[g::1::,lg::1,lg::1:,{lg::1:,lg::2:}/g,in,out,ps]
+                 \/ A(B)[g::2::,lg::2,lg::2:,{lg::1:,lg::2:}/g,in,out,ps]
+                 \/ s' = s /\ ps' = {lg:}
+              ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+ \/ (  s' = s /\ ps' = {lg::1,lg::2}
+     ;    A(B)[g::2::,lg::2,lg::2:,{lg::1,lg::2}/g,in,out,ps]
+        ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+
+ = "defn. of A"
+
+    (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        A[g::1::,lg::1,lg::1:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::1:,lg::2}
+        ;        B[g::2::,lg::2,lg::2:,{lg::1:,lg::2}/g,in,out,ps]
+              /\ ps' = {lg::1:,lg::2:}
+           ;        (ps(in) /\ A /\ ps' = ps (-/+) (in,out))
+                    [g::1::,lg::1,lg::1:,{lg::1:,lg::2:}/g,in,out,ps]
+                 \/ A(B)[g::2::,lg::2,lg::2:,{lg::1:,lg::2:}/g,in,out,ps]
+                 \/ s' = s /\ ps' = {lg:}
+              ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+ \/ (  s' = s /\ ps' = {lg::1,lg::2}
+     ;    A(B)[g::2::,lg::2,lg::2:,{lg::1,lg::2}/g,in,out,ps]
+        ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+
+ = "simplify"
+
+    (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        A[g::1::,lg::1,lg::1:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::1:,lg::2}
+        ;        B[g::2::,lg::2,lg::2:,{lg::1:,lg::2}/g,in,out,ps]
+              /\ ps' = {lg::1:,lg::2:}
+           ;            {lg::1:,lg::2:}(lg::1)
+                     /\ A[g::1::,lg::1,lg::1:,{lg::1:,lg::2:}/g,in,out,ps]
+                     /\ ps' = {lg::1:,lg::2:} (-/+) (lg::1,lg::1:)
+                 \/ A(B)[g::2::,lg::2,lg::2:,{lg::1:,lg::2:}/g,in,out,ps]
+                 \/ s' = s /\ ps' = {lg:}
+              ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+ \/ (  s' = s /\ ps' = {lg::1,lg::2}
+     ;    A(B)[g::2::,lg::2,lg::2:,{lg::1,lg::2}/g,in,out,ps]
+        ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+
+ = "simplify"
+
+    (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        A[g::1::,lg::1,lg::1:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::1:,lg::2}
+        ;        B[g::2::,lg::2,lg::2:,{lg::1:,lg::2}/g,in,out,ps]
+              /\ ps' = {lg::1:,lg::2:}
+           ;        A(B)[g::2::,lg::2,lg::2:,{lg::1:,lg::2:}/g,in,out,ps]
+                 \/ s' = s /\ ps' = {lg:}
+              ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+ \/ (  s' = s /\ ps' = {lg::1,lg::2}
+     ;    A(B)[g::2::,lg::2,lg::2:,{lg::1,lg::2}/g,in,out,ps]
+        ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+
+ = "defn. of A"
+
+    (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        A[g::1::,lg::1,lg::1:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::1:,lg::2}
+        ;        B[g::2::,lg::2,lg::2:,{lg::1:,lg::2}/g,in,out,ps]
+              /\ ps' = {lg::1:,lg::2:}
+           ;        (ps(in) /\ B /\ ps' = ps (-/+) (in,out))
+                    [g::2::,lg::2,lg::2:,{lg::1:,lg::2:}/g,in,out,ps]
+                 \/ s' = s /\ ps' = {lg:}
+              ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+ \/ (  s' = s /\ ps' = {lg::1,lg::2}
+     ;    A(B)[g::2::,lg::2,lg::2:,{lg::1,lg::2}/g,in,out,ps]
+        ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+
+ = "simplify"
+
+    (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        A[g::1::,lg::1,lg::1:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::1:,lg::2}
+        ;        B[g::2::,lg::2,lg::2:,{lg::1:,lg::2}/g,in,out,ps]
+              /\ ps' = {lg::1:,lg::2:}
+           ;            {lg::1:,lg::2:}(lg::2)
+                     /\ B[g::2::,lg::2,lg::2:,{lg::1:,lg::2:}/g,in,out,ps]
+                     /\ ps' = {lg::1:,lg::2:} (-/+) (lg::2,lg::2:)
+                 \/ s' = s /\ ps' = {lg:}
+              ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+ \/ (  s' = s /\ ps' = {lg::1,lg::2}
+     ;    A(B)[g::2::,lg::2,lg::2:,{lg::1,lg::2}/g,in,out,ps]
+        ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+
+ = "simplify"
+
+    (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        A[g::1::,lg::1,lg::1:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::1:,lg::2}
+        ;        B[g::2::,lg::2,lg::2:,{lg::1:,lg::2}/g,in,out,ps]
+              /\ ps' = {lg::1:,lg::2:}
+           ;    s' = s /\ ps' = {lg:}
+              ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+ \/ (  s' = s /\ ps' = {lg::1,lg::2}
+     ;    A(B)[g::2::,lg::2,lg::2:,{lg::1,lg::2}/g,in,out,ps]
+        ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+
+ = "obs'-;-*-prop, given ps = {lg:} => ps(lg:)"
+
+    (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        A[g::1::,lg::1,lg::1:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::1:,lg::2}
+        ;        B[g::2::,lg::2,lg::2:,{lg::1:,lg::2}/g,in,out,ps]
+              /\ ps' = {lg::1:,lg::2:}
+           ; s' = s /\ ps' = {lg:})
+ \/ (  s' = s /\ ps' = {lg::1,lg::2}
+     ;    A(B)[g::2::,lg::2,lg::2:,{lg::1,lg::2}/g,in,out,ps]
+        ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+
+ = "defn. of A"
+
+    (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        A[g::1::,lg::1,lg::1:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::1:,lg::2}
+        ;        B[g::2::,lg::2,lg::2:,{lg::1:,lg::2}/g,in,out,ps]
+              /\ ps' = {lg::1:,lg::2:}
+           ; s' = s /\ ps' = {lg:})
+ \/ (  s' = s /\ ps' = {lg::1,lg::2}
+     ;    (ps(in) /\ B /\ ps' = ps (-/+) (in,out))
+          [g::2::,lg::2,lg::2:,{lg::1,lg::2}/g,in,out,ps]
+        ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+
+ = "simplify"
+
+    (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        A[g::1::,lg::1,lg::1:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::1:,lg::2}
+        ;        B[g::2::,lg::2,lg::2:,{lg::1:,lg::2}/g,in,out,ps]
+              /\ ps' = {lg::1:,lg::2:}
+           ; s' = s /\ ps' = {lg:})
+ \/ (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        {lg::1,lg::2}(lg::2)
+           /\ B[g::2::,lg::2,lg::2:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::1,lg::2} (-/+) (lg::2,lg::2:)
+        ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+
+ = "simplify"
+
+    (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        A[g::1::,lg::1,lg::1:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::1:,lg::2}
+        ;        B[g::2::,lg::2,lg::2:,{lg::1:,lg::2}/g,in,out,ps]
+              /\ ps' = {lg::1:,lg::2:}
+           ; s' = s /\ ps' = {lg:})
+ \/ (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        B[g::2::,lg::2,lg::2:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::2:,lg::1}
+        ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+
+ = "obs'-;-*-prop, given ps = {lg::2:,lg::1} => ~ps(lg:)"
+
+    (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        A[g::1::,lg::1,lg::1:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::1:,lg::2}
+        ;        B[g::2::,lg::2,lg::2:,{lg::1:,lg::2}/g,in,out,ps]
+              /\ ps' = {lg::1:,lg::2:}
+           ; s' = s /\ ps' = {lg:})
+ \/ (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        B[g::2::,lg::2,lg::2:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::2:,lg::1}
+        ;    (A(A) || A(B))[g::,lg,lg:/g,in,out][{lg::2:,lg::1}/ps]
+           ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+
+ = "defn. of ||"
+
+    (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        A[g::1::,lg::1,lg::1:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::1:,lg::2}
+        ;        B[g::2::,lg::2,lg::2:,{lg::1:,lg::2}/g,in,out,ps]
+              /\ ps' = {lg::1:,lg::2:}
+           ; s' = s /\ ps' = {lg:})
+ \/ (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        B[g::2::,lg::2,lg::2:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::2:,lg::1}
+        ;    (   ps(in) /\ s' = s /\ ps' = ps (-/+) (in,{lg1,lg2})
+              \/ A(A)[g1::,lg1,lg1:/g,in,out]
+              \/ A(B)[g2::,lg2,lg2:/g,in,out]
+              \/ ps(lg1:,lg2:) /\ s' = s /\ ps' = ps (-/+) ({lg1:,lg2:},out))
+             [g::,lg,lg:/g,in,out]
+             [{lg::2:,lg::1}/ps]
+           ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+
+ = "simplify"
+
+    (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        A[g::1::,lg::1,lg::1:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::1:,lg::2}
+        ;        B[g::2::,lg::2,lg::2:,{lg::1:,lg::2}/g,in,out,ps]
+              /\ ps' = {lg::1:,lg::2:}
+           ; s' = s /\ ps' = {lg:})
+ \/ (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        B[g::2::,lg::2,lg::2:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::2:,lg::1}
+        ;            {lg::2:,lg::1}(lg)
+                  /\ s' = s
+                  /\ ps' = {lg::2:,lg::1} (-/+) (lg,{lg::1,lg::2})
+              \/ A(A)[g::1::,lg::1,lg::1:,{lg::2:,lg::1}/g,in,out,ps]
+              \/ A(B)[g::2::,lg::2,lg::2:,{lg::2:,lg::1}/g,in,out,ps]
+              \/     {lg::2:,lg::1}(lg::1:,lg::2:)
+                  /\ s' = s
+                  /\ ps' = {lg::2:,lg::1} (-/+) ({lg::1:,lg::2:},lg:)
+           ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+
+ = "simplify"
+
+    (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        A[g::1::,lg::1,lg::1:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::1:,lg::2}
+        ;        B[g::2::,lg::2,lg::2:,{lg::1:,lg::2}/g,in,out,ps]
+              /\ ps' = {lg::1:,lg::2:}
+           ; s' = s /\ ps' = {lg:})
+ \/ (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        B[g::2::,lg::2,lg::2:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::2:,lg::1}
+        ;        A(A)[g::1::,lg::1,lg::1:,{lg::2:,lg::1}/g,in,out,ps]
+              \/ A(B)[g::2::,lg::2,lg::2:,{lg::2:,lg::1}/g,in,out,ps]
+           ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+
+ = "defn. of A"
+
+    (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        A[g::1::,lg::1,lg::1:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::1:,lg::2}
+        ;        B[g::2::,lg::2,lg::2:,{lg::1:,lg::2}/g,in,out,ps]
+              /\ ps' = {lg::1:,lg::2:}
+           ; s' = s /\ ps' = {lg:})
+ \/ (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        B[g::2::,lg::2,lg::2:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::2:,lg::1}
+        ;        (ps(in) /\ A /\ ps' = ps (-/+) (in,out))
+                 [g::1::,lg::1,lg::1:,{lg::2:,lg::1}/g,in,out,ps]
+              \/ A(B)[g::2::,lg::2,lg::2:,{lg::2:,lg::1}/g,in,out,ps]
+           ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+
+ = "simplify"
+
+    (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        A[g::1::,lg::1,lg::1:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::1:,lg::2}
+        ;        B[g::2::,lg::2,lg::2:,{lg::1:,lg::2}/g,in,out,ps]
+              /\ ps' = {lg::1:,lg::2:}
+           ; s' = s /\ ps' = {lg:})
+ \/ (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        B[g::2::,lg::2,lg::2:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::2:,lg::1}
+        ;            {lg::2:,lg::1}(lg::1)
+                  /\ A[g::1::,lg::1,lg::1:,{lg::2:,lg::1}/g,in,out,ps]
+                  /\ ps' = {lg::2:,lg::1} (-/+) (lg::1,lg::1:)
+              \/ A(B)[g::2::,lg::2,lg::2:,{lg::2:,lg::1}/g,in,out,ps]
+           ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+
+ = "simplify"
+
+    (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        A[g::1::,lg::1,lg::1:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::1:,lg::2}
+        ;        B[g::2::,lg::2,lg::2:,{lg::1:,lg::2}/g,in,out,ps]
+              /\ ps' = {lg::1:,lg::2:}
+           ; s' = s /\ ps' = {lg:})
+ \/ (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        B[g::2::,lg::2,lg::2:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::2:,lg::1}
+        ;            A[g::1::,lg::1,lg::1:,{lg::2:,lg::1}/g,in,out,ps]
+                  /\ ps' = {lg::1:,lg::2:}
+              \/ A(B)[g::2::,lg::2,lg::2:,{lg::2:,lg::1}/g,in,out,ps]
+           ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+
+ = "defn. of A"
+
+    (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        A[g::1::,lg::1,lg::1:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::1:,lg::2}
+        ;        B[g::2::,lg::2,lg::2:,{lg::1:,lg::2}/g,in,out,ps]
+              /\ ps' = {lg::1:,lg::2:}
+           ; s' = s /\ ps' = {lg:})
+ \/ (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        B[g::2::,lg::2,lg::2:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::2:,lg::1}
+        ;            A[g::1::,lg::1,lg::1:,{lg::2:,lg::1}/g,in,out,ps]
+                  /\ ps' = {lg::1:,lg::2:}
+              \/ (ps(in) /\ B /\ ps' = ps (-/+) (in,out))
+                 [g::2::,lg::2,lg::2:,{lg::2:,lg::1}/g,in,out,ps]
+           ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+
+ = "simplify"
+
+    (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        A[g::1::,lg::1,lg::1:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::1:,lg::2}
+        ;        B[g::2::,lg::2,lg::2:,{lg::1:,lg::2}/g,in,out,ps]
+              /\ ps' = {lg::1:,lg::2:}
+           ; s' = s /\ ps' = {lg:})
+ \/ (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        B[g::2::,lg::2,lg::2:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::2:,lg::1}
+        ;            A[g::1::,lg::1,lg::1:,{lg::2:,lg::1}/g,in,out,ps]
+                  /\ ps' = {lg::1:,lg::2:}
+              \/     {lg::2:,lg::1}(lg::2)
+                  /\ B[g::2::,lg::2,lg::2:,{lg::2:,lg::1}/g,in,out,ps]
+                  /\ ps' = {lg::2:,lg::1} (-/+) (lg::2,lg::2:)
+           ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+
+ = "simplify"
+
+    (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        A[g::1::,lg::1,lg::1:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::1:,lg::2}
+        ;        B[g::2::,lg::2,lg::2:,{lg::1:,lg::2}/g,in,out,ps]
+              /\ ps' = {lg::1:,lg::2:}
+           ; s' = s /\ ps' = {lg:})
+ \/ (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        B[g::2::,lg::2,lg::2:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::2:,lg::1}
+        ;        A[g::1::,lg::1,lg::1:,{lg::2:,lg::1}/g,in,out,ps]
+              /\ ps' = {lg::1:,lg::2:}
+           ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+
+ = "obs'-;-*-prop, given ps = {lg::1:,lg::2:} => ~ps(lg:)"
+
+    (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        A[g::1::,lg::1,lg::1:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::1:,lg::2}
+        ;        B[g::2::,lg::2,lg::2:,{lg::1:,lg::2}/g,in,out,ps]
+              /\ ps' = {lg::1:,lg::2:}
+           ; s' = s /\ ps' = {lg:})
+ \/ (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        B[g::2::,lg::2,lg::2:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::2:,lg::1}
+        ;        A[g::1::,lg::1,lg::1:,{lg::2:,lg::1}/g,in,out,ps]
+              /\ ps' = {lg::1:,lg::2:}
+           ;    (A(A) || A(B))[g::,lg,lg:/g,in,out][{lg::1:,lg::2:}/ps]
+              ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+
+ = "defn. of ||"
+
+    (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        A[g::1::,lg::1,lg::1:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::1:,lg::2}
+        ;        B[g::2::,lg::2,lg::2:,{lg::1:,lg::2}/g,in,out,ps]
+              /\ ps' = {lg::1:,lg::2:}
+           ; s' = s /\ ps' = {lg:})
+ \/ (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        B[g::2::,lg::2,lg::2:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::2:,lg::1}
+        ;        A[g::1::,lg::1,lg::1:,{lg::2:,lg::1}/g,in,out,ps]
+              /\ ps' = {lg::1:,lg::2:}
+           ;    (   ps(in) /\ s' = s /\ ps' = ps (-/+) (in,{lg1,lg2})
+                 \/ A(A)[g1::,lg1,lg1:/g,in,out]
+                 \/ A(B)[g2::,lg2,lg2:/g,in,out]
+                 \/     ps(lg1:,lg2:)
+                     /\ s' = s
+                     /\ ps' = ps (-/+) ({lg1:,lg2:},out))
+                [g::,lg,lg:/g,in,out]
+                [{lg::1:,lg::2:}/ps]
+              ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+
+ = "simplify"
+
+    (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        A[g::1::,lg::1,lg::1:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::1:,lg::2}
+        ;        B[g::2::,lg::2,lg::2:,{lg::1:,lg::2}/g,in,out,ps]
+              /\ ps' = {lg::1:,lg::2:}
+           ; s' = s /\ ps' = {lg:})
+ \/ (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        B[g::2::,lg::2,lg::2:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::2:,lg::1}
+        ;        A[g::1::,lg::1,lg::1:,{lg::2:,lg::1}/g,in,out,ps]
+              /\ ps' = {lg::1:,lg::2:}
+           ;            {lg::1:,lg::2:}(lg)
+                     /\ s' = s
+                     /\ ps' = {lg::1:,lg::2:} (-/+) (lg,{lg::1,lg::2})
+                 \/ A(A)[g::1::,lg::1,lg::1:,{lg::1:,lg::2:}/g,in,out,ps]
+                 \/ A(B)[g::2::,lg::2,lg::2:,{lg::1:,lg::2:}/g,in,out,ps]
+                 \/     {lg::1:,lg::2:}(lg::1:,lg::2:)
+                     /\ s' = s
+                     /\ ps' = {lg::1:,lg::2:} (-/+) ({lg::1:,lg::2:},lg:)
+              ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+
+ = "simplify"
+
+    (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        A[g::1::,lg::1,lg::1:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::1:,lg::2}
+        ;        B[g::2::,lg::2,lg::2:,{lg::1:,lg::2}/g,in,out,ps]
+              /\ ps' = {lg::1:,lg::2:}
+           ; s' = s /\ ps' = {lg:})
+ \/ (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        B[g::2::,lg::2,lg::2:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::2:,lg::1}
+        ;        A[g::1::,lg::1,lg::1:,{lg::2:,lg::1}/g,in,out,ps]
+              /\ ps' = {lg::1:,lg::2:}
+           ;        A(A)[g::1::,lg::1,lg::1:,{lg::1:,lg::2:}/g,in,out,ps]
+                 \/ A(B)[g::2::,lg::2,lg::2:,{lg::1:,lg::2:}/g,in,out,ps]
+                 \/ s' = s /\ ps' = {lg:}
+              ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+
+ = "defn. of A"
+
+    (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        A[g::1::,lg::1,lg::1:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::1:,lg::2}
+        ;        B[g::2::,lg::2,lg::2:,{lg::1:,lg::2}/g,in,out,ps]
+              /\ ps' = {lg::1:,lg::2:}
+           ; s' = s /\ ps' = {lg:})
+ \/ (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        B[g::2::,lg::2,lg::2:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::2:,lg::1}
+        ;        A[g::1::,lg::1,lg::1:,{lg::2:,lg::1}/g,in,out,ps]
+              /\ ps' = {lg::1:,lg::2:}
+           ;        (ps(in) /\ A /\ ps' = ps (-/+) (in,out))
+                    [g::1::,lg::1,lg::1:,{lg::1:,lg::2:}/g,in,out,ps]
+                 \/ A(B)[g::2::,lg::2,lg::2:,{lg::1:,lg::2:}/g,in,out,ps]
+                 \/ s' = s /\ ps' = {lg:}
+              ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+
+ = "simplify"
+
+    (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        A[g::1::,lg::1,lg::1:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::1:,lg::2}
+        ;        B[g::2::,lg::2,lg::2:,{lg::1:,lg::2}/g,in,out,ps]
+              /\ ps' = {lg::1:,lg::2:}
+           ; s' = s /\ ps' = {lg:})
+ \/ (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        B[g::2::,lg::2,lg::2:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::2:,lg::1}
+        ;        A[g::1::,lg::1,lg::1:,{lg::2:,lg::1}/g,in,out,ps]
+              /\ ps' = {lg::1:,lg::2:}
+           ;            {lg::1:,lg::2:}(lg::1)
+                     /\ A[g::1::,lg::1,lg::1:,{lg::1:,lg::2:}/g,in,out,ps]
+                     /\ ps' = {lg::1:,lg::2:} (-/+) (lg::1,lg::1:)
+                 \/ A(B)[g::2::,lg::2,lg::2:,{lg::1:,lg::2:}/g,in,out,ps]
+                 \/ s' = s /\ ps' = {lg:}
+              ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+
+ = "simplify"
+
+    (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        A[g::1::,lg::1,lg::1:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::1:,lg::2}
+        ;        B[g::2::,lg::2,lg::2:,{lg::1:,lg::2}/g,in,out,ps]
+              /\ ps' = {lg::1:,lg::2:}
+           ; s' = s /\ ps' = {lg:})
+ \/ (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        B[g::2::,lg::2,lg::2:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::2:,lg::1}
+        ;        A[g::1::,lg::1,lg::1:,{lg::2:,lg::1}/g,in,out,ps]
+              /\ ps' = {lg::1:,lg::2:}
+           ;        A(B)[g::2::,lg::2,lg::2:,{lg::1:,lg::2:}/g,in,out,ps]
+                 \/ s' = s /\ ps' = {lg:}
+              ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+
+ = "defn. of A"
+
+    (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        A[g::1::,lg::1,lg::1:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::1:,lg::2}
+        ;        B[g::2::,lg::2,lg::2:,{lg::1:,lg::2}/g,in,out,ps]
+              /\ ps' = {lg::1:,lg::2:}
+           ; s' = s /\ ps' = {lg:})
+ \/ (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        B[g::2::,lg::2,lg::2:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::2:,lg::1}
+        ;        A[g::1::,lg::1,lg::1:,{lg::2:,lg::1}/g,in,out,ps]
+              /\ ps' = {lg::1:,lg::2:}
+           ;        (ps(in) /\ B /\ ps' = ps (-/+) (in,out))
+                    [g::2::,lg::2,lg::2:,{lg::1:,lg::2:}/g,in,out,ps]
+                 \/ s' = s /\ ps' = {lg:}
+              ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+
+ = "simplify"
+
+    (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        A[g::1::,lg::1,lg::1:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::1:,lg::2}
+        ;        B[g::2::,lg::2,lg::2:,{lg::1:,lg::2}/g,in,out,ps]
+              /\ ps' = {lg::1:,lg::2:}
+           ; s' = s /\ ps' = {lg:})
+ \/ (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        B[g::2::,lg::2,lg::2:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::2:,lg::1}
+        ;        A[g::1::,lg::1,lg::1:,{lg::2:,lg::1}/g,in,out,ps]
+              /\ ps' = {lg::1:,lg::2:}
+           ;            {lg::1:,lg::2:}(lg::2)
+                     /\ B[g::2::,lg::2,lg::2:,{lg::1:,lg::2:}/g,in,out,ps]
+                     /\ ps' = {lg::1:,lg::2:} (-/+) (lg::2,lg::2:)
+                 \/ s' = s /\ ps' = {lg:}
+              ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+
+ = "simplify"
+
+    (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        A[g::1::,lg::1,lg::1:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::1:,lg::2}
+        ;        B[g::2::,lg::2,lg::2:,{lg::1:,lg::2}/g,in,out,ps]
+              /\ ps' = {lg::1:,lg::2:}
+           ; s' = s /\ ps' = {lg:})
+ \/ (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        B[g::2::,lg::2,lg::2:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::2:,lg::1}
+        ;        A[g::1::,lg::1,lg::1:,{lg::2:,lg::1}/g,in,out,ps]
+              /\ ps' = {lg::1:,lg::2:}
+           ;    s' = s /\ ps' = {lg:}
+              ; ~ps(lg:) * (A(A) || A(B))[g::,lg,lg:/g,in,out])
+
+ = "obs'-;-*-prop, given ps = {lg:} => ps(lg:)"
+
+    (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        A[g::1::,lg::1,lg::1:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::1:,lg::2}
+        ;        B[g::2::,lg::2,lg::2:,{lg::1:,lg::2}/g,in,out,ps]
+              /\ ps' = {lg::1:,lg::2:}
+           ; s' = s /\ ps' = {lg:})
+ \/ (  s' = s /\ ps' = {lg::1,lg::2}
+     ;        B[g::2::,lg::2,lg::2:,{lg::1,lg::2}/g,in,out,ps]
+           /\ ps' = {lg::2:,lg::1}
+        ;        A[g::1::,lg::1,lg::1:,{lg::2:,lg::1}/g,in,out,ps]
+              /\ ps' = {lg::1:,lg::2:}
+           ; s' = s /\ ps' = {lg:})
+
+\end{verbatim}
+
+\newpage
+\HDRb{$\A(A) \lcond c \A(B)$}
+
+\begin{verbatim}
+A(A) <$ c $> A(B)
+
+ = "defn. of <$>"
+
+    ps(in) /\ s' = s /\ c /\ ps' = ps (-/+) (in,lg1)
+ \/ ps(in) /\ s' = s /\ ~c /\ ps' = ps (-/+) (in,lg2)
+ \/ A(A)[g1:,lg1/g,in]
+ \/ A(B)[g2:,lg2/g,in]
+
+ = "defn. of A"
+
+    ps(in) /\ s' = s /\ c /\ ps' = ps (-/+) (in,lg1)
+ \/ ps(in) /\ s' = s /\ ~c /\ ps' = ps (-/+) (in,lg2)
+ \/ (ps(in) /\ A /\ ps' = ps (-/+) (in,out))[g1:,lg1/g,in]
+ \/ A(B)[g2:,lg2/g,in]
+
+ = "defn. of A"
+
+    ps(in) /\ s' = s /\ c /\ ps' = ps (-/+) (in,lg1)
+ \/ ps(in) /\ s' = s /\ ~c /\ ps' = ps (-/+) (in,lg2)
+ \/ (ps(in) /\ A /\ ps' = ps (-/+) (in,out))[g1:,lg1/g,in]
+ \/ (ps(in) /\ B /\ ps' = ps (-/+) (in,out))[g2:,lg2/g,in]
+
+ = "simplify"
+
+    ps(in) /\ s' = s /\ c /\ ps' = ps (-/+) (in,lg1)
+ \/ ps(in) /\ s' = s /\ ~c /\ ps' = ps (-/+) (in,lg2)
+ \/ ps(lg1) /\ A[g1:,lg1/g,in] /\ ps' = ps (-/+) (lg1,out)
+ \/ ps(lg2) /\ B[g2:,lg2/g,in] /\ ps' = ps (-/+) (lg2,out)
+\end{verbatim}
+
+\newpage
+\HDRc{$run(\A(A) \lcond c \A(B))$}
+
+\begin{verbatim}
+run(A(A) <$ c $> A(B))
+
+ = "defn. of run.3"
+
+   (A(A) <$ c $> A(B))[g::,lg,lg:,lg/g,in,out,ps]
+ ; ~ps(lg:) * (A(A) <$ c $> A(B))[g::,lg,lg:/g,in,out]
+
+ = "defn. of <$>"
+
+   (   ps(in) /\ s' = s /\ c /\ ps' = ps (-/+) (in,lg1)
+    \/ ps(in) /\ s' = s /\ ~c /\ ps' = ps (-/+) (in,lg2)
+    \/ A(A)[g1:,lg1/g,in]
+    \/ A(B)[g2:,lg2/g,in])
+   [g::,lg,lg:,lg/g,in,out,ps]
+ ; ~ps(lg:) * (A(A) <$ c $> A(B))[g::,lg,lg:/g,in,out]
+
+ = "simplify"
+
+       lg(lg) /\ s' = s /\ c /\ ps' = lg (-/+) (lg,lg::1)
+    \/ lg(lg) /\ s' = s /\ ~c /\ ps' = lg (-/+) (lg,lg::2)
+    \/ A(A)[g::1:,lg::1,lg:,lg/g,in,out,ps]
+    \/ A(B)[g::2:,lg::2,lg:,lg/g,in,out,ps]
+ ; ~ps(lg:) * (A(A) <$ c $> A(B))[g::,lg,lg:/g,in,out]
+
+ = "simplify"
+
+       s' = s /\ c /\ ps' = {lg::1}
+    \/ s' = s /\ ~c /\ ps' = {lg::2}
+    \/ A(A)[g::1:,lg::1,lg:,lg/g,in,out,ps]
+    \/ A(B)[g::2:,lg::2,lg:,lg/g,in,out,ps]
+ ; ~ps(lg:) * (A(A) <$ c $> A(B))[g::,lg,lg:/g,in,out]
+
+ = "defn. of A"
+
+       s' = s /\ c /\ ps' = {lg::1}
+    \/ s' = s /\ ~c /\ ps' = {lg::2}
+    \/ (ps(in) /\ A /\ ps' = ps (-/+) (in,out))[g::1:,lg::1,lg:,lg/g,in,out,ps]
+    \/ A(B)[g::2:,lg::2,lg:,lg/g,in,out,ps]
+ ; ~ps(lg:) * (A(A) <$ c $> A(B))[g::,lg,lg:/g,in,out]
+
+ = "simplify"
+
+       s' = s /\ c /\ ps' = {lg::1}
+    \/ s' = s /\ ~c /\ ps' = {lg::2}
+    \/     lg(lg::1)
+        /\ A[g::1:,lg::1,lg:,lg/g,in,out,ps]
+        /\ ps' = lg (-/+) (lg::1,lg:)
+    \/ A(B)[g::2:,lg::2,lg:,lg/g,in,out,ps]
+ ; ~ps(lg:) * (A(A) <$ c $> A(B))[g::,lg,lg:/g,in,out]
+
+ = "simplify"
+
+       s' = s /\ c /\ ps' = {lg::1}
+    \/ s' = s /\ ~c /\ ps' = {lg::2}
+    \/ A(B)[g::2:,lg::2,lg:,lg/g,in,out,ps]
+ ; ~ps(lg:) * (A(A) <$ c $> A(B))[g::,lg,lg:/g,in,out]
+
+ = "defn. of A"
+
+       s' = s /\ c /\ ps' = {lg::1}
+    \/ s' = s /\ ~c /\ ps' = {lg::2}
+    \/ (ps(in) /\ B /\ ps' = ps (-/+) (in,out))[g::2:,lg::2,lg:,lg/g,in,out,ps]
+ ; ~ps(lg:) * (A(A) <$ c $> A(B))[g::,lg,lg:/g,in,out]
+
+ = "simplify"
+
+       s' = s /\ c /\ ps' = {lg::1}
+    \/ s' = s /\ ~c /\ ps' = {lg::2}
+    \/     lg(lg::2)
+        /\ B[g::2:,lg::2,lg:,lg/g,in,out,ps]
+        /\ ps' = lg (-/+) (lg::2,lg:)
+ ; ~ps(lg:) * (A(A) <$ c $> A(B))[g::,lg,lg:/g,in,out]
+
+ = "simplify"
+
+   s' = s /\ c /\ ps' = {lg::1} \/ s' = s /\ ~c /\ ps' = {lg::2}
+ ; ~ps(lg:) * (A(A) <$ c $> A(B))[g::,lg,lg:/g,in,out]
+
+ = "\\/-;-distr"
+
+    (  s' = s /\ c /\ ps' = {lg::1}
+     ; ~ps(lg:) * (A(A) <$ c $> A(B))[g::,lg,lg:/g,in,out])
+ \/ (  s' = s /\ ~c /\ ps' = {lg::2}
+     ; ~ps(lg:) * (A(A) <$ c $> A(B))[g::,lg,lg:/g,in,out])
+
+ = "obs'-;-*-prop, given ps = {lg::1} => ~ps(lg:)"
+
+    (  s' = s /\ c /\ ps' = {lg::1}
+     ;    (A(A) <$ c $> A(B))[g::,lg,lg:/g,in,out][{lg::1}/ps]
+        ; ~ps(lg:) * (A(A) <$ c $> A(B))[g::,lg,lg:/g,in,out])
+ \/ (  s' = s /\ ~c /\ ps' = {lg::2}
+     ; ~ps(lg:) * (A(A) <$ c $> A(B))[g::,lg,lg:/g,in,out])
+
+ = "defn. of <$>"
+
+    (  s' = s /\ c /\ ps' = {lg::1}
+     ;    (   ps(in) /\ s' = s /\ c /\ ps' = ps (-/+) (in,lg1)
+           \/ ps(in) /\ s' = s /\ ~c /\ ps' = ps (-/+) (in,lg2)
+           \/ A(A)[g1:,lg1/g,in]
+           \/ A(B)[g2:,lg2/g,in])
+          [g::,lg,lg:/g,in,out]
+          [{lg::1}/ps]
+        ; ~ps(lg:) * (A(A) <$ c $> A(B))[g::,lg,lg:/g,in,out])
+ \/ (  s' = s /\ ~c /\ ps' = {lg::2}
+     ; ~ps(lg:) * (A(A) <$ c $> A(B))[g::,lg,lg:/g,in,out])
+
+ = "simplify"
+
+    (  s' = s /\ c /\ ps' = {lg::1}
+     ;        {lg::1}(lg) /\ s' = s /\ c /\ ps' = {lg::1} (-/+) (lg,lg::1)
+           \/ {lg::1}(lg) /\ s' = s /\ ~c /\ ps' = {lg::1} (-/+) (lg,lg::2)
+           \/ A(A)[g::1:,lg::1,lg:,{lg::1}/g,in,out,ps]
+           \/ A(B)[g::2:,lg::2,lg:,{lg::1}/g,in,out,ps]
+        ; ~ps(lg:) * (A(A) <$ c $> A(B))[g::,lg,lg:/g,in,out])
+ \/ (  s' = s /\ ~c /\ ps' = {lg::2}
+     ; ~ps(lg:) * (A(A) <$ c $> A(B))[g::,lg,lg:/g,in,out])
+
+ = "simplify"
+
+    (  s' = s /\ c /\ ps' = {lg::1}
+     ;        A(A)[g::1:,lg::1,lg:,{lg::1}/g,in,out,ps]
+           \/ A(B)[g::2:,lg::2,lg:,{lg::1}/g,in,out,ps]
+        ; ~ps(lg:) * (A(A) <$ c $> A(B))[g::,lg,lg:/g,in,out])
+ \/ (  s' = s /\ ~c /\ ps' = {lg::2}
+     ; ~ps(lg:) * (A(A) <$ c $> A(B))[g::,lg,lg:/g,in,out])
+
+ = "defn. of A"
+
+    (  s' = s /\ c /\ ps' = {lg::1}
+     ;        (ps(in) /\ A /\ ps' = ps (-/+) (in,out))
+              [g::1:,lg::1,lg:,{lg::1}/g,in,out,ps]
+           \/ A(B)[g::2:,lg::2,lg:,{lg::1}/g,in,out,ps]
+        ; ~ps(lg:) * (A(A) <$ c $> A(B))[g::,lg,lg:/g,in,out])
+ \/ (  s' = s /\ ~c /\ ps' = {lg::2}
+     ; ~ps(lg:) * (A(A) <$ c $> A(B))[g::,lg,lg:/g,in,out])
+
+ = "simplify"
+
+    (  s' = s /\ c /\ ps' = {lg::1}
+     ;            {lg::1}(lg::1)
+               /\ A[g::1:,lg::1,lg:,{lg::1}/g,in,out,ps]
+               /\ ps' = {lg::1} (-/+) (lg::1,lg:)
+           \/ A(B)[g::2:,lg::2,lg:,{lg::1}/g,in,out,ps]
+        ; ~ps(lg:) * (A(A) <$ c $> A(B))[g::,lg,lg:/g,in,out])
+ \/ (  s' = s /\ ~c /\ ps' = {lg::2}
+     ; ~ps(lg:) * (A(A) <$ c $> A(B))[g::,lg,lg:/g,in,out])
+
+ = "simplify"
+
+    (  s' = s /\ c /\ ps' = {lg::1}
+     ;        A[g::1:,lg::1,lg:,{lg::1}/g,in,out,ps] /\ ps' = {lg:}
+           \/ A(B)[g::2:,lg::2,lg:,{lg::1}/g,in,out,ps]
+        ; ~ps(lg:) * (A(A) <$ c $> A(B))[g::,lg,lg:/g,in,out])
+ \/ (  s' = s /\ ~c /\ ps' = {lg::2}
+     ; ~ps(lg:) * (A(A) <$ c $> A(B))[g::,lg,lg:/g,in,out])
+
+ = "defn. of A"
+
+    (  s' = s /\ c /\ ps' = {lg::1}
+     ;        A[g::1:,lg::1,lg:,{lg::1}/g,in,out,ps] /\ ps' = {lg:}
+           \/ (ps(in) /\ B /\ ps' = ps (-/+) (in,out))
+              [g::2:,lg::2,lg:,{lg::1}/g,in,out,ps]
+        ; ~ps(lg:) * (A(A) <$ c $> A(B))[g::,lg,lg:/g,in,out])
+ \/ (  s' = s /\ ~c /\ ps' = {lg::2}
+     ; ~ps(lg:) * (A(A) <$ c $> A(B))[g::,lg,lg:/g,in,out])
+
+ = "simplify"
+
+    (  s' = s /\ c /\ ps' = {lg::1}
+     ;        A[g::1:,lg::1,lg:,{lg::1}/g,in,out,ps] /\ ps' = {lg:}
+           \/     {lg::1}(lg::2)
+               /\ B[g::2:,lg::2,lg:,{lg::1}/g,in,out,ps]
+               /\ ps' = {lg::1} (-/+) (lg::2,lg:)
+        ; ~ps(lg:) * (A(A) <$ c $> A(B))[g::,lg,lg:/g,in,out])
+ \/ (  s' = s /\ ~c /\ ps' = {lg::2}
+     ; ~ps(lg:) * (A(A) <$ c $> A(B))[g::,lg,lg:/g,in,out])
+
+ = "simplify"
+
+    (  s' = s /\ c /\ ps' = {lg::1}
+     ;    A[g::1:,lg::1,lg:,{lg::1}/g,in,out,ps] /\ ps' = {lg:}
+        ; ~ps(lg:) * (A(A) <$ c $> A(B))[g::,lg,lg:/g,in,out])
+ \/ (  s' = s /\ ~c /\ ps' = {lg::2}
+     ; ~ps(lg:) * (A(A) <$ c $> A(B))[g::,lg,lg:/g,in,out])
+
+ = "obs'-;-*-prop, given ps = {lg:} => ps(lg:)"
+
+    (  s' = s /\ c /\ ps' = {lg::1}
+     ; A[g::1:,lg::1,lg:,{lg::1}/g,in,out,ps] /\ ps' = {lg:})
+ \/ (  s' = s /\ ~c /\ ps' = {lg::2}
+     ; ~ps(lg:) * (A(A) <$ c $> A(B))[g::,lg,lg:/g,in,out])
+
+ = "obs'-;-*-prop, given ps = {lg::2} => ~ps(lg:)"
+
+    (  s' = s /\ c /\ ps' = {lg::1}
+     ; A[g::1:,lg::1,lg:,{lg::1}/g,in,out,ps] /\ ps' = {lg:})
+ \/ (  s' = s /\ ~c /\ ps' = {lg::2}
+     ;    (A(A) <$ c $> A(B))[g::,lg,lg:/g,in,out][{lg::2}/ps]
+        ; ~ps(lg:) * (A(A) <$ c $> A(B))[g::,lg,lg:/g,in,out])
+
+ = "defn. of <$>"
+
+    (  s' = s /\ c /\ ps' = {lg::1}
+     ; A[g::1:,lg::1,lg:,{lg::1}/g,in,out,ps] /\ ps' = {lg:})
+ \/ (  s' = s /\ ~c /\ ps' = {lg::2}
+     ;    (   ps(in) /\ s' = s /\ c /\ ps' = ps (-/+) (in,lg1)
+           \/ ps(in) /\ s' = s /\ ~c /\ ps' = ps (-/+) (in,lg2)
+           \/ A(A)[g1:,lg1/g,in]
+           \/ A(B)[g2:,lg2/g,in])
+          [g::,lg,lg:/g,in,out]
+          [{lg::2}/ps]
+        ; ~ps(lg:) * (A(A) <$ c $> A(B))[g::,lg,lg:/g,in,out])
+
+ = "simplify"
+
+    (  s' = s /\ c /\ ps' = {lg::1}
+     ; A[g::1:,lg::1,lg:,{lg::1}/g,in,out,ps] /\ ps' = {lg:})
+ \/ (  s' = s /\ ~c /\ ps' = {lg::2}
+     ;        {lg::2}(lg) /\ s' = s /\ c /\ ps' = {lg::2} (-/+) (lg,lg::1)
+           \/ {lg::2}(lg) /\ s' = s /\ ~c /\ ps' = {lg::2} (-/+) (lg,lg::2)
+           \/ A(A)[g::1:,lg::1,lg:,{lg::2}/g,in,out,ps]
+           \/ A(B)[g::2:,lg::2,lg:,{lg::2}/g,in,out,ps]
+        ; ~ps(lg:) * (A(A) <$ c $> A(B))[g::,lg,lg:/g,in,out])
+
+ = "simplify"
+
+    (  s' = s /\ c /\ ps' = {lg::1}
+     ; A[g::1:,lg::1,lg:,{lg::1}/g,in,out,ps] /\ ps' = {lg:})
+ \/ (  s' = s /\ ~c /\ ps' = {lg::2}
+     ;        A(A)[g::1:,lg::1,lg:,{lg::2}/g,in,out,ps]
+           \/ A(B)[g::2:,lg::2,lg:,{lg::2}/g,in,out,ps]
+        ; ~ps(lg:) * (A(A) <$ c $> A(B))[g::,lg,lg:/g,in,out])
+
+ = "defn. of A"
+
+    (  s' = s /\ c /\ ps' = {lg::1}
+     ; A[g::1:,lg::1,lg:,{lg::1}/g,in,out,ps] /\ ps' = {lg:})
+ \/ (  s' = s /\ ~c /\ ps' = {lg::2}
+     ;        (ps(in) /\ A /\ ps' = ps (-/+) (in,out))
+              [g::1:,lg::1,lg:,{lg::2}/g,in,out,ps]
+           \/ A(B)[g::2:,lg::2,lg:,{lg::2}/g,in,out,ps]
+        ; ~ps(lg:) * (A(A) <$ c $> A(B))[g::,lg,lg:/g,in,out])
+
+ = "simplify"
+
+    (  s' = s /\ c /\ ps' = {lg::1}
+     ; A[g::1:,lg::1,lg:,{lg::1}/g,in,out,ps] /\ ps' = {lg:})
+ \/ (  s' = s /\ ~c /\ ps' = {lg::2}
+     ;            {lg::2}(lg::1)
+               /\ A[g::1:,lg::1,lg:,{lg::2}/g,in,out,ps]
+               /\ ps' = {lg::2} (-/+) (lg::1,lg:)
+           \/ A(B)[g::2:,lg::2,lg:,{lg::2}/g,in,out,ps]
+        ; ~ps(lg:) * (A(A) <$ c $> A(B))[g::,lg,lg:/g,in,out])
+
+ = "simplify"
+
+    (  s' = s /\ c /\ ps' = {lg::1}
+     ; A[g::1:,lg::1,lg:,{lg::1}/g,in,out,ps] /\ ps' = {lg:})
+ \/ (  s' = s /\ ~c /\ ps' = {lg::2}
+     ;    A(B)[g::2:,lg::2,lg:,{lg::2}/g,in,out,ps]
+        ; ~ps(lg:) * (A(A) <$ c $> A(B))[g::,lg,lg:/g,in,out])
+
+ = "defn. of A"
+
+    (  s' = s /\ c /\ ps' = {lg::1}
+     ; A[g::1:,lg::1,lg:,{lg::1}/g,in,out,ps] /\ ps' = {lg:})
+ \/ (  s' = s /\ ~c /\ ps' = {lg::2}
+     ;    (ps(in) /\ B /\ ps' = ps (-/+) (in,out))
+          [g::2:,lg::2,lg:,{lg::2}/g,in,out,ps]
+        ; ~ps(lg:) * (A(A) <$ c $> A(B))[g::,lg,lg:/g,in,out])
+
+ = "simplify"
+
+    (  s' = s /\ c /\ ps' = {lg::1}
+     ; A[g::1:,lg::1,lg:,{lg::1}/g,in,out,ps] /\ ps' = {lg:})
+ \/ (  s' = s /\ ~c /\ ps' = {lg::2}
+     ;        {lg::2}(lg::2)
+           /\ B[g::2:,lg::2,lg:,{lg::2}/g,in,out,ps]
+           /\ ps' = {lg::2} (-/+) (lg::2,lg:)
+        ; ~ps(lg:) * (A(A) <$ c $> A(B))[g::,lg,lg:/g,in,out])
+
+ = "simplify"
+
+    (  s' = s /\ c /\ ps' = {lg::1}
+     ; A[g::1:,lg::1,lg:,{lg::1}/g,in,out,ps] /\ ps' = {lg:})
+ \/ (  s' = s /\ ~c /\ ps' = {lg::2}
+     ;    B[g::2:,lg::2,lg:,{lg::2}/g,in,out,ps] /\ ps' = {lg:}
+        ; ~ps(lg:) * (A(A) <$ c $> A(B))[g::,lg,lg:/g,in,out])
+
+ = "obs'-;-*-prop, given ps = {lg:} => ps(lg:)"
+
+    (  s' = s /\ c /\ ps' = {lg::1}
+     ; A[g::1:,lg::1,lg:,{lg::1}/g,in,out,ps] /\ ps' = {lg:})
+ \/ (  s' = s /\ ~c /\ ps' = {lg::2}
+     ; B[g::2:,lg::2,lg:,{lg::2}/g,in,out,ps] /\ ps' = {lg:})
+\end{verbatim}

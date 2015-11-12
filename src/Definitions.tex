@@ -1,0 +1,25 @@
+% Definitions only - no rendered output
+
+\def \NmDecl {N \in Name}
+\def \NmDefn {\mbox{Names for things}}
+
+\def \ResDecl {p,q,r,rqd,prv \in Res}
+\def \ResDefn {\mbox{Resource Specs.}}
+
+\def\TSKB#1#2{?{#1}~!{#2}}
+\def\TSKN#1#2{({#1}~{#2})}
+\def\TSK#1#2#3{\TSKN{#1}{\TSKB{#2}{#3}}}
+
+\def \TaskDecl {T \in Task}
+\def \TaskDefn {\TSKN N \TbdyDecl}
+
+\def \TbdyDecl {TBody}
+\def \TbdyDefn {\TSKB{r^*}{p^*}}
+
+\def \WPMLDecl {\omega \in PML_w}
+\def \WPMLDefn {N \fun TBody}
+
+\def\A{\mathbf{A}}
+\def\rel{\mathrel{\leftrightarrow}}
+\def\figref#1{Fig. \ref{#1}, p\pageref{#1}}
+\def\secref#1{\S\ref{#1}, p\pageref{#1}}
