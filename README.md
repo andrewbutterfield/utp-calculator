@@ -13,6 +13,9 @@ This will be a Haskell Library Package for doing UTP semantics calculations
 For now just clone, go into /src and run
 > ghci UTPCalcMAIN.lhs
 
+For now this code may not compile -- this will be marked
+DNC (Does Not Compile) in the commit message.
+
 Eventually it'll get cabal'd
 
 ### Contribution guidelines ###

@@ -469,7 +469,7 @@ then the following law is really useful:
 \begin{code}
 pvsubst :: (Ord s) => Dict s -> String -> Substn s -> Pred s
 pvsubst d p sub
- = case plookup p d of
+ = case vlookup p d of
      Nothing  ->  mkPSub pr sub
      Just alf  ->  mkPSub pr $ filter ((`elem` alf) . fst) sub
  where
@@ -611,7 +611,7 @@ Mostly, we want to know if $x \notin P$.
 dftlyNotInP :: Dict s -> String -> Pred s -> Bool
 
 dftlyNotInP d v (PVar p)
- = case plookup p d of
+ = case vlookup p d of
     Just alf_p -> not (v `elem` alf_p)
     Nothing -> False
 
@@ -738,7 +738,7 @@ $s'=s$ conjoined with $A$ whose alphabet is $\setof{s,s'}$.
 \begin{code}
 isIdleSeqAtom d s1 s2 pA
  | isIdle s1 s2
-    = case plookup pA d of
+    = case vlookup pA d of
        Nothing  -> False
        Just a_alf  -> sort a_alf == ["s","s'"]
  | otherwise  =  False

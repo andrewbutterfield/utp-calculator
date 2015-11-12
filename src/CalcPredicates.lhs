@@ -16,22 +16,6 @@ versionCalcPredicates = "CP-0.6"
 
 \HDRb{Syntax}
 
-
-Our language is a ``while'' language built over a general notion
-of atomic state-transformers ($a, \A(a)$), with an added parallel construct.
-\begin{eqnarray*}
-  p,q ::= Idle | \A(a) | p \lseq q | p\parallel q | p \lcond c q | c \wdo p
-\end{eqnarray*}
-We shall often use assignments as a convenient wa
- to describe simple atomic actions.
-
-We use $\lseq$, $\lcond{}$ and $\wdo$ here, instead of $;$, $\cond{}$ and $*$
-in order to distinguish them from the similar UTP concepts.
-In other words, we cannot do the usual UTP trick of modelling language features
-like sequential composition or conditional by ``punning'',
-because we have to add a lot of control structure to model the parallelism
-and interleaving correctly.
-
 First, we build some infrastructure to support a flexible expression and predicate
 syntax, with an emphasis on allowing tailored notations
 (e.g. writing $ps(in)$ and $ps(in,out)$ rather than $in \in ps$ or $\setof{in,out} \subseteq ps$)
@@ -41,21 +25,19 @@ and effective pretty-printing of large complex nested terms.
 \HDRc{Expression Datatype}\label{hc:ExprData}
 
 We start by defining an expression space that includes
-variables and function applications,
+booleans, integers,
+variables, function applications, and substitutions,
 all parameterised by a generic state type:
 \begin{code}
 data Expr s
  = St s  -- a value of type State
  | B Bool
+ | Z Int
  | Var String
  | App String [Expr s]
- | Set [Expr s]
  | Sub (Expr s) (Substn s)
  | Undef
  deriving (Eq,Ord,Show)
-
-mkSet :: Ord s => [Expr s] -> Expr s
-mkSet = Set . sort . nub
 
 type Substn s = [(String,Expr s)]
 mkSub e []  = e
@@ -71,8 +53,10 @@ viewing them atomically as far as highlighting goes.}
 \newpage
 \HDRc{Predicate Datatype}\label{hc:PredData}
 
-Now we need a logic syntax, that has key UTP notations
-and the programming language embedded in it
+Now we need a  predicate syntax,
+which has basic predicates 
+(true, false, predicate-variables, equality and lifted expressions)
+along with a generic predicate composite, and substitution.
 \DRAFT{
  Will completely re-do this replacing tags like
   \texttt{And}, \texttt{Or}, and \texttt{Iter} (say)
@@ -83,26 +67,10 @@ data Pred s
  = T
  | F
  | PVar String
- | Equal (Expr s) (Expr s)         -- 5
+ | Equal (Expr s) (Expr s)         
  | Atm (Expr s)
- | Not (Pred s)                    -- 6
- | And [Pred s]                    -- 4
- | Or [Pred s]                     -- 3
- | Imp (Pred s) (Pred s)       -- 2
- | Cond (Pred s) (Pred s) (Pred s) -- 1
- | PSub (Pred s) (Substn s)        -- 7
- -- UTP
- | Skip
- | Seq (Pred s) (Pred s)           -- 2
- | Iter (Pred s) (Pred s)          -- 6
- | PFun String [Pred s]
- -- Parallel Prog
- | PAtm (Pred s)
- | PIdle
- | PSeq (Pred s) (Pred s)           -- 3
- | PPar (Pred s) (Pred s)           -- 2
- | PCond (Pred s) (Pred s) (Pred s) -- 1
- | PIter (Pred s) (Pred s)          -- 6
+ | Comp String [Pred s]
+ | PSub (Pred s) (Substn s)      
  deriving (Eq, Ord, Show)
 \end{code}
 
@@ -115,10 +83,13 @@ to appropriate definitions.
 A dictionary entry is a sum of  definition types defined below
 \begin{code}
 data Entry s
- = FunEntry (FunDef s)
+ = PredEntry (PredDef s)
+ | FunEntry (FunDef s)
  | AlfEntry AlfDef
  | PVarEntry PVarDef
 
+isPredEntry (PredEntry _) = True
+isPredEntry _ = False
 isFunEntry (FunEntry _) = True
 isFunEntry _ = False
 isAlfEntry (AlfEntry _) = True
@@ -126,11 +97,18 @@ isAlfEntry _ = False
 isPVarEntry (PVarEntry _) = True
 isPVarEntry _ = False
 
+thePredEntry (PredEntry pd) = pd
 theFunEntry (FunEntry fd) = fd
 theAlfEntry (AlfEntry ad) = ad
 thePVarEntry (PVarEntry pd) = pd
 
 type Dict s = M.Map String (Entry s)
+
+plookup :: String -> Dict s -> Maybe (PredDef s)
+plookup nm d
+ = case M.lookup nm d of
+     Just (PredEntry pd)  ->  Just pd
+     _                    ->  Nothing
 
 flookup :: String -> Dict s -> Maybe (FunDef s)
 flookup nm d
@@ -144,8 +122,8 @@ alookup nm d
      Just (AlfEntry ad)  ->  Just ad
      _                   ->  Nothing
 
-plookup :: String -> Dict s -> Maybe PVarDef
-plookup nm d
+vlookup :: String -> Dict s -> Maybe PVarDef
+vlookup nm d
  = case M.lookup nm d of
      Just (PVarEntry pd)  ->  Just pd
      _                    ->  Nothing
@@ -159,7 +137,51 @@ mergeEntry (AlfEntry a1) (AlfEntry a2) = AlfEntry (a1++a2)
 mergeEntry e _ = e
 \end{code}
 
-\newpage
+Predicate definitions
+\begin{code}
+data PredDef s
+ = PD [String]                -- list of formal/bound variables
+      (Pred s)                 -- definition body
+      (Dict s -> [Pred s] -> String)     -- pretty printer
+      (Dict s -> [Pred s] -> ( String   -- eval name
+                             , Expr s )) -- evaluator
+
+instance Show s => Show (PredDef s) where
+  show (PD fvs pr _ _) = show fvs ++ " |-> " ++ show pr
+\end{code}
+We interpret a \texttt{Dict} entry like
+\begin{verbatim}
+"P" |->  (["Q1","Q2",...,"Qn"], pr, pf, pv)
+\end{verbatim}
+as defining a function:
+\RLEQNS{
+   P(Q_1,Q_2,\ldots,Q_n) &\defs& pr
+}
+with $pf_\delta(Q_1,Q_2,\ldots,Q_n)$ being a specialised print function
+that renders a predicate as required,
+and $pv_\delta(Q_1,Q_2,\ldots,Q_n)$ is an valuation function that
+attempts to simplify the predicate..
+Both are parameterised with a dictionary argument ($\delta$),
+which may, or may not, be the dictionary in which the entry occurs.
+The string in the result is empty if it failed,
+otherwise gives the name of the predicate to be used in the justification
+of a proof step.
+The evaluator is free to use or ignore the definition body expression $pr$.
+
+We define a default evaluator that does nothing,
+and a simple wrapper for evals that always do something
+\begin{code}
+pnone :: ( String, Pred s)
+pnone = ( "", F )
+nosimp :: [Pred s] -> ( String, Pred s)
+nosimp es = pnone
+pdoes :: String -> (Dict s -> [Pred s] -> Pred s)
+     -> Dict s -> [Pred s]
+     -> ( String, Pred s )
+pdoes nm p d ps = ( nm, p d ps )
+\end{code}
+
+
 Function definitions
 \begin{code}
 data FunDef s
