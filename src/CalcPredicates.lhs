@@ -21,7 +21,7 @@ syntax, with an emphasis on allowing tailored notations
 (e.g. writing $ps(in)$ and $ps(in,out)$ rather than $in \in ps$ or $\setof{in,out} \subseteq ps$)
 and effective pretty-printing of large complex nested terms.
 
-\newpage
+
 \HDRc{Expression Datatype}\label{hc:ExprData}
 
 We start by defining an expression space that includes
@@ -50,31 +50,26 @@ ssame sub1 sub2 = sort sub1 == sort sub2
 \DRAFT{We shall keep expressions as-is for now,
 viewing them atomically as far as highlighting goes.}
 
-\newpage
+
 \HDRc{Predicate Datatype}\label{hc:PredData}
 
 Now we need a  predicate syntax,
-which has basic predicates 
+which has basic predicates
 (true, false, predicate-variables, equality and lifted expressions)
 along with a generic predicate composite, and substitution.
-\DRAFT{
- Will completely re-do this replacing tags like
-  \texttt{And}, \texttt{Or}, and \texttt{Iter} (say)
- with \texttt{Comp "And"}, \texttt{Comp "Or"} and \texttt{Comp "Iter"}.
-}
 \begin{code}
 data Pred s
  = T
  | F
  | PVar String
- | Equal (Expr s) (Expr s)         
+ | Equal (Expr s) (Expr s)
  | Atm (Expr s)
  | Comp String [Pred s]
- | PSub (Pred s) (Substn s)      
+ | PSub (Pred s) (Substn s)
  deriving (Eq, Ord, Show)
 \end{code}
 
-\newpage
+
 \HDRb{Dictionary}\label{hb:DataDict}
 
 We need a dictionary that maps various names
@@ -84,21 +79,21 @@ A dictionary entry is a sum of  definition types defined below
 \begin{code}
 data Entry s
  = PredEntry (PredDef s)
- | FunEntry (FunDef s)
+ | ExprEntry (ExprDef s)
  | AlfEntry AlfDef
  | PVarEntry PVarDef
 
 isPredEntry (PredEntry _) = True
 isPredEntry _ = False
-isFunEntry (FunEntry _) = True
-isFunEntry _ = False
+isExprEntry (ExprEntry _) = True
+isExprEntry _ = False
 isAlfEntry (AlfEntry _) = True
 isAlfEntry _ = False
 isPVarEntry (PVarEntry _) = True
 isPVarEntry _ = False
 
 thePredEntry (PredEntry pd) = pd
-theFunEntry (FunEntry fd) = fd
+theExprEntry (ExprEntry fd) = fd
 theAlfEntry (AlfEntry ad) = ad
 thePVarEntry (PVarEntry pd) = pd
 
@@ -110,10 +105,10 @@ plookup nm d
      Just (PredEntry pd)  ->  Just pd
      _                    ->  Nothing
 
-flookup :: String -> Dict s -> Maybe (FunDef s)
+flookup :: String -> Dict s -> Maybe (ExprDef s)
 flookup nm d
  = case M.lookup nm d of
-     Just (FunEntry fd)  ->  Just fd
+     Just (ExprEntry fd)  ->  Just fd
      _                   ->  Nothing
 
 alookup :: String -> Dict s -> Maybe AlfDef
@@ -142,7 +137,7 @@ Predicate definitions
 data PredDef s
  = PD [String]                -- list of formal/bound variables
       (Pred s)                 -- definition body
-      (Dict s -> [Pred s] -> String)     -- pretty printer
+      (Dict s -> [Pred s] -> PP)     -- pretty printer
       (Dict s -> [Pred s] -> ( String   -- eval name
                              , Expr s )) -- evaluator
 
@@ -151,7 +146,7 @@ instance Show s => Show (PredDef s) where
 \end{code}
 We interpret a \texttt{Dict} entry like
 \begin{verbatim}
-"P" |->  (["Q1","Q2",...,"Qn"], pr, pf, pv)
+"P" |->  PredEntry (PD  ["Q1","Q2",...,"Qn"] pr pf pv)
 \end{verbatim}
 as defining a function:
 \RLEQNS{
@@ -182,21 +177,21 @@ pdoes nm p d ps = ( nm, p d ps )
 \end{code}
 
 
-Function definitions
+Expression definitions
 \begin{code}
-data FunDef s
- = FD [String]                -- list of formal/bound variables
+data ExprDef s
+ = ED [String]                -- list of formal/bound variables
       (Expr s)                 -- definition body
       (Dict s -> [Expr s] -> String)     -- pretty printer
       (Dict s -> [Expr s] -> ( String   -- eval name
                              , Expr s )) -- evaluator
 
-instance Show s => Show (FunDef s) where
-  show (FD fvs e _ _) = show fvs ++ " |-> " ++ show e
+instance Show s => Show (ExprDef s) where
+  show (ED fvs e _ _) = show fvs ++ " |-> " ++ show e
 \end{code}
 We interpret a \texttt{Dict} entry like
 \begin{verbatim}
-"f" |->  (["v1","v2",...,"vn"], e, pf, ev)
+"f" |->  ExprEntry (ED ["v1","v2",...,"vn"] e pf ev)
 \end{verbatim}
 as defining a function:
 \RLEQNS{
@@ -226,14 +221,14 @@ does :: String -> (Dict s -> [Expr s] -> Expr s)
 does nm f d es = ( nm, f d es )
 \end{code}
 
-\newpage
+
 We also want to define alphabets, as sets of names
 \begin{code}
 type AlfDef = [String]
 \end{code}
 An entry
 \begin{verbatim}
-"a" |-> ["v1","v2",..,"vn"]
+"a" |-> AlfEntry ["v1","v2",..,"vn"]
 \end{verbatim}
 defines an alphabet:
 \RLEQNS{
@@ -315,7 +310,7 @@ addDash v = v ++"'"
 remDash = init
 \end{code}
 
-\newpage
+
 We sometimes want to associate extra information with given
 predicate variables:
 \begin{code}
@@ -323,13 +318,13 @@ type PVarDef = [String] -- for now, just its alphabet
 \end{code}
 An entry
 \begin{verbatim}
-  "P" |-> ["v1","v2",..,"vn"]
+  "P" |-> PVarEntry ["v1","v2",..,"vn"]
 \end{verbatim}
 declares the alphabet associated with that predicate variable:
 \RLEQNS{
    \alpha P &=&  \setof{v_1,v_2,\ldots,v_n}
 }
-\newpage
+
 \HDRb{Display}
 
 We define the display of an expression using a dictionary
@@ -339,12 +334,11 @@ edshow :: Show s => Dict s -> Expr s -> String
 edshow d (St s)     =  show s
 edshow d (B b)      =  show b
 edshow d (Var v)    =  v
-edshow d (Set es)   =  "{" ++ dlshow d "," es ++ "}"
 edshow d Undef      =  "Undefined"
 edshow d (App f es)
  = case flookup f d of
     Nothing  ->  stdFShow d f es
-    Just (FD _ _ showf _) -> showf d es
+    Just (ED _ _ showf _) -> showf d es
 edshow d (Sub e sub) = pshow d e ++ showSub d sub
 
 dlshow d sep xs = concat (intersperse sep $ map (edshow d) xs)
@@ -360,7 +354,7 @@ showSub d subs
 lsshow vs = concat $ intersperse "," vs
 \end{code}
 
-\newpage
+
 By default we print \texttt{App f [e1,...,en]} as \texttt{f(e1,...,en)},
 using the following helper functions:
 \begin{code}
@@ -398,7 +392,7 @@ paren outerp innerp (PP w (PPC _ _ sepp pps))
 paren outerp innerp pp = pp
 \end{code}
 
-\newpage
+
 Pretty-printing predicates
 \begin{code}
 showp :: (Ord s, Show s) => Dict s -> Int -> Pred s -> PP
@@ -407,62 +401,15 @@ showp d _ F  = ppa "false"
 showp d _ (PVar p)  = ppa p
 showp d p (Equal e1 e2)
    = paren p precEq $ ppopen " = " [ppa $ edshow d e1, ppa $ edshow d e2]
-showp d p (Not pr)
-   = paren p precNot $ pplist [ppa "~", showp d precNot pr]
 showp d p (Atm e) = ppa $ edshow d e
-showp d p (And []) = ppa "true"
-showp d p (And [pr]) = showp d p pr
-showp d p (And prs)
-   = paren p precAnd $ ppopen " /\\ " $ map (showp d precAnd) prs
-showp d p (Or []) = ppa "false"
-showp d p (Or [pr]) = showp d p pr
-showp d p (Or prs)
- = paren p precOr $ ppopen " \\/ " $ map (showp d precOr) prs
-showp d p (Imp pra prc)
-    = paren p precImp $ ppopen " => " [ showp d precImp pra
-                                    , showp d precImp prc ]
-showp d p (Cond c prt pre)
-    = paren p precCond $ pplist
-                          [ showp d precCond prt
-                          , ppa " <| "
-                          , showp d 0 c
-                          , ppa " |> "
-                          , showp d precCond pre ]
 showp d p (PSub pr sub)
    = pplist $ [showp d precSub pr, ppa $ showSub d sub]
 
-showp d _ Skip  = ppa "II"
-showp d p (Seq pra prc)
-    = paren p precSeq $ ppopen " ; " [ showp d precSeq pra
-                                    , showp d precSeq prc ]
-showp d p (Iter c body)
-    = paren p precIter $ ppopen " * " [ showp d precIter c
-                                    , showp d precIter body ]
-showp d p (PFun fname pargs)
- = pplist [ppa fname, ppclosed "(" ")" "," $ map (showp d 0) pargs]
-\end{code}
+showp d p (Comp cname pargs)
+ = case plookup cname d of
+    Nothing  ->  stdCshow d cname pargs
+    Just (PD _ _ showf _) -> showf d pargs
 
-\newpage
-The program constructs:
-\begin{code}
-showp d p PIdle = ppa "Idle"
-showp d p (PAtm pr)
-   = pplist [ppa "A(", showp d 0 pr, ppa ")"]
-
-showp d p (PSeq pra prc)
-    = paren p precPSeq $ ppopen " ;; " [ showp d precPSeq pra
-                                     , showp d precPSeq prc ]
-showp d p (PPar pra prc)
-    = paren p precPPar $ ppopen " || " [ showp d precPPar pra
-                                     , showp d precPPar prc ]
-showp d p (PCond c prt pre)
-    = paren p precPCond $ pplist
-                          [ showp d precCond prt
-                          , ppa " <$ "
-                          , showp d 0 c
-                          , ppa " $> "
-                          , showp d precCond pre ]
-showp d p (PIter c body)
-    = paren p precPIter $ ppopen " <*> " [ showp d precPIter c
-                                       , showp d precPIter body ]
+stdCshow d cname pargs
+ = pplist [ppa cname, ppclosed "(" ")" "," $ map (showp d 0) pargs]
 \end{code}

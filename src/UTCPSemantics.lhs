@@ -251,7 +251,7 @@ The Set Dictionary:
 \begin{code}
 setDict :: (Eq s, Ord s, Show s) => Dict s
 setDict
- = M.fromList $ mapsnd FunEntry
+ = M.fromList $ mapsnd ExprEntry
     [ (subsetn,(FD ["elms","set"] Undef showSubSet evalSubset))
     , (sswapn,(FD ["start","old","new"] Undef showSSwap evalSSwap))
     ]
@@ -459,7 +459,7 @@ We can now define a generator dictionary:
 \begin{code}
 genDict :: (Eq s, Ord s, Show s) => Dict s
 genDict
- = M.fromList $ mapsnd FunEntry
+ = M.fromList $ mapsnd ExprEntry
     [ (new1n,(FD ["g"] Undef showGNew1 $ does "new1" gNew1))
     , (new2n,(FD ["g"] Undef showGNew2 $ does "new2" gNew2))
     , (split1n,(FD ["g"] Undef showGSplit1 $ does "split1" gSplit1))
