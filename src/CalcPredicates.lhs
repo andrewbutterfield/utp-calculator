@@ -18,8 +18,10 @@ versionCalcPredicates = "CP-0.6"
 
 First, we build some infrastructure to support a flexible expression and predicate
 syntax, with an emphasis on allowing tailored notations
-(e.g. writing $ps(in)$ and $ps(in,out)$ rather than $in \in ps$ or $\setof{in,out} \subseteq ps$)
-and effective pretty-printing of large complex nested terms.
+(e.g. writing $ps(in)$ and $ps(in,out)$ 
+rather than $in \in ps$ or $\setof{in,out} \subseteq ps$),
+effective pretty-printing of large complex nested terms,
+and highlighting sub-terms of interest.
 
 
 \HDRc{Expression Datatype}\label{hc:ExprData}
@@ -47,8 +49,8 @@ mkSub e sub = Sub e $ sort sub
 ssame ::  (Eq s, Ord s) => Substn s -> Substn s -> Bool
 ssame sub1 sub2 = sort sub1 == sort sub2
 \end{code}
-\DRAFT{We shall keep expressions as-is for now,
-viewing them atomically as far as highlighting goes.}
+We treat expressions as atomic from the perspective of
+pretty-printing and highlighting.
 
 
 \HDRc{Predicate Datatype}\label{hc:PredData}
@@ -57,16 +59,35 @@ Now we need a  predicate syntax,
 which has basic predicates
 (true, false, predicate-variables, equality and lifted expressions)
 along with a generic predicate composite, and substitution.
+We also want to have a general facility to mark terms for highlighting
+or processing in various ways.
+We don't want to check for or pattern-match against
+a special marker predicate, but prefer to add markers everywhere,
+using a mutual recursive datatype:
 \begin{code}
-data Pred s
+data Pred m s
  = T
  | F
  | PVar String
  | Equal (Expr s) (Expr s)
  | Atm (Expr s)
- | Comp String [Pred s]
- | PSub (Pred s) (Substn s)
- deriving (Eq, Ord, Show)
+ | Comp String [MPred m s]
+ | PSub (MPred m s) (Substn s)
+ deriving (Ord, Show)
+ 
+instance Eq s => Eq (Pred m s) where -- ignore values of type m
+ T == T                              =  True
+ F == F                              =  True
+ (PVar s1) == (PVar s2)              =  s1 == s2
+ (Equal e11 e12) == (Equal e21 e22)  =  e11 == e21 && e12 == e22
+ (Atm e1) == (Atm e2)                =  e1 == e2
+ (Comp f1 prs1) == (Comp f2 prs2)
+    =  f1 == f2 && map snd prs1 == map snd prs2
+ (PSub (_, pr1) subs1) == (PSub (_, pr2) subs2)
+    =  pr1 == pr2 && subs1 == subs2
+ _ == _                              =  False
+ 
+type MPred m s = ( m, Pred m s )
 \end{code}
 
 
@@ -77,9 +98,9 @@ to appropriate definitions.
 
 A dictionary entry is a sum of  definition types defined below
 \begin{code}
-data Entry s
- = PredEntry (PredDef s)
- | ExprEntry (ExprDef s)
+data Entry m s
+ = PredEntry (PredDef m s)
+ | ExprEntry (ExprDef m s)
  | AlfEntry AlfDef
  | PVarEntry PVarDef
 
@@ -97,27 +118,30 @@ theExprEntry (ExprEntry fd) = fd
 theAlfEntry (AlfEntry ad) = ad
 thePVarEntry (PVarEntry pd) = pd
 
-type Dict s = M.Map String (Entry s)
+type Dict m s = M.Map String (Entry m s)
 
-plookup :: String -> Dict s -> Maybe (PredDef s)
+nullDict :: Dict m s
+nullDict = M.empty
+
+plookup :: String -> Dict m s -> Maybe (PredDef m s)
 plookup nm d
  = case M.lookup nm d of
      Just (PredEntry pd)  ->  Just pd
      _                    ->  Nothing
 
-flookup :: String -> Dict s -> Maybe (ExprDef s)
+flookup :: String -> Dict m s -> Maybe (ExprDef m s)
 flookup nm d
  = case M.lookup nm d of
      Just (ExprEntry fd)  ->  Just fd
      _                   ->  Nothing
 
-alookup :: String -> Dict s -> Maybe AlfDef
+alookup :: String -> Dict m s -> Maybe AlfDef
 alookup nm d
  = case M.lookup nm d of
      Just (AlfEntry ad)  ->  Just ad
      _                   ->  Nothing
 
-vlookup :: String -> Dict s -> Maybe PVarDef
+vlookup :: String -> Dict m s -> Maybe PVarDef
 vlookup nm d
  = case M.lookup nm d of
      Just (PVarEntry pd)  ->  Just pd
@@ -127,21 +151,21 @@ vlookup nm d
 When we merge dictionary entries we concat \texttt{AlfEntry},
 but otherwise take the first:
 \begin{code}
-mergeEntry :: Entry s -> Entry s -> Entry s
+mergeEntry :: Entry m s -> Entry m s -> Entry m s
 mergeEntry (AlfEntry a1) (AlfEntry a2) = AlfEntry (a1++a2)
 mergeEntry e _ = e
 \end{code}
 
 Predicate definitions
 \begin{code}
-data PredDef s
+data PredDef m s
  = PD [String]                -- list of formal/bound variables
-      (Pred s)                 -- definition body
-      (Dict s -> [Pred s] -> PP)     -- pretty printer
-      (Dict s -> [Pred s] -> ( String   -- eval name
-                             , Expr s )) -- evaluator
+      (Pred m s)                 -- definition body
+      (Dict m s -> [Pred m s] -> PP)     -- pretty printer
+      (Dict m s -> [Pred m s] -> ( String   -- eval name
+                               , Pred m s )) -- evaluator
 
-instance Show s => Show (PredDef s) where
+instance (Show s, Show m) => Show (PredDef m s) where
   show (PD fvs pr _ _) = show fvs ++ " |-> " ++ show pr
 \end{code}
 We interpret a \texttt{Dict} entry like
@@ -166,27 +190,27 @@ The evaluator is free to use or ignore the definition body expression $pr$.
 We define a default evaluator that does nothing,
 and a simple wrapper for evals that always do something
 \begin{code}
-pnone :: ( String, Pred s)
+pnone :: ( String, Pred m s)
 pnone = ( "", F )
-nosimp :: [Pred s] -> ( String, Pred s)
+nosimp :: [Pred m s] -> ( String, Pred m s)
 nosimp es = pnone
-pdoes :: String -> (Dict s -> [Pred s] -> Pred s)
-     -> Dict s -> [Pred s]
-     -> ( String, Pred s )
+pdoes :: String -> (Dict m s -> [Pred m s] -> Pred m s)
+     -> Dict m s -> [Pred m s]
+     -> ( String, Pred m s )
 pdoes nm p d ps = ( nm, p d ps )
 \end{code}
 
 
 Expression definitions
 \begin{code}
-data ExprDef s
+data ExprDef m s
  = ED [String]                -- list of formal/bound variables
       (Expr s)                 -- definition body
-      (Dict s -> [Expr s] -> String)     -- pretty printer
-      (Dict s -> [Expr s] -> ( String   -- eval name
+      (Dict m s -> [Expr s] -> String)     -- pretty printer
+      (Dict m s -> [Expr s] -> ( String   -- eval name
                              , Expr s )) -- evaluator
 
-instance Show s => Show (ExprDef s) where
+instance Show s => Show (ExprDef m s) where
   show (ED fvs e _ _) = show fvs ++ " |-> " ++ show e
 \end{code}
 We interpret a \texttt{Dict} entry like
@@ -215,8 +239,8 @@ none :: ( String, Expr s)
 none = ( "", Undef )
 noeval :: [Expr s] -> ( String, Expr s)
 noeval es = none
-does :: String -> (Dict s -> [Expr s] -> Expr s)
-     -> Dict s -> [Expr s]
+does :: String -> (Dict m s -> [Expr s] -> Expr s)
+     -> Dict m s -> [Expr s]
      -> ( String, Expr s )
 does nm f d es = ( nm, f d es )
 \end{code}
@@ -278,7 +302,7 @@ with the following calculations of the rest:
 }
 with $Obs$, $Alf$ etc derived as above.
 \begin{code}
-stdAlfDictGen :: [String] -> [String] -> [String] -> Dict s
+stdAlfDictGen :: [String] -> [String] -> [String] -> Dict m s
 stdAlfDictGen scr nonScrDyn stc
  = let
     scr' = map addDash scr
@@ -330,9 +354,10 @@ declares the alphabet associated with that predicate variable:
 We define the display of an expression using a dictionary
 to provide exceptional ways to render things.
 \begin{code}
-edshow :: Show s => Dict s -> Expr s -> String
+edshow :: Show s => Dict m s -> Expr s -> String
 edshow d (St s)     =  show s
 edshow d (B b)      =  show b
+edshow d (Z i)      =  show i
 edshow d (Var v)    =  v
 edshow d Undef      =  "Undefined"
 edshow d (App f es)
@@ -393,9 +418,10 @@ paren outerp innerp pp = pp
 \end{code}
 
 
-Pretty-printing predicates
+Pretty-printing predicates,
+which currently ignores markings.
 \begin{code}
-showp :: (Ord s, Show s) => Dict s -> Int -> Pred s -> PP
+showp :: (Ord s, Show s) => Dict m s -> Int -> Pred m s -> PP
 showp d _ T  = ppa "true"
 showp d _ F  = ppa "false"
 showp d _ (PVar p)  = ppa p
@@ -403,13 +429,14 @@ showp d p (Equal e1 e2)
    = paren p precEq $ ppopen " = " [ppa $ edshow d e1, ppa $ edshow d e2]
 showp d p (Atm e) = ppa $ edshow d e
 showp d p (PSub pr sub)
-   = pplist $ [showp d precSub pr, ppa $ showSub d sub]
+   = pplist $ [showp d precSub$ snd pr, ppa $ showSub d sub]
 
 showp d p (Comp cname pargs)
  = case plookup cname d of
     Nothing  ->  stdCshow d cname pargs
-    Just (PD _ _ showf _) -> showf d pargs
+    Just (PD _ _ showf _) -> showf d $ map snd pargs
 
+stdCshow :: (Ord s, Show s) => Dict m s -> String -> [MPred m s] -> PP
 stdCshow d cname pargs
- = pplist [ppa cname, ppclosed "(" ")" "," $ map (showp d 0) pargs]
+ = pplist [ppa cname, ppclosed "(" ")" "," $ map (showp d 0 .snd) pargs]
 \end{code}

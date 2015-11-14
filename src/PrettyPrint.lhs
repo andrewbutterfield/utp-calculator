@@ -2,6 +2,7 @@
 \begin{code}
 module PrettyPrint where
 import Utilities
+import Data.List
 \end{code}
 
 Version
@@ -13,7 +14,37 @@ Our pretty printer handles atomic pieces, which render as is,
 and composite parts, defined as a list of parts, along with descriptions
 of the left and right delimiters and a separator part.
 Composites will be rendered with line breaks and indentation
-in a manner that is hopefully maximally pleasing
+in a manner that is hopefully maximally pleasing.
+We also provide a (simple) means for applying ``styles''.
+
+Styles (keeping it very simple for now):
+\begin{code}
+data Style = Underline
+           | Colour Char
+           deriving (Eq,Ord)
+           
+instance Show Style where
+  show Underline   =  setUnderline
+  show (Colour c)  =  setColour c
+
+resetStyle       = "\ESC[m\STX"
+setUnderline     = "\ESC[4m\STX"
+setColour colour = "\ESC[1;3"++colour:"m\STX"
+
+colourRed = setColour '1'
+--green = fcolor '2'
+--blue = fcolor '4'
+--yellow = '3'
+--magenta = '5'
+--cyan = '6'
+--white = '7' --light grey!!
+
+addStyle s ss = nub $ sort (s:ss)
+setStyle = concat . map show
+\end{code}
+
+
+
 \begin{eqnarray*}
   pp &::=& pp_{atom} |  pp_{ldelim} ~ pp_{delim} ~ pp_{sep} ~ pp^*
 \end{eqnarray*}
@@ -24,29 +55,39 @@ rendered length of the structure, at each level.
 data PP = PP Int PP' deriving (Eq,Ord,Show)
 
 data PP' = PPA String        -- atom
+         | PPS Style PP   -- style
          | PPC PP PP PP [PP] -- rdelim ldelim sep pps
          deriving (Eq,Ord,Show)
 \end{code}
 
-\newpage
 It is useful to get the size of a \texttt{PP}, as well as the string produced
 if it is all rendered on one line.
 \begin{code}
 ppsize :: PP -> Int
 ppsize (PP s _) = s
 
-ppstr :: PP -> String
-ppstr (PP _ (PPA str)) = str
-ppstr (PP _ (PPC lpp rpp sepp [])) = ppstr lpp ++ ppstr rpp
-ppstr (PP _ (PPC lpp rpp sepp pps))
- | ppsize lpp == 0  =  pppps rpp sepp pps
- | otherwise        =  ppstr lpp ++ pppps rpp sepp pps
+ppstr :: [Style] -> PP -> String
 
-pppps :: PP -> PP -> [PP] -> String
-pppps rpp sepp []        =  ppstr rpp
-pppps rpp sepp [pp]      =  ppstr pp ++ ppstr rpp
-pppps rpp sepp (pp:pps)
-  =  ppstr pp ++ ppstr sepp ++ pppps rpp sepp pps
+ppstr _ (PP _ (PPA str)) = str
+
+ppstr stls (PP _ (PPS style pp))
+ = let stls' = addStyle style stls
+   in concat [ show style -- set new style style
+             , ppstr stls' pp -- recurse with styles updated
+             , resetStyle -- clear all styles
+             , setStyle stls -- restore current style
+             ]
+ 
+ppstr stls (PP _ (PPC lpp rpp sepp [])) = ppstr stls lpp ++ ppstr stls rpp
+ppstr stls (PP _ (PPC lpp rpp sepp pps))
+ | ppsize lpp == 0  =  pppps stls rpp sepp pps
+ | otherwise        =  ppstr stls lpp ++ pppps stls rpp sepp pps
+
+pppps :: [Style] -> PP -> PP -> [PP] -> String
+pppps stls rpp sepp []        =  ppstr stls rpp
+pppps stls rpp sepp [pp]      =  ppstr stls pp ++ ppstr stls rpp
+pppps stls rpp sepp (pp:pps)
+  =  ppstr stls pp ++ ppstr stls sepp ++ pppps stls rpp sepp pps
 \end{code}
 
 We build smart versions of the \texttt{PPA} and \texttt{PPC} constructors
@@ -54,6 +95,9 @@ that automatically accumulate the length information.
 \begin{code}
 ppa :: String -> PP
 ppa str = PP (length str) $ PPA str
+
+pps :: Style -> PP -> PP
+pps style pp@(PP len _) = PP len $ PPS style pp
 
 ppc :: PP -> PP -> PP -> [PP] -> PP
 ppc lpp rpp sepp pps
@@ -87,6 +131,7 @@ ppclosed lstr rstr sepstr pps
   = ppc (ppa lstr) (ppa rstr) (ppa sepstr) pps
 \end{code}
 
+
 Now, rendering it as a `nice' string.
 We provide the desired column width at the top level,
 along with an initial indentation of zero.
@@ -118,8 +163,8 @@ layout :: Int -> Int -> PP -> [String]
 -- 1st three cases: cannot break, or can fit on line
 layout _ i (PP _ (PPA str)) = [ind i ++ str]
 layout w i pp@(PP s _)
- | s <= w  =  [ind i ++ ppstr pp]
-layout _ i pp@(PP _ (PPC _ _ _ [])) = [ind i ++ ppstr pp]
+ | s <= w  =  [ind i ++ ppstr [] pp]
+layout _ i pp@(PP _ (PPC _ _ _ [])) = [ind i ++ ppstr [] pp]
 
 -- case when non-trivial comp and it is too wide
 layout w i (PP _ (PPC lpp rpp sepp pps))
@@ -136,29 +181,15 @@ layout' w i w' i' lpp rpp sepp [pp]
    ++ layout w' i' pp
    ++ layout w i rpp
 layout' w i w' i' lpp rpp sepp (pp:pps)
- = prefuse (ind i ++ ppstr lpp) (layout w' i' pp) -- header line
+ = prefuse (ind i ++ ppstr [] lpp) (layout w' i' pp) -- header line
    ++
    layout'' w i w' i' rpp sepp pps -- pps not null
 
 layout'' w i w' i' rpp sepp [pp]
- = addon (ppstr rpp) $ prefuse (ind i ++ ppstr sepp)
+ = addon (ppstr [] rpp) $ prefuse (ind i ++ ppstr [] sepp)
                      $ layout w' i' pp
 layout'' w i w' i' rpp sepp (pp:pps)
- = prefuse (ind i ++ ppstr sepp) $ layout w' i' pp
+ = prefuse (ind i ++ ppstr [] sepp) $ layout w' i' pp
    ++
    layout'' w i w' i' rpp sepp pps -- pps not null
-\end{code}
-
-Highlighting stuff:
-\begin{code}
-freset = "\ESC[m\STX"
-fuline = "\ESC[4m\STX"
-fcolor ccode = "\ESC[1;3"++ccode:"m\STX"
-fred = fcolor '1'
-fgreen = fcolor '2'
-fblue = fcolor '4'
-fyellow = '3'
-fmagenta = '5'
-fcyan = '6'
-fwhite = '7' --light grey
 \end{code}

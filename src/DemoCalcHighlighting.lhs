@@ -57,7 +57,8 @@ data E m = N Int    -- number
 instance Eq (E m) where -- ignore values of m
   (N n1) == (N n2)  =  n1 == n2
   (V v1) == (V v2)  =  v1 == v2
-  (P (_,e11) (_,e12)) == (P (_,e21) (_,e22))  =  e11 == e21 && e12 == e22
+  (P (_,e11) (_,e12)) == (P (_,e21) (_,e22)) 
+                                  =  e11 == e21 && e12 == e22
   _ == _   =  False
 
 type ME m = ( m, E m )
@@ -374,7 +375,7 @@ fcyan = '6'
 fwhite = '7' --light grey
 \end{code}
 We have a problem, in that we cannot nest escape-sequence formatting effectively.
-The reset \verb'\ESC[m\STX' fragmemt resets all prior formatting.
+The reset \verb'\ESC[m\STX' fragment resets all prior formatting.
 So we need a rendering system that tracks the current set of formats being applied
 and which handles a change by doing a reset followed by re-instating what needs to remain.
 \begin{code}
@@ -423,5 +424,6 @@ displayCalc nmes
 
 A fun test:
 \begin{code}
-demo = putStrLn $ displayCalc $ stepRepeat stdreduce $ noMark $ fbt () 3
+demo = putStrLn $ displayCalc $ stepRepeat stdreduce 
+                $ noMark $ fbt () 3
 \end{code}
