@@ -5,17 +5,14 @@ import Utilities
 import Data.List
 \end{code}
 
-Version
-\begin{code}
-versionPrettyPrint = "PP-0.6"
-\end{code}
-
 Our pretty printer handles atomic pieces, which render as is,
 and composite parts, defined as a list of parts, along with descriptions
 of the left and right delimiters and a separator part.
 Composites will be rendered with line breaks and indentation
 in a manner that is hopefully maximally pleasing.
 We also provide a (simple) means for applying ``styles''.
+
+\HDRb{Styles}
 
 Styles (keeping it very simple for now):
 \begin{code}
@@ -27,23 +24,28 @@ instance Show Style where
   show Underline   =  setUnderline
   show (Colour c)  =  setColour c
 
-resetStyle       = "\ESC[m\STX"
 setUnderline     = "\ESC[4m\STX"
 setColour colour = "\ESC[1;3"++colour:"m\STX"
 
+setStyle :: [Style] -> String
+setStyle  = concat . map show
+resetStyle :: String
+resetStyle  = "\ESC[m\STX"
+
+colourRed :: String
 colourRed = setColour '1'
---green = fcolor '2'
---blue = fcolor '4'
---yellow = '3'
---magenta = '5'
---cyan = '6'
---white = '7' --light grey!!
+-- green   '2'
+-- blue    '4'
+-- yellow  '3'
+-- magenta '5'
+-- cyan    '6'
+-- white   '7' --light grey!!
 
 addStyle s ss = nub $ sort (s:ss)
-setStyle = concat . map show
 \end{code}
 
 
+\HDRb{Pretty-Printing Types}
 
 \begin{eqnarray*}
   pp &::=& pp_{atom} |  pp_{ldelim} ~ pp_{delim} ~ pp_{sep} ~ pp^*
@@ -59,6 +61,8 @@ data PP' = PPA String        -- atom
          | PPC PP PP PP [PP] -- rdelim ldelim sep pps
          deriving (Eq,Ord,Show)
 \end{code}
+
+\HDRb{Simple Rendering}
 
 It is useful to get the size of a \texttt{PP}, as well as the string produced
 if it is all rendered on one line.
@@ -90,6 +94,8 @@ pppps stls rpp sepp (pp:pps)
   =  ppstr stls pp ++ ppstr stls sepp ++ pppps stls rpp sepp pps
 \end{code}
 
+\HDRb{Smart Constructors}
+
 We build smart versions of the \texttt{PPA} and \texttt{PPC} constructors
 that automatically accumulate the length information.
 \begin{code}
@@ -111,7 +117,6 @@ ppc lpp rpp sepp pps
    where len = length xs
 \end{code}
 
-\newpage
 We then provide some useful builders for common idioms,
 mostly where delimiters and separators are atomic.
 \begin{code}
@@ -132,6 +137,8 @@ ppclosed lstr rstr sepstr pps
 \end{code}
 
 
+\HDRb{Full Rendering}
+
 Now, rendering it as a `nice' string.
 We provide the desired column width at the top level,
 along with an initial indentation of zero.
@@ -140,6 +147,7 @@ render :: Int -> PP -> String
 render w0 = unlines' . layout w0 0
 \end{code}
 
+\HDRc{Rendering Utilities}
 Some useful utilities:
 \begin{code}
 prefuse :: [a] -> [[a]] -> [[a]]
@@ -152,13 +160,17 @@ addon postfix (ln:lns) = ln:addon postfix lns
 \end{code}
 
 
-\newpage
+\HDRc{Layout}
+
 The main recursive layout algorithm has a width and indentation parameter
 ---
 the sum of these is always constant.
 \begin{code}
 -- w+i is constant;  w+i=w0 above
 layout :: Int -> Int -> PP -> [String]
+
+layout w i (PP _ (PPS s pp)) = layout w i pp -- for now
+-- need to propagate current style, as for ppstr above....
 
 -- 1st three cases: cannot break, or can fit on line
 layout _ i (PP _ (PPA str)) = [ind i ++ str]
