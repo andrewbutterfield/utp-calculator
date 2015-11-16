@@ -19,7 +19,7 @@ Styles (keeping it very simple for now):
 data Style = Underline
            | Colour Char
            deriving (Eq,Ord)
-           
+
 instance Show Style where
   show Underline   =  setUnderline
   show (Colour c)  =  setColour c
@@ -31,6 +31,7 @@ setStyle :: [Style] -> String
 setStyle  = concat . map show
 resetStyle :: String
 resetStyle  = "\ESC[m\STX"
+reset = putStrLn resetStyle -- useful in GHCi to tidy up!
 
 colourRed :: String
 colourRed = setColour '1'
@@ -81,7 +82,7 @@ ppstr stls (PP _ (PPS style pp))
              , resetStyle -- clear all styles
              , setStyle stls -- restore current style
              ]
- 
+
 ppstr stls (PP _ (PPC lpp rpp sepp [])) = ppstr stls lpp ++ ppstr stls rpp
 ppstr stls (PP _ (PPC lpp rpp sepp pps))
  | ppsize lpp == 0  =  pppps stls rpp sepp pps
@@ -144,19 +145,53 @@ We provide the desired column width at the top level,
 along with an initial indentation of zero.
 \begin{code}
 render :: Int -> PP -> String
-render w0 = unlines' . layout w0 0
+render w0 = unlines' . layout [] w0 0
+\end{code}
+
+\HDRc{Lines and Formatting}
+
+We have two types of strings present:
+those representing lines of visible text;
+and those that have font format encodings.
+We need to keep these distinct as we weave our layout.
+\begin{code}
+data Layout = Txt String | Fmt String deriving Show
+\end{code}
+We obtain the final string by merging \texttt{Fmt} with \texttt{Txt} on either
+side before calling unlines
+(otherwise formatting commands introduce spurious linebreaks).
+\begin{code}
+lstr (Txt str) = str
+lstr (Fmt str) = str
+
+fmtApply :: [Layout] -> [String]
+fmtApply = map lstr 
 \end{code}
 
 \HDRc{Rendering Utilities}
-Some useful utilities:
+Some useful utilities.
+
+Extend the start of the first line
+with a new prefix:
+\begin{code}
+preext :: [a] -> [[a]] -> [[a]]
+preext prefix [] = [prefix] -- if nothing, just add it anyway.
+preext prefix (ln:lns) = (prefix ++ ln):lns
+\end{code}
+
+Replace the start of the first line
+with a new prefix:
 \begin{code}
 prefuse :: [a] -> [[a]] -> [[a]]
-prefuse prefix [] = [prefix]
+prefuse prefix [] = [prefix] -- if nothing, just add it anyway.
 prefuse prefix (ln:lns) = (prefix ++ drop (length prefix) ln):lns
+\end{code}
 
-addon postfix [] = [postfix]
-addon postfix [ln] = [ln++postfix]
-addon postfix (ln:lns) = ln:addon postfix lns
+Extend the last line with a postfix
+\begin{code}
+postext postfix [] = [postfix]
+postext postfix [ln] = [ln++postfix]
+postext postfix (ln:lns) = ln:postext postfix lns
 \end{code}
 
 
@@ -167,20 +202,22 @@ The main recursive layout algorithm has a width and indentation parameter
 the sum of these is always constant.
 \begin{code}
 -- w+i is constant;  w+i=w0 above
-layout :: Int -> Int -> PP -> [String]
+layout :: [Style] ->Int -> Int -> PP -> [String]
 
-layout w i (PP _ (PPS s pp)) = layout w i pp -- for now
--- need to propagate current style, as for ppstr above....
+-- handle style changes
+layout ss w i (PP _ (PPS s pp))
+ = preext (show s) $ postext (resetStyle ++ setStyle ss)
+                   $ layout (addStyle s ss) w i pp
 
 -- 1st three cases: cannot break, or can fit on line
-layout _ i (PP _ (PPA str)) = [ind i ++ str]
-layout w i pp@(PP s _)
- | s <= w  =  [ind i ++ ppstr [] pp]
-layout _ i pp@(PP _ (PPC _ _ _ [])) = [ind i ++ ppstr [] pp]
+layout _ _ i (PP _ (PPA str)) = [ind i ++ str]
+layout ss w i pp@(PP s _)
+ | s <= w  =  [ind i ++ ppstr ss pp]
+layout ss _ i pp@(PP _ (PPC _ _ _ [])) = [ind i ++ ppstr ss pp]
 
 -- case when non-trivial comp and it is too wide
-layout w i (PP _ (PPC lpp rpp sepp pps))
- = layout' w i (w-s) (i+s) lpp rpp sepp pps -- pps not null
+layout ss w i (PP _ (PPC lpp rpp sepp pps))
+ = layout' ss w i (w-s) (i+s) lpp rpp sepp pps -- pps not null
  where s = max (ppsize lpp) (ppsize sepp)
 \end{code}
 
@@ -188,20 +225,20 @@ The helpers, \texttt{layout'} and \texttt{layout''} need to track outer (\texttt
 and inner (\texttt{w' i'}) values of width and indentation.
 \begin{code}
 -- we need to split it up
-layout' w i w' i' lpp rpp sepp [pp]
- = layout w i lpp
-   ++ layout w' i' pp
-   ++ layout w i rpp
-layout' w i w' i' lpp rpp sepp (pp:pps)
- = prefuse (ind i ++ ppstr [] lpp) (layout w' i' pp) -- header line
+layout' ss w i w' i' lpp rpp sepp [pp]
+ = layout ss w i lpp
+   ++ layout ss w' i' pp
+   ++ layout ss w i rpp
+layout' ss w i w' i' lpp rpp sepp (pp:pps)
+ = prefuse (ind i ++ ppstr ss lpp) (layout ss w' i' pp) -- header line
    ++
-   layout'' w i w' i' rpp sepp pps -- pps not null
+   layout'' ss w i w' i' rpp sepp pps -- pps not null
 
-layout'' w i w' i' rpp sepp [pp]
- = addon (ppstr [] rpp) $ prefuse (ind i ++ ppstr [] sepp)
-                     $ layout w' i' pp
-layout'' w i w' i' rpp sepp (pp:pps)
- = prefuse (ind i ++ ppstr [] sepp) $ layout w' i' pp
+layout'' ss w i w' i' rpp sepp [pp]
+ = postext (ppstr ss rpp) $ prefuse (ind i ++ ppstr ss sepp)
+                          $ layout ss w' i' pp
+layout'' ss w i w' i' rpp sepp (pp:pps)
+ = prefuse (ind i ++ ppstr ss sepp) $ layout ss w' i' pp
    ++
-   layout'' w i w' i' rpp sepp pps -- pps not null
+   layout'' ss w i w' i' rpp sepp pps -- pps not null
 \end{code}
