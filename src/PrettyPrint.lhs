@@ -158,7 +158,7 @@ We need to keep these distinct as we weave our layout.
 data Layout = Txt String | Fmt String deriving Show
 \end{code}
 We obtain the final string by merging \texttt{Fmt} with \texttt{Txt} on either
-side before calling unlines
+side before calling \texttt{unlines}
 (otherwise formatting commands introduce spurious linebreaks).
 \begin{code}
 lstr (Txt str) = str
@@ -188,8 +188,7 @@ revMerge = concat . reverse
 Show list elements one per line:
 \begin{code}
 seeList :: Show a => [a] -> IO ()
-seeList = putStrLn . unlines' . map see
- where see x = show x
+seeList = putStrLn . unlines' . map show
 \end{code}
 
 \HDRc{Rendering Utilities}
