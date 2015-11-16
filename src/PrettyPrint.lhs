@@ -145,7 +145,7 @@ We provide the desired column width at the top level,
 along with an initial indentation of zero.
 \begin{code}
 render :: Int -> PP -> String
-render w0 = unlines' . layout [] w0 0
+render w0 = unlines' . fmtMerge . layout [] w0 0
 \end{code}
 
 \HDRc{Lines and Formatting}
@@ -164,8 +164,32 @@ side before calling unlines
 lstr (Txt str) = str
 lstr (Fmt str) = str
 
-fmtApply :: [Layout] -> [String]
-fmtApply = map lstr 
+fmtMerge :: [Layout] -> [String]
+fmtMerge [] = []
+fmtMerge (Txt str:rest) = gotTxt [str] rest
+fmtMerge (Fmt str:rest) = needTxt [str] rest
+
+gotTxt :: [String] -> [Layout] -> [String]
+gotTxt strs [] = [revMerge strs]
+gotTxt strs (Txt str:rest) = revMerge strs : gotTxt [str] rest
+gotTxt strs (Fmt str:rest) = gotTxt (str:strs) rest
+
+needTxt :: [String] -> [Layout] -> [String]
+needTxt strs [] = [revMerge strs]
+needTxt strs (Txt str:rest) = gotTxt (str:strs) rest
+needTxt strs (Fmt str:rest) = needTxt (str:strs) rest
+
+revMerge :: [String] -> String
+revMerge = concat . reverse
+\end{code}
+
+\HDRd{List viewer}
+
+Show list elements one per line:
+\begin{code}
+seeList :: Show a => [a] -> IO ()
+seeList = putStrLn . unlines' . map see
+ where see x = show x
 \end{code}
 
 \HDRc{Rendering Utilities}
@@ -179,19 +203,23 @@ preext prefix [] = [prefix] -- if nothing, just add it anyway.
 preext prefix (ln:lns) = (prefix ++ ln):lns
 \end{code}
 
-Replace the start of the first line
+Replace the start of the first \texttt{Txt} line
 with a new prefix:
 \begin{code}
-prefuse :: [a] -> [[a]] -> [[a]]
-prefuse prefix [] = [prefix] -- if nothing, just add it anyway.
-prefuse prefix (ln:lns) = (prefix ++ drop (length prefix) ln):lns
+prefuse :: String -> [Layout] -> [Layout]
+prefuse prefix [] = [Txt prefix] -- if nothing, just add it anyway.
+prefuse prefix (fmt@(Fmt _):lns) = fmt:(prefuse prefix lns)
+prefuse prefix (Txt ln:lns) = (Txt (prefix ++ drop (length prefix) ln)):lns
 \end{code}
 
-Extend the last line with a postfix
+Extend the last \texttt{Txt} line with a postfix
 \begin{code}
-postext postfix [] = [postfix]
-postext postfix [ln] = [ln++postfix]
-postext postfix (ln:lns) = ln:postext postfix lns
+postext :: String -> [Layout] -> [Layout]
+postext postfix  = reverse . pext postfix . reverse
+ where
+   pext postfix [] = [Txt postfix]
+   pext postfix (fmt@(Fmt _):lns) = fmt : pext postfix lns
+   pext postfix ((Txt ln):lns) = (Txt (ln++postfix)) : pext postfix lns
 \end{code}
 
 
@@ -202,18 +230,18 @@ The main recursive layout algorithm has a width and indentation parameter
 the sum of these is always constant.
 \begin{code}
 -- w+i is constant;  w+i=w0 above
-layout :: [Style] ->Int -> Int -> PP -> [String]
+layout :: [Style] ->Int -> Int -> PP -> [Layout]
 
 -- handle style changes
 layout ss w i (PP _ (PPS s pp))
- = preext (show s) $ postext (resetStyle ++ setStyle ss)
-                   $ layout (addStyle s ss) w i pp
-
+ = (Fmt $ show s) : (layout (addStyle s ss) w i pp)
+     ++ [Fmt (resetStyle ++ setStyle ss)]
+     
 -- 1st three cases: cannot break, or can fit on line
-layout _ _ i (PP _ (PPA str)) = [ind i ++ str]
+layout _ _ i (PP _ (PPA str)) = [Txt (ind i ++ str)]
 layout ss w i pp@(PP s _)
- | s <= w  =  [ind i ++ ppstr ss pp]
-layout ss _ i pp@(PP _ (PPC _ _ _ [])) = [ind i ++ ppstr ss pp]
+ | s <= w  =  [Txt (ind i ++ ppstr ss pp)]
+layout ss _ i pp@(PP _ (PPC _ _ _ [])) = [Txt (ind i ++ ppstr ss pp)]
 
 -- case when non-trivial comp and it is too wide
 layout ss w i (PP _ (PPC lpp rpp sepp pps))
@@ -242,3 +270,4 @@ layout'' ss w i w' i' rpp sepp (pp:pps)
    ++
    layout'' ss w i w' i' rpp sepp pps -- pps not null
 \end{code}
+
