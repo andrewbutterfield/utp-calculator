@@ -145,7 +145,7 @@ We provide the desired column width at the top level,
 along with an initial indentation of zero.
 \begin{code}
 render :: Int -> PP -> String
-render w0 = unlines' . fmtMerge . layout [] w0 0
+render w0 = fmtShow . layout [] w0 0
 \end{code}
 
 \HDRc{Lines and Formatting}
@@ -154,15 +154,21 @@ We have two types of strings present:
 those representing lines of visible text;
 and those that have font format encodings.
 We need to keep these distinct as we weave our layout.
+We also need to explicitly identify newlines and indents.
 \begin{code}
-data Layout = Txt String | Fmt String deriving Show
+data Layout = NL | Ind Int | Txt String | Fmt String deriving Show
 \end{code}
 We obtain the final string by merging \texttt{Fmt} with \texttt{Txt} on either
 side before calling \texttt{unlines}
 (otherwise formatting commands introduce spurious linebreaks).
 \begin{code}
-lstr (Txt str) = str
-lstr (Fmt str) = str
+lstr NL         =  "\n"
+lstr (Ind i)    =  ind i
+lstr (Txt str)  =  str
+lstr (Fmt str)  =  str
+
+fmtShow :: [Layout] -> String
+fmtShow = concat . map lstr
 
 fmtMerge :: [Layout] -> [String]
 fmtMerge [] = []
@@ -187,8 +193,8 @@ revMerge = concat . reverse
 
 Show list elements one per line:
 \begin{code}
-seeList :: Show a => [a] -> IO ()
-seeList = putStrLn . unlines' . map show
+ldisp :: Show a => [a] -> IO ()
+ldisp = putStrLn . unlines' . map show
 \end{code}
 
 \HDRc{Rendering Utilities}
@@ -202,13 +208,27 @@ preext prefix [] = [prefix] -- if nothing, just add it anyway.
 preext prefix (ln:lns) = (prefix ++ ln):lns
 \end{code}
 
-Replace the start of the first \texttt{Txt} line
-with a new prefix:
+Replace the start of the first line
+with a new indent and prefix.
+We \emph{assume} that the line starts with an indent larger
+than the length of the new items combined.
 \begin{code}
-prefuse :: String -> [Layout] -> [Layout]
-prefuse prefix [] = [Txt prefix] -- if nothing, just add it anyway.
-prefuse prefix (fmt@(Fmt _):lns) = fmt:(prefuse prefix lns)
-prefuse prefix (Txt ln:lns) = (Txt (prefix ++ drop (length prefix) ln)):lns
+prefuse :: Int -> String -> [Layout] -> [Layout]
+
+-- if empty (1st line or whole thing), add in anyway.
+prefuse i s [] = [Ind i, Txt s]
+prefuse i prefix layout@(NL:_) = Ind i : Txt prefix : layout
+
+-- ignore formatting
+prefuse i s (fmt@(Fmt _):lns) = fmt:(prefuse i s lns)
+
+-- expected use-case
+prefuse newi prefix (Ind oldi:rest)
+ = Ind newi : Txt prefix : Ind remi : rest
+ where remi = oldi - (newi + length prefix)
+
+-- no change, otherwise
+prefuse _ _ layout = layout
 \end{code}
 
 Extend the last \texttt{Txt} line with a postfix
@@ -227,6 +247,8 @@ postext postfix  = reverse . pext postfix . reverse
 The main recursive layout algorithm has a width and indentation parameter
 ---
 the sum of these is always constant.
+Also, we assume that the leading indent has been generated
+when we call layout.
 \begin{code}
 -- w+i is constant;  w+i=w0 above
 layout :: [Style] ->Int -> Int -> PP -> [Layout]
@@ -235,12 +257,12 @@ layout :: [Style] ->Int -> Int -> PP -> [Layout]
 layout ss w i (PP _ (PPS s pp))
  = (Fmt $ show s) : (layout (addStyle s ss) w i pp)
      ++ [Fmt (resetStyle ++ setStyle ss)]
-     
+
 -- 1st three cases: cannot break, or can fit on line
-layout _ _ i (PP _ (PPA str)) = [Txt (ind i ++ str)]
+layout _ _ i (PP _ (PPA str)) = [Txt str]
 layout ss w i pp@(PP s _)
- | s <= w  =  [Txt (ind i ++ ppstr ss pp)]
-layout ss _ i pp@(PP _ (PPC _ _ _ [])) = [Txt (ind i ++ ppstr ss pp)]
+ | s <= w  =  [Txt $ppstr ss pp]
+layout ss _ i pp@(PP _ (PPC _ _ _ [])) = [Txt $ ppstr ss pp]
 
 -- case when non-trivial comp and it is too wide
 layout ss w i (PP _ (PPC lpp rpp sepp pps))
@@ -254,19 +276,18 @@ and inner (\texttt{w' i'}) values of width and indentation.
 -- we need to split it up
 layout' ss w i w' i' lpp rpp sepp [pp]
  = layout ss w i lpp
-   ++ layout ss w' i' pp
-   ++ layout ss w i rpp
+   ++ NL : Ind i' : layout ss w' i' pp
+   ++ NL : Ind i' : layout ss w i rpp
 layout' ss w i w' i' lpp rpp sepp (pp:pps)
- = prefuse (ind i ++ ppstr ss lpp) (layout ss w' i' pp) -- header line
+ = prefuse i (ppstr ss lpp) (layout ss w' i' pp) -- header line
    ++
-   layout'' ss w i w' i' rpp sepp pps -- pps not null
+   NL : Ind i' : layout'' ss w i w' i' rpp sepp pps -- pps not null
 
 layout'' ss w i w' i' rpp sepp [pp]
- = postext (ppstr ss rpp) $ prefuse (ind i ++ ppstr ss sepp)
+ = postext (ppstr ss rpp) $ prefuse i (ppstr ss sepp)
                           $ layout ss w' i' pp
 layout'' ss w i w' i' rpp sepp (pp:pps)
- = prefuse (ind i ++ ppstr ss sepp) $ layout ss w' i' pp
+ = prefuse i (ppstr ss sepp) $ layout ss w' i' pp
    ++
-   layout'' ss w i w' i' rpp sepp pps -- pps not null
+   NL : layout'' ss w i w' i' rpp sepp pps -- pps not null
 \end{code}
-
