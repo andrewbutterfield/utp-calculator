@@ -18,31 +18,31 @@ Styles (keeping it very simple for now):
 \begin{code}
 data Style = Underline
            | Colour Char
-           deriving (Eq,Ord)
+           deriving (Eq,Ord,Show)
 
-instance Show Style where
-  show Underline   =  setUnderline
-  show (Colour c)  =  setColour c
+showStyle :: Style -> String
+showStyle Underline   =  setUnderline
+showStyle (Colour c)  =  setColour c
 
-setUnderline     = "\ESC[4m\STX"
-setColour colour = "\ESC[1;3"++colour:"m\STX"
+resetStyle :: String
+resetStyle        =  "\ESC[m\STX"
+setUnderline      =  "\ESC[4m\STX"
+setColour colour  =  "\ESC[1;3"++colour:"m\STX"
 
 setStyle :: [Style] -> String
-setStyle  = concat . map show
-resetStyle :: String
-resetStyle  = "\ESC[m\STX"
+setStyle  = concat . reverse . map showStyle
 reset = putStrLn resetStyle -- useful in GHCi to tidy up!
 
-colourRed :: String
-colourRed = setColour '1'
+styleRed :: Style
+styleRed = Colour '1'
+codeRed :: String
+codeRed = setColour '1'
 -- green   '2'
 -- blue    '4'
 -- yellow  '3'
 -- magenta '5'
 -- cyan    '6'
 -- white   '7' --light grey!!
-
-addStyle s ss = nub $ sort (s:ss)
 \end{code}
 
 
@@ -76,12 +76,11 @@ ppstr :: [Style] -> PP -> String
 ppstr _ (PP _ (PPA str)) = str
 
 ppstr stls (PP _ (PPS style pp))
- = let stls' = addStyle style stls
-   in concat [ show style -- set new style style
-             , ppstr stls' pp -- recurse with styles updated
-             , resetStyle -- clear all styles
-             , setStyle stls -- restore current style
-             ]
+ = concat [ showStyle style -- set new style style
+          , ppstr (style:stls) pp -- recurse with styles updated
+          , resetStyle -- clear all styles
+          , setStyle stls -- restore current style
+          ]
 
 ppstr stls (PP _ (PPC lpp rpp sepp [])) = ppstr stls lpp ++ ppstr stls rpp
 ppstr stls (PP _ (PPC lpp rpp sepp pps))
@@ -150,13 +149,13 @@ render w0 = fmtShow . layout [] w0 0
 
 \HDRc{Lines and Formatting}
 
-We have two types of strings present:
-those representing lines of visible text;
-and those that have font format encodings.
-We need to keep these distinct as we weave our layout.
-We also need to explicitly identify newlines and indents.
+We have atomic strings present,
+and we also need to explicitly identify newlines and indents.
+All of these need to have an associated style.
 \begin{code}
-data Layout = NL | Ind Int | Txt String | Fmt String deriving Show
+data Layout = NL | Ind Int | Txt String deriving Show
+
+type SLayout = (Layout,[Style])
 \end{code}
 We obtain the final string by merging \texttt{Fmt} with \texttt{Txt} on either
 side before calling \texttt{unlines}
@@ -165,28 +164,16 @@ side before calling \texttt{unlines}
 lstr NL         =  "\n"
 lstr (Ind i)    =  ind i
 lstr (Txt str)  =  str
-lstr (Fmt str)  =  str
 
-fmtShow :: [Layout] -> String
-fmtShow = concat . map lstr
-
-fmtMerge :: [Layout] -> [String]
-fmtMerge [] = []
-fmtMerge (Txt str:rest) = gotTxt [str] rest
-fmtMerge (Fmt str:rest) = needTxt [str] rest
-
-gotTxt :: [String] -> [Layout] -> [String]
-gotTxt strs [] = [revMerge strs]
-gotTxt strs (Txt str:rest) = revMerge strs : gotTxt [str] rest
-gotTxt strs (Fmt str:rest) = gotTxt (str:strs) rest
-
-needTxt :: [String] -> [Layout] -> [String]
-needTxt strs [] = [revMerge strs]
-needTxt strs (Txt str:rest) = gotTxt (str:strs) rest
-needTxt strs (Fmt str:rest) = needTxt (str:strs) rest
-
-revMerge :: [String] -> String
-revMerge = concat . reverse
+fmtShow :: [SLayout] -> String
+fmtShow = concat . fshow []
+ where
+   fshow [] [] = []
+   fshow _  [] = [resetStyle]
+   fshow ss ((layout,ss'):slayouts)
+    | ss == ss'  =  lstr layout :  fshow ss' slayouts
+    | otherwise
+       = resetStyle : setStyle ss' : lstr layout : fshow ss' slayouts
 \end{code}
 
 \HDRd{List viewer}
@@ -197,72 +184,23 @@ ldisp :: Show a => [a] -> IO ()
 ldisp = putStrLn . unlines' . map show
 \end{code}
 
-\HDRc{Rendering Utilities}
-Some useful utilities.
-
-Extend the start of the first line
-with a new prefix:
-\begin{code}
-preext :: [a] -> [[a]] -> [[a]]
-preext prefix [] = [prefix] -- if nothing, just add it anyway.
-preext prefix (ln:lns) = (prefix ++ ln):lns
-\end{code}
-
-Replace the start of the first line
-with a new indent and prefix.
-We \emph{assume} that the line starts with an indent larger
-than the length of the new items combined.
-\begin{code}
-prefuse :: Int -> String -> [Layout] -> [Layout]
-
--- if empty (1st line or whole thing), add in anyway.
-prefuse i s [] = [Ind i, Txt s]
-prefuse i prefix layout@(NL:_) = Ind i : Txt prefix : layout
-
--- ignore formatting
-prefuse i s (fmt@(Fmt _):lns) = fmt:(prefuse i s lns)
-
--- expected use-case
-prefuse newi prefix (Ind oldi:rest)
- = Ind newi : Txt prefix : Ind remi : rest
- where remi = oldi - (newi + length prefix)
-
--- no change, otherwise
-prefuse _ _ layout = layout
-\end{code}
-
-Extend the last \texttt{Txt} line with a postfix
-\begin{code}
-postext :: String -> [Layout] -> [Layout]
-postext postfix  = reverse . pext postfix . reverse
- where
-   pext postfix [] = [Txt postfix]
-   pext postfix (fmt@(Fmt _):lns) = fmt : pext postfix lns
-   pext postfix ((Txt ln):lns) = (Txt (ln++postfix)) : pext postfix lns
-\end{code}
-
 
 \HDRc{Layout}
 
 The main recursive layout algorithm has a width and indentation parameter
 ---
 the sum of these is always constant.
-Also, we assume that the leading indent has been generated
-when we call layout.
 \begin{code}
 -- w+i is constant;  w+i=w0 above
-layout :: [Style] ->Int -> Int -> PP -> [Layout]
+layout :: [Style] ->Int -> Int -> PP -> [SLayout]
 
 -- handle style changes
-layout ss w i (PP _ (PPS s pp))
- = (Fmt $ show s) : (layout (addStyle s ss) w i pp)
-     ++ [Fmt (resetStyle ++ setStyle ss)]
+layout ss w i (PP _ (PPS s pp)) = layout (s:ss) w i pp
 
 -- 1st three cases: cannot break, or can fit on line
-layout _ _ i (PP _ (PPA str)) = [Txt str]
-layout ss w i pp@(PP s _)
- | s <= w  =  [Txt $ppstr ss pp]
-layout ss _ i pp@(PP _ (PPC _ _ _ [])) = [Txt $ ppstr ss pp]
+layout ss _ i (PP _ (PPA str))          =  [(Txt str,ss)]
+layout ss _ i pp@(PP _ (PPC _ _ _ []))  =  [(Txt $ ppstr ss pp, ss)]
+layout ss w i pp@(PP s _)  | s <= w     =  [(Txt $ ppstr ss pp, ss)]
 
 -- case when non-trivial comp and it is too wide
 layout ss w i (PP _ (PPC lpp rpp sepp pps))
@@ -270,24 +208,33 @@ layout ss w i (PP _ (PPC lpp rpp sepp pps))
  where s = max (ppsize lpp) (ppsize sepp)
 \end{code}
 
-The helpers, \texttt{layout'} and \texttt{layout''} need to track outer (\texttt{w i})
-and inner (\texttt{w' i'}) values of width and indentation.
+The helpers, \texttt{layout'} and \texttt{layout''}
+need to track outer (\texttt{w i}) and inner (\texttt{w' i'}) values
+of width and indentation.
 \begin{code}
 -- we need to split it up
+
+-- singleton case:   lpp \n pp \n rpp
 layout' ss w i w' i' lpp rpp sepp [pp]
  = layout ss w i lpp
-   ++ NL : Ind i' : layout ss w' i' pp
-   ++ NL : Ind i' : layout ss w i rpp
-layout' ss w i w' i' lpp rpp sepp (pp:pps)
- = prefuse i (ppstr ss lpp) (layout ss w' i' pp) -- header line
-   ++
-   NL : Ind i' : layout'' ss w i w' i' rpp sepp pps -- pps not null
+   ++ (NL,ss) : (Ind i',ss) : layout ss w' i' pp
+   ++ (NL,ss) : (Ind i, ss) : layout ss w i rpp
 
-layout'' ss w i w' i' rpp sepp [pp]
- = postext (ppstr ss rpp) $ prefuse i (ppstr ss sepp)
-                          $ layout ss w' i' pp
-layout'' ss w i w' i' rpp sepp (pp:pps)
- = prefuse i (ppstr ss sepp) $ layout ss w' i' pp
+-- general case
+layout' ss w i w' i' lpp@(PP lw _) rpp sepp (pp:pps)
+ = (Txt $ ppstr ss lpp, ss) : (Ind (i'-(i+lw)),ss) -- header line
+                        : (layout ss w' i' pp)
    ++
-   NL : layout'' ss w i w' i' rpp sepp pps -- pps not null
+   (NL,ss) : layout'' ss w i w' i' rpp sepp pps -- pps not null
+
+layout'' ss w i w' i' rpp@(PP rw _) sepp@(PP sw _) [pp]
+ = (Ind i,ss) : (Txt $ ppstr ss sepp, ss)
+                    : (Ind (i'-(i+sw)),ss) : layout ss w' i' pp
+   ++ [(Txt $ ppstr ss rpp,ss)]
+
+layout'' ss w i w' i' rpp sepp@(PP sw _) (pp:pps)
+ = (Ind i,ss) : (Txt $ ppstr ss sepp, ss)
+                    : (Ind (i'-(i+sw)),ss) : layout ss w' i' pp
+   ++
+   (NL,ss) : layout'' ss w i w' i' rpp sepp pps -- pps not null
 \end{code}
