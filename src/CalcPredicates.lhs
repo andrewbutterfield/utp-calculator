@@ -18,7 +18,7 @@ versionCalcPredicates = "CP-0.6"
 
 First, we build some infrastructure to support a flexible expression and predicate
 syntax, with an emphasis on allowing tailored notations
-(e.g. writing $ps(in)$ and $ps(in,out)$ 
+(e.g. writing $ps(in)$ and $ps(in,out)$
 rather than $in \in ps$ or $\setof{in,out} \subseteq ps$),
 effective pretty-printing of large complex nested terms,
 and highlighting sub-terms of interest.
@@ -74,7 +74,7 @@ data Pred m s
  | Comp String [MPred m s]
  | PSub (MPred m s) (Substn s)
  deriving (Ord, Show)
- 
+
 instance Eq s => Eq (Pred m s) where -- ignore values of type m
  T == T                              =  True
  F == F                              =  True
@@ -86,7 +86,7 @@ instance Eq s => Eq (Pred m s) where -- ignore values of type m
  (PSub (_, pr1) subs1) == (PSub (_, pr2) subs2)
     =  pr1 == pr2 && subs1 == subs2
  _ == _                              =  False
- 
+
 type MPred m s = ( m, Pred m s )
 \end{code}
 
@@ -419,14 +419,17 @@ paren outerp innerp pp = pp
 
 
 Pretty-printing predicates,
-which currently ignores markings.
+which now just underlines atomic values,
+and colours equality red and predicate vars green.
 \begin{code}
-showp :: (Ord s, Show s) => Dict m s -> Int -> Pred m s -> PP
-showp d _ T  = ppa "true"
-showp d _ F  = ppa "false"
-showp d _ (PVar p)  = ppa p
+-- showp :: (Ord s, Show s) => Dict m s -> Int -> Pred m s -> PP
+showp d _ T  = pps Underline $ ppa "true"
+showp d _ F  = pps Underline $ ppa "false"
+showp d _ (PVar p)  = pps (Colour '2') $ ppa p
 showp d p (Equal e1 e2)
-   = paren p precEq $ ppopen " = " [ppa $ edshow d e1, ppa $ edshow d e2]
+   = paren p precEq
+       $ ppopen' (pps (Colour '1') $ ppa " = ")
+                 [ppa $ edshow d e1, ppa $ edshow d e2]
 showp d p (Atm e) = ppa $ edshow d e
 showp d p (PSub pr sub)
    = pplist $ [showp d precSub$ snd pr, ppa $ showSub d sub]
