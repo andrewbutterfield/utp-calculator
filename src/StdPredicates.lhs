@@ -1,46 +1,76 @@
-\HDRa{Calculator Predicates}\label{ha:calc-preds}
+\HDRa{Standard Predicates}\label{ha:std-preds}
 \begin{code}
-module CalcPredicates where
+module StdPredicates where
 import Utilities
 import qualified Data.Map as M
 import Data.List
 import Data.Char
 import Debug.Trace
 import PrettyPrint
+import CalcPredicates
 \end{code}
+
 
 \HDRb{Syntax}
 
+We provide dictionary entries that instantiate particular composites
+to produce 
+a fairly standard UTP predicate language as follows:
+\RLEQNS{
+   p \in P &::=& \ldots & \mbox{As per \secref{hc:PredData}}
+\\ &|& \top & \mbox{(Lattice) Top, a.k.a. miracle}
+\\ &|& \bot & \mbox{(Lattice) Bottom, a.k.a. abort/Chaos}
+\\ &|& \lnot p  & \mbox{Negation}
+\\ &|& p_1 \land p_2 \land \ldots \land p_n  & \mbox{Conjunction}
+\\ &|& p_1 \lor p_2 \lor \ldots \lor p_n & \mbox{Disjunction}
+\\ &|& p_1 \implies p_2 & \mbox{Implication}
+\\ &|& p_1 \refinedby p_2 & \mbox{Refinement}
+\\ &|& p_1 \cond{p_2} p_3 & \mbox{Conditional}
+\\ &|& \Skip & \mbox{Skip}
+\\ &|& p_1 \seq p_2 & \mbox{Sequencing}
+\\ &|& p_1 * p_2 & \mbox{Iteration}
+}
+
+
+Our language is a ``while'' language built over a general notion
+of atomic state-transformers ($a, \A(a)$), with an added parallel construct.
+\begin{eqnarray*}
+  p,q ::= Idle | \A(a) | p \lseq q | p\parallel q | p \lcond c q | c \wdo p
+\end{eqnarray*}
+We shall often use assignments as a convenient wa
+ to describe simple atomic actions.
+
+We use $\lseq$, $\lcond{}$ and $\wdo$ here, instead of $;$, $\cond{}$ and $*$
+in order to distinguish them from the similar UTP concepts.
+In other words, we cannot do the usual UTP trick of modelling language features
+like sequential composition or conditional by ``punning'',
+because we have to add a lot of control structure to model the parallelism
+and interleaving correctly.
+
 First, we build some infrastructure to support a flexible expression and predicate
 syntax, with an emphasis on allowing tailored notations
-(e.g. writing $ps(in)$ and $ps(in,out)$
-rather than $in \in ps$ or $\setof{in,out} \subseteq ps$),
-effective pretty-printing of large complex nested terms,
-and highlighting sub-terms of interest.
+(e.g. writing $ps(in)$ and $ps(in,out)$ rather than $in \in ps$ or $\setof{in,out} \subseteq ps$)
+and effective pretty-printing of large complex nested terms.
 
-\HDRc{Expression Datatype}\label{hc:ExprData}
+\newpage
+\HDRc{Expression Datatype}
 
 We start by defining an expression space that includes
-booleans, integers,
-variables, function applications, and substitutions.
-\RLEQNS{
-   s &\in& State  & \mbox{States}
-\\ v &\in& Var & \mbox{Variables}
-\\ e \in Expr &::=& s | \Bool | \Int | v & \mbox{Basic}
-\\  &|& v(e_1,\ldots,e_n) & \mbox{Application}
-\\ &|& e[e_1,\ldots,e_n/v_1,\ldots,v_n] & \mbox{Substitution}
-}
-This type $E$ is parametric in a generic state type:
+variables and function applications,
+all parameterised by a generic state type:
 \begin{code}
 data Expr s
  = St s  -- a value of type State
  | B Bool
- | Z Int
  | Var String
  | App String [Expr s]
+ | Set [Expr s]
  | Sub (Expr s) (Substn s)
  | Undef
  deriving (Eq,Ord,Show)
+
+mkSet :: Ord s => [Expr s] -> Expr s
+mkSet = Set . sort . nub
 
 type Substn s = [(String,Expr s)]
 mkSub e []  = e
@@ -50,107 +80,87 @@ mkSub e sub = Sub e $ sort sub
 ssame ::  (Eq s, Ord s) => Substn s -> Substn s -> Bool
 ssame sub1 sub2 = sort sub1 == sort sub2
 \end{code}
-We treat expressions as atomic from the perspective of
-pretty-printing and highlighting.
+\DRAFT{We shall keep expressions as-is for now,
+viewing them atomically as far as highlighting goes.}
 
+\newpage
+\HDRc{Predicate Datatype}
 
-\HDRc{Predicate Datatype}\label{hc:PredData}
-
-Now we need a  predicate syntax,
-which has basic predicates
-(true, false, predicate-variables, equality and lifted expressions)
-along with a generic predicate composite, and substitution.
-\RLEQNS{
-   P &\in& Var & \mbox{Pred-Vars}
-\\ p \in Pred &::=&  true | false | P & \mbox{Basic}
-\\ &|& e_1 = e_2 | e & \mbox{Atomic}
-\\ &|& P(p_1,\ldots,p_n) & \mbox{Composite}
-\\ &|& p[e_1,\ldots,e_n/v_1,\ldots,v_n] & \mbox{Substitution}
+Now we need a logic syntax, that has key UTP notations
+and the programming language embedded in it
+\DRAFT{
+ Will completely re-do this replacing tags like
+  \texttt{And}, \texttt{Or}, and \texttt{Iter} (say)
+ with \texttt{Comp "And"}, \texttt{Comp "Or"} and \texttt{Comp "Iter"}.
 }
-We also want to have a general facility to mark terms for highlighting
-or processing in various ways.
-We don't want to check for or pattern-match against
-a special marker predicate, but prefer to add markers everywhere,
-using a mutually recursive datatype:
 \begin{code}
-data Pred m s
+data Pred s
  = T
  | F
  | PVar String
- | Equal (Expr s) (Expr s)
+ | Equal (Expr s) (Expr s)         -- 5
  | Atm (Expr s)
- | Comp String [MPred m s]
- | PSub (MPred m s) (Substn s)
- deriving (Ord, Show)
-
-instance Eq s => Eq (Pred m s) where -- ignore values of type m
- T == T                              =  True
- F == F                              =  True
- (PVar s1) == (PVar s2)              =  s1 == s2
- (Equal e11 e12) == (Equal e21 e22)  =  e11 == e21 && e12 == e22
- (Atm e1) == (Atm e2)                =  e1 == e2
- (Comp f1 prs1) == (Comp f2 prs2)
-    =  f1 == f2 && map snd prs1 == map snd prs2
- (PSub (_, pr1) subs1) == (PSub (_, pr2) subs2)
-    =  pr1 == pr2 && subs1 == subs2
- _ == _                              =  False
-
-type MPred m s = ( m, Pred m s )
+ | Not (Pred s)                    -- 6
+ | And [Pred s]                    -- 4
+ | Or [Pred s]                     -- 3
+ | Imp (Pred s) (Pred s)       -- 2
+ | Cond (Pred s) (Pred s) (Pred s) -- 1
+ | PSub (Pred s) (Substn s)        -- 7
+ -- UTP
+ | Skip
+ | Seq (Pred s) (Pred s)           -- 2
+ | Iter (Pred s) (Pred s)          -- 6
+ | PFun String [Pred s]
+ -- Parallel Prog
+ | PAtm (Pred s)
+ | PIdle
+ | PSeq (Pred s) (Pred s)           -- 3
+ | PPar (Pred s) (Pred s)           -- 2
+ | PCond (Pred s) (Pred s) (Pred s) -- 1
+ | PIter (Pred s) (Pred s)          -- 6
+ deriving (Eq, Ord, Show)
 \end{code}
 
-
-\HDRb{Dictionary}\label{hb:DataDict}
+\newpage
+\HDRb{Dictionary}
 
 We need a dictionary that maps various names
 to appropriate definitions.
 
 A dictionary entry is a sum of  definition types defined below
 \begin{code}
-data Entry m s
- = PredEntry (PredDef m s)
- | ExprEntry (ExprDef m s)
+data Entry s
+ = FunEntry (FunDef s)
  | AlfEntry AlfDef
  | PVarEntry PVarDef
 
-isPredEntry (PredEntry _) = True
-isPredEntry _ = False
-isExprEntry (ExprEntry _) = True
-isExprEntry _ = False
+isFunEntry (FunEntry _) = True
+isFunEntry _ = False
 isAlfEntry (AlfEntry _) = True
 isAlfEntry _ = False
 isPVarEntry (PVarEntry _) = True
 isPVarEntry _ = False
 
-thePredEntry (PredEntry pd) = pd
-theExprEntry (ExprEntry fd) = fd
+theFunEntry (FunEntry fd) = fd
 theAlfEntry (AlfEntry ad) = ad
 thePVarEntry (PVarEntry pd) = pd
 
-type Dict m s = M.Map String (Entry m s)
+type Dict s = M.Map String (Entry s)
 
-nullDict :: Dict m s
-nullDict = M.empty
-
-plookup :: String -> Dict m s -> Maybe (PredDef m s)
-plookup nm d
- = case M.lookup nm d of
-     Just (PredEntry pd)  ->  Just pd
-     _                    ->  Nothing
-
-flookup :: String -> Dict m s -> Maybe (ExprDef m s)
+flookup :: String -> Dict s -> Maybe (FunDef s)
 flookup nm d
  = case M.lookup nm d of
-     Just (ExprEntry fd)  ->  Just fd
+     Just (FunEntry fd)  ->  Just fd
      _                   ->  Nothing
 
-alookup :: String -> Dict m s -> Maybe AlfDef
+alookup :: String -> Dict s -> Maybe AlfDef
 alookup nm d
  = case M.lookup nm d of
      Just (AlfEntry ad)  ->  Just ad
      _                   ->  Nothing
 
-vlookup :: String -> Dict m s -> Maybe PVarDef
-vlookup nm d
+plookup :: String -> Dict s -> Maybe PVarDef
+plookup nm d
  = case M.lookup nm d of
      Just (PVarEntry pd)  ->  Just pd
      _                    ->  Nothing
@@ -159,71 +169,27 @@ vlookup nm d
 When we merge dictionary entries we concat \texttt{AlfEntry},
 but otherwise take the first:
 \begin{code}
-mergeEntry :: Entry m s -> Entry m s -> Entry m s
+mergeEntry :: Entry s -> Entry s -> Entry s
 mergeEntry (AlfEntry a1) (AlfEntry a2) = AlfEntry (a1++a2)
 mergeEntry e _ = e
 \end{code}
 
-Predicate definitions
+\newpage
+Function definitions
 \begin{code}
-data PredDef m s
- = PD [String]                -- list of formal/bound variables
-      (Pred m s)                 -- definition body
-      (Dict m s -> [Pred m s] -> PP)     -- pretty printer
-      (Dict m s -> [Pred m s] -> ( String   -- eval name
-                               , Pred m s )) -- evaluator
-
-instance (Show s, Show m) => Show (PredDef m s) where
-  show (PD fvs pr _ _) = show fvs ++ " |-> " ++ show pr
-\end{code}
-We interpret a \texttt{Dict} entry like
-\begin{verbatim}
-"P" |->  PredEntry (PD  ["Q1","Q2",...,"Qn"] pr pf pv)
-\end{verbatim}
-as defining a function:
-\RLEQNS{
-   P(Q_1,Q_2,\ldots,Q_n) &\defs& pr
-}
-with $pf_\delta(Q_1,Q_2,\ldots,Q_n)$ being a specialised print function
-that renders a predicate as required,
-and $pv_\delta(Q_1,Q_2,\ldots,Q_n)$ is an valuation function that
-attempts to simplify the predicate..
-Both are parameterised with a dictionary argument ($\delta$),
-which may, or may not, be the dictionary in which the entry occurs.
-The string in the result is empty if it failed,
-otherwise gives the name of the predicate to be used in the justification
-of a proof step.
-The evaluator is free to use or ignore the definition body expression $pr$.
-
-We define a default evaluator that does nothing,
-and a simple wrapper for evals that always do something
-\begin{code}
-pnone :: ( String, Pred m s)
-pnone = ( "", F )
-nosimp :: [Pred m s] -> ( String, Pred m s)
-nosimp es = pnone
-pdoes :: String -> (Dict m s -> [Pred m s] -> Pred m s)
-     -> Dict m s -> [Pred m s]
-     -> ( String, Pred m s )
-pdoes nm p d ps = ( nm, p d ps )
-\end{code}
-
-
-Expression definitions
-\begin{code}
-data ExprDef m s
- = ED [String]                -- list of formal/bound variables
+data FunDef s
+ = FD [String]                -- list of formal/bound variables
       (Expr s)                 -- definition body
-      (Dict m s -> [Expr s] -> String)     -- pretty printer
-      (Dict m s -> [Expr s] -> ( String   -- eval name
+      (Dict s -> [Expr s] -> String)     -- pretty printer
+      (Dict s -> [Expr s] -> ( String   -- eval name
                              , Expr s )) -- evaluator
 
-instance Show s => Show (ExprDef m s) where
-  show (ED fvs e _ _) = show fvs ++ " |-> " ++ show e
+instance Show s => Show (FunDef s) where
+  show (FD fvs e _ _) = show fvs ++ " |-> " ++ show e
 \end{code}
 We interpret a \texttt{Dict} entry like
 \begin{verbatim}
-"f" |->  ExprEntry (ED ["v1","v2",...,"vn"] e pf ev)
+"f" |->  (["v1","v2",...,"vn"], e, pf, ev)
 \end{verbatim}
 as defining a function:
 \RLEQNS{
@@ -247,20 +213,20 @@ none :: ( String, Expr s)
 none = ( "", Undef )
 noeval :: [Expr s] -> ( String, Expr s)
 noeval es = none
-does :: String -> (Dict m s -> [Expr s] -> Expr s)
-     -> Dict m s -> [Expr s]
+does :: String -> (Dict s -> [Expr s] -> Expr s)
+     -> Dict s -> [Expr s]
      -> ( String, Expr s )
 does nm f d es = ( nm, f d es )
 \end{code}
 
-
+\newpage
 We also want to define alphabets, as sets of names
 \begin{code}
 type AlfDef = [String]
 \end{code}
 An entry
 \begin{verbatim}
-"a" |-> AlfEntry ["v1","v2",..,"vn"]
+"a" |-> ["v1","v2",..,"vn"]
 \end{verbatim}
 defines an alphabet:
 \RLEQNS{
@@ -310,7 +276,7 @@ with the following calculations of the rest:
 }
 with $Obs$, $Alf$ etc derived as above.
 \begin{code}
-stdAlfDictGen :: [String] -> [String] -> [String] -> Dict m s
+stdAlfDictGen :: [String] -> [String] -> [String] -> Dict s
 stdAlfDictGen scr nonScrDyn stc
  = let
     scr' = map addDash scr
@@ -342,7 +308,7 @@ addDash v = v ++"'"
 remDash = init
 \end{code}
 
-
+\newpage
 We sometimes want to associate extra information with given
 predicate variables:
 \begin{code}
@@ -350,28 +316,28 @@ type PVarDef = [String] -- for now, just its alphabet
 \end{code}
 An entry
 \begin{verbatim}
-  "P" |-> PVarEntry ["v1","v2",..,"vn"]
+  "P" |-> ["v1","v2",..,"vn"]
 \end{verbatim}
 declares the alphabet associated with that predicate variable:
 \RLEQNS{
    \alpha P &=&  \setof{v_1,v_2,\ldots,v_n}
 }
-
+\newpage
 \HDRb{Display}
 
 We define the display of an expression using a dictionary
 to provide exceptional ways to render things.
 \begin{code}
-edshow :: Show s => Dict m s -> Expr s -> String
+edshow :: Show s => Dict s -> Expr s -> String
 edshow d (St s)     =  show s
 edshow d (B b)      =  show b
-edshow d (Z i)      =  show i
 edshow d (Var v)    =  v
+edshow d (Set es)   =  "{" ++ dlshow d "," es ++ "}"
 edshow d Undef      =  "Undefined"
 edshow d (App f es)
  = case flookup f d of
     Nothing  ->  stdFShow d f es
-    Just (ED _ _ showf _) -> showf d es
+    Just (FD _ _ showf _) -> showf d es
 edshow d (Sub e sub) = pshow d e ++ showSub d sub
 
 dlshow d sep xs = concat (intersperse sep $ map (edshow d) xs)
@@ -387,7 +353,7 @@ showSub d subs
 lsshow vs = concat $ intersperse "," vs
 \end{code}
 
-
+\newpage
 By default we print \texttt{App f [e1,...,en]} as \texttt{f(e1,...,en)},
 using the following helper functions:
 \begin{code}
@@ -425,29 +391,71 @@ paren outerp innerp (PP w (PPC _ _ sepp pps))
 paren outerp innerp pp = pp
 \end{code}
 
-
-Pretty-printing predicates,
-which now just underlines atomic values,
-and colours equality red and predicate vars green.
+\newpage
+Pretty-printing predicates
 \begin{code}
--- showp :: (Ord s, Show s) => Dict m s -> Int -> Pred m s -> PP
-showp d _ T  = pps Underline $ ppa "true"
-showp d _ F  = pps Underline $ ppa "false"
-showp d _ (PVar p)  = pps (Colour '2') $ ppa p
+showp :: (Ord s, Show s) => Dict s -> Int -> Pred s -> PP
+showp d _ T  = ppa "true"
+showp d _ F  = ppa "false"
+showp d _ (PVar p)  = ppa p
 showp d p (Equal e1 e2)
-   = paren p precEq
-       $ ppopen' (pps (Colour '1') $ ppa " = ")
-                 [ppa $ edshow d e1, ppa $ edshow d e2]
+   = paren p precEq $ ppopen " = " [ppa $ edshow d e1, ppa $ edshow d e2]
+showp d p (Not pr)
+   = paren p precNot $ pplist [ppa "~", showp d precNot pr]
 showp d p (Atm e) = ppa $ edshow d e
+showp d p (And []) = ppa "true"
+showp d p (And [pr]) = showp d p pr
+showp d p (And prs)
+   = paren p precAnd $ ppopen " /\\ " $ map (showp d precAnd) prs
+showp d p (Or []) = ppa "false"
+showp d p (Or [pr]) = showp d p pr
+showp d p (Or prs)
+ = paren p precOr $ ppopen " \\/ " $ map (showp d precOr) prs
+showp d p (Imp pra prc)
+    = paren p precImp $ ppopen " => " [ showp d precImp pra
+                                    , showp d precImp prc ]
+showp d p (Cond c prt pre)
+    = paren p precCond $ pplist
+                          [ showp d precCond prt
+                          , ppa " <| "
+                          , showp d 0 c
+                          , ppa " |> "
+                          , showp d precCond pre ]
 showp d p (PSub pr sub)
-   = pplist $ [showp d precSub$ snd pr, ppa $ showSub d sub]
+   = pplist $ [showp d precSub pr, ppa $ showSub d sub]
 
-showp d p (Comp cname pargs)
- = case plookup cname d of
-    Nothing  ->  stdCshow d cname pargs
-    Just (PD _ _ showf _) -> showf d $ map snd pargs
+showp d _ Skip  = ppa "II"
+showp d p (Seq pra prc)
+    = paren p precSeq $ ppopen " ; " [ showp d precSeq pra
+                                    , showp d precSeq prc ]
+showp d p (Iter c body)
+    = paren p precIter $ ppopen " * " [ showp d precIter c
+                                    , showp d precIter body ]
+showp d p (PFun fname pargs)
+ = pplist [ppa fname, ppclosed "(" ")" "," $ map (showp d 0) pargs]
+\end{code}
 
-stdCshow :: (Ord s, Show s) => Dict m s -> String -> [MPred m s] -> PP
-stdCshow d cname pargs
- = pplist [ppa cname, ppclosed "(" ")" "," $ map (showp d 0 .snd) pargs]
+\newpage
+The program constructs:
+\begin{code}
+showp d p PIdle = ppa "Idle"
+showp d p (PAtm pr)
+   = pplist [ppa "A(", showp d 0 pr, ppa ")"]
+
+showp d p (PSeq pra prc)
+    = paren p precPSeq $ ppopen " ;; " [ showp d precPSeq pra
+                                     , showp d precPSeq prc ]
+showp d p (PPar pra prc)
+    = paren p precPPar $ ppopen " || " [ showp d precPPar pra
+                                     , showp d precPPar prc ]
+showp d p (PCond c prt pre)
+    = paren p precPCond $ pplist
+                          [ showp d precCond prt
+                          , ppa " <$ "
+                          , showp d 0 c
+                          , ppa " $> "
+                          , showp d precCond pre ]
+showp d p (PIter c body)
+    = paren p precPIter $ ppopen " <*> " [ showp d precPIter c
+                                       , showp d precPIter body ]
 \end{code}

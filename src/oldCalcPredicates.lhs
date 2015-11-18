@@ -1,4 +1,4 @@
-\HDRa{Calculator Predicates}\label{ha:calc-preds}
+\HDRa{Calculator Predicates}
 \begin{code}
 module CalcPredicates where
 import Utilities
@@ -38,7 +38,7 @@ syntax, with an emphasis on allowing tailored notations
 and effective pretty-printing of large complex nested terms.
 
 \newpage
-\HDRc{Expression Datatype}\label{hc:ExprData}
+\HDRc{Expression Datatype}
 
 We start by defining an expression space that includes
 variables and function applications,
@@ -69,7 +69,7 @@ ssame sub1 sub2 = sort sub1 == sort sub2
 viewing them atomically as far as highlighting goes.}
 
 \newpage
-\HDRc{Predicate Datatype}\label{hc:PredData}
+\HDRc{Predicate Datatype}
 
 Now we need a logic syntax, that has key UTP notations
 and the programming language embedded in it
@@ -107,7 +107,7 @@ data Pred s
 \end{code}
 
 \newpage
-\HDRb{Dictionary}\label{hb:DataDict}
+\HDRb{Dictionary}
 
 We need a dictionary that maps various names
 to appropriate definitions.
