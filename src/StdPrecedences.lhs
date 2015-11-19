@@ -45,21 +45,31 @@ for the kinds of things we usually write.}%
 \\ e = f[e/x]             &=& e = (f[e/x])             & =_9, [/]_{10}
 }
 
+In the code we move these up and spread them out,
+making it easier to fit other constructs around them
 \begin{code}
--- precedences, higher is tighter, 0 is "loosest"
-precRfdby =  1 :: Int
-precImp   =  2 :: Int
-precCond  =  3 :: Int
-precSeq   =  4 :: Int
-precOr    =  5 :: Int
-precNDC   =  5 :: Int
-precAnd   =  6 :: Int
-precIter  =  7 :: Int
-precNot   =  8 :: Int
-precEq    =  9 :: Int
-precSub   = 10 :: Int
+precSpacer :: Int -> Int
+precSpacer n = 100 + 10 * n
+\end{code}
+Now, precedences, higher is tighter, 0 is ``loosest''.
+\begin{code}
+precRfdby = precSpacer  1
+precImp   = precSpacer  2
+precCond  = precSpacer  3
+precSeq   = precSpacer  4
+precOr    = precSpacer  5
+precNDC   = precSpacer  5
+precAnd   = precSpacer  6
+precIter  = precSpacer  7
+precNot   = precSpacer  8
+precEq    = precSpacer  9
+precSub   = precSpacer 10
+\end{code}
+
+Hold these in reserve
+\begin{verbatim}
 -- precPCond = 1
 -- precPPar  = 2
 -- precPSeq  = 3
 -- precPIter = 6
-\end{code}
+\end{verbatim}
