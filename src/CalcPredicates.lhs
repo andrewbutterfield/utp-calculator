@@ -7,6 +7,7 @@ import Data.List
 import Data.Char
 import Debug.Trace
 import PrettyPrint
+import StdPrecedences
 \end{code}
 
 \HDRb{Syntax}
@@ -399,22 +400,7 @@ For now, we don't support infix function syntax.
 
 Now, prettiness..
 \begin{code}
-pdshow d = render 78 . showp d 0
-
--- precedences, higher is tighter, 0 is "loosest"
-precEq    = 5
-precNot   = 6
-precAnd   = 4
-precOr    = 3
-precImp   = 2
-precCond  = 1
-precSub   = 7
-precSeq   = 2
-precIter  = 6
-precPSeq  = 3
-precPPar  = 2
-precPCond = 1
-precPIter = 6
+pdshow w d = render w . showp d 0
 \end{code}
 
 Code to add parentheses when required by a change in current precedence level.
@@ -430,7 +416,7 @@ Pretty-printing predicates,
 which now just underlines atomic values,
 and colours equality red and predicate vars green.
 \begin{code}
--- showp :: (Ord s, Show s) => Dict m s -> Int -> Pred m s -> PP
+showp :: (Ord s, Show s) => Dict m s -> Int -> Pred m s -> PP
 showp d _ T  = pps Underline $ ppa "true"
 showp d _ F  = pps Underline $ ppa "false"
 showp d _ (PVar p)  = pps (Colour '2') $ ppa p
@@ -440,7 +426,7 @@ showp d p (Equal e1 e2)
                  [ppa $ edshow d e1, ppa $ edshow d e2]
 showp d p (Atm e) = ppa $ edshow d e
 showp d p (PSub pr sub)
-   = pplist $ [showp d precSub$ snd pr, ppa $ showSub d sub]
+   = pplist $ [showp d precSub $ snd pr, ppa $ showSub d sub]
 
 showp d p (Comp cname pargs)
  = case plookup cname d of
