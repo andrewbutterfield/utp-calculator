@@ -12,4 +12,26 @@ import CalcPredicates
 \end{code}
 
 
-Material to come.
+\HDRb{Negation}
+
+\RLEQNS{
+  p \in Pred &::=& \ldots
+\\ &|& \mNot & \tNot
+}
+\begin{code}
+-- here we code the dictionary entry for "Not"
+\end{code}
+
+
+\HDRb{The Standard Dictionary}
+
+\begin{code}
+stdDict = M.empty
+\end{code}
+
+\HDRc{Debugging aids}
+
+\begin{code}
+putPred :: (Ord s, Show s) => Pred m s -> IO ()
+putPred = putStrLn . pdshow 80 stdDict
+\end{code}

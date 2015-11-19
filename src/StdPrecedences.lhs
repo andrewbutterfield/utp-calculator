@@ -8,21 +8,7 @@ module StdPrecedences where
 We provide dictionary entries that instantiate particular composites
 to produce
 a fairly standard UTP predicate language as follows:
-\RLEQNS{
-   p \in P &::=& \ldots & \mbox{As per \secref{hc:PredData}}
-\\ &|& \top & \mbox{(Lattice) Top, a.k.a. miracle}
-\\ &|& \bot & \mbox{(Lattice) Bottom, a.k.a. abort/Chaos}
-\\ &|& \lnot p  & \mbox{Negation}
-\\ &|& p_1 \land p_2 \land \ldots \land p_n  & \mbox{Conjunction}
-\\ &|& p_1 \lor p_2 \lor \ldots \lor p_n & \mbox{Disjunction}
-\\ &|& p_1 \ndc p_2 \ndc \ldots \ndc p_n & \mbox{Non-Det. Choice}
-\\ &|& p_1 \implies p_2 & \mbox{Implication}
-\\ &|& p_1 \refinedby p_2 & \mbox{Refinement}
-\\ &|& p_1 \cond{p_2} p_3 & \mbox{Conditional}
-\\ &|& \Skip & \mbox{Skip}
-\\ &|& p_1 \seq p_2 & \mbox{Sequencing}
-\\ &|& p_1 * p_2 & \mbox{Iteration}
-}
+\STANDARD
 
 \newpage
 \HDRb{Precedences}

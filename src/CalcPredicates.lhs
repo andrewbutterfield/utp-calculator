@@ -61,13 +61,8 @@ Now we need a  predicate syntax,
 which has basic predicates
 (true, false, predicate-variables, equality and lifted expressions)
 along with a generic predicate composite, and substitution.
-\RLEQNS{
-   P &\in& Var & \mbox{Pred-Vars}
-\\ p \in Pred &::=&  true | false | P & \mbox{Basic}
-\\ &|& e_1 = e_2 | e & \mbox{Atomic}
-\\ &|& P(p_1,\ldots,p_n) & \mbox{Composite}
-\\ &|& p[e_1,\ldots,e_n/v_1,\ldots,v_n] & \mbox{Substitution}
-}
+\BASIC
+
 We also want to have a general facility to mark terms for highlighting
 or processing in various ways.
 We don't want to check for or pattern-match against
