@@ -83,6 +83,37 @@ instance Eq s => Eq (Pred m s) where -- ignore values of type m
 
 \end{code}
 
+\HDRb{Calculation Steps}\label{hb:calc-steps}
+
+We now present the infrastructure for performing caclulations.
+There are a number of different kinds of calculation step,
+described in a little more detail later.
+The basic idea is that such a step transforms a current goal
+predicate in some way, and returns both the transformed result,
+as well as a justification string describing what was done.
+\begin{code}
+type CalcResult m s = (String, Pred m s)
+type CalcStep m s = Pred m s -> CalcResult m s
+\end{code}
+
+We also have steps that are contingent on some side-condition,
+but we don't want to implement a fully automated solver for these conditions,
+nor do we want to have to break-out into a sub-calculation.
+These steps typically occur in pairs,
+giving different results based on the truth of the condition.
+So we design a ``step'' that returns the alternative outcomes,
+along with a clear statement of the condition,
+and allows the user to select which one should be used.
+\begin{code}
+type CCalcResult m s
+ = ( String
+   , [( Pred m s    -- condition to be discharged
+      , Pred m s)]  -- modified predicate
+   )
+type CCalcStep m s = Pred m s -> CCalcResult m s
+\end{code}
+
+
 \HDRb{Dictionary}\label{hb:DataDict}
 
 We need a dictionary that maps various names
@@ -106,8 +137,7 @@ data PredDef m s
  = PD [String]                -- list of formal/bound variables
       (Pred m s)              -- definition body
       (Dict m s -> Int -> [MPred m s] -> PP)    -- pretty printer
-      (Dict m s -> [MPred m s] -> ( String      -- eval name
-                                 , Pred m s )) -- evaluator
+      (Dict m s -> [MPred m s] -> CalcResult m s) -- evaluator
 \end{code}
 We interpret a \texttt{Dict} entry like
 \begin{verbatim}
@@ -181,3 +211,4 @@ declares the alphabet associated with that predicate variable:
 \RLEQNS{
    \alpha P &=&  \setof{v_1,v_2,\ldots,v_n}
 }
+

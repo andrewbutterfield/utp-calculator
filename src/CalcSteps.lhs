@@ -8,44 +8,22 @@ import Data.Char
 import Data.Maybe
 import Debug.Trace
 import PrettyPrint
+import CalcTypes
 import CalcPredicates
 \end{code}
 
 
 \HDRb{Introduction}
 
-We now present the infrastructure for performing caclulations.
-There are a number of different kinds of calculation step,
-described in a little more detail later.
-The basic idea is that such a step transforms a current goal
-predicate in some way, and returns both the transformed result,
-as well as a justification string describing what was done.
-\begin{code}
-type CalcResult s = (String, Pred s)
-type CalcStep s = Pred s -> CalcResult s
-\end{code}
 A failed step returns a null string,
 and the predicate part is generally considered undefined.
 \begin{code}
 nope :: CalcResult s
 nope = ( "", error "calc. step failed" )
 \end{code}
-We also have steps that are contingent on some side-condition,
-but we don't want to implement a fully automated solver for these conditions,
-nor do we want to have to break-out into a sub-calculation.
-These steps typically occur in pairs,
-giving different results based on the truth of the condition.
-So we design a ``step'' that returns the alternative outcomes,
-along with a clear statement of the condition,
-and allows the user to select which one should be used.
+Given a decision, we can resolve a conditional step
+into a completed one:
 \begin{code}
-type CCalcResult s
- = ( String
-   , [( Pred s    -- condition to be discharged
-   , Pred s)]  -- modified predicate
-                      )
-type CCalcStep s = Pred s -> CCalcResult s
-
 cconvert :: (Ord s, Show s)
          => Dict s -> Int -> CCalcResult s -> CalcResult s
 cconvert d i ( nm, outcomes ) -- i is typically obtained from user
