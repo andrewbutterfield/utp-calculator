@@ -89,7 +89,8 @@ ppstr stls (PP _ (PPS style pp))
           , setStyle stls -- restore current style
           ]
 
-ppstr stls (PP _ (PPC lpp rpp sepp [])) = ppstr stls lpp ++ ppstr stls rpp
+ppstr stls (PP _ (PPC lpp rpp sepp []))
+                              = ppstr stls lpp ++ ppstr stls rpp
 ppstr stls (PP _ (PPC lpp rpp sepp pps))
  | ppsize lpp == 0  =  pppps stls rpp sepp pps
  | otherwise        =  ppstr stls lpp ++ pppps stls rpp sepp pps

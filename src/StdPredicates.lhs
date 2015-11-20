@@ -365,7 +365,8 @@ ppIter d p mprs = pps styleRed $ ppa "invalid-*"
 simpIter d [mpr1, mpr2 ] = ( "", mkIter mpr1 mpr2 )
 
 iterEntry :: (Show s, Ord s) => (String, Entry m s)
-iterEntry = ("Iter", PredEntry $ PD ["c","Q"] PUndef ppIter simpIter)
+iterEntry = ( "Iter"
+            , PredEntry $ PD ["c","Q"] PUndef ppIter simpIter )
 
 -- build an Iter at the MPred level
 bIter mpr1 mpr2 = noMark $ mkIter mpr1 mpr2

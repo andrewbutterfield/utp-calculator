@@ -293,7 +293,9 @@ showp d p (Comp cname pargs)
     Nothing  ->  stdCshow d cname pargs
     Just (PD _ _ showf _) -> showf d p pargs
 
-stdCshow :: (Ord s, Show s) => Dict m s -> String -> [MPred m s] -> PP
+stdCshow :: (Ord s, Show s) 
+         => Dict m s -> String -> [MPred m s] -> PP
 stdCshow d cname pargs
- = pplist [pps styleBlue $ ppa cname, ppclosed "(" ")" "," $ map (showp d 0 .snd) pargs]
+ = pplist [ pps styleBlue $ ppa cname
+          , ppclosed "(" ")" "," $ map (showp d 0 .snd) pargs ]
 \end{code}

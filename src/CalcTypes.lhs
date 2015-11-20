@@ -85,7 +85,7 @@ instance Eq s => Eq (Pred m s) where -- ignore values of type m
 
 \HDRb{Calculation Steps}\label{hb:calc-steps}
 
-We now present the infrastructure for performing caclulations.
+We now present the infrastructure for performing calculations.
 There are a number of different kinds of calculation step,
 described in a little more detail later.
 The basic idea is that such a step transforms a current goal
