@@ -77,6 +77,7 @@ data Pred m s
  | Atm (Expr s)
  | Comp String [MPred m s]
  | PSub (MPred m s) (Substn s)
+ | PUndef
  deriving (Ord, Show)
 
 instance Eq s => Eq (Pred m s) where -- ignore values of type m
@@ -164,10 +165,10 @@ Predicate definitions
 \begin{code}
 data PredDef m s
  = PD [String]                -- list of formal/bound variables
-      (Pred m s)                 -- definition body
-      (Dict m s -> [Pred m s] -> PP)     -- pretty printer
-      (Dict m s -> [Pred m s] -> ( String   -- eval name
-                               , Pred m s )) -- evaluator
+      (Pred m s)              -- definition body
+      (Dict m s -> Int -> [MPred m s] -> PP)    -- pretty printer
+      (Dict m s -> [MPred m s] -> ( String      -- eval name
+                                 , Pred m s )) -- evaluator
 
 instance (Show s, Show m) => Show (PredDef m s) where
   show (PD fvs pr _ _) = show fvs ++ " |-> " ++ show pr
@@ -195,7 +196,7 @@ We define a default evaluator that does nothing,
 and a simple wrapper for evals that always do something
 \begin{code}
 pnone :: ( String, Pred m s)
-pnone = ( "", F )
+pnone = ( "", PUndef )
 nosimp :: [Pred m s] -> ( String, Pred m s)
 nosimp es = pnone
 pdoes :: String -> (Dict m s -> [Pred m s] -> Pred m s)
@@ -426,7 +427,7 @@ showp d p (PSub pr sub)
 showp d p (Comp cname pargs)
  = case plookup cname d of
     Nothing  ->  stdCshow d cname pargs
-    Just (PD _ _ showf _) -> showf d $ map snd pargs
+    Just (PD _ _ showf _) -> showf d p pargs
 
 stdCshow :: (Ord s, Show s) => Dict m s -> String -> [MPred m s] -> PP
 stdCshow d cname pargs

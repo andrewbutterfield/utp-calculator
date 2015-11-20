@@ -19,14 +19,29 @@ import CalcPredicates
 \\ &|& \mNot & \tNot
 }
 \begin{code}
--- here we code the dictionary entry for "Not"
+mkNot mpr = Comp "Not" [mpr]
+
+ppNot d p [(m,pr)] -- ignore marking for now
+ = paren p precNot $ pplist [ppa "~", showp d precNot pr]
+showNot d p _ = ppa "invalid-Not"
+
+simpNot d [(m,T)] = ("~-simp",F)
+simpNot d [(m,F)] = ("~-simp",T)
+simpNot _ mprs = ("", Comp "Not" mprs)
+
+notEntry :: (Show s, Ord s) => (String, Entry m s)
+notEntry = ("Not", PredEntry $ PD ["P"] PUndef ppNot simpNot)
 \end{code}
 
 
 \HDRb{The Standard Dictionary}
 
 \begin{code}
-stdDict = M.empty
+stdDict :: (Ord s, Show s) => Dict m s
+stdDict
+ = M.fromList
+    [ notEntry
+    ]
 \end{code}
 
 \HDRc{Debugging aids}
