@@ -64,6 +64,9 @@ sLattice tag op zero unit mprs
 \\ &|& \mBot & \tBot
 }
 \begin{code}
+isTop (_,Comp "Skip" _) = True  ;  isTop _ = False
+isBot (_,Comp "Skip" _) = True  ;  isBot _ = False
+
 mkTop = Comp "Top" []
 mkBot = Comp "Bot" []
 
@@ -229,6 +232,145 @@ bImp mpr1 mpr2 = noMark $ mkImp mpr1 mpr2
 \end{code}
 
 \newpage
+\HDRc{Refinement}\label{hc:def-Rfdby}
+
+\RLEQNS{
+  p \in Pred &::=& \ldots
+\\ &|& \mRby & \tRby
+}
+\begin{code}
+isRfdby (_,Comp "Rfdby" _) = True  ;  isRfdby _ = False
+
+mkRfdby mpr1 mpr2 = Comp "Rfdby" [mpr1,mpr2]
+
+ppRfdby d p [mpr1,mpr2]
+ = paren p precRfdby
+     $ ppsopen styleBlue " |= " [ showp d precRfdby $ snd mpr1
+                                , showp d precRfdby $ snd mpr2 ]
+ppRfdby d p mprs = pps styleRed $ ppa "invalid-|="
+
+simpRfdby d [mpr1, mpr2] = ( "",  mkImp mpr1 mpr2 )
+
+rfdbyEntry :: (Show s, Ord s) => (String, Entry m s)
+rfdbyEntry = ( "Rfdby"
+             , PredEntry $ PD ["P","Q"] PUndef ppRfdby simpRfdby)
+
+-- build an Rfdby at the MPred level
+bRfdby mpr1 mpr2 = noMark $ mkRfdby mpr1 mpr2
+\end{code}
+
+\newpage
+\HDRc{Conditional}\label{hc:def-Cond}
+
+\RLEQNS{
+  p \in Pred &::=& \ldots
+\\ &|& \mCond & \tCond
+}
+\begin{code}
+isCond (_,Comp "Cond" _) = True  ;  isCond _ = False
+
+mkCond mpr1 mpr2 mpr3 = Comp "Cond" [mpr1,mpr2,mpr3]
+
+ppCond d p [mprt,mprc,mpre]
+ = paren p precCond 
+      $ pplist [ showp d precCond $ snd mprt
+               , pps styleBlue $ ppa " <| "
+               , showp d 0 $ snd mprc
+               , pps styleBlue $ ppa " |> "
+               , showp d precCond $ snd mpre ]
+
+ppCond d p mprs = pps styleRed $ ppa "invalid-<|>"
+
+simpCond d [mpr1, mpr2] = ( "",  mkImp mpr1 mpr2 )
+
+condEntry :: (Show s, Ord s) => (String, Entry m s)
+condEntry = ( "Cond"
+            , PredEntry $ PD ["P","c","R"] PUndef ppCond simpCond)
+
+-- build an Cond at the MPred level
+bCond mpr1 mpr2 mpr3 = noMark $ mkCond mpr1 mpr2 mpr3
+\end{code}
+
+\newpage
+\HDRc{Skip}\label{hc:def-Skip}
+
+\RLEQNS{
+  p \in Pred &::=& \ldots
+\\ &|& \mSkip & \tSkip
+}
+\begin{code}
+isSkip (_,Comp "Skip" _) = True  ;  isSkip _ = False
+
+mkSkip = Comp "Skip" []
+
+ppSkip d p _ = pps styleBlue $ ppa "II"
+
+simpSkip d _ = ("",mkSkip)
+
+skipEntry = ("Skip", PredEntry $ PD [] PUndef ppSkip simpSkip)
+
+-- build Skip at the MPred level
+bSkip = noMark mkSkip
+\end{code}
+
+\newpage
+\HDRc{Sequencing}\label{hc:def-Seq}
+
+\RLEQNS{
+  p \in Pred &::=& \ldots
+\\ &|& \mSeq & \tSeq
+}
+\begin{code}
+isSeq (_,Comp "Seq" _) = True  ;  isSeq _ = False
+
+mkSeq mpr1 mpr2 = Comp "Seq" [mpr1,mpr2]
+
+ppSeq d p [mpr1,mpr2]
+ = paren p precSeq
+     $ ppsopen styleBlue " ; " [ showp d precSeq $ snd mpr1
+                               , showp d precSeq $ snd mpr2 ]
+ppSeq d p mprs = pps styleRed $ ppa "invalid-;"
+
+simpSeq d [ mpr1, mpr2    ]
+ | isSkip mpr1 = ( "simp-;",  snd mpr2 )
+ | isSkip mpr2 = ( "simp-;",  snd mpr1 )
+ | otherwise   = ( "", mkSeq mpr1 mpr2 )
+
+seqEntry :: (Show s, Ord s) => (String, Entry m s)
+seqEntry = ("Seq", PredEntry $ PD ["P","Q"] PUndef ppSeq simpSeq)
+
+-- build an Seq at the MPred level
+bSeq mpr1 mpr2 = noMark $ mkSeq mpr1 mpr2
+\end{code}
+
+\newpage
+\HDRc{Iteration}\label{hc:def-Iter}
+
+\RLEQNS{
+  p \in Pred &::=& \ldots
+\\ &|& \mIter & \tIter
+}
+\begin{code}
+isIter (_,Comp "Iter" _) = True  ;  isIter _ = False
+
+mkIter mpr1 mpr2 = Comp "Iter" [mpr1,mpr2]
+
+ppIter d p [mpr1,mpr2]
+ = paren p precIter
+     $ ppsopen styleBlue " * " [ showp d precIter $ snd mpr1
+                               , showp d precIter $ snd mpr2 ]
+ppIter d p mprs = pps styleRed $ ppa "invalid-*"
+
+simpIter d [mpr1, mpr2 ] = ( "", mkIter mpr1 mpr2 )
+
+iterEntry :: (Show s, Ord s) => (String, Entry m s)
+iterEntry = ("Iter", PredEntry $ PD ["c","Q"] PUndef ppIter simpIter)
+
+-- build an Iter at the MPred level
+bIter mpr1 mpr2 = noMark $ mkIter mpr1 mpr2
+\end{code}
+
+\newpage
 \HDRb{The Standard Dictionary}\label{hb:std-dict}
 
 \begin{code}
@@ -242,6 +384,11 @@ stdDict
     , orEntry
     , ndcEntry
     , impEntry
+    , rfdbyEntry
+    , condEntry
+    , skipEntry
+    , seqEntry
+    , iterEntry
     ]
 \end{code}
 
