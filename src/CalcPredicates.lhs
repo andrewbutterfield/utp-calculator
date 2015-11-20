@@ -65,10 +65,17 @@ along with a generic predicate composite, and substitution.
 
 We also want to have a general facility to mark terms for highlighting
 or processing in various ways.
+We use a class for marks that supplies a special `unmarked' value:
+\begin{code}
+class Mark m where nomark :: m
+\end{code}
+
 We don't want to check for or pattern-match against
 a special marker predicate, but prefer to add markers everywhere,
 using a mutually recursive datatype:
 \begin{code}
+type MPred m s = ( m, Pred m s )
+
 data Pred m s
  = T
  | F
@@ -92,9 +99,29 @@ instance Eq s => Eq (Pred m s) where -- ignore values of type m
     =  pr1 == pr2 && subs1 == subs2
  _ == _                              =  False
 
-type MPred m s = ( m, Pred m s )
+-- intelligent substitution maker
+mkPSub (_,pr) []  = pr
+mkPSub mpr sub = PSub mpr $ sort sub
 \end{code}
 
+\HDRd{Default Mark Type}
+
+We will use non-negative \emph{Int} as markers
+\begin{code}
+instance Mark Int where nomark = 0
+
+noMark :: Pred Int s -> MPred Int s
+noMark pr = (nomark, pr)
+
+-- build a basic predicate at the MPred level
+bT = noMark T
+bF = noMark F
+bV str = noMark $ PVar str
+bEqual e1 e2 = noMark $ Equal e1 e2
+bAtm e = noMark $ Atm e
+bComp str mprs = noMark $ Comp str mprs
+bPSub mpr subs = noMark $ mkPSub mpr subs
+\end{code}
 
 \HDRb{Dictionary}\label{hb:DataDict}
 
@@ -410,15 +437,15 @@ paren outerp innerp pp = pp
 
 Pretty-printing predicates,
 which now just underlines atomic values,
-and colours equality red and predicate vars green.
+and colours equality green and composite names blue.
 \begin{code}
 showp :: (Ord s, Show s) => Dict m s -> Int -> Pred m s -> PP
 showp d _ T  = pps Underline $ ppa "true"
 showp d _ F  = pps Underline $ ppa "false"
-showp d _ (PVar p)  = pps (Colour '2') $ ppa p
+showp d _ (PVar p)  = ppa p
 showp d p (Equal e1 e2)
    = paren p precEq
-       $ ppopen' (pps (Colour '1') $ ppa " = ")
+       $ ppopen' (pps styleGreen $ ppa " = ")
                  [ppa $ edshow d e1, ppa $ edshow d e2]
 showp d p (Atm e) = ppa $ edshow d e
 showp d p (PSub pr sub)
@@ -431,5 +458,5 @@ showp d p (Comp cname pargs)
 
 stdCshow :: (Ord s, Show s) => Dict m s -> String -> [MPred m s] -> PP
 stdCshow d cname pargs
- = pplist [ppa cname, ppclosed "(" ")" "," $ map (showp d 0 .snd) pargs]
+ = pplist [pps styleBlue $ ppa cname, ppclosed "(" ")" "," $ map (showp d 0 .snd) pargs]
 \end{code}

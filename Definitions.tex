@@ -19,13 +19,16 @@
 \def\mTop{\top} \def\tTop{\mbox{(Lattice) Top, a.k.a. miracle}}
 \def\mBot{\bot}  \def\tBot{\mbox{(Lattice) Bottom, a.k.a. abort/Chaos}}
 \def\mNot{\lnot p} \def\tNot{\mbox{Negation}}
+\def\mAnd{p_1 \land p_2 \land \ldots \land p_n} \def\tAnd{\mbox{Conjunction}}
+\def\mOr{p_1 \lor p_2 \lor \ldots \lor p_n} \def\tOr{\mbox{Disjunction}}
+
 \def\STANDARD{\RLEQNS{
    p \in P &::=& \ldots & \mbox{As per \secref{hc:PredData}}
 \\ &|& \mTop & \tTop
 \\ &|& \mBot & \tBot
 \\ &|& \mNot & \tNot
-\\ &|& p_1 \land p_2 \land \ldots \land p_n  & \mbox{Conjunction}
-\\ &|& p_1 \lor p_2 \lor \ldots \lor p_n & \mbox{Disjunction}
+\\ &|& \mAnd & \tAnd
+\\ &|& \mOr & \tOr
 \\ &|& p_1 \ndc p_2 \ndc \ldots \ndc p_n & \mbox{Non-Det. Choice}
 \\ &|& p_1 \implies p_2 & \mbox{Implication}
 \\ &|& p_1 \refinedby p_2 & \mbox{Refinement}

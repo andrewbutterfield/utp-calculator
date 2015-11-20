@@ -37,7 +37,14 @@ styleRed :: Style
 styleRed = Colour '1'
 codeRed :: String
 codeRed = setColour '1'
--- green   '2'
+styleGreen :: Style
+styleGreen = Colour '2'
+codeGreen :: String
+codeGreen = setColour '2'
+styleBlue :: Style
+styleBlue = Colour '4'
+codeBlue :: String
+codeBlue = setColour '4'
 -- blue    '4'
 -- yellow  '3'
 -- magenta '5'
@@ -127,6 +134,9 @@ ppopen' = ppc ppnul ppnul
 
 ppopen :: String -> [PP] -> PP
 ppopen sepstr pps = ppopen' (ppa sepstr) pps
+
+ppsopen :: Style -> String -> [PP] -> PP
+ppsopen style sepstr ppp = ppopen' (pps style $ ppa sepstr) ppp
 
 pplist :: [PP] -> PP
 pplist = ppopen ""
