@@ -7,6 +7,7 @@ import Data.List
 import Data.Char
 import Debug.Trace
 import PrettyPrint
+import CalcTypes
 import StdPrecedences
 import CalcPredicates
 \end{code}

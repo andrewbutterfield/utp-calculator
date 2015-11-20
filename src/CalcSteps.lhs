@@ -11,10 +11,6 @@ import PrettyPrint
 import CalcPredicates
 \end{code}
 
-Version
-\begin{code}
-versionCalcSteps = "CS-0.6"
-\end{code}
 
 \HDRb{Introduction}
 
