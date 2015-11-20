@@ -114,13 +114,13 @@ noMark :: Pred Int s -> MPred Int s
 noMark pr = (nomark, pr)
 
 -- build a basic predicate at the MPred level
-bT = noMark T
-bF = noMark F
-bV str = noMark $ PVar str
-bEqual e1 e2 = noMark $ Equal e1 e2
-bAtm e = noMark $ Atm e
-bComp str mprs = noMark $ Comp str mprs
-bPSub mpr subs = noMark $ mkPSub mpr subs
+bT              =  noMark T
+bF              =  noMark F
+bPV str         =  noMark $ PVar str
+bEqual e1 e2    =  noMark $ Equal e1 e2
+bAtm e          =  noMark $ Atm e
+bComp str mprs  =  noMark $ Comp str mprs
+bPSub mpr subs  =  noMark $ mkPSub mpr subs
 \end{code}
 
 \HDRb{Dictionary}\label{hb:DataDict}

@@ -11,12 +11,15 @@ import StdPrecedences
 import CalcPredicates
 \end{code}
 
-\HDRb{Standard Definitions}\label{hb:std-defs}
-
 Here we provide dictionary entries for all our ``standard''
 UTP predicate forms.
 
+\HDRb{Generic Definitions}\label{hb:gen-defs}
+
 First, some generic intelligent composite constructors:
+
+\HDRc{Associative Flattening }~
+
 \begin{code}
 mkAssoc
   :: String -> (MPred m s -> Bool) -> [MPred m s]-> [MPred m s]
@@ -51,6 +54,34 @@ sLattice tag op zero unit mprs
 
 
 \newpage
+
+\HDRb{Standard Definitions}\label{hb:std-defs}
+\HDRc{Lattice Top/Bottom}\label{hc:def-Top-Bot}
+
+\RLEQNS{
+  p \in Pred &::=& \ldots
+\\ &|& \mTop & \tTop
+\\ &|& \mBot & \tBot
+}
+\begin{code}
+mkTop = Comp "Top" []
+mkBot = Comp "Bot" []
+
+ppTop d p _ = pps styleBlue $ ppa "T"
+ppBot d p _ = pps styleBlue $ ppa "_|_"
+
+simpTop d _ = ("",F) -- assuming full predicate lattice
+simpBot d _ = ("",T) -- assuming full predicate lattice
+
+topEntry = ("Top", PredEntry $ PD [] PUndef ppTop simpTop)
+botEntry = ("Bot", PredEntry $ PD [] PUndef ppBot simpBot)
+
+-- build Top and Bot at the MPred level
+bTop = noMark mkTop
+bBot = noMark mkBot
+\end{code}
+
+\newpage
 \HDRc{Negation}\label{hc:def-Not}
 
 \RLEQNS{
@@ -63,7 +94,7 @@ mkNot mpr = Comp "Not" [mpr]
 ppNot d p [(m,pr)] -- ignore marking for now
  = paren p precNot
        $ pplist [pps styleBlue $ ppa "~", showp d precNot pr]
-ppNot d p _ = ppa "invalid-Not"
+ppNot d p _ = pps styleRed $ ppa "invalid-~"
 
 simpNot d [(m,T)] = ("~-simp",F)
 simpNot d [(m,F)] = ("~-simp",T)
@@ -127,7 +158,7 @@ ppOr d p mprs
      $ ppsopen styleBlue " \\/ "
      $ map (showp d precOr . snd) mprs
 
-simpOr d mprs  = sLattice "\\/-simplify" mkOr F T mprs
+simpOr d mprs  = sLattice "\\/-simplify" mkOr T F mprs
 
 orEntry :: (Show s, Ord s) => (String, Entry m s)
 orEntry = ("Or", PredEntry $ PD ["P$"] PUndef ppOr simpOr)
@@ -137,21 +168,88 @@ bOr mprs = noMark $ mkOr mprs
 \end{code}
 
 \newpage
+\HDRc{Non-deterministic Choice}\label{hc:def-NDC}
+
+\RLEQNS{
+  p \in Pred &::=& \ldots
+\\ &|& \mNDC & \tNDC
+}
+\begin{code}
+isNDC (_,Comp "NDC" _) = True  ;  isNDC _ = False
+
+mkNDC [] = T
+mkNDC [(_,pr)] = pr
+mkNDC mprs = mkAssoc "NDC" isNDC [] mprs
+
+ppNDC d p [] = showp d p T
+ppNDC d p [(m,pr)] = showp d p pr
+ppNDC d p mprs
+ = paren p precNDC
+     $ ppsopen styleBlue " |~| "
+     $ map (showp d precNDC . snd) mprs
+
+simpNDC d mprs  = sLattice "|~|-simplify" mkNDC T F mprs
+
+ndcEntry :: (Show s, Ord s) => (String, Entry m s)
+ndcEntry = ("NDC", PredEntry $ PD ["P$"] PUndef ppNDC simpNDC)
+
+-- build an NDC at the MPred level
+bNDC mprs = noMark $ mkNDC mprs
+\end{code}
+
+\newpage
+\HDRc{Implication}\label{hc:def-Imp}
+
+\RLEQNS{
+  p \in Pred &::=& \ldots
+\\ &|& \mImp & \tImp
+}
+\begin{code}
+isImp (_,Comp "Imp" _) = True  ;  isImp _ = False
+
+mkImp mpr1 mpr2 = Comp "Imp" [mpr1,mpr2]
+
+ppImp d p [mpr1,mpr2]
+ = paren p precImp
+     $ ppsopen styleBlue " => " [ showp d precImp $ snd mpr1
+                                , showp d precImp $ snd mpr2 ]
+ppImp d p mprs = pps styleRed $ ppa "invalid-=>"
+
+simpImp d [ (_,T), (_,pr) ] = ( "=>-simp", pr        )
+simpImp d [ (_,F), _      ] = ( "=>-simp", T         )
+simpImp d [ mpr,  (_,F)   ] = ( "=>-simp", mkNot mpr )
+simpImp d [ _,    (_,T)   ] = ( "=>-simp", T         )
+simpImp d [ mpr1, mpr2    ] = ( "",  mkImp mpr1 mpr2 )
+
+impEntry :: (Show s, Ord s) => (String, Entry m s)
+impEntry = ("Imp", PredEntry $ PD ["P","Q"] PUndef ppImp simpImp)
+
+-- build an Imp at the MPred level
+bImp mpr1 mpr2 = noMark $ mkImp mpr1 mpr2
+\end{code}
+
+\newpage
 \HDRb{The Standard Dictionary}\label{hb:std-dict}
 
 \begin{code}
 stdDict :: (Ord s, Show s) => Dict m s
 stdDict
  = M.fromList
-    [ notEntry
+    [ topEntry
+    , botEntry
+    , notEntry
     , andEntry
     , orEntry
+    , ndcEntry
+    , impEntry
     ]
 \end{code}
 
 \HDRc{Debugging aids}
 
 \begin{code}
-putPred :: (Ord s, Show s) => Pred m s -> IO ()
+putPred :: (Mark m, Ord s, Show s) => Pred m s -> IO ()
 putPred = putStrLn . pdshow 80 stdDict
+putMPred :: (Mark m, Ord s, Show s) => MPred m s -> IO ()
+putMPred = putPred . snd
 \end{code}
