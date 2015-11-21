@@ -62,45 +62,40 @@ bPSub mpr subs  =  noMark $ mkPSub mpr subs
 
 Dictionary query and construction
 \begin{code}
-isPredEntry (PredEntry _) = True
+isPredEntry (PredEntry _ _ _ _) = True
 isPredEntry _ = False
-isExprEntry (ExprEntry _) = True
+isExprEntry (ExprEntry _ _ _ _) = True
 isExprEntry _ = False
 isAlfEntry (AlfEntry _) = True
 isAlfEntry _ = False
 isPVarEntry (PVarEntry _) = True
 isPVarEntry _ = False
 
-thePredEntry (PredEntry pd) = pd
-theExprEntry (ExprEntry fd) = fd
-theAlfEntry (AlfEntry ad) = ad
-thePVarEntry (PVarEntry pd) = pd
-
 nullDict :: Dict m s
 nullDict = M.empty
 
-plookup :: String -> Dict m s -> Maybe (PredDef m s)
+plookup :: String -> Dict m s -> Maybe (Entry m s)
 plookup nm d
  = case M.lookup nm d of
-     Just (PredEntry pd)  ->  Just pd
-     _                    ->  Nothing
+     Just pd@(PredEntry _ _ _ _)  ->  Just pd
+     _                            ->  Nothing
 
-flookup :: String -> Dict m s -> Maybe (ExprDef m s)
-flookup nm d
+elookup :: String -> Dict m s -> Maybe (Entry m s)
+elookup nm d
  = case M.lookup nm d of
-     Just (ExprEntry fd)  ->  Just fd
-     _                   ->  Nothing
+     Just ed@(ExprEntry _ _ _ _)  ->  Just ed
+     _                            ->  Nothing
 
-alookup :: String -> Dict m s -> Maybe AlfDef
+alookup :: String -> Dict m s -> Maybe (Entry m s)
 alookup nm d
  = case M.lookup nm d of
-     Just (AlfEntry ad)  ->  Just ad
-     _                   ->  Nothing
+     Just ad@(AlfEntry _)  ->  Just ad
+     _                     ->  Nothing
 
-vlookup :: String -> Dict m s -> Maybe PVarDef
+vlookup :: String -> Dict m s -> Maybe (Entry m s)
 vlookup nm d
  = case M.lookup nm d of
-     Just (PVarEntry pd)  ->  Just pd
+     Just ve@(PVarEntry _)  ->  Just ve
      _                    ->  Nothing
 \end{code}
 
@@ -230,9 +225,9 @@ edshow d (Z i)      =  show i
 edshow d (Var v)    =  v
 edshow d Undef      =  "Undefined"
 edshow d (App f es)
- = case flookup f d of
+ = case elookup f d of
     Nothing  ->  stdFShow d f es
-    Just (ED _ _ showf _) -> showf d es
+    Just (ExprEntry _ _ showf _) -> showf d es
 edshow d (Sub e sub) = pshow d e ++ showSub d sub
 
 dlshow d sep xs = concat (intersperse sep $ map (edshow d) xs)
@@ -291,9 +286,9 @@ showp d p (PSub pr sub)
 showp d p (Comp cname pargs)
  = case plookup cname d of
     Nothing  ->  stdCshow d cname pargs
-    Just (PD _ _ showf _) -> showf d p pargs
+    Just (PredEntry _ _ showf _) -> showf d p pargs
 
-stdCshow :: (Ord s, Show s) 
+stdCshow :: (Ord s, Show s)
          => Dict m s -> String -> [MPred m s] -> PP
 stdCshow d cname pargs
  = pplist [ pps styleBlue $ ppa cname

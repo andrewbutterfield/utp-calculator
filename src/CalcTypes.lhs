@@ -68,7 +68,7 @@ data Pred m s
  | PSub (MPred m s) (Substn s)
  | PUndef
  deriving (Ord, Show)
- 
+
 instance Eq s => Eq (Pred m s) where -- ignore values of type m
  T == T                              =  True
  F == F                              =  True
@@ -125,23 +125,16 @@ type Dict m s = M.Map String (Entry m s)
 A dictionary entry is a sum of  definition types defined below
 \begin{code}
 data Entry m s
- = PredEntry (PredDef m s)
- | ExprEntry (ExprDef m s)
- | AlfEntry AlfDef
- | PVarEntry PVarDef
-\end{code}
-
-Predicate definitions
-\begin{code}
-data PredDef m s
- = PD [String]                -- list of formal/bound variables
-      (Pred m s)              -- definition body
-      (Dict m s -> Int -> [MPred m s] -> PP)    -- pretty printer
-      (Dict m s -> [MPred m s] -> CalcResult m s) -- evaluator
+ = PredEntry    -- about Predicates
+    [String]    -- list of formal/bound variables
+    (Pred m s)  -- definition body
+    (Dict m s -> Int -> [MPred m s] -> PP)      -- pretty printer
+    (Dict m s -> [MPred m s] -> CalcResult m s) -- evaluator
+ -- more to come ..
 \end{code}
 We interpret a \texttt{Dict} entry like
 \begin{verbatim}
-"P" |->  PredEntry (PD  ["Q1","Q2",...,"Qn"] pr pf pv)
+"P" |->  PredEntry ["Q1","Q2",...,"Qn"] pr pf pv
 \end{verbatim}
 as defining a function:
 \RLEQNS{
@@ -160,16 +153,18 @@ The evaluator is free to use or ignore the definition body expression $pr$.
 
 Expression definitions
 \begin{code}
-data ExprDef m s
- = ED [String]                -- list of formal/bound variables
-      (Expr s)                 -- definition body
-      (Dict m s -> [Expr s] -> String)     -- pretty printer
-      (Dict m s -> [Expr s] -> ( String   -- eval name
-                             , Expr s )) -- evaluator
+-- data Entry m s = ....
+ | ExprEntry  -- about Expressions
+    [String]  -- list of formal/bound variables
+    (Expr s)  -- definition body
+    (Dict m s -> [Expr s] -> String)      -- pretty printer
+    (Dict m s -> [Expr s] -> ( String     -- eval name
+                             , Expr s ))  -- evaluator
+ -- more to come ...
 \end{code}
 We interpret a \texttt{Dict} entry like
 \begin{verbatim}
-"f" |->  ExprEntry (ED ["v1","v2",...,"vn"] e pf ev)
+"f" |->  ExprEntry ["v1","v2",...,"vn"] e pf ev
 \end{verbatim}
 as defining a function:
 \RLEQNS{
@@ -188,7 +183,10 @@ The evaluator is free to use or ignore the definition body expression $e$.
 
 We also want to define alphabets, as sets of names
 \begin{code}
-type AlfDef = [String]
+-- data Entry m s = ....
+ | AlfEntry   -- about Alphabets
+    [String]  -- variables
+ -- more to come ...
 \end{code}
 An entry
 \begin{verbatim}
@@ -201,7 +199,10 @@ defines an alphabet:
 We sometimes want to associate extra information with given
 predicate variables:
 \begin{code}
-type PVarDef = [String] -- for now, just its alphabet
+-- data Entry m s = ....
+ | PVarEntry  -- about Predicyae Variables
+    [String]  -- for now, just its alphabet
+-- end Entry
 \end{code}
 An entry
 \begin{verbatim}
