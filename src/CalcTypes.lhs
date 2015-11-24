@@ -80,8 +80,8 @@ instance Eq s => Eq (Pred m s) where -- ignore values of type m
  (PSub (_, pr1) subs1) == (PSub (_, pr2) subs2)
     =  pr1 == pr2 && subs1 == subs2
  _ == _                              =  False
-
 \end{code}
+
 
 \HDRb{Calculation Steps}\label{hb:calc-steps}
 
@@ -200,7 +200,7 @@ We sometimes want to associate extra information with given
 predicate variables:
 \begin{code}
 -- data Entry m s = ....
- | PVarEntry  -- about Predicyae Variables
+ | PVarEntry  -- about Predicate Variables
     [String]  -- for now, just its alphabet
 -- end Entry
 \end{code}
@@ -212,4 +212,62 @@ declares the alphabet associated with that predicate variable:
 \RLEQNS{
    \alpha P &=&  \setof{v_1,v_2,\ldots,v_n}
 }
+
+\HDRb{Zipper Datatypes}\label{hb:zipper-types}
+
+We note, using the notion of ``datatypes as algebras'',
+%( http://chris-taylor.github.io/blog/2013/02/13/the-algebra-of-algebraic-data-types-part-iii/)
+that the \texttt{Pred m s} and \texttt{MPred m s} types above
+correspond to the following algebraic forms:
+\RLEQNS{
+   V && & \mbox{Variables}
+\\ E && & \mbox{Expressions}
+\\ M && & \mbox{Marks}
+\\ P_M &=& \mathbf 1 
+         + \mathbf 1
+         + \Char^*
+         + E \times E
+         + E
+\\    && + \Char^* \times MP_M^*
+         + MP_M \times (V \times E)^* & \mbox{Predicates}
+\\ MP_M &=& M \times P_M & \mbox{Marked Predicates}
+\\      &=& M \times \mathbf 1
+          + M \times \mathbf 1
+          + M \times \Char^*
+          + M \times E \times E
+          + M \times E
+\\     && + M \times \Char^* \times MP_M^*
+          + M \times MP_M \times (V \times E)^*
+\\      &=& F(MP_M)
+}
+We want to define a ``zipper'' \cite{JFP::Huet1997} for \texttt{MPred m s},
+following Conor McBride's Datatype Differentiation approach\cite{McB:derrti}.
+So, we ``differentiate'' the expression for $MP_M$ above w.r.t. $MP_M$,
+to obtain $MP'_M$:
+\RLEQNS{
+   MP'_M &=& \partial_{MP_M}(F)
+\\       &=& M \times \Char^* \times (MP_M^*)^2
+           + M \times (V \times E)^*
+}
+This leads to the following zipper datatypes:
+\begin{code}
+data MPred' m s
+ = Comp'         -- parent is a Comp node 
+     m           -- parent marking
+     String      -- parent name
+     [MPred m s] -- components before current focus
+     [MPred m s] -- components after current focus
+ | PSub'         -- parent is a PSub node
+     m           -- parent marking
+     (Substn s)  -- substitution in parent
+\end{code}
+We then define a zipper as being an predicate
+together with a list of expression derivatives:
+\begin{code}
+type MPZipper m s
+  = ( MPred m s    -- the current (focus) predicate
+    , [MPred' m s] -- the steps we took to get here,
+                   -- and what we passed on the way.
+    )
+\end{code}
 

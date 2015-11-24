@@ -41,9 +41,10 @@ class Mark m where nomark :: m
 
 \HDRc{Default Mark Type}
 
-We will use non-negative \emph{Int} as markers
+We will generally use non-negative \emph{Int} as markers,
+with $-1$ representing ``no mark''.
 \begin{code}
-instance Mark Int where nomark = 0
+instance Mark Int where nomark = -1
 
 noMark :: Pred Int s -> MPred Int s
 noMark pr = (nomark, pr)

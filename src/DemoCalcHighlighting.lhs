@@ -57,7 +57,7 @@ data E m = N Int    -- number
 instance Eq (E m) where -- ignore values of m
   (N n1) == (N n2)  =  n1 == n2
   (V v1) == (V v2)  =  v1 == v2
-  (P (_,e11) (_,e12)) == (P (_,e21) (_,e22)) 
+  (P (_,e11) (_,e12)) == (P (_,e21) (_,e22))
                                   =  e11 == e21 && e12 == e22
   _ == _   =  False
 
@@ -294,7 +294,7 @@ in two different versions of a single expression.
 However the structure of the two expressions is identical everywhere else
 so a single zipper ``path'' can be applied to both.
 
-Let us begin with numeric marks and ways to mark and unmark things things
+Let us begin with numeric marks and ways to mark and unmark things
 \begin{code}
 type Mark = Int
 type NME  = ME Mark
@@ -424,6 +424,6 @@ displayCalc nmes
 
 A fun test:
 \begin{code}
-demo = putStrLn $ displayCalc $ stepRepeat stdreduce 
+demo = putStrLn $ displayCalc $ stepRepeat stdreduce
                 $ noMark $ fbt () 3
 \end{code}
