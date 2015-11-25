@@ -118,6 +118,8 @@ doStep m cstep mpr
    in if null what then Nothing else Just (pmpr',what,nmpr')
 \end{code}
 
+\HDRc{Search Current Focus}\label{hc:srch-focus}
+
 We try a step function first at the current focus level,
 only recursing in deeper if that fails:
 \begin{code}
@@ -129,6 +131,8 @@ stepFocus cstep mpz@( mpr, ss )
       else (mpr, what, mpr', ss) 
 \end{code}
 
+\HDRc{Search Sub-Components}\label{hc:srch-sub-comp}
+
 We are now systematically exploring composite sub-parts:
 \begin{code}
 stepComponents :: CalcStep m s -> MPZipper m s -> MPZip2 m s
@@ -137,15 +141,17 @@ stepComponents :: CalcStep m s -> MPZipper m s -> MPZip2 m s
 stepComponents cstep ( (mp, PSub mpr subs), ss )
   = stepFocus cstep ( mpr, PSub' mp subs : ss )
   
--- Composites: trickier, so start with pathological cases
+-- Composites: trickier, so start with simplest case
 stepComponents cstep ( (mp, Comp name [mpr]), ss )
  = stepFocus cstep ( mpr, Comp' mp name [] [] : ss )
 
 stepComponents cstep ( (mp, Comp name (mpr:mprs)), ss )
   = stepComp' cstep (Comp' mp name [] mprs) ss mpr
 
-stepComponents cstep ( mpr, ss ) = ( mpr, "", mpr, ss ) -- default case
+stepComponents cstep ( mpr, ss ) = ( mpr, "", mpr, ss ) 
 \end{code}
+
+\HDRc{Search Component List}\label{hc:srch-list}
 
 Going through a sub-component list:
 \begin{code}
