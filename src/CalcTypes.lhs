@@ -44,6 +44,7 @@ We treat expressions as atomic from the perspective of
 pretty-printing and highlighting.
 
 
+\newpage
 \HDRc{Predicate Datatype}\label{hc:PredData}
 
 Now we need a  predicate syntax,
@@ -82,7 +83,7 @@ instance Eq s => Eq (Pred m s) where -- ignore values of type m
  _ == _                              =  False
 \end{code}
 
-
+\newpage
 \HDRb{Calculation Steps}\label{hb:calc-steps}
 
 We now present the infrastructure for performing calculations.
@@ -114,6 +115,7 @@ type CCalcStep m s = Pred m s -> CCalcResult m s
 \end{code}
 
 
+\newpage
 \HDRb{Dictionary}\label{hb:DataDict}
 
 We need a dictionary that maps various names
@@ -124,13 +126,41 @@ type Dict m s = M.Map String (Entry m s)
 
 A dictionary entry is a sum of  definition types defined below
 \begin{code}
-data Entry m s
- = PredEntry    -- about Predicates
+data Entry m s =
+\end{code}
+
+\HDRc{Alphabet Entry}\label{hc:alfa-entry}
+
+\begin{code}
+-- data Entry m s = ....
+   AlfEntry   -- about Alphabets
+    [String]  -- variables
+\end{code}
+An entry
+\texttt{"A" |-> AlfEntry ["v1","v2",..,"vn"]}
+\\defines an alphabet:
+$A \defs \setof{v_1,v_2,\ldots,v_n}$.
+
+\HDRc{Predicate Variable Entry}\label{hc:pvar-entry}
+
+\begin{code}
+-- data Entry m s = ....
+ | PVarEntry  -- about Predicate Variables
+    [String]  -- for now, just its alphabet
+\end{code}
+An entry \texttt{"P" |-> PVarEntry ["v1","v2",..,"vn"]}
+\\
+declares the alphabet associated with that predicate variable:
+$\alpha P \defs \setof{v_1,v_2,\ldots,v_n}$.
+
+\HDRc{Predicate Entry}\label{hc:pred-entry}
+
+\begin{code}
+ | PredEntry    -- about Predicates
     [String]    -- list of formal/bound variables
     (Pred m s)  -- definition body
     (Dict m s -> Int -> [MPred m s] -> PP)      -- pretty printer
     (Dict m s -> [MPred m s] -> CalcResult m s) -- evaluator
- -- more to come ..
 \end{code}
 We interpret a \texttt{Dict} entry like
 \begin{verbatim}
@@ -151,7 +181,8 @@ otherwise gives the name of the predicate to be used in the justification
 of a proof step.
 The evaluator is free to use or ignore the definition body expression $pr$.
 
-Expression definitions
+\HDRc{Expression Entry}\label{hc:expr-entry}
+
 \begin{code}
 -- data Entry m s = ....
  | ExprEntry  -- about Expressions
@@ -160,7 +191,6 @@ Expression definitions
     (Dict m s -> [Expr s] -> String)      -- pretty printer
     (Dict m s -> [Expr s] -> ( String     -- eval name
                              , Expr s ))  -- evaluator
- -- more to come ...
 \end{code}
 We interpret a \texttt{Dict} entry like
 \begin{verbatim}
@@ -181,38 +211,15 @@ otherwise gives the name of the function to be used in the justification
 of a proof step.
 The evaluator is free to use or ignore the definition body expression $e$.
 
-We also want to define alphabets, as sets of names
+
+\HDRcstar{Entry Complete}
+
 \begin{code}
--- data Entry m s = ....
- | AlfEntry   -- about Alphabets
-    [String]  -- variables
- -- more to come ...
-\end{code}
-An entry
-\begin{verbatim}
-"a" |-> AlfEntry ["v1","v2",..,"vn"]
-\end{verbatim}
-defines an alphabet:
-\RLEQNS{
-  a &\defs& \setof{v_1,v_2,\ldots,v_n}
-}
-We sometimes want to associate extra information with given
-predicate variables:
-\begin{code}
--- data Entry m s = ....
- | PVarEntry  -- about Predicate Variables
-    [String]  -- for now, just its alphabet
 -- end Entry
 \end{code}
-An entry
-\begin{verbatim}
-  "P" |-> PVarEntry ["v1","v2",..,"vn"]
-\end{verbatim}
-declares the alphabet associated with that predicate variable:
-\RLEQNS{
-   \alpha P &=&  \setof{v_1,v_2,\ldots,v_n}
-}
 
+
+\newpage
 \HDRb{Zipper Datatypes}\label{hb:zipper-types}
 
 We note, using the notion of ``datatypes as algebras'',
@@ -223,7 +230,7 @@ correspond to the following algebraic forms:
    V && & \mbox{Variables}
 \\ E && & \mbox{Expressions}
 \\ M && & \mbox{Marks}
-\\ P_M &=& \mathbf 1 
+\\ P_M &=& \mathbf 1
          + \mathbf 1
          + \Char^*
          + E \times E
@@ -252,7 +259,7 @@ to obtain $MP'_M$:
 This leads to the following zipper datatypes:
 \begin{code}
 data MPred' m s
- = Comp'         -- parent is a Comp node 
+ = Comp'         -- parent is a Comp node
      m           -- parent marking
      String      -- parent name
      [MPred m s] -- components before current focus
@@ -260,6 +267,7 @@ data MPred' m s
  | PSub'         -- parent is a PSub node
      m           -- parent marking
      (Substn s)  -- substitution in parent
+ deriving Show
 \end{code}
 We then define a zipper as being an predicate
 together with a list of expression derivatives:
@@ -270,4 +278,3 @@ type MPZipper m s
                    -- and what we passed on the way.
     )
 \end{code}
-
