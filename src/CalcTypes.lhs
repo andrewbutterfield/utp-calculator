@@ -108,7 +108,7 @@ predicate in some way, and returns both the transformed result,
 as well as a justification string describing what was done.
 \begin{code}
 type CalcResult m s = (String, MPred m s)
-type CalcStep m s = Pred m s -> CalcResult m s
+type CalcStep m s = MPred m s -> CalcResult m s
 \end{code}
 
 We also have steps that are contingent on some side-condition,
@@ -125,7 +125,7 @@ type CCalcResult m s
    , [( Pred m s    -- condition to be discharged
       , MPred m s)]  -- modified predicate
    )
-type CCalcStep m s = Pred m s -> CCalcResult m s
+type CCalcStep m s = MPred m s -> CCalcResult m s
 \end{code}
 
 
@@ -300,4 +300,10 @@ type MPZipper m s
     , [MPred' m s] -- the steps we took to get here,
                    -- and what we passed on the way.
     )
+\end{code}
+
+\HDRb{Recognisers}\label{hc:recog}
+
+\begin{code}
+type Recogniser m s = MPred m s -> Bool
 \end{code}

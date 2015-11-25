@@ -13,6 +13,7 @@ import StdPrecedences
 import CalcPredicates
 import StdPredicates
 import CalcZipper
+import CalcSteps
 \end{code}
 
 \HDRc{Default Mark Type}

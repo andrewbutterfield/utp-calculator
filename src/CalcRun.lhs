@@ -112,7 +112,7 @@ calcCStep th d cstepf st@(pr0,steps) currpr
               putStrLn ("Please select 1.."++show num)
               sel <- fmap getInt getLine
               if 1 <= sel && sel <= num
-               then do let step' = cconvert d sel cstep'
+               then do let step' = condResolve d sel cstep'
                        putStrLn ( "\n = " ++ show comment )
                        runREPL th d (pr0,(step':steps)) (snd step')
                else runREPL th d st currpr

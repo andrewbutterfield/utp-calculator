@@ -259,7 +259,7 @@ where underlining denotes ``old'' and the colour red denotes ``new'':
 }
 Notice how each $step_i$ affects the Old/New marking of both its predecessor
 and successor expressions.
-Rather than having two markings (Old/New) it turns out to be more effiecient
+Rather than having two markings (Old/New) it turns out to be more efficient
 to have a numeric marking, so $step_i$ introduces mark number $i$.
 The interpetation of such marks as old, new or irrelevant can then be done
 relative to the numbering of the step outcome being rendered for display.
@@ -336,6 +336,7 @@ tagapply m step ( me, ss )
       else (me,me',ss)
 \end{code}
 
+\newpage
 If we fail at the current level to apply a step then we recurse
 into the composite seeing if we can get a result with any of
 its sub-components:
