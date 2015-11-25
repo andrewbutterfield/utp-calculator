@@ -28,28 +28,19 @@ ssame sub1 sub2 = sort sub1 == sort sub2
 We treat expressions as atomic from the perspective of
 pretty-printing and highlighting.
 
-\HDRb{Marking Class}\label{hm:MarkClass}
+\HDRb{Marking}\label{hb:marking}
 
-
-We also want to have a general facility to mark terms for highlighting
-or processing in various ways.
-We use a class for marks that supplies a special `unmarked' value:
 \begin{code}
-class Mark m where nomark :: m
-\end{code}
-
-
-\HDRc{Default Mark Type}
-
-We will generally use non-negative \emph{Int} as markers,
-with $-1$ representing ``no mark''.
-\begin{code}
-instance Mark Int where nomark = -1
-
-noMark :: Pred Int s -> MPred Int s
+noMark :: Mark m => Pred m s -> MPred m s
 noMark pr = (nomark, pr)
 
+reMark :: Mark m => m -> MPred m s -> MPred m s
+reMark m (_, pr) = (m, pr)
+\end{code}
+
+\begin{code}
 -- build a basic predicate at the MPred level
+bT, bF :: Mark m => MPred m s
 bT              =  noMark T
 bF              =  noMark F
 bPV str         =  noMark $ PVar str

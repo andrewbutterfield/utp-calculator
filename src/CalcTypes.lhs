@@ -83,6 +83,20 @@ instance Eq s => Eq (Pred m s) where -- ignore values of type m
  _ == _                              =  False
 \end{code}
 
+\HDRb{Marking Class}\label{hb:MarkClass}
+
+We use a class for marks that specifies a special `unmarked' value,
+as well as a way to generate a new label from an existing one
+\begin{code}
+class Mark m where
+  nomark :: m
+  nextm :: m -> m -- laws for nextm:
+                  --    (i)  nextm m /= m
+                  --   (ii)  nextm m /= nomark
+                  --  (iii)  nextm is bijective
+\end{code}
+
+
 \newpage
 \HDRb{Calculation Steps}\label{hb:calc-steps}
 
@@ -93,7 +107,7 @@ The basic idea is that such a step transforms a current goal
 predicate in some way, and returns both the transformed result,
 as well as a justification string describing what was done.
 \begin{code}
-type CalcResult m s = (String, Pred m s)
+type CalcResult m s = (String, MPred m s)
 type CalcStep m s = Pred m s -> CalcResult m s
 \end{code}
 
@@ -109,7 +123,7 @@ and allows the user to select which one should be used.
 type CCalcResult m s
  = ( String
    , [( Pred m s    -- condition to be discharged
-      , Pred m s)]  -- modified predicate
+      , MPred m s)]  -- modified predicate
    )
 type CCalcStep m s = Pred m s -> CCalcResult m s
 \end{code}
@@ -159,8 +173,8 @@ $\alpha P \defs \setof{v_1,v_2,\ldots,v_n}$.
  | PredEntry    -- about Predicates
     [String]    -- list of formal/bound variables
     (Pred m s)  -- definition body
-    (Dict m s -> Int -> [MPred m s] -> PP)      -- pretty printer
-    (Dict m s -> [MPred m s] -> CalcResult m s) -- evaluator
+    (Dict m s -> Int -> [MPred m s] -> PP)        -- pretty printer
+    (Dict m s -> [MPred m s] -> (String,Pred m s)) -- simplifier
 \end{code}
 We interpret a \texttt{Dict} entry like
 \begin{verbatim}
@@ -256,6 +270,15 @@ to obtain $MP'_M$:
 \\       &=& M \times \Char^* \times (MP_M^*)^2
            + M \times (V \times E)^*
 }
+We use the following differentiation laws:
+\RLEQNS{
+   d(x^n)/dx &=& nx^{n-1}
+\\ d(x^*)/dx
+   &=& d(1+x+x^2+x^3+\cdots)/dx
+\\ &=& (1+2x+3x^2+4x^3+\cdots)
+\\ &=& (1+x+x^2+x^3+\cdots)^2 & \mbox{exercise: show this}
+\\ d(kf)/dx &=& k(df/fx) & k\mbox{ a constant}
+}
 This leads to the following zipper datatypes:
 \begin{code}
 data MPred' m s
@@ -270,7 +293,7 @@ data MPred' m s
  deriving Show
 \end{code}
 We then define a zipper as being an predicate
-together with a list of expression derivatives:
+together with a list of predicate derivatives:
 \begin{code}
 type MPZipper m s
   = ( MPred m s    -- the current (focus) predicate

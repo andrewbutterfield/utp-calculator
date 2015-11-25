@@ -81,6 +81,7 @@ topEntry = ("Top", PredEntry [] PUndef ppTop simpTop)
 botEntry = ("Bot", PredEntry [] PUndef ppBot simpBot)
 
 -- build Top and Bot at the MPred level
+bTop, bBot :: Mark m => MPred m s
 bTop = noMark mkTop
 bBot = noMark mkBot
 \end{code}
@@ -311,6 +312,7 @@ simpSkip d _ = ("",mkSkip)
 skipEntry = ("Skip", PredEntry [] PUndef ppSkip simpSkip)
 
 -- build Skip at the MPred level
+bSkip :: Mark m => MPred m s
 bSkip = noMark mkSkip
 \end{code}
 

@@ -1,13 +1,6 @@
 \HDRa{Calculator Zipper}\label{ha:calc-zipper}
 \begin{code}
 module CalcZipper where
-import Utilities
-import qualified Data.Map as M
-import Data.List
-import Data.Char
-import Data.Maybe
-import Debug.Trace
-import PrettyPrint
 import CalcTypes
 import CalcPredicates
 \end{code}
@@ -56,7 +49,8 @@ upMPZ mpz = mpz -- taken if currently at top
 \HDRb{Modifying the Focus}
 
 \begin{code}
-updateMPZ :: (MPred m s -> MPred m s) -> MPZipper m s -> MPZipper m s
+updateMPZ :: (MPred m s -> MPred m s)
+          -> MPZipper m s -> MPZipper m s
 updateMPZ f ( mpr, ss ) = ( f mpr, ss )
 \end{code}
 
