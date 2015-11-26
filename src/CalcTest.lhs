@@ -11,6 +11,7 @@ import PrettyPrint
 import CalcTypes
 import StdPrecedences
 import CalcPredicates
+import CalcSimplify
 import StdPredicates
 import CalcZipper
 import CalcSteps
@@ -27,7 +28,7 @@ instance Mark Int where
   nextm = (+1)
 \end{code}
 
-Some concrete instances
+Some concrete instances of basic predicates
 \begin{code}
 type IPred s = MPred Int s
 iT, iF :: IPred s
@@ -43,4 +44,22 @@ iComp :: String -> [IPred s] -> IPred s
 iComp = bComp
 iPSub :: Ord s => IPred s -> Substn s -> IPred s
 iPSub = bPSub
+\end{code}
+
+Some concrete instances of standard predicates
+\begin{code}
+iTop, iBot :: IPred s
+iTop = bTop
+iBot = bBot
+iNot :: IPred s -> IPred s
+iNot mpr = noMark $ mkNot mpr
+-- iAnd mprs = noMark $ mkAnd mprs
+-- iOr mprs = noMark $ mkOr mprs
+-- iNDC mprs = noMark $ mkNDC mprs
+-- iImp mpr1 mpr2 = noMark $ mkImp mpr1 mpr2
+-- iRfdby mpr1 mpr2 = noMark $ mkRfdby mpr1 mpr2
+-- iCond mpr1 mpr2 mpr3 = noMark $ mkCond mpr1 mpr2 mpr3
+-- iSkip = noMark mkSkip
+-- iSeq mpr1 mpr2 = noMark $ mkSeq mpr1 mpr2
+-- iIter mpr1 mpr2 = noMark $ mkIter mpr1 mpr2
 \end{code}

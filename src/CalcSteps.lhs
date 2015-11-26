@@ -106,6 +106,20 @@ condResolve d i ( nm, outcomes )
 \end{code}
 
 \newpage
+\HDRb{Atomic Step}\label{hb:atomic-step}
+
+We treat things like simplification here as one big atomic modify step.
+
+\begin{code}
+doAtomicStep :: Mark m
+       => m -> (m -> CalcStep m s)  -> MPred m s
+       -> Maybe (MPred m s, String, MPred m s)
+doAtomicStep m mcstep mpr
+ = let (what,mpr') = mcstep m mpr
+   in if null what then Nothing else Just (mpr,what,mpr')
+\end{code}
+
+\newpage
 \HDRb{Recursive Predicate Search}\label{hb:rec-pred-srch}
 
 
@@ -116,14 +130,14 @@ a predicate, and returning when we succeed.
 
 This call encapsulates the use of zippers completely:
 \begin{code}
-doStep :: Mark m
+doStepSearch :: Mark m
        => m -> CalcStep m s  -> MPred m s
        -> Maybe (MPred m s, String, MPred m s)
-doStep m cstep mpr
+doStepSearch m cstep mpr
  = let
      (mpr1,what,mpr2,ss) = stepFocus cstep $ startMPZ mpr
-     pmpr' = unzipMPZ ss $ reMark m mpr1
-     nmpr' = unzipMPZ ss $ reMark m mpr2
+     pmpr' = unzipMPZ ss $ addMark m mpr1
+     nmpr' = unzipMPZ ss $ addMark m mpr2
    in if null what then Nothing else Just (pmpr',what,nmpr')
 \end{code}
 

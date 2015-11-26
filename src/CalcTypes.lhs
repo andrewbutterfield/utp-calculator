@@ -180,21 +180,29 @@ $\alpha P \defs \setof{v_1,v_2,\ldots,v_n}$.
  | PredEntry    -- about Predicates
     [String]    -- list of formal/bound variables
     (Pred m s)  -- definition body
+    Bool        -- true if substitutable
     (Dict m s -> Int -> [MPred m s] -> PP)        -- pretty printer
     (Dict m s -> [MPred m s] -> (String,Pred m s)) -- simplifier
 \end{code}
 We interpret a \texttt{Dict} entry like
 \begin{verbatim}
-"P" |->  PredEntry ["Q1","Q2",...,"Qn"] pr pf pv
+"P" |->  PredEntry ["Q1","Q2",...,"Qn"] pr ss pp ps
 \end{verbatim}
 as defining a function:
 \RLEQNS{
    P(Q_1,Q_2,\ldots,Q_n) &\defs& pr
 }
-with $pf_\delta(Q_1,Q_2,\ldots,Q_n)$ being a specialised print function
+and $ss$ is a boolean that is true if the predicate application
+is substitutable%
+\footnote{%
+The LHS of a predicate definition is substitutable iff
+$P(Q_1\sigma,\ldots,Q_n\sigma) = pr\sigma$ for any substitution $\sigma$.
+}%
+,
+with $pp_\delta(Q_1,Q_2,\ldots,Q_n)$ being a specialised print function
 that renders a predicate as required,
-and $pv_\delta(Q_1,Q_2,\ldots,Q_n)$ is an valuation function that
-attempts to simplify the predicate..
+and $ps_\delta(Q_1,Q_2,\ldots,Q_n)$ is a function that
+attempts to simplify the predicate.
 Both are parameterised with a dictionary argument ($\delta$),
 which may, or may not, be the dictionary in which the entry occurs.
 The string in the result is empty if it failed,
@@ -209,19 +217,21 @@ The evaluator is free to use or ignore the definition body expression $pr$.
  | ExprEntry  -- about Expressions
     [String]  -- list of formal/bound variables
     (Expr s)  -- definition body
+    Bool      -- substitutability
     (Dict m s -> [Expr s] -> String)      -- pretty printer
     (Dict m s -> [Expr s] -> ( String     -- eval name
                              , Expr s ))  -- evaluator
 \end{code}
 We interpret a \texttt{Dict} entry like
 \begin{verbatim}
-"f" |->  ExprEntry ["v1","v2",...,"vn"] e pf ev
+"f" |->  ExprEntry ["v1","v2",...,"vn"] e ss pf ev
 \end{verbatim}
 as defining a function:
 \RLEQNS{
    f(v_1,v_2,\ldots,v_n) &\defs& e
 }
-with $pf_\delta(e_1,e_2,\ldots,e_n)$ being a specialised print function
+where $ss$ indicates its substitutatbility,
+and with $pf_\delta(e_1,e_2,\ldots,e_n)$ being a specialised print function
 that renders a function call as required,
 and $ev_\delta(e_1,e_2,\ldots,e_n)$ is an evaluation function that
 attempts to evaluate the call.
@@ -284,6 +294,7 @@ We use the following differentiation laws:
    &=& d(1+x+x^2+x^3+\cdots)/dx
 \\ &=& (1+2x+3x^2+4x^3+\cdots)
 \\ &=& (1+x+x^2+x^3+\cdots)^2 & \mbox{exercise: show this}
+\\ &=& (x^*)^2
 \\ d(kf)/dx &=& k(df/fx) & k\mbox{ a constant}
 }
 This leads to the following zipper datatypes:

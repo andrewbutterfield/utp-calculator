@@ -15,21 +15,6 @@ import CalcPredicates
 
 \HDRb{Introduction}
 
-A failed step returns a null string,
-and the predicate part is generally considered undefined.
-\begin{code}
-nope :: CalcResult s
-nope = ( "", error "calc. step failed" )
-\end{code}
-Given a decision, we can resolve a conditional step
-into a completed one:
-\begin{code}
-cconvert :: (Ord s, Show s)
-         => Dict s -> Int -> CCalcResult s -> CalcResult s
-cconvert d i ( nm, outcomes ) -- i is typically obtained from user
- = ( nm ++ ", given "++ pdshow d cnd, res )
- where (cnd, res) = outcomes !! (i-1)
-\end{code}
 We split the steps into the following categories:
 \begin{description}
   \item[Theory Independent]
@@ -49,7 +34,6 @@ simplify :: (Eq s, Ord s, Show s) => Dict s -> CalcStep s
 unroll :: Ord s => CalcStep s
 \end{code}
     \end{description}
-  \newpage
   \item[Theory Dependent]
     These are proof steps tailored to a specific UTP theory,
     which we shall capture using a record.

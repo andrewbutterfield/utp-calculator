@@ -77,8 +77,8 @@ ppBot d p _ = pps styleBlue $ ppa "_|_"
 simpTop d _ = ("",F) -- assuming full predicate lattice
 simpBot d _ = ("",T) -- assuming full predicate lattice
 
-topEntry = ("Top", PredEntry [] PUndef ppTop simpTop)
-botEntry = ("Bot", PredEntry [] PUndef ppBot simpBot)
+topEntry = ("Top", PredEntry [] PUndef False ppTop simpTop)
+botEntry = ("Bot", PredEntry [] PUndef False ppBot simpBot)
 
 -- build Top and Bot at the MPred level
 bTop, bBot :: Mark m => MPred m s
@@ -106,7 +106,7 @@ simpNot d [(m,F)] = ("~-simp",T)
 simpNot _ mprs = ("", Comp "Not" mprs)
 
 notEntry :: (Show s, Ord s) => (String, Entry m s)
-notEntry = ("Not", PredEntry ["P"] PUndef ppNot simpNot)
+notEntry = ("Not", PredEntry ["P"] PUndef True ppNot simpNot)
 
 -- build a Not at the MPred level
 bNot mpr = noMark $ mkNot mpr
@@ -136,7 +136,7 @@ ppAnd d p mprs
 simpAnd d mprs  = sLattice "/\\-simplify" mkAnd F T mprs
 
 andEntry :: (Show s, Ord s) => (String, Entry m s)
-andEntry = ("And", PredEntry ["P$"] PUndef ppAnd simpAnd)
+andEntry = ("And", PredEntry ["P$"] PUndef True ppAnd simpAnd)
 
 -- build an And at the MPred level
 bAnd mprs = noMark $ mkAnd mprs
@@ -166,7 +166,7 @@ ppOr d p mprs
 simpOr d mprs  = sLattice "\\/-simplify" mkOr T F mprs
 
 orEntry :: (Show s, Ord s) => (String, Entry m s)
-orEntry = ("Or", PredEntry ["P$"] PUndef ppOr simpOr)
+orEntry = ("Or", PredEntry ["P$"] PUndef True ppOr simpOr)
 
 -- build an Or at the MPred level
 bOr mprs = noMark $ mkOr mprs
@@ -196,7 +196,7 @@ ppNDC d p mprs
 simpNDC d mprs  = sLattice "|~|-simplify" mkNDC T F mprs
 
 ndcEntry :: (Show s, Ord s) => (String, Entry m s)
-ndcEntry = ("NDC", PredEntry ["P$"] PUndef ppNDC simpNDC)
+ndcEntry = ("NDC", PredEntry ["P$"] PUndef True ppNDC simpNDC)
 
 -- build an NDC at the MPred level
 bNDC mprs = noMark $ mkNDC mprs
@@ -227,7 +227,7 @@ simpImp d [ _,    (_,T)   ] = ( "=>-simp", T         )
 simpImp d [ mpr1, mpr2    ] = ( "",  mkImp mpr1 mpr2 )
 
 impEntry :: (Show s, Ord s) => (String, Entry m s)
-impEntry = ("Imp", PredEntry ["P","Q"] PUndef ppImp simpImp)
+impEntry = ("Imp", PredEntry ["P","Q"] PUndef True ppImp simpImp)
 
 -- build an Imp at the MPred level
 bImp mpr1 mpr2 = noMark $ mkImp mpr1 mpr2
@@ -255,7 +255,7 @@ simpRfdby d [mpr1, mpr2] = ( "",  mkImp mpr1 mpr2 )
 
 rfdbyEntry :: (Show s, Ord s) => (String, Entry m s)
 rfdbyEntry = ( "Rfdby"
-             , PredEntry ["P","Q"] PUndef ppRfdby simpRfdby)
+             , PredEntry ["P","Q"] PUndef False ppRfdby simpRfdby)
 
 -- build an Rfdby at the MPred level
 bRfdby mpr1 mpr2 = noMark $ mkRfdby mpr1 mpr2
@@ -287,7 +287,7 @@ simpCond d [mpr1, mpr2] = ( "",  mkImp mpr1 mpr2 )
 
 condEntry :: (Show s, Ord s) => (String, Entry m s)
 condEntry = ( "Cond"
-            , PredEntry ["P","c","R"] PUndef ppCond simpCond)
+            , PredEntry ["P","c","R"] PUndef True ppCond simpCond)
 
 -- build an Cond at the MPred level
 bCond mpr1 mpr2 mpr3 = noMark $ mkCond mpr1 mpr2 mpr3
@@ -309,7 +309,7 @@ ppSkip d p _ = pps styleBlue $ ppa "II"
 
 simpSkip d _ = ("",mkSkip)
 
-skipEntry = ("Skip", PredEntry [] PUndef ppSkip simpSkip)
+skipEntry = ("Skip", PredEntry [] PUndef False ppSkip simpSkip)
 
 -- build Skip at the MPred level
 bSkip :: Mark m => MPred m s
@@ -340,7 +340,7 @@ simpSeq d [ mpr1, mpr2    ]
  | otherwise   = ( "", mkSeq mpr1 mpr2 )
 
 seqEntry :: (Show s, Ord s) => (String, Entry m s)
-seqEntry = ("Seq", PredEntry ["P","Q"] PUndef ppSeq simpSeq)
+seqEntry = ("Seq", PredEntry ["P","Q"] PUndef False ppSeq simpSeq)
 
 -- build an Seq at the MPred level
 bSeq mpr1 mpr2 = noMark $ mkSeq mpr1 mpr2
@@ -368,7 +368,7 @@ simpIter d [mpr1, mpr2 ] = ( "", mkIter mpr1 mpr2 )
 
 iterEntry :: (Show s, Ord s) => (String, Entry m s)
 iterEntry = ( "Iter"
-            , PredEntry ["c","Q"] PUndef ppIter simpIter )
+            , PredEntry ["c","Q"] PUndef False ppIter simpIter )
 
 -- build an Iter at the MPred level
 bIter mpr1 mpr2 = noMark $ mkIter mpr1 mpr2
