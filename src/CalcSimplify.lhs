@@ -31,13 +31,26 @@ justify chgd txt = if chgd then txt else ""
 
 \begin{code}
 simplified = "simplify"
+diff = True
+same = False
 
-simplify :: (Ord s, Show s) => m -> Dict m s -> CalcStep m s
+
+simplify :: (Mark m, Ord s, Show s) => m -> Dict m s -> CalcStep m s
+
 simplify m d mpr@(ms,(Atm e))
  = case esimp d e of
     (chgd,B True)   ->  (justify chgd simplified,(ms,T))
     (chgd,B False)  ->  (justify chgd simplified,(ms,T))
     (chgd,e')       ->  (justify chgd simplified,(ms,Atm e'))
+
+simplify m d mpr@(ms,(Equal e1 e2))
+ = let
+    (chgd1,e1') = esimp d e1
+    (chgd2,e2') = esimp d e2
+    (chgd',pr') = sEqual e1' e2'
+    chgd = chgd1 || chgd2 || chgd'
+   in if chgd then (simplified,addMark m (ms,pr')) else ("",mpr)
+
 simplify m d mpr@(ms,pr) = ( "", mpr)
 \end{code}
 
@@ -56,14 +69,14 @@ Predicate simplification:
 \HDRd{Equality Simplification}~
 \begin{code}
 sEqual (St s1) (St s2)
- | s1 == s2     = T
- | otherwise    = F
-sEqual (St _) _ = F
-sEqual _ (St _) = F
+ | s1 == s2     = (diff,T)
+ | otherwise    = (diff,F)
+sEqual (St _) _ = (diff,F)
+sEqual _ (St _) = (diff,F)
 
 sEqual e1 e2
- | e1 == e2   =  T
- | otherwise  =  Equal e1 e2
+ | e1 == e2   =  (diff,T)
+ | otherwise  =  (same,Equal e1 e2)
 \end{code}
 
 
