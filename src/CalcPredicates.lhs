@@ -32,10 +32,13 @@ pretty-printing and highlighting.
 
 \begin{code}
 noMark :: Mark m => Pred m s -> MPred m s
-noMark pr = (nomark, pr)
+noMark pr = ([], pr)
 
 reMark :: Mark m => m -> MPred m s -> MPred m s
-reMark m (_, pr) = (m, pr)
+reMark m (_, pr) = ([m], pr)
+
+addMark :: Mark m => m -> MPred m s -> MPred m s
+addMark m (ms, pr) = (m:ms, pr)
 \end{code}
 
 \begin{code}

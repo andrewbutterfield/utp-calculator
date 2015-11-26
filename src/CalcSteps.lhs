@@ -15,26 +15,27 @@ import CalcZipper
 
 \HDRb{Calculation Step Intro}\label{hb:step-intro}
 
-Imagine an expression $e$ to which we apply $step$ three times,
+Imagine an predicate $p$ containing sub-predicates $q_1$, $q_2$ and $q_3$,
+to which we apply $step$ three times,
 which results in the following changes:
 \[
-  step_i : t_i \mapsto t'_i
+  step_i : q_i \mapsto q'_i, \qquad i \in 1\ldots 3
 \]
 The presentation of the calculation should look like the following,
 where underlining denotes ``old'' and the colour red denotes ``new'':
 \RLEQNS{
-\\ && e
-\EQ{defn of $e$ (w.l.o.g.)}
-\\&& ( \ldots \OLD{t_1} \ldots t_2 \ldots t_3 \ldots)
+\\ && p
+\EQ{defn of $p$ (w.l.o.g.)}
+\\&& ( \ldots \OLD{q_1} \ldots q_2 \ldots q_3 \ldots)
 \EQm{step_1}
-\\&& ( \ldots \NEW{t'_1} \ldots \OLD{t_2} \ldots t_3 \ldots)
+\\&& ( \ldots \NEW{q'_1} \ldots \OLD{q_2} \ldots q_3 \ldots)
 \EQm{step_2}
-\\&& ( \ldots t'_1 \ldots \NEW{t'_2} \ldots \OLD{t_3} \ldots)
+\\&& ( \ldots q'_1 \ldots \NEW{q'_2} \ldots \OLD{q_3} \ldots)
 \EQm{step_3}
-\\&& ( \ldots t'_1 \ldots t'_2 \ldots \NEW{t'_3} \ldots)
+\\&& ( \ldots q'_1 \ldots q'_2 \ldots \NEW{q'_3} \ldots)
 }
 Notice how each $step_i$ affects the Old/New marking of both its predecessor
-and successor expressions.
+and successor predicates.
 Rather than having two markings (Old/New) it turns out to be more efficient
 to have a numeric marking, so $step_i$ introduces mark number $i$.
 The interpetation of such marks as old, new or irrelevant can then be done
@@ -42,39 +43,45 @@ relative to the numbering of the step outcome being rendered for display.
 
 We can breakdown the above calculation using mark numbers ($M_i$) as follows
 \RLEQNS{
-   e  && ( \ldots t_1 \ldots t_2 \ldots t_3 \ldots)
+   p  && ( \ldots q_1 \ldots q_2 \ldots q_3 \ldots)
 \EQm{step_1}
-\\ pe_1 && ( \ldots \OLD{M_1(t_1)} \ldots t_2 \ldots t_3 \ldots) & \mbox{display 1=Old}
+\\ pe_1 && ( \ldots \OLD{M_1(q_1)} \ldots q_2 \ldots q_3 \ldots) & \mbox{display 1=Old}
 \\
-\\ ne_1 && ( \ldots M_1(t'_1) \ldots t_2 \ldots t_3 \ldots)
+\\ ne_1 && ( \ldots M_1(q'_1) \ldots q_2 \ldots q_3 \ldots)
 \EQm{step_2}
-\\ pe_2 && ( \ldots \NEW{M_1(t'_1)} \ldots \OLD{M_2(t_2)} \ldots t_3 \ldots) & \mbox{display 1=New, 2=Old}
+\\ pe_2 && ( \ldots \NEW{M_1(q'_1)} \ldots \OLD{M_2(q_2)} \ldots q_3 \ldots) & \mbox{display 1=New, 2=Old}
 \\
-\\ ne_2 && ( \ldots M_1(t'_1) \ldots M_2(t'_2) \ldots t_3 \ldots)
+\\ ne_2 && ( \ldots M_1(q'_1) \ldots M_2(q'_2) \ldots q_3 \ldots)
 \EQm{step_3}
-\\ pe_3 && ( \ldots M_1(t'_1) \ldots \NEW{M_2(t'_2)} \ldots \OLD{M_3(t_3)} \ldots) & \mbox{display 2=New, 3=Old}
+\\ pe_3 && ( \ldots M_1(q'_1) \ldots \NEW{M_2(q'_2)} \ldots \OLD{M_3(q_3)} \ldots) & \mbox{display 2=New, 3=Old}
 \\
-\\ ne_3 && ( \ldots M_1(t'_1) \ldots M_2(t'_2) \ldots \NEW{M_3(t'_3)} \ldots) & \mbox{display 3=New}
+\\ ne_3 && ( \ldots M_1(q'_1) \ldots M_2(q'_2) \ldots \NEW{M_3(q'_3)} \ldots) & \mbox{display 3=New}
 }
 
 So we see that $step_i$ takes $ne_{i-1}$ and produces:
 \begin{itemize}
-  \item $pe_i$, where $M_i$ has been wrapped around $t_i$
-  \item $ne_i$, which is $pe_i$, where $t_i$ (already marked with $M_i$)
-   is replaced by $t'_i$.
+  \item $pe_i$, where $M_i$ has been wrapped around $q_i$
+  \item $ne_i$, which is $pe_i$, where $q_i$ (already marked with $M_i$)
+   is replaced by $q'_i$.
 \end{itemize}
 This seems to present a problem for the zipper,
 as we have to identify corresponding locations,
-where $t_i$ and $t'_i$ reside,
-in two different versions of a single expression.
-However the structure of the two expressions is identical everywhere else
+where $q_i$ and $q'_i$ reside,
+in two different versions of a single predicate.
+However the structure of the two predicates is identical everywhere else
 so a single zipper ``path'' can be applied to both.
+
+What is not obvious from the above example is what should happen
+when two successive steps affect the same or a nested sub-predicate.
+Here we find we need to be able to associate multiple marks with
+any sub-component.
 
 \begin{code}
 type MPZip2 m s = (MPred m s, String, MPred m s, [MPred' m s])
 \end{code}
 
 
+\newpage
 \HDRb{Calculation Step Basics}\label{hb:step-basics}
 
 A failed step returns a null string,
@@ -83,13 +90,15 @@ and the predicate part is generally considered undefined.
 nope :: CalcResult m s
 nope = ( "", error "calc. step failed" )
 \end{code}
-Given a decision, we can resolve a conditional step
+Given a decision,
+typically obtained from the user,
+we can resolve a conditional step
 into a completed one:
 \begin{code}
 condResolve :: (Ord s, Show s)
          => Dict m s -> Int -> CCalcResult m s -> CalcResult m s
-condResolve d i ( nm, outcomes ) -- i is typically obtained from user
- = ( nm 
+condResolve d i ( nm, outcomes )
+ = ( nm
      ++ ", given "
      ++ pdshow 1000 d cnd -- no linebreaks, for now
    , res )
@@ -126,9 +135,9 @@ only recursing in deeper if that fails:
 stepFocus :: CalcStep m s -> MPZipper m s -> MPZip2 m s
 stepFocus cstep mpz@( mpr, ss )
  = let ( what, mpr' ) = cstep mpr
-   in if null what 
+   in if null what
       then stepComponents cstep mpz
-      else (mpr, what, mpr', ss) 
+      else (mpr, what, mpr', ss)
 \end{code}
 
 \HDRc{Search Sub-Components}\label{hc:srch-sub-comp}
@@ -140,7 +149,7 @@ stepComponents :: CalcStep m s -> MPZipper m s -> MPZip2 m s
 -- Substitution, simple, only 1 sub-component:
 stepComponents cstep ( (mp, PSub mpr subs), ss )
   = stepFocus cstep ( mpr, PSub' mp subs : ss )
-  
+
 -- Composites: trickier, so start with simplest case
 stepComponents cstep ( (mp, Comp name [mpr]), ss )
  = stepFocus cstep ( mpr, Comp' mp name [] [] : ss )
@@ -148,19 +157,19 @@ stepComponents cstep ( (mp, Comp name [mpr]), ss )
 stepComponents cstep ( (mp, Comp name (mpr:mprs)), ss )
   = stepComp' cstep (Comp' mp name [] mprs) ss mpr
 
-stepComponents cstep ( mpr, ss ) = ( mpr, "", mpr, ss ) 
+stepComponents cstep ( mpr, ss ) = ( mpr, "", mpr, ss )
 \end{code}
 
 \HDRc{Search Component List}\label{hc:srch-list}
 
 Going through a sub-component list:
 \begin{code}
-stepComp' :: CalcStep m s 
+stepComp' :: CalcStep m s
           -> MPred' m s   -- current Comp'
           -> [MPred' m s] -- current zip history
           -> MPred m s    -- current focus, within Comp
           -> MPZip2 m s
-         
+
 -- end case, processing last components
 stepComp' cstep s@(Comp' mp name before []) ss mpr
  = let result@( _, what, _, _ ) = stepFocus cstep (mpr, s : ss )
@@ -229,6 +238,3 @@ Now, doing it conditionally%
 --      ( comment, crps' )
 --        -> ( comment, mapsnd (:prs) crps' )
 \end{code}
-
-
-

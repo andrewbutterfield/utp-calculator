@@ -53,11 +53,14 @@ which has basic predicates
 along with a generic predicate composite, and substitution.
 \BASIC
 
+To implement suitable highlighting,
+we need the calculator to be able to mark (sub-)predicates in some
+way, with markings that can overlap.
 We don't want to check for or pattern-match against
 a special marker predicate, but prefer to add markers everywhere,
 using a mutually recursive datatype:
 \begin{code}
-type MPred m s = ( m, Pred m s )
+type MPred m s = ( [m], Pred m s )
 
 data Pred m s
  = T
@@ -69,8 +72,12 @@ data Pred m s
  | PSub (MPred m s) (Substn s)
  | PUndef
  deriving (Ord, Show)
+\end{code}
 
-instance Eq s => Eq (Pred m s) where -- ignore values of type m
+Predicate equality is defined on the underlying predicate,
+so that it ignores marking completely.
+\begin{code}
+instance Eq s => Eq (Pred m s) where
  T == T                              =  True
  F == F                              =  True
  (PVar s1) == (PVar s2)              =  s1 == s2
@@ -85,14 +92,14 @@ instance Eq s => Eq (Pred m s) where -- ignore values of type m
 
 \HDRb{Marking Class}\label{hb:MarkClass}
 
-We use a class for marks that specifies a special `unmarked' value,
+We use a class for marks that specifies a special `starting' mark value,
 as well as a way to generate a new label from an existing one
 \begin{code}
 class Mark m where
-  nomark :: m
+  startm :: m
   nextm :: m -> m -- laws for nextm:
                   --    (i)  nextm m /= m
-                  --   (ii)  nextm m /= nomark
+                  --   (ii)  nextm m /= startm
                   --  (iii)  nextm is bijective
 \end{code}
 
@@ -251,14 +258,14 @@ correspond to the following algebraic forms:
          + E
 \\    && + \Char^* \times MP_M^*
          + MP_M \times (V \times E)^* & \mbox{Predicates}
-\\ MP_M &=& M \times P_M & \mbox{Marked Predicates}
-\\      &=& M \times \mathbf 1
-          + M \times \mathbf 1
-          + M \times \Char^*
-          + M \times E \times E
-          + M \times E
-\\     && + M \times \Char^* \times MP_M^*
-          + M \times MP_M \times (V \times E)^*
+\\ MP_M &=& M^* \times P_M & \mbox{Marked Predicates}
+\\      &=& M^* \times \mathbf 1
+          + M^* \times \mathbf 1
+          + M^* \times \Char^*
+          + M^* \times E \times E
+          + M^* \times E
+\\     && + M^* \times \Char^* \times MP_M^*
+          + M^* \times MP_M \times (V \times E)^*
 \\      &=& F(MP_M)
 }
 We want to define a ``zipper'' \cite{JFP::Huet1997} for \texttt{MPred m s},
@@ -267,8 +274,8 @@ So, we ``differentiate'' the expression for $MP_M$ above w.r.t. $MP_M$,
 to obtain $MP'_M$:
 \RLEQNS{
    MP'_M &=& \partial_{MP_M}(F)
-\\       &=& M \times \Char^* \times (MP_M^*)^2
-           + M \times (V \times E)^*
+\\       &=& M^* \times \Char^* \times (MP_M^*)^2
+           + M^* \times (V \times E)^*
 }
 We use the following differentiation laws:
 \RLEQNS{
@@ -283,12 +290,12 @@ This leads to the following zipper datatypes:
 \begin{code}
 data MPred' m s
  = Comp'         -- parent is a Comp node
-     m           -- parent marking
+     [m]         -- parent marking
      String      -- parent name
      [MPred m s] -- components before current focus
      [MPred m s] -- components after current focus
  | PSub'         -- parent is a PSub node
-     m           -- parent marking
+     [m]         -- parent marking
      (Substn s)  -- substitution in parent
  deriving Show
 \end{code}
