@@ -68,11 +68,21 @@ Predicate simplification:
 
 \HDRd{Equality Simplification}~
 \begin{code}
+sEqual :: Eq s => Expr s -> Expr s -> (Bool, Pred m s)
+
 sEqual (St s1) (St s2)
  | s1 == s2     = (diff,T)
  | otherwise    = (diff,F)
-sEqual (St _) _ = (diff,F)
-sEqual _ (St _) = (diff,F)
+
+sEqual (B t1) (B t2)
+ | t1 == t2   = (diff,T)
+ | otherwise  =  (diff,F)
+
+sEqual (Var v1) (Var v2)
+ | v1 == v2   = (diff,T)
+
+sEqual (St _) (B _) = (diff,F)
+sEqual (B _) (St _) = (diff,F)
 
 sEqual e1 e2
  | e1 == e2   =  (diff,T)
