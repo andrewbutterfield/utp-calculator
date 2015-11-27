@@ -1,4 +1,4 @@
-\HDRa{Calculator Simplificiation}\label{ha:calc-simp}
+\HDRa{Calculator Simplification}\label{ha:calc-simp}
 \begin{code}
 module CalcSimplify where
 import Utilities
@@ -22,27 +22,104 @@ where sub-components at any level are simplified first,
 and then that level is simplified using predicate variant-specific rules
 (like (\texttt{sImp} mentioned above).
 
-An auxilliary:
+\HDRc{Preliminaries}
+
+At the top-level,
+when we attempt to apply some rule,
+we return a \texttt{CalcResult} --- a pairing of a string with a predicate.
+If the string is empty, then no change occurred,
+otherwise it supplies a (short ?!) justification/explanation
+for what has happened.
+
+
+For convenience,
+the expression simplification functions return a pair with the string
+replaced by a predicate that is true if a change occurred.
 \begin{code}
-justify chgd txt = if chgd then txt else ""
+diff, same :: Bool
+diff = True
+same = False
 \end{code}
 
 
+\HDRb{Expression Simplification}
 
+
+The top-level expression simplifier.
+\begin{code}
+esimp :: (Eq s, Ord s, Show s) => Dict m s -> Expr s -> (Bool, Expr s)
+esimp d (App fn es) = asimp d fn $ esimps d same [] es
+esimp d (Sub e subs)
+ = let
+    (chgd,e') = esimp d e
+    (chgds,subs') = ssimp d subs
+   in (chgd||chgds, Sub e' subs')
+esimp d e = (same, e)
+\end{code}
+
+Simplifying lists of expressions:
+\begin{code}
+esimps :: (Eq s, Ord s, Show s)
+       => Dict m s -> Bool -> [Expr s]-> [Expr s] -> (Bool, [Expr s])
+esimps d chgd se [] = (chgd, reverse se)
+esimps d chgd se (e:es)
+ = let (chgd',e') = esimp d e
+   in esimps d (chgd||chgd') (e:se) es
+\end{code}
+
+\HDRc{Function Simplification}~
+\begin{code}
+asimp :: (Eq s, Ord s, Show s)
+      => Dict m s -> String -> (Bool,[Expr s]) -> (Bool, Expr s)
+asimp d fn (chgd,es)
+ = case elookup fn d of
+     Nothing  ->  (chgd, App fn es)
+     Just (ExprEntry _ _ _ _ evalf)
+       -> case evalf d es of
+            ( "", _ )  ->  (chgd, App fn es)
+            ( _, e)    ->  (diff, e)
+\end{code}
+
+\HDRc{Substitution Simplification}~
+\begin{code}
+ssimp :: (Eq s, Ord s, Show s) => Dict m s -> Substn s -> (Bool,Substn s)
+ssimp d subs
+ = let
+    (vs,es) = unzip subs
+    (chgd,es') = esimps d False [] es
+   in (chgd, zip vs es')
+\end{code}
+
+\HDRb{Predicate Simplification}
+
+Given a predicate, original marking,
+the explanation and new mark associated with this operation
+and the changed flag, produce the appropriate result:
+\begin{code}
+mkCR :: (Mark m, Ord s, Show s) 
+     => Pred m s -> [m] -> String -> m -> Bool -> CalcResult m s
+mkCR pr ms what m True   = (what,addMark m (ms,pr))
+mkCR pr ms what m False  = ("",(ms,pr))
+\end{code}
+
+Now, the predicate simplifier:
 \begin{code}
 simplified = "simplify"
-diff = True
-same = False
-
-
 simplify :: (Mark m, Ord s, Show s) => m -> Dict m s -> CalcStep m s
-
+\end{code}
+For atomic predicates, 
+we simplify the underlying expression,
+and lift any variable booleans to their predicate equivalent.
+\begin{code}
 simplify m d mpr@(ms,(Atm e))
  = case esimp d e of
-    (chgd,B True)   ->  (justify chgd simplified,(ms,T))
-    (chgd,B False)  ->  (justify chgd simplified,(ms,T))
-    (chgd,e')       ->  (justify chgd simplified,(ms,Atm e'))
-
+    (chgd,B True)   ->  mkCR T        ms simplified m chgd
+    (chgd,B False)  ->  mkCR F        ms simplified m chgd
+    (chgd,e')       ->  mkCR (Atm e') ms simplified m chgd
+\end{code}
+For equality we simplify both expressions,
+and then attempt to simplify the equality to true or false.
+\begin{code}
 simplify m d mpr@(ms,(Equal e1 e2))
  = let
     (chgd1,e1') = esimp d e1
@@ -50,23 +127,26 @@ simplify m d mpr@(ms,(Equal e1 e2))
     (chgd',pr') = sEqual e1' e2'
     chgd = chgd1 || chgd2 || chgd'
    in if chgd then (simplified,addMark m (ms,pr')) else ("",mpr)
-
+\end{code}
+For composites,
+we first simplify the components,
+and then look in the dictionary by name for a simplifier.
+\begin{code}
+simplify m d mpr@(ms,(Comp name mprs)) = ( "", mpr)
+\end{code}
+For substitutions, we simply both predicate and all substitution parts.
+\begin{code}
+simplify m d mpr@(ms,(PSub spr subs)) = ( "", mpr)
+-- psimp m d (PSub (PVar p) sub) = pvsubst m d p (ssimp d sub)
+-- psimp m d (PSub pr1 sub) = psubst (ssimp d sub) $ psimp m d pr1
+\end{code}
+All other cases are as simple as can be, considering\ldots
+\begin{code}
 simplify m d mpr@(ms,pr) = ( "", mpr)
 \end{code}
 
-\HDRc{Predicate Simplification}
 
-Predicate simplification:
-\begin{code}
--- psimp :: (Eq s, Ord s, Show s) => m -> Dict m s -> Pred m s -> (String,Pred m s)
--- psimp m d (Equal e1 e2) = sEqual (esimp d e1) (esimp d e2)
--- psimp m d (Comp name prs) = error "psimp Comp NYI"
--- psimp m d (PSub (PVar p) sub) = pvsubst m d p (ssimp d sub)
--- psimp m d (PSub pr1 sub) = psubst (ssimp d sub) $ psimp m d pr1
--- psimp m d pr = ("",pr)
-\end{code}
-
-\HDRd{Equality Simplification}~
+\HDRc{Equality Predicate Simplification}~
 \begin{code}
 sEqual :: Eq s => Expr s -> Expr s -> (Bool, Pred m s)
 
@@ -90,36 +170,6 @@ sEqual e1 e2
 \end{code}
 
 
-\HDRc{Expression Simplification}
-
-\begin{code}
-esimp :: (Eq s, Ord s, Show s) => Dict m s -> Expr s -> (Bool, Expr s)
-esimp d (App fn es) = asimp d fn $ esimps d False [] es
-esimp d (Sub e subs)
- = let
-    (chgd,e') = esimp d e
-    (chgds,subs') = ssimp d subs
-   in (chgd||chgds, Sub e' subs')
-esimp d e = (False, e)
-
-esimps :: (Eq s, Ord s, Show s)
-       => Dict m s -> Bool -> [Expr s]-> [Expr s] -> (Bool, [Expr s])
-esimps d chgd se [] = (chgd, reverse se)
-esimps d chgd se (e:es)
- = let (chgd',e') = esimp d e
-   in esimps d (chgd||chgd') (e:se) es
-\end{code}
-
-\HDRd{Substitution Simplification}~
-
-\begin{code}
-ssimp :: (Eq s, Ord s, Show s) => Dict m s -> Substn s -> (Bool,Substn s)
-ssimp d subs
- = let
-    (vs,es) = unzip subs
-    (chgd,es') = esimps d False [] es
-   in (chgd, zip vs es')
-\end{code}
 
 If we have information about the alphabet of a predicate variable
 then the following law is really useful:
@@ -137,21 +187,8 @@ then the following law is really useful:
 --    pr = PVar p
 \end{code}
 
-\HDRd{Function Simplification}~
-\begin{code}
-asimp :: (Eq s, Ord s, Show s)
-      => Dict m s -> String -> (Bool,[Expr s]) -> (Bool, Expr s)
-asimp d fn (chgd,es)
- = case elookup fn d of
-     Nothing  ->  (chgd, App fn es)
-     Just (ExprEntry _ _ _ _ evalf)
-       -> case evalf d es of
-            ( "", _ )  ->  (chgd, App fn es)
-            ( _, e)    ->  (True, e)
-\end{code}
 
 
-\HDRc{Substitution Application}
 
 \HDRd{Variable Substitution}~
 \begin{code}
