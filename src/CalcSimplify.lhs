@@ -105,13 +105,13 @@ For composites, we only mark the composite if it changes,
 and not if it is just sub-components that have changed:
 \begin{code}
 mkCompR :: (Mark m, Ord s, Show s)
-     => String -> [MPred m s] -> [m] -> String -> m 
+     => Pred m s -> [m] -> String -> m 
      -> Bool -- top has changed
      -> Bool -- change somewhere
      -> CalcResult m s
-mkCompR name mprs ms what m _ False  = ("",(ms,Comp name mprs))
-mkCompR name mprs ms what m False True  = (what,(ms,Comp name mprs))
-mkCompR name mprs ms what m True True   = (what,addMark m (ms,Comp name mprs))
+mkCompR comp ms what m _ False     = ("",             (ms,comp))
+mkCompR comp ms what m False True  = (what,           (ms,comp))
+mkCompR comp ms what m True True   = (what, addMark m (ms,comp))
 \end{code}
 
 
@@ -150,7 +150,8 @@ simplify m d mpr@(ms,(Comp name mprs))
     (subchgs,mprs') = subsimp m d same [] mprs
     (what,comppr') = compsimp m d name mprs'
     topchgd = not $ null what
-   in mkCompR name mprs' ms simplified m topchgd (subchgs||topchgd)
+   in mkCompR (Comp name mprs') 
+                     ms simplified m topchgd (subchgs||topchgd)
  where
 
    subsimp m d chgd mprs' [] = (chgd,reverse mprs')
@@ -165,17 +166,41 @@ simplify m d mpr@(ms,(Comp name mprs))
        Just (PredEntry _ _ _ _ psimp)  ->  psimp d mprs'
        _                               ->  ("",Comp name mprs')
 \end{code}
-For substitutions, we simply both predicate and all substitution parts.
+For predicate substitutions,
+we first simplify the substitution part,
+and them
+make a distinction between predicate variables,
+and general predicates.
 \begin{code}
-simplify m d mpr@(ms,(PSub spr subs)) = ( "", mpr)
--- psimp m d (PSub (PVar p) sub) = pvsubst m d p (ssimp d sub)
--- psimp m d (PSub pr1 sub) = psubst (ssimp d sub) $ psimp m d pr1
+simplify m d mpr@(ms,(PSub spr subs))
+ = sbstsimp m d ms (ssimp d subs) spr
+ where
+\end{code}
+For predicate variables,
+we look to see if we have information about their alphabets,
+which can be used to remove some elements from the substitution.
+\begin{code}
+  sbstsimp m d ms (subchgd,subs') spr@(mp,PVar p) 
+    = case vlookup p d of
+        Just (AlfEntry alf)
+            ->  ("",(ms,mkPSub spr $ filter ((`elem` alf) . fst) subs'))
+        _   ->  ("",mpr)
+\end{code}
+In the general case,
+we simplify both predicate and substitution parts,
+and combine.
+\begin{code}
+  sbstsimp m d ms (subschgd,subs') spr
+   = let
+      (what,spr') = simplify m d spr
+      topchgd = not $ null what
+     in mkCompR (PSub spr' subs')
+                      ms simplified m topchgd (subschgd||topchgd)
 \end{code}
 All other cases are as simple as can be, considering\ldots
 \begin{code}
 simplify m d mpr@(ms,pr) = ( "", mpr)
 \end{code}
-
 
 \HDRc{Equality Predicate Simplification}~
 \begin{code}
