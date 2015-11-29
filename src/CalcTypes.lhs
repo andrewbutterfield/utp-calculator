@@ -182,6 +182,7 @@ $\alpha P \defs \setof{v_1,v_2,\ldots,v_n}$.
     (Pred m s)  -- definition body
     Bool        -- true if substitutable
     (Dict m s -> Int -> [MPred m s] -> PP)        -- pretty printer
+    --(Dict m s -> [MPred m s] -> (Pred m s)) -- defn expansion
     (Dict m s -> [MPred m s] -> (String,Pred m s)) -- simplifier
 \end{code}
 We interpret a \texttt{Dict} entry like
