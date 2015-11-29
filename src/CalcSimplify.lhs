@@ -101,6 +101,19 @@ mkCR :: (Mark m, Ord s, Show s)
 mkCR pr ms what m True   = (what,addMark m (ms,pr))
 mkCR pr ms what m False  = ("",(ms,pr))
 \end{code}
+For composites, we only mark the composite if it changes,
+and not if it is just sub-components that have changed:
+\begin{code}
+mkCompR :: (Mark m, Ord s, Show s)
+     => String -> [MPred m s] -> [m] -> String -> m 
+     -> Bool -- top has changed
+     -> Bool -- change somewhere
+     -> CalcResult m s
+mkCompR name mprs ms what m _ False  = ("",(ms,Comp name mprs))
+mkCompR name mprs ms what m False True  = (what,(ms,Comp name mprs))
+mkCompR name mprs ms what m True True   = (what,addMark m (ms,Comp name mprs))
+\end{code}
+
 
 Now, the predicate simplifier:
 \begin{code}
@@ -132,7 +145,25 @@ For composites,
 we first simplify the components,
 and then look in the dictionary by name for a simplifier.
 \begin{code}
-simplify m d mpr@(ms,(Comp name mprs)) = ( "", mpr)
+simplify m d mpr@(ms,(Comp name mprs))
+ = let
+    (subchgs,mprs') = subsimp m d same [] mprs
+    (what,comppr') = compsimp m d name mprs'
+    topchgd = not $ null what
+   in mkCompR name mprs' ms simplified m topchgd (subchgs||topchgd)
+ where
+
+   subsimp m d chgd mprs' [] = (chgd,reverse mprs')
+   subsimp m d chgd mprs' (mpr:mprs)
+    = let (what,mpr') = simplify m d mpr
+      in if null what 
+       then subsimp m d chgd (mpr:mprs')  mprs
+       else subsimp m d diff (mpr':mprs') mprs
+       
+   compsimp m d name mprs'
+    = case plookup name d of
+       Just (PredEntry _ _ _ _ psimp)  ->  psimp d mprs'
+       _                               ->  ("",Comp name mprs')
 \end{code}
 For substitutions, we simply both predicate and all substitution parts.
 \begin{code}
