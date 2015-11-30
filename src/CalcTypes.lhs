@@ -154,8 +154,9 @@ data Entry m s =
 
 \begin{code}
 -- data Entry m s = ....
-   AlfEntry   -- about Alphabets
-    [String]  -- variables
+   AlfEntry {   -- about Alphabets
+    avars :: [String]  -- variables
+   }
 \end{code}
 An entry
 \texttt{"A" |-> AlfEntry ["v1","v2",..,"vn"]}
@@ -166,8 +167,9 @@ $A \defs \setof{v_1,v_2,\ldots,v_n}$.
 
 \begin{code}
 -- data Entry m s = ....
- | PVarEntry  -- about Predicate Variables
-    [String]  -- for now, just its alphabet
+ | PVarEntry {  -- about Predicate Variables
+    alfa :: [String]  -- for now, just its alphabet
+   }
 \end{code}
 An entry \texttt{"P" |-> PVarEntry ["v1","v2",..,"vn"]}
 \\
@@ -177,13 +179,16 @@ $\alpha P \defs \setof{v_1,v_2,\ldots,v_n}$.
 \HDRc{Predicate Entry}\label{hc:pred-entry}
 
 \begin{code}
- | PredEntry    -- about Predicates
-    [String]    -- list of formal/bound variables
-    (Pred m s)  -- definition body
-    Bool        -- true if substitutable
-    (Dict m s -> Int -> [MPred m s] -> PP)        -- pretty printer
-    --(Dict m s -> [MPred m s] -> (Pred m s)) -- defn expansion
-    (Dict m s -> [MPred m s] -> (String,Pred m s)) -- simplifier
+ | PredEntry {    -- about Predicates
+     pbvars :: [String]                       -- bound variables
+   , pbody :: Pred m s                        -- definition body
+   , pcansub :: Bool                          -- substitutable?
+   , pprint :: Dict m s -> Int -> [MPred m s] -- pretty printer
+            -> PP
+    -- , pdefn :: Dict m s -> [MPred m s] -> (Pred m s) -- defn expansion
+   , prsimp :: Dict m s -> [MPred m s]        -- simplifier
+            -> (String,Pred m s)
+   }
 \end{code}
 We interpret a \texttt{Dict} entry like
 \begin{verbatim}
@@ -215,13 +220,14 @@ The evaluator is free to use or ignore the definition body expression $pr$.
 
 \begin{code}
 -- data Entry m s = ....
- | ExprEntry  -- about Expressions
-    [String]  -- list of formal/bound variables
-    (Expr s)  -- definition body
-    Bool      -- substitutability
-    (Dict m s -> [Expr s] -> String)      -- pretty printer
-    (Dict m s -> [Expr s] -> ( String     -- eval name
-                             , Expr s ))  -- evaluator
+ | ExprEntry { -- about Expressions
+     ebvars :: [String]                       -- bound variables
+   , ebody ::  Expr s                         -- definition body
+   , ecansub :: Bool                          -- substitutable?
+   , eprint :: Dict m s -> [Expr s] -> String -- pretty printer
+   , eval :: Dict m s -> [Expr s]             -- evaluator
+          -> ( String, Expr s )
+   }
 \end{code}
 We interpret a \texttt{Dict} entry like
 \begin{verbatim}
@@ -231,7 +237,7 @@ as defining a function:
 \RLEQNS{
    f(v_1,v_2,\ldots,v_n) &\defs& e
 }
-where $ss$ indicates its substitutatbility,
+where $ss$ indicates its substitutability,
 and with $pf_\delta(e_1,e_2,\ldots,e_n)$ being a specialised print function
 that renders a function call as required,
 and $ev_\delta(e_1,e_2,\ldots,e_n)$ is an evaluation function that
