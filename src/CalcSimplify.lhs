@@ -96,7 +96,7 @@ Given a predicate, original marking,
 the explanation and new mark associated with this operation
 and the changed flag, produce the appropriate result:
 \begin{code}
-mkCR :: (Mark m, Ord s, Show s) 
+mkCR :: (Mark m, Ord s, Show s)
      => Pred m s -> [m] -> String -> m -> Bool -> CalcResult m s
 mkCR pr ms what m True   = (what,addMark m (ms,pr))
 mkCR pr ms what m False  = ("",(ms,pr))
@@ -105,13 +105,13 @@ For composites, we only mark the composite if it changes,
 and not if it is just sub-components that have changed:
 \begin{code}
 mkCompR :: (Mark m, Ord s, Show s)
-     => Pred m s -> [m] -> String -> m 
+     => Pred m s -> Pred m s -> [m] -> String -> m
      -> Bool -- top has changed
      -> Bool -- change somewhere
      -> CalcResult m s
-mkCompR comp ms what m _ False     = ("",             (ms,comp))
-mkCompR comp ms what m False True  = (what,           (ms,comp))
-mkCompR comp ms what m True True   = (what, addMark m (ms,comp))
+mkCompR top' comp ms what m _ False     = ("",             (ms,comp))
+mkCompR top' comp ms what m False True  = (what,           (ms,comp))
+mkCompR top' comp ms what m True True   = (what, addMark m (ms,top'))
 \end{code}
 
 
@@ -120,7 +120,7 @@ Now, the predicate simplifier:
 simplified = "simplify"
 simplify :: (Mark m, Ord s, Show s) => m -> Dict m s -> CalcStep m s
 \end{code}
-For atomic predicates, 
+For atomic predicates,
 we simplify the underlying expression,
 and lift any variable booleans to their predicate equivalent.
 \begin{code}
@@ -150,21 +150,21 @@ simplify m d mpr@(ms,(Comp name mprs))
     (subchgs,mprs') = subsimp m d same [] mprs
     (what,comppr') = compsimp m d name mprs'
     topchgd = not $ null what
-   in mkCompR (Comp name mprs') 
+   in mkCompR comppr' (Comp name mprs')
                      ms simplified m topchgd (subchgs||topchgd)
  where
 
    subsimp m d chgd mprs' [] = (chgd,reverse mprs')
    subsimp m d chgd mprs' (mpr:mprs)
     = let (what,mpr') = simplify m d mpr
-      in if null what 
+      in if null what
        then subsimp m d chgd (mpr:mprs')  mprs
        else subsimp m d diff (mpr':mprs') mprs
-       
+
    compsimp m d name mprs'
     = case plookup name d of
-       Just (PredEntry _ _ _ _ psimp)  ->  psimp d mprs'
-       _                               ->  ("",Comp name mprs')
+       Just (PredEntry _ _ _ _ _ psimp)  ->  psimp d mprs'
+       _                                 ->  ("",Comp name mprs')
 \end{code}
 For predicate substitutions,
 we first simplify the substitution part,
@@ -180,7 +180,7 @@ For predicate variables,
 we look to see if we have information about their alphabets,
 which can be used to remove some elements from the substitution.
 \begin{code}
-  sbstsimp m d ms (subchgd,subs') spr@(mp,PVar p) 
+  sbstsimp m d ms (subchgd,subs') spr@(mp,PVar p)
     = case vlookup p d of
         Just (AlfEntry alf)
             ->  ("",(ms,mkPSub spr $ filter ((`elem` alf) . fst) subs'))
@@ -194,7 +194,7 @@ and combine.
    = let
       (what,spr') = simplify m d spr
       topchgd = not $ null what
-     in mkCompR (PSub spr' subs')
+     in mkCompR (PSub spr' subs') (PSub spr subs')
                       ms simplified m topchgd (subschgd||topchgd)
 \end{code}
 All other cases are as simple as can be, considering\ldots
@@ -211,7 +211,11 @@ sEqual (St s1) (St s2)
  | otherwise    = (diff,F)
 
 sEqual (B t1) (B t2)
- | t1 == t2   = (diff,T)
+ | t1 == t2   =  (diff,T)
+ | otherwise  =  (diff,F)
+
+sEqual (Z i1) (Z i2)
+ | i1 == i2   =  (diff,T)
  | otherwise  =  (diff,F)
 
 sEqual (Var v1) (Var v2)

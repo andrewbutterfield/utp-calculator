@@ -57,7 +57,7 @@ bPSub mpr subs  =  noMark $ mkPSub mpr subs
 
 Dictionary query and construction
 \begin{code}
-isPredEntry (PredEntry _ _ _ _ _) = True
+isPredEntry (PredEntry _ _ _ _ _ _) = True
 isPredEntry _ = False
 isExprEntry (ExprEntry _ _ _ _ _) = True
 isExprEntry _ = False
@@ -72,7 +72,7 @@ nullDict = M.empty
 plookup :: String -> Dict m s -> Maybe (Entry m s)
 plookup nm d
  = case M.lookup nm d of
-     Just pd@(PredEntry _ _ _ _ _)  ->  Just pd
+     Just pd@(PredEntry _ _ _ _ _ _)  ->  Just pd
      _                            ->  Nothing
 
 elookup :: String -> Dict m s -> Maybe (Entry m s)
@@ -113,6 +113,7 @@ pdoes :: String -> (Dict m s -> [Pred m s] -> Pred m s)
      -> Dict m s -> [Pred m s]
      -> ( String, Pred m s )
 pdoes nm p d ps = ( nm, p d ps )
+pNoChg name d mprs = ( "", Comp name mprs )
 \end{code}
 
 
@@ -280,8 +281,8 @@ showp d p (PSub pr sub)
 
 showp d p (Comp cname pargs)
  = case plookup cname d of
-    Nothing  ->  stdCshow d cname pargs
-    Just (PredEntry _ _ _ showf _) -> showf d p pargs
+    Just (PredEntry _ _ _ showf _ _) -> showf d p pargs
+    _  ->  stdCshow d cname pargs
 
 stdCshow :: (Ord s, Show s)
          => Dict m s -> String -> [MPred m s] -> PP

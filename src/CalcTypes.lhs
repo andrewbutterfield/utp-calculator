@@ -176,57 +176,17 @@ An entry \texttt{"P" |-> PVarEntry ["v1","v2",..,"vn"]}
 declares the alphabet associated with that predicate variable:
 $\alpha P \defs \setof{v_1,v_2,\ldots,v_n}$.
 
-\HDRc{Predicate Entry}\label{hc:pred-entry}
-
-\begin{code}
- | PredEntry {    -- about Predicates
-     pbvars :: [String]                       -- bound variables
-   , pbody :: Pred m s                        -- definition body
-   , pcansub :: Bool                          -- substitutable?
-   , pprint :: Dict m s -> Int -> [MPred m s] -- pretty printer
-            -> PP
-    -- , pdefn :: Dict m s -> [MPred m s] -> (Pred m s) -- defn expansion
-   , prsimp :: Dict m s -> [MPred m s]        -- simplifier
-            -> (String,Pred m s)
-   }
-\end{code}
-We interpret a \texttt{Dict} entry like
-\begin{verbatim}
-"P" |->  PredEntry ["Q1","Q2",...,"Qn"] pr ss pp ps
-\end{verbatim}
-as defining a function:
-\RLEQNS{
-   P(Q_1,Q_2,\ldots,Q_n) &\defs& pr
-}
-and $ss$ is a boolean that is true if the predicate application
-is substitutable%
-\footnote{%
-The LHS of a predicate definition is substitutable iff
-$P(Q_1\sigma,\ldots,Q_n\sigma) = pr\sigma$ for any substitution $\sigma$.
-}%
-,
-with $pp_\delta(Q_1,Q_2,\ldots,Q_n)$ being a specialised print function
-that renders a predicate as required,
-and $ps_\delta(Q_1,Q_2,\ldots,Q_n)$ is a function that
-attempts to simplify the predicate.
-Both are parameterised with a dictionary argument ($\delta$),
-which may, or may not, be the dictionary in which the entry occurs.
-The string in the result is empty if it failed,
-otherwise gives the name of the predicate to be used in the justification
-of a proof step.
-The evaluator is free to use or ignore the definition body expression $pr$.
-
 \HDRc{Expression Entry}\label{hc:expr-entry}
 
 \begin{code}
 -- data Entry m s = ....
  | ExprEntry { -- about Expressions
-     ebvars :: [String]                       -- bound variables
-   , ebody ::  Expr s                         -- definition body
-   , ecansub :: Bool                          -- substitutable?
-   , eprint :: Dict m s -> [Expr s] -> String -- pretty printer
-   , eval :: Dict m s -> [Expr s]             -- evaluator
-          -> ( String, Expr s )
+     ebvars  :: [String]                       -- bound variables
+   , ebody   ::  Expr s                        -- definition body
+   , ecansub :: Bool                           -- substitutable?
+   , eprint  :: Dict m s -> [Expr s] -> String -- pretty printer
+   , eval    :: Dict m s -> [Expr s]           -- evaluator
+             -> ( String, Expr s )
    }
 \end{code}
 We interpret a \texttt{Dict} entry like
@@ -248,6 +208,49 @@ The string in the result is empty if it failed,
 otherwise gives the name of the function to be used in the justification
 of a proof step.
 The evaluator is free to use or ignore the definition body expression $e$.
+
+\HDRc{Predicate Entry}\label{hc:pred-entry}
+
+\begin{code}
+ | PredEntry {    -- about Predicates
+     pbvars  :: [String]                       -- bound vars
+   , pbody   :: Pred m s                       -- defn. body
+   , pcansub :: Bool                           -- substitutable?
+   , pprint  :: Dict m s -> Int -> [MPred m s] -- pretty printer
+             -> PP
+   , pdefn   :: Dict m s -> [MPred m s]        -- defn expansion
+             -> (String,Pred m s)
+   , prsimp  :: Dict m s -> [MPred m s]        -- simplifier
+             -> (String,Pred m s)
+   }
+\end{code}
+We interpret a \texttt{Dict} entry like
+\begin{verbatim}
+"P" |->  PredEntry ["Q1","Q2",...,"Qn"] pr ss pp pd ps
+\end{verbatim}
+as defining a function:
+\RLEQNS{
+   P(Q_1,Q_2,\ldots,Q_n) &\defs& pr
+}
+and $ss$ is a boolean that is true if the predicate application
+is substitutable%
+\footnote{%
+The LHS of a predicate definition is substitutable iff
+$P(Q_1\sigma,\ldots,Q_n\sigma) = pr\sigma$ for any substitution $\sigma$.
+}%
+,
+with $pp_\delta(Q_1,Q_2,\ldots,Q_n)$ being a specialised print function
+that renders a predicate as required,
+$pd$ is a function that expands the definition of $P$
+(which may differ from $pr$),
+and $ps_\delta(Q_1,Q_2,\ldots,Q_n)$ is a function that
+attempts to simplify the predicate.
+All are parameterised with a dictionary argument ($\delta$),
+which may, or may not, be the dictionary in which the entry occurs.
+The string in the result is empty if it failed,
+otherwise gives the name of the predicate to be used in the justification
+of a proof step.
+The definition expansion is free to use or ignore the definition body expression $pr$.
 
 
 \HDRcstar{Entry Complete}

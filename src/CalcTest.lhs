@@ -48,18 +48,27 @@ iPSub = bPSub
 
 Some concrete instances of standard predicates
 \begin{code}
-iTop, iBot :: IPred s
+iTop, iBot, iSkip :: IPred s
+iNot :: IPred s -> IPred s
+iAnd, iOr, iNDC :: [IPred s] -> IPred s
+iImp, iRfdby, iSeq, iIter :: IPred s -> IPred s -> IPred s
+iCond :: IPred s -> IPred s -> IPred s -> IPred s
+
 iTop = bTop
 iBot = bBot
-iNot :: IPred s -> IPred s
 iNot mpr = noMark $ mkNot mpr
--- iAnd mprs = noMark $ mkAnd mprs
--- iOr mprs = noMark $ mkOr mprs
--- iNDC mprs = noMark $ mkNDC mprs
--- iImp mpr1 mpr2 = noMark $ mkImp mpr1 mpr2
--- iRfdby mpr1 mpr2 = noMark $ mkRfdby mpr1 mpr2
--- iCond mpr1 mpr2 mpr3 = noMark $ mkCond mpr1 mpr2 mpr3
--- iSkip = noMark mkSkip
--- iSeq mpr1 mpr2 = noMark $ mkSeq mpr1 mpr2
--- iIter mpr1 mpr2 = noMark $ mkIter mpr1 mpr2
+iAnd mprs = noMark $ mkAnd mprs
+iOr mprs = noMark $ mkOr mprs
+iNDC mprs = noMark $ mkNDC mprs
+iImp mpr1 mpr2 = noMark $ mkImp mpr1 mpr2
+iRfdby mpr1 mpr2 = noMark $ mkRfdby mpr1 mpr2
+iCond mpr1 mpr2 mpr3 = noMark $ mkCond mpr1 mpr2 mpr3
+iSkip = noMark mkSkip
+iSeq mpr1 mpr2 = noMark $ mkSeq mpr1 mpr2
+iIter mpr1 mpr2 = noMark $ mkIter mpr1 mpr2
+\end{code}
+
+Testing
+\begin{code}
+test ipr = simplify 42 stdDict ipr
 \end{code}
