@@ -181,6 +181,8 @@ mkCompR top' comp ms what m True True   = (what, addMark m (ms,top'))
 \end{code}
 
 
+\HDRc{Simplify}\label{hc:simplify}
+
 Now, the predicate simplifier:
 \begin{code}
 simplified = "simplify"
@@ -227,6 +229,12 @@ simplify m d mpr@(ms,(Comp name mprs))
        then subsimp m d chgd (mpr:mprs')  mprs
        else subsimp m d diff (mpr':mprs') mprs
 
+\end{code}
+\textbf{WARNING: }
+\textit{the \texttt{psimp} simplifier below must not call \texttt{simplify}!
+To do so risks an infinite loop.
+}
+\begin{code}
    compsimp m d name mprs'
     = case plookup name d of
        Just (PredEntry _ _ _ _ _ psimp)  ->  psimp d mprs'

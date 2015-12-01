@@ -16,6 +16,7 @@ import CalcRecogniser
 import StdPredicates
 import CalcZipper
 import CalcSteps
+import StdLaws
 \end{code}
 
 \HDRb{Default Mark Type}

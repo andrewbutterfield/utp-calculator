@@ -245,6 +245,12 @@ $pd$ is a function that expands the definition of $P$
 (which may differ from $pr$),
 and $ps_\delta(Q_1,Q_2,\ldots,Q_n)$ is a function that
 attempts to simplify the predicate.
+\textbf{WARNING: }
+\textit{the \texttt{prsimp} function above
+ must not call \texttt{simplify} (\secref{hc:simplify})!
+To do so risks an infinite loop.
+}
+
 All are parameterised with a dictionary argument ($\delta$),
 which may, or may not, be the dictionary in which the entry occurs.
 The string in the result is empty if it failed,
