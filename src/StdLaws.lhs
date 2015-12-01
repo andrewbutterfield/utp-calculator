@@ -18,7 +18,8 @@ import StdPredicates
 \begin{code}
 unroll :: (Mark m, Ord s) => CalcStep m s
 unroll mw@(_,Comp "Iter"  [mc@(_,c), mpr])
- | isCondition c  = lred "loop-unroll" $ bCond mc (bSeq mpr mw) bSkip
+ | isCondition c
+           = lred "loop-unroll" $ bCond mc (bSeq mpr mw) bSkip
 unroll mpr = lred "" mpr
 
 lred nm mpr = ( nm, mpr )
