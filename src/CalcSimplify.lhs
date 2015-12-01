@@ -1,13 +1,6 @@
 \HDRa{Calculator Simplification}\label{ha:calc-simp}
 \begin{code}
 module CalcSimplify where
-import Utilities
-import qualified Data.Map as M
-import Data.List
-import Data.Char
-import Data.Maybe
-import Debug.Trace
-import PrettyPrint
 import CalcTypes
 import CalcPredicates
 \end{code}
