@@ -200,7 +200,7 @@ ppNDC d p mprs
      $ ppsopen styleBlue " |~| "
      $ map (showp d precNDC . snd) mprs
 
-simpNDC d mprs  = sLattice "|~|-simplify" mkNDC T F mprs
+simpNDC d mprs  = sLattice "|~|-simplify" mkNDC mkBot mkTop mprs
 
 ndcEntry :: (Eq m, Show s, Ord s) => (String, Entry m s)
 ndcEntry = ("NDC", PredEntry ["P$"] PUndef True ppNDC (pNoChg "NDC") simpNDC)
