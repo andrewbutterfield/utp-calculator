@@ -200,6 +200,58 @@ stepComp' cstep s@(Comp' mp name before after@(npr:rest)) ss mpr
 \end{code}
 
 
+\HDRb{Application}
+
+\HDRc{apply}
+
+\begin{code}
+-- apply :: Ord s => CalcStep s -> Pred s -> CalcResult s
+-- apply step pr -- check top-level first
+--  = case step pr of
+--      ( "", _ ) ->  rapply step pr  -- look deeper
+--      res       ->  res
+
+-- recursive descent
+-- rapply :: Ord s => CalcStep s -> Pred s -> CalcResult s
+-- rapply step (Not p) = mapplies lnot step [p]
+-- rapply step (And prs) = mapplies And step prs
+-- rapply step (Or prs) = mapplies Or step prs
+-- rapply step (Imp p1 p2) = mapplies imp step [p1,p2]
+-- rapply step (Cond p1 p2 p3) = mapplies cond step [p1,p2,p3]
+-- rapply step (PSub p sub) = mapplies (psub sub) step [p]
+-- rapply step (Seq p1 p2) = mapplies seqs step [p1,p2]
+-- rapply step (Iter p1 p2) = mapplies iter step [p1,p2]
+-- rapply step (PFun f prs) = mapplies (PFun f) step prs
+-- rapply step (PAtm p) = mapplies patm step [p]
+-- rapply step (PSeq p1 p2) = mapplies pseq step [p1,p2]
+-- rapply step (PPar p1 p2) = mapplies ppar step [p1,p2]
+-- rapply step (PCond p1 p2 p3) = mapplies pcond step [p1,p2,p3]
+-- rapply step (PIter p1 p2) = mapplies piter step [p1,p2]
+-- rapply step pr = ( "", pr )
+
+-- calls pred-list handler below, then applies the constructor
+-- mapplies :: Ord s
+--  => ([Pred s] -> Pred s) -> CalcStep s -> [Pred s] -> CalcResult s
+-- mapplies cons step prs
+--  = ( comment, cons prs' )
+--  where ( comment, prs' ) = rapplies step prs
+
+-- process a list of predicates, stopping if success occurs
+-- rapplies :: Ord s => CalcStep s -> [Pred s] -> ( String, [Pred s] )
+-- rapplies _ [] = ( "", [] )
+-- rapplies step [pr]
+--  = ( comment, [pr']) where ( comment, pr' ) = apply step pr
+-- rapplies step (pr:prs)
+--  = case apply step pr of
+--      (  "", _ ) -- no success yet, keep looking!
+--        -> ( comment, pr:prs' )
+--           where ( comment, prs' ) = rapplies step prs
+--      ( comment, pr' ) -- success ! Stop here.
+--        -> ( comment, pr':prs )
+\end{code}
+
+\HDRc{capply}
+
 \newpage
 Now, doing it conditionally%
 \footnote{

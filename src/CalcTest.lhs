@@ -13,6 +13,7 @@ import StdPrecedences
 import CalcPredicates
 import CalcSimplify
 import CalcRecogniser
+import CalcRun
 import StdPredicates
 import CalcZipper
 import CalcSteps
