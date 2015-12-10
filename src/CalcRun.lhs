@@ -59,7 +59,7 @@ runREPL d m (mpr0,steps) currpr
   ln <- getLine
   case ln of
    ('?':_) -> calcHelp d m (mpr0,steps) currpr
-   ('s':_) -> calcStep d m (simplify d m) (mpr0,steps) currpr
+   ('s':_) -> calcStep d m (simplify d $ nextm m) (mpr0,steps) currpr
    ('u':_) -> calcUndo d m (mpr0,steps) currpr
 --    ('d':_) -> calcStep th d (defn th) (mpr0,steps) currpr
 --    ('r':_) -> calcStep th d (reduce th $ d) (mpr0,steps) currpr
