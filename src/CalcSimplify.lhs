@@ -186,13 +186,13 @@ mkCompR top' comp ms what m True True   = (what, addMark m (ms,top'))
 Now, the predicate simplifier:
 \begin{code}
 simplified = "simplify"
-simplify :: (Mark m, Ord s, Show s) => m -> Dict m s -> CalcStep m s
+simplify :: (Mark m, Ord s, Show s) => Dict m s -> m -> CalcStep m s
 \end{code}
 For atomic predicates,
 we simplify the underlying expression,
 and lift any variable booleans to their predicate equivalent.
 \begin{code}
-simplify m d mpr@(ms,(Atm e))
+simplify d m mpr@(ms,(Atm e))
  = case esimp d e of
     (chgd,B True)   ->  mkCR T        ms simplified m chgd
     (chgd,B False)  ->  mkCR F        ms simplified m chgd
@@ -201,7 +201,7 @@ simplify m d mpr@(ms,(Atm e))
 For equality we simplify both expressions,
 and then attempt to simplify the equality to true or false.
 \begin{code}
-simplify m d mpr@(ms,(Equal e1 e2))
+simplify d m mpr@(ms,(Equal e1 e2))
  = let
     (chgd1,e1') = esimp d e1
     (chgd2,e2') = esimp d e2
@@ -213,21 +213,21 @@ For composites,
 we first simplify the components,
 and then look in the dictionary by name for a simplifier.
 \begin{code}
-simplify m d mpr@(ms,(Comp name mprs))
+simplify d m mpr@(ms,(Comp name mprs))
  = let
-    (subchgs,mprs') = subsimp m d same [] mprs
-    (what,comppr') = compsimp m d name mprs'
+    (subchgs,mprs') = subsimp d m same [] mprs
+    (what,comppr') = compsimp d m name mprs'
     topchgd = not $ null what
    in mkCompR comppr' (Comp name mprs')
                      ms simplified m topchgd (subchgs||topchgd)
  where
 
-   subsimp m d chgd mprs' [] = (chgd,reverse mprs')
-   subsimp m d chgd mprs' (mpr:mprs)
-    = let (what,mpr') = simplify m d mpr
+   subsimp d m chgd mprs' [] = (chgd,reverse mprs')
+   subsimp d m chgd mprs' (mpr:mprs)
+    = let (what,mpr') = simplify d m mpr
       in if null what
-       then subsimp m d chgd (mpr:mprs')  mprs
-       else subsimp m d diff (mpr':mprs') mprs
+       then subsimp d m chgd (mpr:mprs')  mprs
+       else subsimp d m diff (mpr':mprs') mprs
 
 \end{code}
 \textbf{WARNING: }
@@ -235,7 +235,7 @@ simplify m d mpr@(ms,(Comp name mprs))
 To do so risks an infinite loop.
 }
 \begin{code}
-   compsimp m d name mprs'
+   compsimp d m name mprs'
     = case plookup name d of
        Just (PredEntry _ _ _ _ _ psimp)  ->  psimp d mprs'
        _                                 ->  ("",Comp name mprs')
@@ -246,8 +246,8 @@ and them
 make a distinction between predicate variables,
 and general predicates.
 \begin{code}
-simplify m d mpr@(ms,(PSub spr subs))
- = sbstsimp m d ms (ssimp d subs) spr
+simplify d m mpr@(ms,(PSub spr subs))
+ = sbstsimp d m ms (ssimp d subs) spr
  where
 \end{code}
 For predicate variables,
@@ -258,7 +258,7 @@ which can be used to remove some elements from the substitution.
    & \elabel{pvar-substn}
 }
 \begin{code}
-  sbstsimp m d ms (subchgd,subs') spr@(mp,PVar p)
+  sbstsimp d m ms (subchgd,subs') spr@(mp,PVar p)
     = case vlookup p d of
         Just (AlfEntry alf)
             ->  ("",(ms,mkPSub spr $ filter ((`elem` alf) . fst) subs'))
@@ -268,9 +268,9 @@ In the general case,
 we simplify both predicate and substitution parts,
 and combine.
 \begin{code}
-  sbstsimp m d ms (subschgd,subs') spr
+  sbstsimp d m ms (subschgd,subs') spr
    = let
-      (what,spr') = simplify m d spr
+      (what,spr') = simplify d m spr
       predchgd = not $ null what
       (topchgd,npr') = psubst m d subs' spr'
      in mkCompR npr' (PSub spr subs')
@@ -278,7 +278,7 @@ and combine.
 \end{code}
 All other cases are as simple as can be, considering\ldots
 \begin{code}
-simplify m d mpr@(ms,pr) = ( "", mpr)
+simplify d m mpr@(ms,pr) = ( "", mpr)
 \end{code}
 
 \HDRc{Equality Predicate Simplification}~

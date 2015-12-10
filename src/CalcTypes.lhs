@@ -101,6 +101,8 @@ class Mark m where
                   --    (i)  nextm m /= m
                   --   (ii)  nextm m /= startm
                   --  (iii)  nextm is bijective
+  prevm :: m -> m -- laws for prevm
+                  --    (i) prevm . nextm = id
 \end{code}
 
 
@@ -344,27 +346,27 @@ type Recogniser m s = MPred m s -> Bool
 
 \HDRb{Theory Steps}
 
-\begin{code}
-data ThSteps m s
- = TS{
-\end{code}
-    \begin{description}
-      \item[Reduce]
-        Apply a law of predicate calculus in a direction that ``makes progress''.
-\begin{code}
-   reduce :: Dict m s -> CalcStep m s
-\end{code}
-      \item[Definition]
-        Expand a definition
-\begin{code}
- , defn :: CalcStep m s
-\end{code}
-      \item[Conditional]
-        Apply a conditional law, also in a direction that makes progress.
-\begin{code}
- , creduce :: Dict m s -> CCalcStep m s
-\end{code}
-    \end{description}
-\begin{code}
-}
-\end{code}
+%\begin{code}
+%data ThSteps m s
+% = TS{
+%\end{code}
+%    \begin{description}
+%      \item[Reduce]
+%        Apply a law of predicate calculus in a direction that ``makes progress''.
+%\begin{code}
+%   reduce :: Dict m s -> CalcStep m s
+%\end{code}
+%      \item[Definition]
+%        Expand a definition
+%\begin{code}
+% , defn :: CalcStep m s
+%\end{code}
+%      \item[Conditional]
+%        Apply a conditional law, also in a direction that makes progress.
+%\begin{code}
+% , creduce :: Dict m s -> CCalcStep m s
+%\end{code}
+%    \end{description}
+%\begin{code}
+%}
+%\end{code}

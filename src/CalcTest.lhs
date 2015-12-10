@@ -29,6 +29,7 @@ and incrementing being used to generate new marks.
 instance Mark Int where
   startm = 0
   nextm = (+1)
+  prevm = subtract 1
 
 type IPred s = MPred Int s
 \end{code}
@@ -110,6 +111,16 @@ xeqy = iEqual vx vy
 
 \HDRb{Test Functions}
 \begin{code}
-test ipr = simplify 42 stdDict ipr
-rtest (_,ipr) = simplify 99 stdDict ipr
+test ipr      = simplify stdDict 42 ipr
+rtest (_,ipr) = simplify stdDict 99 ipr
+\end{code}
+
+\HDRb{Test Calculator}
+
+\begin{code}
+calc mpr = calcREPL stdDict mpr
+putcalc :: (Mark m, Eq m, Ord s, Show s) => MPred m s -> IO ()
+putcalc mpr
+  = do res <- calc mpr
+       putStrLn $ calcPrint res
 \end{code}
