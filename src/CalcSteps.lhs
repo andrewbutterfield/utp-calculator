@@ -80,6 +80,12 @@ any sub-component.
 type MPZip2 m s = (MPred m s, String, MPred m s, [MPred' m s])
 \end{code}
 
+For conditional searches,
+we return a list of \texttt{Pred},\texttt{MPred} pairs:
+\begin{code}
+type CMPZip2 m s = (MPred m s, String, [(Pred m s,MPred m s)], [MPred' m s])
+\end{code}
+
 
 \newpage
 \HDRb{Calculation Step Basics}\label{hb:step-basics}
@@ -97,6 +103,8 @@ into a completed one:
 \begin{code}
 condResolve :: (Ord s, Show s)
          => Dict m s -> Int -> CCalcResult m s -> CalcResult m s
+condResolve d i ( nm, [ (T, outcome) ] ) -- no choice
+ = ( nm, outcome )
 condResolve d i ( nm, outcomes )
  = ( nm
      ++ ", given "
@@ -199,108 +207,84 @@ stepComp' cstep s@(Comp' mp name before after@(npr:rest)) ss mpr
       else result
 \end{code}
 
+\newpage
+\HDRb{Recursive Predicate Conditional Search}\label{hb:rec-pred-cond-srch}
 
-\HDRb{Application}
 
-\HDRc{apply}
+We now look at applying \emph{conditional} calculation steps
+by recursively exploring
+a predicate, and returning when we succeed.
 
+\HDRc{Conditional Search Top Level}\label{hc:cond-srch-top}
+
+This call encapsulates the use of zippers completely:
 \begin{code}
--- apply :: Ord s => CalcStep s -> Pred s -> CalcResult s
--- apply step pr -- check top-level first
---  = case step pr of
---      ( "", _ ) ->  rapply step pr  -- look deeper
---      res       ->  res
-
--- recursive descent
--- rapply :: Ord s => CalcStep s -> Pred s -> CalcResult s
--- rapply step (Not p) = mapplies lnot step [p]
--- rapply step (And prs) = mapplies And step prs
--- rapply step (Or prs) = mapplies Or step prs
--- rapply step (Imp p1 p2) = mapplies imp step [p1,p2]
--- rapply step (Cond p1 p2 p3) = mapplies cond step [p1,p2,p3]
--- rapply step (PSub p sub) = mapplies (psub sub) step [p]
--- rapply step (Seq p1 p2) = mapplies seqs step [p1,p2]
--- rapply step (Iter p1 p2) = mapplies iter step [p1,p2]
--- rapply step (PFun f prs) = mapplies (PFun f) step prs
--- rapply step (PAtm p) = mapplies patm step [p]
--- rapply step (PSeq p1 p2) = mapplies pseq step [p1,p2]
--- rapply step (PPar p1 p2) = mapplies ppar step [p1,p2]
--- rapply step (PCond p1 p2 p3) = mapplies pcond step [p1,p2,p3]
--- rapply step (PIter p1 p2) = mapplies piter step [p1,p2]
--- rapply step pr = ( "", pr )
-
--- calls pred-list handler below, then applies the constructor
--- mapplies :: Ord s
---  => ([Pred s] -> Pred s) -> CalcStep s -> [Pred s] -> CalcResult s
--- mapplies cons step prs
---  = ( comment, cons prs' )
---  where ( comment, prs' ) = rapplies step prs
-
--- process a list of predicates, stopping if success occurs
--- rapplies :: Ord s => CalcStep s -> [Pred s] -> ( String, [Pred s] )
--- rapplies _ [] = ( "", [] )
--- rapplies step [pr]
---  = ( comment, [pr']) where ( comment, pr' ) = apply step pr
--- rapplies step (pr:prs)
---  = case apply step pr of
---      (  "", _ ) -- no success yet, keep looking!
---        -> ( comment, pr:prs' )
---           where ( comment, prs' ) = rapplies step prs
---      ( comment, pr' ) -- success ! Stop here.
---        -> ( comment, pr':prs )
+doStepCSearch :: Mark m
+       => m -> CCalcStep m s  -> MPred m s
+       -> Maybe (MPred m s, String, [(Pred m s,MPred m s)])
+doStepCSearch m ccstep mpr
+ = let
+     (mpr1,what,mprs2,ss) = stepCFocus ccstep $ startMPZ mpr
+     pmpr' = unzipMPZ ss $ addMark m mpr1
+     nmprs' = mapsnd (unzipMPZ ss . addMark m) mprs2
+   in if null what then Nothing else Just (pmpr',what,nmprs')
 \end{code}
 
-\HDRc{capply}
+\HDRc{Conditionally Search Current Focus}\label{hc:cond-srch-focus}
 
-\newpage
-Now, doing it conditionally%
-\footnote{
-  It should be possible to implement both \texttt{apply} and \texttt{capply}
-  as a single traverse function with appropriate higher
-  function parameters, but right now my head hurts!
-}
+We try a step function first at the current focus level,
+only recursing in deeper if that fails:
 \begin{code}
--- capply :: Ord s => CCalcStep s -> Pred s -> CCalcResult s
--- capply cstep pr
---  = case cstep pr of
---      ( "", _ ) ->  crapply cstep pr
---      res       ->  res
---
--- crapply :: Ord s => CCalcStep s -> Pred s -> CCalcResult s
--- crapply cstep (Not p) = cmapplies lnot cstep [p]
--- crapply cstep (And prs) = cmapplies And cstep prs
--- crapply cstep (Or prs) = cmapplies Or cstep prs
--- crapply cstep (Imp p1 p2) = cmapplies imp cstep [p1,p2]
--- crapply cstep (Cond p1 p2 p3) = cmapplies cond cstep [p1,p2,p3]
--- crapply cstep (PSub p sub) = cmapplies (psub sub) cstep [p]
--- crapply cstep (Seq p1 p2) = cmapplies seqs cstep [p1,p2]
--- crapply cstep (Iter p1 p2) = cmapplies iter cstep [p1,p2]
--- crapply cstep (PFun f prs) = cmapplies (PFun f) cstep prs
--- crapply cstep (PAtm p) = cmapplies patm cstep [p]
--- crapply cstep (PSeq p1 p2) = cmapplies pseq cstep [p1,p2]
--- crapply cstep (PPar p1 p2) = cmapplies ppar cstep [p1,p2]
--- crapply cstep (PCond p1 p2 p3) = cmapplies pcond cstep [p1,p2,p3]
--- crapply cstep (PIter p1 p2) = cmapplies piter cstep [p1,p2]
--- crapply cstep p = ( "", [] )
---
--- cmapplies :: Ord s
---           => ([Pred s] -> Pred s) -> CCalcStep s -> [Pred s]
---           -> CCalcResult s
--- cmapplies cons cstep prs
---  = ( comment, mapsnd cons crps )
---  where ( comment, crps ) = crapplies cstep prs
---
--- crapplies :: Ord s => CCalcStep s -> [Pred s]
---                    -> ( String, [(Pred s,[Pred s])] )
--- crapplies _ [] = ( "", [] )
--- crapplies cstep [pr]
---  = ( comment, mapsnd (:[]) crps' )
---  where ( comment, crps' ) = capply cstep pr
--- crapplies cstep (pr:prs)
---  = case capply cstep pr of
---      (  "", _ )
---        -> ( comment, mapsnd (pr:) crps' )
---           where ( comment, crps' ) = crapplies cstep prs
---      ( comment, crps' )
---        -> ( comment, mapsnd (:prs) crps' )
+stepCFocus :: CCalcStep m s -> MPZipper m s -> CMPZip2 m s
+stepCFocus ccstep mpz@( mpr, ss )
+ = let ( what, cmprs' ) = ccstep mpr
+   in if null what
+      then stepCComponents ccstep mpz
+      else (mpr, what, cmprs', ss)
+\end{code}
+
+\HDRc{Conditionally Search Sub-Components}\label{hc:cnd-srch-sub-comp}
+
+We are now systematically exploring composite sub-parts:
+\begin{code}
+stepCComponents :: CCalcStep m s -> MPZipper m s -> CMPZip2 m s
+
+-- Substitution, simple, only 1 sub-component:
+stepCComponents ccstep ( (mp, PSub mpr subs), ss )
+  = stepCFocus ccstep ( mpr, PSub' mp subs : ss )
+
+-- Composites: trickier, so start with simplest case
+stepCComponents ccstep ( (mp, Comp name [mpr]), ss )
+ = stepCFocus ccstep ( mpr, Comp' mp name [] [] : ss )
+
+stepCComponents ccstep ( (mp, Comp name (mpr:mprs)), ss )
+  = stepCComp' ccstep (Comp' mp name [] mprs) ss mpr
+
+stepCComponents ccstep ( mpr, ss ) = ( mpr, "", [(T,mpr)], ss )
+\end{code}
+
+\HDRc{Conditionally Search Component List}\label{hc:cond-srch-list}
+
+Going through a sub-component list:
+\begin{code}
+stepCComp' :: CCalcStep m s
+          -> MPred' m s   -- current Comp'
+          -> [MPred' m s] -- current zip history
+          -> MPred m s    -- current focus, within Comp
+          -> CMPZip2 m s
+
+-- end case, processing last components
+stepCComp' ccstep s@(Comp' mp name before []) ss mpr
+ = let result@(_, what, _, _) = stepCFocus ccstep (mpr, s:ss)
+   in if null what
+      then ( mpr, "", [(T,mpr)], ss )
+      else result
+
+-- general case, more components remaining
+stepCComp' ccstep s@(Comp' mp name before after@(npr:rest)) ss mpr
+ = let result@(_, what, _, _) = stepCFocus ccstep (mpr, s:ss)
+   in if null what
+      then stepCComp' ccstep
+                   (Comp' mp name (before++[mpr]) rest) ss npr
+      else result
 \end{code}
