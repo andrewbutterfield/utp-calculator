@@ -21,7 +21,7 @@ import CalcSimplify
 For now we define a simple REPL.
 First, some top-level setup:
 \begin{code}
-calcREPL :: (Mark m, Ord s, Show s)
+calcREPL :: (Mark m, Show m, Ord s, Show s)
          => Dict m s ->  MPred m s
          -> IO ( MPred m s, [CalcResult m s], Dict m s )
 calcREPL d mpr
@@ -47,25 +47,26 @@ versionShow d
 
 Now, the main REPL loop:
 \begin{code}
-runREPL :: (Mark m, Ord s, Show s) 
+runREPL :: (Mark m, Show m, Ord s, Show s)
         => Dict m s -> m -> (MPred m s, [CalcResult m s])
         -> MPred m s
         -> IO ( MPred m s, [CalcResult m s], Dict m s )
-runREPL d m (mpr0,steps) currpr
+runREPL d m state@(mpr0,steps) currpr
  = do
   putStr ( "\n"
          ++ pdshow 80 d (snd currpr)
          ++ "\n\n ?,d,r,l,s,c,u,x :- " )
   ln <- getLine
   case ln of
-   ('?':_) -> calcHelp d m (mpr0,steps) currpr
-   ('s':_) -> calcStep d m (simplify d $ nextm m) (mpr0,steps) currpr
-   ('u':_) -> calcUndo d m (mpr0,steps) currpr
---    ('d':_) -> calcStep th d (defn th) (mpr0,steps) currpr
---    ('r':_) -> calcStep th d (reduce th $ d) (mpr0,steps) currpr
---    -- ('l':_) -> calcStep th d unroll (mpr0,steps) currpr
---    ('c':_) -> calcCStep th d (creduce th $ d) (mpr0,steps) currpr
-   ('x':_) -> return (mpr0,steps, d)
+   ('?':_) -> calcHelp d m state currpr
+   ('s':_) -> calcStep d m (simplify d $ nextm m) state currpr
+   ('u':_) -> calcUndo d m state currpr
+--    ('d':_) -> calcStep th d (defn th) state currpr
+--    ('r':_) -> calcStep th d (reduce th $ d) state currpr
+--    -- ('l':_) -> calcStep th d unroll state currpr
+--    ('c':_) -> calcCStep th d (creduce th $ d) state currpr
+   ('x':_) -> return (mpr0,steps,d)
+   ('M':_) -> showMarks d m state currpr
    _ -> do putStrLn ("'"++ln++"' ??")
            runREPL d m (mpr0,steps) currpr
 \end{code}
@@ -91,6 +92,7 @@ calcHelp d m st currpr
        , "r - reduction law application"
        , "l - loop unrolling"
        , "c - conditional reduction step"
+       , "M - show marks (DEBUG)"
        ]
       runREPL d m st currpr
 \end{code}
@@ -98,7 +100,7 @@ calcHelp d m st currpr
 \newpage
 Applying a given kind of step:
 \begin{code}
-calcStep :: (Mark m, Ord s, Show s)
+calcStep :: (Mark m, Show m, Ord s, Show s)
          => Dict m s -> m -> CalcStep m s
          -> (MPred m s, [CalcResult m s]) -> MPred m s
          -> IO ( MPred m s, [CalcResult m s], Dict m s )
@@ -138,6 +140,23 @@ Apply a given conditional step:
 --    ++ ccshow d rest
 \end{code}
 
+Showing Marks
+\begin{code}
+showMarks d m state@(mpr0,steps) currpr
+ = do showm 0 (mpr0:map snd steps)
+      runREPL d m state currpr
+ where
+   showm _ [] = return ()
+   showm i (mpr:mprs)
+    = do putStrLn (show i ++ " ! " ++ show (marksOf mpr))
+         showm (i+1) mprs
+   marksOf  ( ms, pr ) = ms ++ predMarks pr
+   predMarks (Comp _ mprs) = concat $ map marksOf mprs
+   predMarks (PSub mpr _) = marksOf mpr
+   predMarks _ = []
+
+\end{code}
+
 \newpage
 \HDRb{Displaying Calculations}
 
@@ -154,8 +173,8 @@ stepPrint d (comment,pr)
  = [""," = " ++ show comment,""] ++ [pdshow 80 d $ snd pr]
 
 outcome :: ( MPred m s, [CalcResult m s] ) -> MPred m s
-outcome ( pr0, [] ) = pr0
-outcome ( _, ((_,pr'):_)) = pr'
+outcome ( mpr0, [] ) = mpr0
+outcome ( _, ((_,mpr'):_)) = mpr'
 \end{code}
 
 

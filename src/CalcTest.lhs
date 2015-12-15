@@ -103,10 +103,23 @@ y90 = [(y,Z 90)]
 
 \begin{code}
 xandy = iAnd [px,py,pz]
+xory = iOr [px,py,pz]
 sub42 :: Ord s => IPred s
 sub42 = iPSub xandy x42
 
 xeqy = iEqual vx vy
+
+hasF = [px,py,iF,pz]
+hasT = [py,iT,pz,px]
+hasFT = [iF,px,iT,pz]
+hasNone = [pz,py,px]
+
+orF = iOr hasF
+andT = iAnd hasT
+xorF = iOr [iOr hasNone,orF]
+xandT = iAnd [andT,iAnd hasNone]
+bigOr = iOr [xorF,xandT,iAnd hasFT]
+bigAnd = iAnd [xorF,xandT,iOr hasFT]
 \end{code}
 
 \HDRb{Test Functions}
@@ -119,7 +132,7 @@ rtest (_,ipr) = simplify stdDict 99 ipr
 
 \begin{code}
 calc mpr = calcREPL stdDict mpr
-putcalc :: (Mark m, Eq m, Ord s, Show s) => MPred m s -> IO ()
+putcalc :: (Mark m, Eq m, Show m, Ord s, Show s) => MPred m s -> IO ()
 putcalc mpr
   = do res <- calc mpr
        putStrLn $ calcPrint res
