@@ -54,7 +54,7 @@ runREPL :: (Mark m, Show m, Ord s, Show s)
 runREPL d m state@(mpr0,steps) currpr
  = do
   putStr ( "\n"
-         ++ pdshow 80 d (snd currpr)
+         ++ pmdshow 80 d noStyles currpr
          ++ "\n\n ?,d,r,l,s,c,u,x :- " )
   ln <- getLine
   case ln of
@@ -142,8 +142,12 @@ Apply a given conditional step:
 
 Showing Marks
 \begin{code}
+showMarks :: (Mark m, Show m, Ord s, Show s)
+          => Dict m s -> m
+          -> (MPred m s, [CalcResult m s]) -> MPred m s
+          -> IO ( MPred m s, [CalcResult m s], Dict m s )
 showMarks d m state@(mpr0,steps) currpr
- = do showm 0 (mpr0:map snd steps)
+ = do showm (0::Int) (mpr0:map snd steps)
       runREPL d m state currpr
  where
    showm _ [] = return ()
@@ -154,23 +158,39 @@ showMarks d m state@(mpr0,steps) currpr
    predMarks (Comp _ mprs) = concat $ map marksOf mprs
    predMarks (PSub mpr _) = marksOf mpr
    predMarks _ = []
-
 \end{code}
 
 \newpage
 \HDRb{Displaying Calculations}
 
+First,
+a mark-style function:
+\begin{code}
+stepshow :: (Mark m, Eq m) => m -> MarkStyle m
+stepshow n m
+ | n == prevm m         =  Just styleOld
+ | n == m          =  Just styleNew
+ | otherwise      =  Nothing
+ where
+   styleOld = Underline
+   styleNew = styleRed
+\end{code}
+
 Now, rendering the results to look pretty:
 \begin{code}
-calcPrint :: (Ord s, Show s)
+calcPrint :: (Mark m, Eq m, Ord s, Show s)
           => ( MPred m s, [CalcResult m s], Dict m s ) -> String
-calcPrint ( pr0, steps, d )
- = unlines ( "" : versionShow d : "" : pdshow 80 d ( snd pr0)
-             : (concat $ map (stepPrint d) $ reverse steps))
+calcPrint ( mpr0, steps, d )
+ = unlines ( "" : versionShow d : "" : pmdshow 80 d (stepshow startm) mpr0
+             : (stepPrint d (nextm startm) $ reverse steps))
 
-stepPrint :: (Ord s, Show s) => Dict m s -> CalcResult m s -> [String]
-stepPrint d (comment,pr)
- = [""," = " ++ show comment,""] ++ [pdshow 80 d $ snd pr]
+stepPrint :: (Mark m, Eq m, Ord s, Show s)
+           => Dict m s -> m -> [CalcResult m s] -> [String]
+stepPrint d m [] = []
+stepPrint d m ((comment,mpr):rest)
+ = [""," = " ++ show comment,""] ++ [pmdshow 80 d (stepshow m) mpr]
+   ++ stepPrint d (nextm m) rest
+
 
 outcome :: ( MPred m s, [CalcResult m s] ) -> MPred m s
 outcome ( mpr0, [] ) = mpr0
