@@ -78,8 +78,8 @@ isBot (_,Comp "Skip" _) = True  ;  isBot _ = False
 mkTop = Comp "Top" []
 mkBot = Comp "Bot" []
 
-ppTop d p _ = pps styleBlue $ ppa "T"
-ppBot d p _ = pps styleBlue $ ppa "_|_"
+ppTop d ms p _ = ppa "T"
+ppBot d ms p _ = ppa "_|_"
 
 defnTop d _ = ("",F) -- assuming full predicate lattice
 defnBot d _ = ("",T) -- assuming full predicate lattice
@@ -107,10 +107,10 @@ bBot = noMark mkBot
 \begin{code}
 mkNot mpr = Comp "Not" [mpr]
 
-ppNot d p [(m,pr)] -- ignore marking for now
+ppNot d ms p [mpr] -- ignore marking for now
  = paren p precNot
-       $ pplist [pps styleBlue $ ppa "~", showp d precNot pr]
-ppNot d p _ = pps styleRed $ ppa "invalid-~"
+       $ pplist [ppa "~", mshowp d ms precNot mpr]
+ppNot d ms p _ = pps styleRed $ ppa "invalid-~"
 
 simpNot d [(m,T)] = ("~-simp",F)
 simpNot d [(m,F)] = ("~-simp",T)
@@ -139,12 +139,12 @@ mkAnd [] = T
 mkAnd [(_,pr)] = pr
 mkAnd mprs = mkAssoc "And" isAnd [] mprs
 
-ppAnd d p [] = showp d p T
-ppAnd d p [(m,pr)] = showp d p pr
-ppAnd d p mprs
+ppAnd d ms p [] = showp d ms p T
+ppAnd d ms p [mpr] = mshowp d ms p mpr
+ppAnd d ms p mprs
  = paren p precAnd
-     $ ppsopen styleBlue " /\\ "
-     $ map (showp d precAnd . snd) mprs
+     $ ppopen " /\\ "
+     $ map (mshowp d ms precAnd) mprs
 
 simpAnd d mprs  = sLattice "/\\-simplify" mkAnd F T mprs
 
@@ -171,12 +171,12 @@ mkOr [] = T
 mkOr [(_,pr)] = pr
 mkOr mprs = mkAssoc "Or" isOr [] mprs
 
-ppOr d p [] = showp d p T
-ppOr d p [(m,pr)] = showp d p pr
-ppOr d p mprs
+ppOr d ms p [] = showp d ms p T
+ppOr d ms p [mpr] = mshowp d ms p mpr
+ppOr d ms p mprs
  = paren p precOr
-     $ ppsopen styleBlue " \\/ "
-     $ map (showp d precOr . snd) mprs
+     $ ppopen " \\/ "
+     $ map (mshowp d ms precOr) mprs
 
 simpOr d mprs  = sLattice "\\/-simplify" mkOr T F mprs
 
@@ -203,12 +203,12 @@ mkNDC [] = T
 mkNDC [(_,pr)] = pr
 mkNDC mprs = mkAssoc "NDC" isNDC [] mprs
 
-ppNDC d p [] = showp d p T
-ppNDC d p [(m,pr)] = showp d p pr
-ppNDC d p mprs
+ppNDC d ms p [] = showp d ms p T
+ppNDC d ms p [mpr] = mshowp d ms p mpr
+ppNDC d ms p mprs
  = paren p precNDC
-     $ ppsopen styleBlue " |~| "
-     $ map (showp d precNDC . snd) mprs
+     $ ppopen " |~| "
+     $ map (mshowp d ms precNDC) mprs
 
 simpNDC d mprs  = sLattice "|~|-simplify" mkNDC mkBot mkTop mprs
 
@@ -233,11 +233,11 @@ isImp (_,Comp "Imp" _) = True  ;  isImp _ = False
 
 mkImp mpr1 mpr2 = Comp "Imp" [mpr1,mpr2]
 
-ppImp d p [mpr1,mpr2]
+ppImp d ms p [mpr1,mpr2]
  = paren p precImp
-     $ ppsopen styleBlue " => " [ showp d precImp $ snd mpr1
-                                , showp d precImp $ snd mpr2 ]
-ppImp d p mprs = pps styleRed $ ppa "invalid-=>"
+     $ ppopen  " => " [ mshowp d ms precImp mpr1
+                      , mshowp d ms precImp mpr2 ]
+ppImp d ms p mprs = pps styleRed $ ppa "invalid-=>"
 
 simpImp d [ (_,T), (_,pr) ] = ( "=>-simp", pr        )
 simpImp d [ (_,F), _      ] = ( "=>-simp", T         )
@@ -266,11 +266,11 @@ isRfdby (_,Comp "Rfdby" _) = True  ;  isRfdby _ = False
 
 mkRfdby mpr1 mpr2 = Comp "Rfdby" [mpr1,mpr2]
 
-ppRfdby d p [mpr1,mpr2]
+ppRfdby d ms p [mpr1,mpr2]
  = paren p precRfdby
-     $ ppsopen styleBlue " |= " [ showp d precRfdby $ snd mpr1
-                                , showp d precRfdby $ snd mpr2 ]
-ppRfdby d p mprs = pps styleRed $ ppa "invalid-|="
+     $ ppopen " |= " [ mshowp d ms precRfdby mpr1
+                     , mshowp d ms precRfdby mpr2 ]
+ppRfdby d ms p mprs = pps styleRed $ ppa "invalid-|="
 
 simpRfdby d [mpr1, mpr2] = ( "",  mkImp mpr1 mpr2 )
 
@@ -296,15 +296,15 @@ isCond (_,Comp "Cond" _) = True  ;  isCond _ = False
 
 mkCond mpr1 mpr2 mpr3 = Comp "Cond" [mpr1,mpr2,mpr3]
 
-ppCond d p [mprt,mprc,mpre]
+ppCond d ms p [mprt,mprc,mpre]
  = paren p precCond
-      $ pplist [ showp d precCond $ snd mprt
-               , pps styleBlue $ ppa " <| "
-               , showp d 0 $ snd mprc
-               , pps styleBlue $ ppa " |> "
-               , showp d precCond $ snd mpre ]
+      $ pplist [ mshowp d ms precCond mprt
+               , ppa " <| "
+               , mshowp d ms 0 mprc
+               , ppa " |> "
+               , mshowp d ms precCond mpre ]
 
-ppCond d p mprs = pps styleRed $ ppa "invalid-<|>"
+ppCond d ms p mprs = pps styleRed $ ppa "invalid-<|>"
 
 simpCond d [mpr1, mpr2, mpr3] = ( "",  mkCond mpr1 mpr2 mpr3)
 
@@ -329,7 +329,7 @@ isSkip (_,Comp "Skip" _) = True  ;  isSkip _ = False
 
 mkSkip = Comp "Skip" []
 
-ppSkip d p _ = pps styleBlue $ ppa "II"
+ppSkip d _ p _ = ppa "II"
 
 simpSkip d _ = ("",mkSkip)
 
@@ -354,11 +354,11 @@ isSeq (_,Comp "Seq" _) = True  ;  isSeq _ = False
 
 mkSeq mpr1 mpr2 = Comp "Seq" [mpr1,mpr2]
 
-ppSeq d p [mpr1,mpr2]
+ppSeq d ms p [mpr1,mpr2]
  = paren p precSeq
-     $ ppsopen styleBlue " ; " [ showp d precSeq $ snd mpr1
-                               , showp d precSeq $ snd mpr2 ]
-ppSeq d p mprs = pps styleRed $ ppa "invalid-;"
+     $ ppopen " ; " [ mshowp d ms precSeq mpr1
+                    , mshowp d ms precSeq mpr2 ]
+ppSeq d ms p mprs = pps styleRed $ ppa "invalid-;"
 
 simpSeq d [ mpr1, mpr2    ]
  | isSkip mpr1 = ( "simp-;",  snd mpr2 )
@@ -387,11 +387,11 @@ isIter (_,Comp "Iter" _) = True  ;  isIter _ = False
 
 mkIter mpr1 mpr2 = Comp "Iter" [mpr1,mpr2]
 
-ppIter d p [mpr1,mpr2]
+ppIter d ms p [mpr1,mpr2]
  = paren p precIter
-     $ ppsopen styleBlue " * " [ showp d precIter $ snd mpr1
-                               , showp d precIter $ snd mpr2 ]
-ppIter d p mprs = pps styleRed $ ppa "invalid-*"
+     $ ppopen " * " [ mshowp d ms precIter mpr1
+                    , mshowp d ms precIter mpr2 ]
+ppIter d _ p mprs = pps styleRed $ ppa "invalid-*"
 
 simpIter d [mpr1, mpr2 ] = ( "", mkIter mpr1 mpr2 )
 

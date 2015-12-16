@@ -43,6 +43,8 @@ codeGreen :: String
 codeGreen = setColour '2'
 styleBlue :: Style
 styleBlue = Colour '4'
+styleYellow :: Style
+styleYellow = Colour '3'
 codeBlue :: String
 codeBlue = setColour '4'
 -- blue    '4'

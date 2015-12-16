@@ -5,6 +5,7 @@ import Utilities
 import qualified Data.Map as M
 import Data.List
 import Data.Char
+import Data.Maybe
 import Debug.Trace
 import PrettyPrint
 import CalcTypes
@@ -249,9 +250,15 @@ stdFDefn d fname vs ebody eval = (vs,ebody,stdFShow d fname,eval)
 \end{code}
 For now, we don't support infix function syntax.
 
+
 Now, prettiness..
 \begin{code}
-pdshow w d = render w . showp d 0
+pdshow :: (Show s, Ord s) => Int -> Dict m s -> Pred m s -> String
+pdshow w d pr = render w $ showp d noStyles 0 pr
+
+pmdshow :: (Show s, Ord s)
+        => Int -> Dict m s -> MarkStyle m -> MPred m s -> String
+pmdshow w d msf mpr = render w $ mshowp d msf 0 mpr
 \end{code}
 
 Code to add parentheses when required by a change in current precedence level.
@@ -262,31 +269,37 @@ paren outerp innerp (PP w (PPC _ _ sepp pps))
 paren outerp innerp pp = pp
 \end{code}
 
-
 Pretty-printing predicates,
 which now just underlines atomic values,
 and colours equality green and composite names blue.
 \begin{code}
-showp :: (Ord s, Show s) => Dict m s -> Int -> Pred m s -> PP
-showp d _ T  = pps Underline $ ppa "true"
-showp d _ F  = pps Underline $ ppa "false"
-showp d _ (PVar p)  = ppa p
-showp d p (Equal e1 e2)
-   = paren p precEq
-       $ ppopen' (pps styleGreen $ ppa " = ")
-                 [ppa $ edshow d e1, ppa $ edshow d e2]
-showp d p (Atm e) = ppa $ edshow d e
-showp d p (PSub pr sub)
-   = pplist $ [showp d precSub $ snd pr, ppa $ showSub d sub]
+mshowp :: (Ord s, Show s) => Dict m s -> MarkStyle m -> Int -> MPred m s -> PP
+mshowp d msf p ( ms, pr )
+ = sshowp $ catMaybes $ map msf ms
+ where
+  sshowp []  =  showp d msf p pr
+  sshowp (s:ss) = pps s $ sshowp ss
 
-showp d p (Comp cname pargs)
+showp :: (Ord s, Show s) => Dict m s -> MarkStyle m -> Int -> Pred m s -> PP
+showp d _ _ T  = ppa "true"
+showp d _ _ F  = ppa "false"
+showp d _ _ (PVar p)  = ppa p
+showp d _ p (Equal e1 e2)
+   = paren p precEq
+       $ ppopen' (ppa " = ")
+                 [ppa $ edshow d e1, ppa $ edshow d e2]
+showp d _ p (Atm e) = ppa $ edshow d e
+showp d ms p (PSub pr sub)
+   = pplist $ [showp d ms precSub $ snd pr, ppa $ showSub d sub]
+
+showp d ms p (Comp cname pargs)
  = case plookup cname d of
-    Just (PredEntry _ _ _ showf _ _) -> showf d p pargs
-    _  ->  stdCshow d cname pargs
+    Just (PredEntry _ _ _ showf _ _) -> showf d ms p pargs
+    _  ->  stdCshow d ms cname pargs
 
 stdCshow :: (Ord s, Show s)
-         => Dict m s -> String -> [MPred m s] -> PP
-stdCshow d cname pargs
- = pplist [ pps styleBlue $ ppa cname
-          , ppclosed "(" ")" "," $ map (showp d 0 .snd) pargs ]
+         => Dict m s -> MarkStyle m -> String -> [MPred m s] -> PP
+stdCshow d ms cname pargs
+ = pplist [ ppa cname
+          , ppclosed "(" ")" "," $ map (showp d ms 0 .snd) pargs ]
 \end{code}

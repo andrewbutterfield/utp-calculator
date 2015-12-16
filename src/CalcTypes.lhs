@@ -93,7 +93,8 @@ instance Eq s => Eq (Pred m s) where
 \HDRb{Marking Class}\label{hb:MarkClass}
 
 We use a class for marks that specifies a special `starting' mark value,
-as well as a way to generate a new label from an existing one
+as well as a way to generate a new label from an existing one,
+and to reverse back.
 \begin{code}
 class Mark m where
   startm :: m
@@ -103,6 +104,14 @@ class Mark m where
                   --  (iii)  nextm is bijective
   prevm :: m -> m -- laws for prevm
                   --    (i) prevm . nextm = id
+\end{code}
+
+We need a function from markings to styles:
+\begin{code}
+type MarkStyle m = m -> Maybe Style
+
+noStyles :: MarkStyle m
+noStyles = const Nothing
 \end{code}
 
 
@@ -218,7 +227,8 @@ The evaluator is free to use or ignore the definition body expression $e$.
      pbvars  :: [String]                       -- bound vars
    , pbody   :: Pred m s                       -- defn. body
    , pcansub :: Bool                           -- substitutable?
-   , pprint  :: Dict m s -> Int -> [MPred m s] -- pretty printer
+   , pprint  :: Dict m s -> MarkStyle m        -- pretty printer
+             -> Int -> [MPred m s]
              -> PP
    , pdefn   :: Dict m s -> [MPred m s]        -- defn expansion
              -> (String,Pred m s)
