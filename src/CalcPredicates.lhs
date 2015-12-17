@@ -31,16 +31,42 @@ pretty-printing and highlighting.
 
 \HDRb{Marking}\label{hb:marking}
 
+\HDRc{Basic Marking}\label{hc:basic-marking}
 \begin{code}
-noMark :: Mark m => Pred m s -> MPred m s
+noMark :: Pred m s -> MPred m s
 noMark pr = ([], pr)
 
-reMark :: Mark m => m -> MPred m s -> MPred m s
+reMark :: m -> MPred m s -> MPred m s
 reMark m (_, pr) = ([m], pr)
 
-addMark :: Mark m => m -> MPred m s -> MPred m s
+addMark :: m -> MPred m s -> MPred m s
 addMark m (ms, pr) = (m:ms, pr)
 \end{code}
+
+\HDRc{Result Marking}\label{hc:result-marking}
+
+Given a predicate, original marking,
+the explanation and new mark associated with this operation
+and the changed flag, produce the appropriate result:
+\begin{code}
+mkCR :: (Mark m, Ord s, Show s)
+     => Pred m s -> [m] -> String -> m -> Bool -> CalcResult m s
+mkCR pr ms what m True   = (what,addMark m (ms,pr))
+mkCR pr ms what m False  = ("",(ms,pr))
+\end{code}
+For composites, we only mark the composite if it changes,
+and not if it is just sub-components that have changed:
+\begin{code}
+mkCompR :: (Mark m, Ord s, Show s)
+     => Pred m s -> Pred m s -> [m] -> String -> m
+     -> Bool -- top has changed
+     -> Bool -- change somewhere
+     -> CalcResult m s
+mkCompR top' comp ms what m _ False     = ("",             (ms,comp))
+mkCompR top' comp ms what m False True  = (what,           (ms,comp))
+mkCompR top' comp ms what m True True   = (what, addMark m (ms,top'))
+\end{code}
+
 
 \begin{code}
 -- build a basic predicate at the MPred level

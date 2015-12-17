@@ -288,3 +288,13 @@ stepCComp' ccstep s@(Comp' mp name before after@(npr:rest)) ss mpr
                    (Comp' mp name (before++[mpr]) rest) ss npr
       else result
 \end{code}
+
+\HDRb{Definition Expansion}\label{hb:defn-expand}
+
+\begin{code}
+defnExpand = "expand defn. "
+
+expandDefn :: (Mark m, Ord s, Show s) => Dict m s -> m -> CalcStep m s
+expandDefn d m mpr
+  = error "expandDefn NYI"
+\end{code}

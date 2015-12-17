@@ -61,10 +61,10 @@ runREPL d m state@(mpr0,steps) currpr
    ('?':_) -> calcHelp d m state currpr
    ('s':_) -> calcStep d m (simplify d $ nextm m) state currpr
    ('u':_) -> calcUndo d m state currpr
---    ('d':_) -> calcStep th d (defn th) state currpr
---    ('r':_) -> calcStep th d (reduce th $ d) state currpr
---    -- ('l':_) -> calcStep th d unroll state currpr
---    ('c':_) -> calcCStep th d (creduce th $ d) state currpr
+   ('d':_) -> calcStep d m (expandDefn d $ nextm m) state currpr
+--    ('r':_) -> calcStep  d m (reduce th $ d) state currpr
+--    -- ('l':_) -> calcStep  d m unroll state currpr
+--    ('c':_) -> calcCStep  d m (creduce th $ d) state currpr
    ('x':_) -> return (mpr0,steps,d)
    ('M':_) -> showMarks d m state currpr
    _ -> do putStrLn ("'"++ln++"' ??")

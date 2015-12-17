@@ -3,6 +3,7 @@
 module CalcSimplify where
 import CalcTypes
 import CalcPredicates
+import CalcZipper
 \end{code}
 
 
@@ -158,35 +159,14 @@ vesubst sub (v,e) = (v,snd $ esubst sub e)
 
 \HDRb{Predicate Simplification}
 
-Given a predicate, original marking,
-the explanation and new mark associated with this operation
-and the changed flag, produce the appropriate result:
-\begin{code}
-mkCR :: (Mark m, Ord s, Show s)
-     => Pred m s -> [m] -> String -> m -> Bool -> CalcResult m s
-mkCR pr ms what m True   = (what,addMark m (ms,pr))
-mkCR pr ms what m False  = ("",(ms,pr))
-\end{code}
-For composites, we only mark the composite if it changes,
-and not if it is just sub-components that have changed:
-\begin{code}
-mkCompR :: (Mark m, Ord s, Show s)
-     => Pred m s -> Pred m s -> [m] -> String -> m
-     -> Bool -- top has changed
-     -> Bool -- change somewhere
-     -> CalcResult m s
-mkCompR top' comp ms what m _ False     = ("",             (ms,comp))
-mkCompR top' comp ms what m False True  = (what,           (ms,comp))
-mkCompR top' comp ms what m True True   = (what, addMark m (ms,top'))
-\end{code}
-
 
 \HDRc{Simplify}\label{hc:simplify}
 
 Now, the predicate simplifier:
 \begin{code}
 simplified = "simplify"
-simplify :: (Mark m, Ord s, Show s) => Dict m s -> m -> CalcStep m s
+simplify :: (Mark m, Ord s, Show s)
+         => Dict m s -> m -> CalcStep m s
 \end{code}
 For atomic predicates,
 we simplify the underlying expression,

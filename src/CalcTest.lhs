@@ -140,10 +140,71 @@ marked = addMark 42
 mtest m = putStrLn $ pmdshow 80 stdDict (stepshow m) marked
 \end{code}
 
+\HDRb{Test Dictionaries}
+
+First, a dictionary that defines negation, conjunction, disjunction
+and non-determinisitic choice in a layered way
+on top of implication and False.
+\RLEQNS{
+    \lnot P &\defs& P \implies false
+}
+\begin{code}
+notImpFalse :: Dict m s -> [MPred m s] -> (String, Pred m s)
+notImpFalse _ [mpr] = ( "not-ImpFalse", mkImp mpr $ noMark F )
+notImpFalse _ mprs = ( "", Comp "Not" mprs )
+
+notIFEntry :: (Show s, Ord s) => (String, Entry m s)
+notIFEntry
+ = ( "Not"
+   , PredEntry ["P"] PUndef True ppNot notImpFalse simpNot )
+\end{code}
+\RLEQNS{
+    P \lor Q &\defs& \lnot P \implies Q
+}
+\begin{code}
+orIFEntry :: (Eq m, Show s, Ord s) => (String, Entry m s)
+orIFEntry
+ = ( "Or"
+   , PredEntry ["P$"] PUndef True ppOr (pNoChg "Or") simpOr )
+\end{code}
+\RLEQNS{
+   P \ndc Q &\defs& P \lor Q
+}
+\begin{code}
+ndcIFEntry :: (Eq m, Show s, Ord s) => (String, Entry m s)
+ndcIFEntry
+ = ( "NDC"
+   , PredEntry ["P$"] PUndef True ppNDC (pNoChg "NDC") simpNDC )
+\end{code}
+\RLEQNS{
+   P \land Q &\defs& \lnot(\lnot P \lor \lnot Q)
+}
+\begin{code}
+andIFEntry :: (Eq m, Show s, Ord s) => (String, Entry m s)
+andIFEntry
+ = ( "And"
+   , PredEntry ["P$"] PUndef True ppAnd (pNoChg "And") simpAnd )
+\end{code}
+
+The dictionary:
+\begin{code}
+impFalseDict :: (Eq m, Ord s, Show s) => Dict m s
+impFalseDict
+ = M.fromList
+    [ notIFEntry
+    , andIFEntry
+    , orIFEntry
+    , ndcIFEntry
+    ]
+
+testDict :: (Eq m, Ord s, Show s) => Dict m s
+testDict = impFalseDict `M.union` stdDict
+\end{code}
+
 \HDRb{Test Calculator}
 
 \begin{code}
-calc mpr = calcREPL stdDict mpr
+calc mpr = calcREPL testDict mpr
 putcalc :: (Mark m, Eq m, Show m, Ord s, Show s) => MPred m s -> IO ()
 putcalc mpr
   = do res <- calc mpr
