@@ -128,6 +128,18 @@ test ipr      = simplify stdDict 42 ipr
 rtest (_,ipr) = simplify stdDict 99 ipr
 \end{code}
 
+Marking and displaying tests:
+\begin{code}
+marked :: IPred ()
+marked = addMark 42
+       $ iAnd [ addMark 1 $ iAtm $ Z 1
+              , addMark 2 $ iAtm $ Z 2
+              , addMark 3 $ iAtm $ Z 3
+              , addMark 4 $ iAtm $ Z 4
+              ]
+mtest m = putStrLn $ pmdshow 80 stdDict (stepshow m) marked
+\end{code}
+
 \HDRb{Test Calculator}
 
 \begin{code}
