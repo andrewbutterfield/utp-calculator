@@ -121,12 +121,12 @@ noStyles = const Nothing
 We now present the infrastructure for performing calculations.
 There are a number of different kinds of calculation step,
 described in a little more detail later.
-The basic idea is that such a step transforms a current goal
-predicate in some way, and returns both the transformed result,
+The basic idea is that such a step rewrites a current goal
+predicate in some way, and returns both the rewritten result,
 as well as a justification string describing what was done.
 \begin{code}
-type CalcResult m s = (String, MPred m s)
-type CalcStep m s = MPred m s -> CalcResult m s
+type RWResult m s = (String, MPred m s)
+type RWFun m s = MPred m s -> RWResult m s
 \end{code}
 
 We also have steps that are contingent on some side-condition,
@@ -134,17 +134,19 @@ but we don't want to implement a fully automated solver for these conditions,
 nor do we want to have to break-out into a sub-calculation.
 These steps typically occur in pairs,
 giving different results based on the truth of the condition.
-So we design a ``step'' that returns the alternative outcomes,
+So we design a ``step'' that returns the alternative rewrite outcomes,
 along with a clear statement of the condition,
 and allows the user to select which one should be used.
 \begin{code}
-type CCalcResult m s
+type CRWResult m s
  = ( String
    , [( Pred m s    -- condition to be discharged
       , MPred m s)]  -- modified predicate
    )
-type CCalcStep m s = MPred m s -> CCalcResult m s
+type CRWFun m s = MPred m s -> CRWResult m s
 \end{code}
+
+
 
 
 \newpage
@@ -155,6 +157,17 @@ to appropriate definitions.
 \begin{code}
 type Dict m s = M.Map String (Entry m s)
 \end{code}
+
+When processing a composite,
+we will use the composite name to lookup a function
+to do a rewrite.
+This function will be passed the dictionary,
+and the list of sub-components for it to do its work,
+and will return a justification string and un-marked predicate:
+\begin{code}
+type Rewrite m s = Dict m s -> [MPred m s] -> (String, Pred m s)
+\end{code}
+
 
 A dictionary entry is a sum of  definition types defined below
 \begin{code}
@@ -230,10 +243,8 @@ The evaluator is free to use or ignore the definition body expression $e$.
    , pprint  :: Dict m s -> MarkStyle m        -- pretty printer
              -> Int -> [MPred m s]
              -> PP
-   , pdefn   :: Dict m s -> [MPred m s]        -- defn expansion
-             -> (String,Pred m s)
-   , prsimp  :: Dict m s -> [MPred m s]        -- simplifier
-             -> (String,Pred m s)
+   , pdefn   :: Rewrite m s                    -- defn expansion
+   , prsimp  :: Rewrite m s                    -- simplifier
    }
 \end{code}
 We interpret a \texttt{Dict} entry like
@@ -364,17 +375,17 @@ type Recogniser m s = MPred m s -> Bool
 %      \item[Reduce]
 %        Apply a law of predicate calculus in a direction that ``makes progress''.
 %\begin{code}
-%   reduce :: Dict m s -> CalcStep m s
+%   reduce :: Dict m s -> RWFun m s
 %\end{code}
 %      \item[Definition]
 %        Expand a definition
 %\begin{code}
-% , defn :: CalcStep m s
+% , defn :: RWFun m s
 %\end{code}
 %      \item[Conditional]
 %        Apply a conditional law, also in a direction that makes progress.
 %\begin{code}
-% , creduce :: Dict m s -> CCalcStep m s
+% , creduce :: Dict m s -> CRWFun m s
 %\end{code}
 %    \end{description}
 %\begin{code}

@@ -50,7 +50,7 @@ the explanation and new mark associated with this operation
 and the changed flag, produce the appropriate result:
 \begin{code}
 mkCR :: (Mark m, Ord s, Show s)
-     => Pred m s -> [m] -> String -> m -> Bool -> CalcResult m s
+     => Pred m s -> [m] -> String -> m -> Bool -> RWResult m s
 mkCR pr ms what m True   = (what,addMark m (ms,pr))
 mkCR pr ms what m False  = ("",(ms,pr))
 \end{code}
@@ -61,7 +61,7 @@ mkCompR :: (Mark m, Ord s, Show s)
      => Pred m s -> Pred m s -> [m] -> String -> m
      -> Bool -- top has changed
      -> Bool -- change somewhere
-     -> CalcResult m s
+     -> RWResult m s
 mkCompR top' comp ms what m _ False     = ("",             (ms,comp))
 mkCompR top' comp ms what m False True  = (what,           (ms,comp))
 mkCompR top' comp ms what m True True   = (what, addMark m (ms,top'))

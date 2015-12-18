@@ -95,6 +95,6 @@ stepsUTCP :: (Ord s, Show s) => ThSteps s
 stepsUTCP = TS reduceUTCP defnUTCP creduceUTCP
 
 calculemus :: (Ord s, Show s)
-           => Pred s -> IO ( Pred s, [CalcResult s], Dict s )
+           => Pred s -> IO ( Pred s, [RWResult s], Dict s )
 calculemus pr = calcREPL stepsUTCP dictUTCP pr
 \end{code}

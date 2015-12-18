@@ -49,7 +49,7 @@ of these and other predicate constructs.
 We define laws that are generally
 viewed as reduction steps going from left-to-right.
 \begin{code}
-reduceUTCP :: (Show s, Ord s) => Dict s -> CalcStep s
+reduceUTCP :: (Show s, Ord s) => Dict s -> RWFun s
 \end{code}
 
 \HDRb{Skip and Sequential Composition}
@@ -85,7 +85,7 @@ Iteration  satisfies the loop-unrolling law:
 \[
   c * P  \quad=\quad (P ; c * P ) \cond c \Skip
 \]
-Currently already implemented in \texttt{CalcSteps} (\ref{hb:unroll}).
+Currently already implemented in \texttt{RWFuns} (\ref{hb:unroll}).
 
 \HDRc{Conditions preceding Iteration}
 
@@ -252,7 +252,7 @@ reduceUTCP d pr = lred "" pr
 Now we hard-code semantic definitions, starting with a dispatch function,
 and then defining each replacement.
 \begin{code}
-defnUTCP :: Ord s => Pred s -> CalcResult s
+defnUTCP :: Ord s => Pred s -> RWResult s
 
 defnUTCP Skip                =  ldefn "II" defnII
 defnUTCP (PAtm a)            =  ldefn "A" $ defnAtomic a
@@ -273,7 +273,7 @@ defnUTCP (PSub (PAtm a) subs)
 
 defnUTCP pr                  =  ldefn "" pr
 
-ldefn :: String -> Pred s -> CalcResult s
+ldefn :: String -> Pred s -> RWResult s
 ldefn "" pr = ( "", pr )
 ldefn nm pr = ( "defn. of " ++ nm, pr )
 \end{code}

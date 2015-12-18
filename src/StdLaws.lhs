@@ -16,7 +16,7 @@ import StdPredicates
 
 
 \begin{code}
-unroll :: (Mark m, Ord s) => CalcStep m s
+unroll :: (Mark m, Ord s) => RWFun m s
 unroll mw@(_,Comp "Iter"  [mc@(_,c), mpr])
  | isCondition c
            = lred "loop-unroll" $ bCond mc (bSeq mpr mw) bSkip

@@ -3,7 +3,6 @@
 module CalcSimplify where
 import CalcTypes
 import CalcPredicates
-import CalcZipper
 \end{code}
 
 
@@ -20,7 +19,7 @@ and then that level is simplified using predicate variant-specific rules
 
 At the top-level,
 when we attempt to apply some rule,
-we return a \texttt{CalcResult} --- a pairing of a string with a predicate.
+we return a \texttt{RWResult} --- a pairing of a string with a predicate.
 If the string is empty, then no change occurred,
 otherwise it supplies a (short ?!) justification/explanation
 for what has happened.
@@ -166,7 +165,7 @@ Now, the predicate simplifier:
 \begin{code}
 simplified = "simplify"
 simplify :: (Mark m, Ord s, Show s)
-         => Dict m s -> m -> CalcStep m s
+         => Dict m s -> m -> RWFun m s
 \end{code}
 For atomic predicates,
 we simplify the underlying expression,

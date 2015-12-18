@@ -23,7 +23,7 @@ First, some top-level setup:
 \begin{code}
 calcREPL :: (Mark m, Show m, Ord s, Show s)
          => Dict m s ->  MPred m s
-         -> IO ( MPred m s, [CalcResult m s], Dict m s )
+         -> IO ( MPred m s, [RWResult m s], Dict m s )
 calcREPL d mpr
  = do putStrLn ""
       putStrLn $ versionShow d'
@@ -48,9 +48,9 @@ versionShow d
 Now, the main REPL loop:
 \begin{code}
 runREPL :: (Mark m, Show m, Ord s, Show s)
-        => Dict m s -> m -> (MPred m s, [CalcResult m s])
+        => Dict m s -> m -> (MPred m s, [RWResult m s])
         -> MPred m s
-        -> IO ( MPred m s, [CalcResult m s], Dict m s )
+        -> IO ( MPred m s, [RWResult m s], Dict m s )
 runREPL d m state@(mpr0,steps) currpr
  = do
   putStr ( "\n"
@@ -101,9 +101,9 @@ calcHelp d m st currpr
 Applying a given kind of step:
 \begin{code}
 calcStep :: (Mark m, Show m, Ord s, Show s)
-         => Dict m s -> m -> CalcStep m s
-         -> (MPred m s, [CalcResult m s]) -> MPred m s
-         -> IO ( MPred m s, [CalcResult m s], Dict m s )
+         => Dict m s -> m -> RWFun m s
+         -> (MPred m s, [RWResult m s]) -> MPred m s
+         -> IO ( MPred m s, [RWResult m s], Dict m s )
 calcStep d m stepf st@(mpr0,steps) currpr
  = do case stepf currpr of
        ( "", _ )  ->  runREPL d m st currpr
@@ -144,8 +144,8 @@ Showing Marks
 \begin{code}
 showMarks :: (Mark m, Show m, Ord s, Show s)
           => Dict m s -> m
-          -> (MPred m s, [CalcResult m s]) -> MPred m s
-          -> IO ( MPred m s, [CalcResult m s], Dict m s )
+          -> (MPred m s, [RWResult m s]) -> MPred m s
+          -> IO ( MPred m s, [RWResult m s], Dict m s )
 showMarks d m state@(mpr0,steps) currpr
  = do showm (0::Int) (mpr0:map snd steps)
       runREPL d m state currpr
@@ -179,20 +179,20 @@ stepshow n m
 Now, rendering the results to look pretty:
 \begin{code}
 calcPrint :: (Mark m, Eq m, Ord s, Show s)
-          => ( MPred m s, [CalcResult m s], Dict m s ) -> String
+          => ( MPred m s, [RWResult m s], Dict m s ) -> String
 calcPrint ( mpr0, steps, d )
  = unlines ( "" : versionShow d : "" : pmdshow 80 d (stepshow startm) mpr0
              : (stepPrint d (nextm startm) $ reverse steps))
 
 stepPrint :: (Mark m, Eq m, Ord s, Show s)
-           => Dict m s -> m -> [CalcResult m s] -> [String]
+           => Dict m s -> m -> [RWResult m s] -> [String]
 stepPrint d m [] = []
 stepPrint d m ((comment,mpr):rest)
  = [""," = " ++ show comment,""] ++ [pmdshow 80 d (stepshow m) mpr]
    ++ stepPrint d (nextm m) rest
 
 
-outcome :: ( MPred m s, [CalcResult m s] ) -> MPred m s
+outcome :: ( MPred m s, [RWResult m s] ) -> MPred m s
 outcome ( mpr0, [] ) = mpr0
 outcome ( _, ((_,mpr'):_)) = mpr'
 \end{code}
@@ -206,13 +206,13 @@ Now, doing it conditionally%
   function parameters, but right now my head hurts!
 }
 \begin{code}
--- capply :: Ord s => CCalcStep s -> Pred s -> CCalcResult s
+-- capply :: Ord s => CRWFun s -> Pred s -> CRWResult s
 -- capply cstep pr
 --  = case cstep pr of
 --      ( "", _ ) ->  crapply cstep pr
 --      res       ->  res
 --
--- crapply :: Ord s => CCalcStep s -> Pred s -> CCalcResult s
+-- crapply :: Ord s => CRWFun s -> Pred s -> CRWResult s
 -- crapply cstep (Not p) = cmapplies lnot cstep [p]
 -- crapply cstep (And prs) = cmapplies And cstep prs
 -- crapply cstep (Or prs) = cmapplies Or cstep prs
@@ -230,13 +230,13 @@ Now, doing it conditionally%
 -- crapply cstep p = ( "", [] )
 --
 -- cmapplies :: Ord s
---           => ([Pred s] -> Pred s) -> CCalcStep s -> [Pred s]
---           -> CCalcResult s
+--           => ([Pred s] -> Pred s) -> CRWFun s -> [Pred s]
+--           -> CRWResult s
 -- cmapplies cons cstep prs
 --  = ( comment, mapsnd cons crps )
 --  where ( comment, crps ) = crapplies cstep prs
 --
--- crapplies :: Ord s => CCalcStep s -> [Pred s]
+-- crapplies :: Ord s => CRWFun s -> [Pred s]
 --                    -> ( String, [(Pred s,[Pred s])] )
 -- crapplies _ [] = ( "", [] )
 -- crapplies cstep [pr]

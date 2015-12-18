@@ -38,7 +38,12 @@ simplify
 
 STEPS :-
 
-type MPZip2 m s = (MPred m s, String, MPred m s, [MPred' m s])
+type BeforeAfter m s
+ = ( MPred m s   -- before predicate, marked
+   , String      -- justification, null if no change occurred
+   , MPred m s ) -- after predicate, marked
+
+type MPZip2 m s = (BeforeAfter m s, [MPred' m s])
 
 type CMPZip2 m s =
   (MPred m s, String, [(Pred m s, MPred m s)], [MPred' m s])

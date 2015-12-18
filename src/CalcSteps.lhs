@@ -64,6 +64,33 @@ So we see that $step_i$ takes $ne_{i-1}$ and produces:
   \item $ne_i$, which is $pe_i$, where $q_i$ (already marked with $M_i$)
    is replaced by $q'_i$.
 \end{itemize}
+What is not obvious from the above example is what should happen
+when two successive steps affect the same or a nested sub-predicate.
+Here we find we need to be able to associate multiple marks with
+any sub-component.
+
+In order to mark and highlight predicates in calculation steps,
+we need to return not just the modified result, marked at the point of change,
+but also the original predicate, also marked at the same location
+(with the same mark in each case --- the mark identifies the specific
+calculation step).
+We have a type that has this information,
+along with a justification string:
+\begin{code}
+type BeforeAfter m s
+ = ( MPred m s   -- before predicate, marked
+   , String      -- justification, null if no change occurred
+   , MPred m s ) -- after predicate, marked
+\end{code}
+In the conditional case, we have lists of outcomes
+paired with conditions:
+\begin{code}
+type BeforeAfters m s
+ = ( MPred m s   -- before predicate, marked
+   , String      -- justification, null if no change occurred
+   , [(Pred m s,MPred m s)] ) -- after predicates, marked
+\end{code}
+
 This seems to present a problem for the zipper,
 as we have to identify corresponding locations,
 where $q_i$ and $q'_i$ reside,
@@ -71,21 +98,15 @@ in two different versions of a single predicate.
 However the structure of the two predicates is identical everywhere else
 so a single zipper ``path'' can be applied to both.
 
-What is not obvious from the above example is what should happen
-when two successive steps affect the same or a nested sub-predicate.
-Here we find we need to be able to associate multiple marks with
-any sub-component.
-
 \begin{code}
-type MPZip2 m s = (MPred m s, String, MPred m s, [MPred' m s])
+type MPZip2 m s = (BeforeAfter m s, [MPred' m s])
 \end{code}
 
 For conditional searches,
 we return a list of \texttt{Pred},\texttt{MPred} pairs:
 \begin{code}
-type CMPZip2 m s = (MPred m s, String, [(Pred m s,MPred m s)], [MPred' m s])
+type CMPZip2 m s = ( BeforeAfters m s, [MPred' m s] )
 \end{code}
-
 
 \newpage
 \HDRb{Calculation Step Basics}\label{hb:step-basics}
@@ -93,7 +114,7 @@ type CMPZip2 m s = (MPred m s, String, [(Pred m s,MPred m s)], [MPred' m s])
 A failed step returns a null string,
 and the predicate part is generally considered undefined.
 \begin{code}
-nope :: CalcResult m s
+nope :: RWResult m s
 nope = ( "", error "calc. step failed" )
 \end{code}
 Given a decision,
@@ -102,7 +123,7 @@ we can resolve a conditional step
 into a completed one:
 \begin{code}
 condResolve :: (Ord s, Show s)
-         => Dict m s -> Int -> CCalcResult m s -> CalcResult m s
+         => Dict m s -> Int -> CRWResult m s -> RWResult m s
 condResolve d i ( nm, [ (T, outcome) ] ) -- no choice
  = ( nm, outcome )
 condResolve d i ( nm, outcomes )
@@ -120,7 +141,7 @@ We treat things like simplification here as one big atomic modify step.
 
 \begin{code}
 doAtomicStep :: Mark m
-       => m -> (m -> CalcStep m s)  -> MPred m s
+       => m -> (m -> RWFun m s)  -> MPred m s
        -> Maybe (MPred m s, String, MPred m s)
 doAtomicStep m mcstep mpr
  = let (what,mpr') = mcstep m mpr
@@ -139,11 +160,11 @@ a predicate, and returning when we succeed.
 This call encapsulates the use of zippers completely:
 \begin{code}
 doStepSearch :: Mark m
-       => m -> CalcStep m s  -> MPred m s
-       -> Maybe (MPred m s, String, MPred m s)
+       => m -> RWFun m s  -> MPred m s
+       -> Maybe (BeforeAfter m s)
 doStepSearch m cstep mpr
  = let
-     (mpr1,what,mpr2,ss) = stepFocus cstep $ startMPZ mpr
+     ((mpr1,what,mpr2),ss) = stepFocus cstep $ startMPZ mpr
      pmpr' = unzipMPZ ss $ addMark m mpr1
      nmpr' = unzipMPZ ss $ addMark m mpr2
    in if null what then Nothing else Just (pmpr',what,nmpr')
@@ -154,19 +175,19 @@ doStepSearch m cstep mpr
 We try a step function first at the current focus level,
 only recursing in deeper if that fails:
 \begin{code}
-stepFocus :: CalcStep m s -> MPZipper m s -> MPZip2 m s
+stepFocus :: RWFun m s -> MPZipper m s -> MPZip2 m s
 stepFocus cstep mpz@( mpr, ss )
  = let ( what, mpr' ) = cstep mpr
    in if null what
       then stepComponents cstep mpz
-      else (mpr, what, mpr', ss)
+      else ((mpr, what, mpr'), ss)
 \end{code}
 
 \HDRc{Search Sub-Components}\label{hc:srch-sub-comp}
 
 We are now systematically exploring composite sub-parts:
 \begin{code}
-stepComponents :: CalcStep m s -> MPZipper m s -> MPZip2 m s
+stepComponents :: RWFun m s -> MPZipper m s -> MPZip2 m s
 
 -- Substitution, simple, only 1 sub-component:
 stepComponents cstep ( (mp, PSub mpr subs), ss )
@@ -179,14 +200,14 @@ stepComponents cstep ( (mp, Comp name [mpr]), ss )
 stepComponents cstep ( (mp, Comp name (mpr:mprs)), ss )
   = stepComp' cstep (Comp' mp name [] mprs) ss mpr
 
-stepComponents cstep ( mpr, ss ) = ( mpr, "", mpr, ss )
+stepComponents cstep ( mpr, ss ) = ( (mpr, "", mpr), ss )
 \end{code}
 
 \HDRc{Search Component List}\label{hc:srch-list}
 
 Going through a sub-component list:
 \begin{code}
-stepComp' :: CalcStep m s
+stepComp' :: RWFun m s
           -> MPred' m s   -- current Comp'
           -> [MPred' m s] -- current zip history
           -> MPred m s    -- current focus, within Comp
@@ -194,14 +215,14 @@ stepComp' :: CalcStep m s
 
 -- end case, processing last components
 stepComp' cstep s@(Comp' mp name before []) ss mpr
- = let result@( _, what, _, _ ) = stepFocus cstep (mpr, s : ss )
+ = let result@( (_, what, _), _ ) = stepFocus cstep (mpr, s : ss )
    in if null what
-      then ( mpr, "", mpr, ss )
+      then ( (mpr, "", mpr), ss )
       else result
 
 -- general case, more components remaining
 stepComp' cstep s@(Comp' mp name before after@(npr:rest)) ss mpr
- = let result@( _, what, _, _ ) = stepFocus cstep (mpr, s : ss )
+ = let result@( (_, what, _), _ ) = stepFocus cstep (mpr, s : ss )
    in if null what
       then stepComp' cstep (Comp' mp name (before++[mpr]) rest) ss npr
       else result
@@ -220,11 +241,11 @@ a predicate, and returning when we succeed.
 This call encapsulates the use of zippers completely:
 \begin{code}
 doStepCSearch :: Mark m
-       => m -> CCalcStep m s  -> MPred m s
-       -> Maybe (MPred m s, String, [(Pred m s,MPred m s)])
+       => m -> CRWFun m s  -> MPred m s
+       -> Maybe (BeforeAfters m s)
 doStepCSearch m ccstep mpr
  = let
-     (mpr1,what,mprs2,ss) = stepCFocus ccstep $ startMPZ mpr
+     ((mpr1,what,mprs2),ss) = stepCFocus ccstep $ startMPZ mpr
      pmpr' = unzipMPZ ss $ addMark m mpr1
      nmprs' = mapsnd (unzipMPZ ss . addMark m) mprs2
    in if null what then Nothing else Just (pmpr',what,nmprs')
@@ -235,19 +256,19 @@ doStepCSearch m ccstep mpr
 We try a step function first at the current focus level,
 only recursing in deeper if that fails:
 \begin{code}
-stepCFocus :: CCalcStep m s -> MPZipper m s -> CMPZip2 m s
+stepCFocus :: CRWFun m s -> MPZipper m s -> CMPZip2 m s
 stepCFocus ccstep mpz@( mpr, ss )
  = let ( what, cmprs' ) = ccstep mpr
    in if null what
       then stepCComponents ccstep mpz
-      else (mpr, what, cmprs', ss)
+      else ((mpr, what, cmprs'), ss)
 \end{code}
 
 \HDRc{Conditionally Search Sub-Components}\label{hc:cnd-srch-sub-comp}
 
 We are now systematically exploring composite sub-parts:
 \begin{code}
-stepCComponents :: CCalcStep m s -> MPZipper m s -> CMPZip2 m s
+stepCComponents :: CRWFun m s -> MPZipper m s -> CMPZip2 m s
 
 -- Substitution, simple, only 1 sub-component:
 stepCComponents ccstep ( (mp, PSub mpr subs), ss )
@@ -260,14 +281,14 @@ stepCComponents ccstep ( (mp, Comp name [mpr]), ss )
 stepCComponents ccstep ( (mp, Comp name (mpr:mprs)), ss )
   = stepCComp' ccstep (Comp' mp name [] mprs) ss mpr
 
-stepCComponents ccstep ( mpr, ss ) = ( mpr, "", [(T,mpr)], ss )
+stepCComponents ccstep ( mpr, ss ) = ( (mpr, "", [(T,mpr)]), ss )
 \end{code}
 
 \HDRc{Conditionally Search Component List}\label{hc:cond-srch-list}
 
 Going through a sub-component list:
 \begin{code}
-stepCComp' :: CCalcStep m s
+stepCComp' :: CRWFun m s
           -> MPred' m s   -- current Comp'
           -> [MPred' m s] -- current zip history
           -> MPred m s    -- current focus, within Comp
@@ -275,14 +296,14 @@ stepCComp' :: CCalcStep m s
 
 -- end case, processing last components
 stepCComp' ccstep s@(Comp' mp name before []) ss mpr
- = let result@(_, what, _, _) = stepCFocus ccstep (mpr, s:ss)
+ = let result@((_, what, _), _) = stepCFocus ccstep (mpr, s:ss)
    in if null what
-      then ( mpr, "", [(T,mpr)], ss )
+      then ( (mpr, "", [(T,mpr)]), ss )
       else result
 
 -- general case, more components remaining
 stepCComp' ccstep s@(Comp' mp name before after@(npr:rest)) ss mpr
- = let result@(_, what, _, _) = stepCFocus ccstep (mpr, s:ss)
+ = let result@((_, what, _), _) = stepCFocus ccstep (mpr, s:ss)
    in if null what
       then stepCComp' ccstep
                    (Comp' mp name (before++[mpr]) rest) ss npr
@@ -294,7 +315,7 @@ stepCComp' ccstep s@(Comp' mp name before after@(npr:rest)) ss mpr
 \begin{code}
 defnExpand = "expand defn. "
 
-expandDefn :: (Mark m, Ord s, Show s) => Dict m s -> m -> CalcStep m s
+expandDefn :: (Mark m, Ord s, Show s) => Dict m s -> m -> RWFun m s
 expandDefn d m mpr
   = error "expandDefn NYI"
 \end{code}
