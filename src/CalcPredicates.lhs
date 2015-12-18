@@ -50,21 +50,27 @@ the explanation and new mark associated with this operation
 and the changed flag, produce the appropriate result:
 \begin{code}
 mkCR :: (Mark m, Ord s, Show s)
-     => Pred m s -> [m] -> String -> m -> Bool -> RWResult m s
-mkCR pr ms what m True   = (what,addMark m (ms,pr))
-mkCR pr ms what m False  = ("",(ms,pr))
+     => Pred m s -> Pred m s -> [m] -> String -> m -> Bool
+     -> BeforeAfter m s
+mkCR before after ms what m True = ( addMark m (ms,before)
+                                   , what
+                                   , addMark m (ms,after) )
+mkCR pr _ ms _ _ False  = ((ms,pr),"",(ms,pr))
 \end{code}
 For composites, we only mark the composite if it changes,
 and not if it is just sub-components that have changed:
 \begin{code}
-mkCompR :: (Mark m, Ord s, Show s)
-     => Pred m s -> Pred m s -> [m] -> String -> m
-     -> Bool -- top has changed
-     -> Bool -- change somewhere
-     -> RWResult m s
-mkCompR top' comp ms what m _ False     = ("",             (ms,comp))
-mkCompR top' comp ms what m False True  = (what,           (ms,comp))
-mkCompR top' comp ms what m True True   = (what, addMark m (ms,top'))
+-- mkCompR :: (Mark m, Ord s, Show s)
+--      => Pred m s  -- original
+--      -> Pred m s  -- modified sub-components
+--      -> Pred m s  -- modified top-level
+--      -> [m] -> String -> m
+--      -> Bool -- change somewhere
+--      -> Bool -- top has changed
+--      -> BeforeAfter m s
+-- mkCompR top comp' top' ms what m False _     = ((ms,top),"",(ms,top))
+-- mkCompR top comp' top' ms what m True False  = ((ms,comp'),what,(ms,comp))
+-- mkCompR top comp' top' ms what m True True   = (what, addMark m (ms,top'))
 \end{code}
 
 

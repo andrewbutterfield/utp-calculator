@@ -101,15 +101,20 @@ calcHelp d m st currpr
 Applying a given kind of step:
 \begin{code}
 calcStep :: (Mark m, Show m, Ord s, Show s)
-         => Dict m s -> m -> RWFun m s
+         => Dict m s -> m -> (MPred m s -> BeforeAfter m s)
          -> (MPred m s, [RWResult m s]) -> MPred m s
          -> IO ( MPred m s, [RWResult m s], Dict m s )
 calcStep d m stepf st@(mpr0,steps) currpr
  = do case stepf currpr of
-       ( "", _ )  ->  runREPL d m st currpr
-       step'@( comment, mpr' )
+       ( _, "", _ )  ->  runREPL d m st currpr
+       ( before,comment, after )
          -> do  putStrLn ( "\n = " ++ show comment )
-                runREPL d (nextm m) (mpr0,(step':steps)) mpr'
+                let st' = stUpdate before (comment,after) st
+                runREPL d (nextm m) st' after
+ where
+   stUpdate before wafter ( mpr0, []) = ( before, [wafter] )
+   stUpdate before wafter ( mpr0, ((what,_):steps))
+    = ( mpr0, (wafter:(what,before):steps) )
 \end{code}
 
 Apply a given conditional step:

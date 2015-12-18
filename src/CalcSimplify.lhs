@@ -3,6 +3,9 @@
 module CalcSimplify where
 import CalcTypes
 import CalcPredicates
+import Debug.Trace
+
+dbg txt x = trace (txt ++ " = " ++ show x) x
 \end{code}
 
 
@@ -164,18 +167,18 @@ vesubst sub (v,e) = (v,snd $ esubst sub e)
 Now, the predicate simplifier:
 \begin{code}
 simplified = "simplify"
-simplify :: (Mark m, Ord s, Show s)
-         => Dict m s -> m -> RWFun m s
+simplify :: (Mark m, Show m, Ord s, Show s)
+         => Dict m s -> m -> MPred m s -> BeforeAfter m s
 \end{code}
 For atomic predicates,
 we simplify the underlying expression,
 and lift any variable booleans to their predicate equivalent.
 \begin{code}
-simplify d m mpr@(ms,(Atm e))
+simplify d m mpr@(ms,pr@(Atm e))
  = case esimp d e of
-    (chgd,B True)   ->  mkCR T        ms simplified m chgd
-    (chgd,B False)  ->  mkCR F        ms simplified m chgd
-    (chgd,e')       ->  mkCR (Atm e') ms simplified m chgd
+    (chgd,B True)   ->  mkCR pr T        ms simplified m chgd
+    (chgd,B False)  ->  mkCR pr F        ms simplified m chgd
+    (chgd,e')       ->  mkCR pr (Atm e') ms simplified m chgd
 \end{code}
 For equality we simplify both expressions,
 and then attempt to simplify the equality to true or false.
@@ -186,28 +189,29 @@ simplify d m mpr@(ms,(Equal e1 e2))
     (chgd2,e2') = esimp d e2
     (chgd',pr') = sEqual e1' e2'
     chgd = chgd1 || chgd2 || chgd'
-   in if chgd then (simplified,addMark m (ms,pr')) else ("",mpr)
+   in if chgd then (addMark m mpr, simplified, addMark m (ms,pr'))
+              else (mpr,"",mpr)
 \end{code}
 For composites,
 we first simplify the components,
 and then look in the dictionary by name for a simplifier.
 \begin{code}
-simplify d m mpr@(ms,(Comp name mprs))
+simplify d m mpr@(ms,pr@(Comp name mprs))
  = let
-    (subchgs,mprs') = subsimp d m same [] mprs
-    (what,comppr') = compsimp d m name mprs'
+    (subchgs,befores,afters) = subsimp d m same [] [] mprs
+    (what,comppr') = compsimp d m name afters
     topchgd = not $ null what
-   in mkCompR comppr' (Comp name mprs')
-                     ms simplified m topchgd (subchgs||topchgd)
+   in dbg "assemble" $ assemble mpr comppr' (Comp name) befores afters
+              ms simplified m (dbg "subchgs" subchgs||topchgd) $ dbg "topcghd" topchgd
  where
 
-   subsimp d m chgd mprs' [] = (chgd,reverse mprs')
-   subsimp d m chgd mprs' (mpr:mprs)
-    = let (what,mpr') = simplify d m mpr
+   subsimp d m chgd befores afters []
+    = ( chgd, reverse befores, reverse afters )
+   subsimp d m chgd befores afters  (mpr:mprs)
+    = let (before,what,after) = simplify d m mpr
       in if null what
-       then subsimp d m chgd (mpr:mprs')  mprs
-       else subsimp d m diff (mpr':mprs') mprs
-
+       then subsimp d m chgd (mpr:befores) (mpr:afters)  mprs
+       else subsimp d m diff (before:befores) (after:afters) mprs
 \end{code}
 \textbf{WARNING: }
 \textit{the \texttt{psimp} simplifier below must not call \texttt{simplify}!
@@ -215,9 +219,19 @@ To do so risks an infinite loop.
 }
 \begin{code}
    compsimp d m name mprs'
-    = case plookup name d of
-       Just (PredEntry _ _ _ _ _ psimp)  ->  psimp d mprs'
+    = case plookup (dbg "name" name) d of
+       Just (PredEntry _ _ _ _ _ psimp)  ->  dbg "psimp" $ psimp d (dbg "mprs'" mprs')
        _                                 ->  ("",Comp name mprs')
+\end{code}
+Assembling the result:
+\begin{code}
+   assemble orig top' compN befores afters ms what m False _
+    = ( orig, "", orig )
+   assemble orig top' compN befores afters ms what m _ False
+    = ( (ms,compN befores), what, (ms,compN afters) )
+   assemble orig top' compN befores afters ms what m _ True
+    = ( addMark m (ms,compN befores)
+      , what, addMark m (ms,top') )
 \end{code}
 For predicate substitutions,
 we first simplify the substitution part,
@@ -238,10 +252,13 @@ which can be used to remove some elements from the substitution.
 }
 \begin{code}
   sbstsimp d m ms (subchgd,subs') spr@(mp,PVar p)
-    = case vlookup p d of
-        Just (AlfEntry alf)
-            ->  ("",(ms,mkPSub spr $ filter ((`elem` alf) . fst) subs'))
-        _   ->  ("",mpr)
+   = case vlookup p d of
+      Just (AlfEntry alf)
+       -> ( addMark m mpr
+          , ""
+          , addMark m
+             (ms,mkPSub spr $ filter ((`elem` alf) . fst) subs'))
+      _ -> (mpr,"",mpr)
 \end{code}
 In the general case,
 we simplify both predicate and substitution parts,
@@ -249,15 +266,24 @@ and combine.
 \begin{code}
   sbstsimp d m ms (subschgd,subs') spr
    = let
-      (what,spr') = simplify d m spr
+      (before,what,after) = simplify d m spr
       predchgd = not $ null what
-      (topchgd,npr') = psubst m d subs' spr'
-     in mkCompR npr' (PSub spr subs')
-                      ms simplified m topchgd (subschgd||predchgd||topchgd)
+      (topchgd,npr') = psubst m d subs' after
+     in assemble mpr npr' before after subs'
+                ms simplified m
+                (subschgd||topchgd||predchgd) topchgd
+   where
+    assemble orig top'  before after subs' ms what m False _
+     = (orig, "", orig)
+    assemble orig top' before after subs' ms what m _ False
+     = ((ms,mkPSub before subs'), what, (ms,mkPSub after subs'))
+    assemble orig top' before after subs' ms what m _ True
+     = ( addMark m (ms,mkPSub before subs')
+       , what, addMark m (ms,top') )
 \end{code}
 All other cases are as simple as can be, considering\ldots
 \begin{code}
-simplify d m mpr@(ms,pr) = ( "", mpr)
+simplify d m mpr@(ms,pr) = ( mpr, "", mpr)
 \end{code}
 
 \HDRc{Equality Predicate Simplification}~
