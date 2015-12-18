@@ -114,6 +114,8 @@ ppNot d ms p _ = pps styleRed $ ppa "invalid-~"
 
 simpNot d [(m,T)] = ("~-simp",F)
 simpNot d [(m,F)] = ("~-simp",T)
+simpNot d [(m,Comp name [(_,pr)])]
+ | name == "Not"  =  ("~~-simp",pr)
 simpNot _ mprs = ("", Comp "Not" mprs)
 
 notEntry :: (Show s, Ord s) => (String, Entry m s)
@@ -234,7 +236,7 @@ isImp (_,Comp "Imp" _) = True  ;  isImp _ = False
 mkImp mpr1 mpr2 = Comp "Imp" [mpr1,mpr2]
 
 ppImp d ms p [mpr1,mpr2]
- = paren p precImp
+ = paren p (precImp-1) -- bracket self
      $ ppopen  " => " [ mshowp d ms precImp mpr1
                       , mshowp d ms precImp mpr2 ]
 ppImp d ms p mprs = pps styleRed $ ppa "invalid-=>"

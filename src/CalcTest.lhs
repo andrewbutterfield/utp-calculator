@@ -162,28 +162,42 @@ notIFEntry
     P \lor Q &\defs& \lnot P \implies Q
 }
 \begin{code}
+orImpFalse :: Dict m s -> [MPred m s] -> (String, Pred m s)
+orImpFalse _ [mp,mq]  =  ( "or-ImpFalse", mkImp (noMark $ mkNot mp) mq )
+orImpFalse _ mprs     =  ( "", Comp "Or" mprs )
+
 orIFEntry :: (Eq m, Show s, Ord s) => (String, Entry m s)
 orIFEntry
  = ( "Or"
-   , PredEntry ["P$"] PUndef True ppOr (pNoChg "Or") simpOr )
+   , PredEntry ["P$"] PUndef True ppOr orImpFalse simpOr )
 \end{code}
 \RLEQNS{
    P \ndc Q &\defs& P \lor Q
 }
 \begin{code}
+ndcImpFalse :: Dict m s -> [MPred m s] -> (String, Pred m s)
+ndcImpFalse _ [mp,mq]  =  ( "ndc-ImpFalse", mkOr [mp,mq] )
+ndcImpFalse _ mprs     =  ( "", Comp "NDC" mprs )
+
 ndcIFEntry :: (Eq m, Show s, Ord s) => (String, Entry m s)
 ndcIFEntry
  = ( "NDC"
-   , PredEntry ["P$"] PUndef True ppNDC (pNoChg "NDC") simpNDC )
+   , PredEntry ["P$"] PUndef True ppNDC ndcImpFalse simpNDC )
 \end{code}
 \RLEQNS{
    P \land Q &\defs& \lnot(\lnot P \lor \lnot Q)
 }
 \begin{code}
+andImpFalse :: Dict m s -> [MPred m s] -> (String, Pred m s)
+andImpFalse _ [mp,mq]  
+ = ( "and-ImpFalse"
+   , mkNot $ noMark $ mkOr [noMark $ mkNot mp, noMark $ mkNot mq] )
+andImpFalse _ mprs     =  ( "", Comp "And" mprs )
+
 andIFEntry :: (Eq m, Show s, Ord s) => (String, Entry m s)
 andIFEntry
  = ( "And"
-   , PredEntry ["P$"] PUndef True ppAnd (pNoChg "And") simpAnd )
+   , PredEntry ["P$"] PUndef True ppAnd andImpFalse simpAnd )
 \end{code}
 
 The dictionary:
