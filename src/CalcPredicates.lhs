@@ -36,11 +36,17 @@ pretty-printing and highlighting.
 noMark :: Pred m s -> MPred m s
 noMark pr = ([], pr)
 
+unMark :: MPred m s -> MPred m s
+unMark (_, pr) = ([], pr)
+
 reMark :: m -> MPred m s -> MPred m s
 reMark m (_, pr) = ([m], pr)
 
 addMark :: m -> MPred m s -> MPred m s
 addMark m (ms, pr) = (m:ms, pr)
+
+remMark :: MPred m s -> MPred m s
+remMark (ms, pr) = (ttail ms, pr)
 \end{code}
 
 \HDRc{Result Marking}\label{hc:result-marking}

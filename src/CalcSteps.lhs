@@ -224,5 +224,5 @@ defnExpand = "expand defn. "
 expandDefn :: (Mark m, Ord s, Show s) => Dict m s -> m
            -> MPred m s -> BeforeAfter m s
 expandDefn d m mpr
-  = error "expandDefn NYI"
+  = ( addMark m mpr, "expandDefn!", addMark m mpr )
 \end{code}

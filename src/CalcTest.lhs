@@ -208,5 +208,6 @@ calc mpr = calcREPL testDict mpr
 putcalc :: (Mark m, Eq m, Show m, Ord s, Show s) => MPred m s -> IO ()
 putcalc mpr
   = do res <- calc mpr
+       putStrLn "\n\nTRANSCRIPT:"
        putStrLn $ calcPrint res
 \end{code}

@@ -3,9 +3,6 @@
 module CalcSimplify where
 import CalcTypes
 import CalcPredicates
-import Debug.Trace
-
-dbg txt x = trace (txt ++ " = " ++ show x) x
 \end{code}
 
 
@@ -167,7 +164,7 @@ vesubst sub (v,e) = (v,snd $ esubst sub e)
 Now, the predicate simplifier:
 \begin{code}
 simplified = "simplify"
-simplify :: (Mark m, Show m, Ord s, Show s)
+simplify :: (Mark m, Ord s, Show s)
          => Dict m s -> m -> MPred m s -> BeforeAfter m s
 \end{code}
 For atomic predicates,
@@ -201,8 +198,8 @@ simplify d m mpr@(ms,pr@(Comp name mprs))
     (subchgs,befores,afters) = subsimp d m same [] [] mprs
     (what,comppr') = compsimp d m name afters
     topchgd = not $ null what
-   in dbg "assemble" $ assemble mpr comppr' (Comp name) befores afters
-              ms simplified m (dbg "subchgs" subchgs||topchgd) $ dbg "topcghd" topchgd
+   in assemble mpr comppr' (Comp name) befores afters
+              ms simplified m (subchgs||topchgd) topchgd
  where
 
    subsimp d m chgd befores afters []
@@ -219,8 +216,8 @@ To do so risks an infinite loop.
 }
 \begin{code}
    compsimp d m name mprs'
-    = case plookup (dbg "name" name) d of
-       Just (PredEntry _ _ _ _ _ psimp)  ->  dbg "psimp" $ psimp d (dbg "mprs'" mprs')
+    = case plookup name d of
+       Just (PredEntry _ _ _ _ _ psimp)  ->  psimp d mprs'
        _                                 ->  ("",Comp name mprs')
 \end{code}
 Assembling the result:

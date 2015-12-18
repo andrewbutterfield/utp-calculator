@@ -62,8 +62,8 @@ runREPL d m state@(mpr0,steps) currpr
    ('s':_) -> calcStep d m (simplify d $ nextm m) state currpr
    ('u':_) -> calcUndo d m state currpr
    ('d':_) -> calcStep d m (expandDefn d $ nextm m) state currpr
---    ('r':_) -> calcStep  d m (reduce th $ d) state currpr
---    -- ('l':_) -> calcStep  d m unroll state currpr
+--    ('r':_) -> calcStep  d m (reduce $ d) state currpr
+--    ('l':_) -> calcStep  d m unroll state currpr
 --    ('c':_) -> calcCStep  d m (creduce th $ d) state currpr
    ('x':_) -> return (mpr0,steps,d)
    ('M':_) -> showMarks d m state currpr
@@ -73,9 +73,12 @@ runREPL d m state@(mpr0,steps) currpr
 
 Undoing
 \begin{code}
-calcUndo d m st@(mpr0,[]) currpr = runREPL d m st currpr
-calcUndo d m (mpr0,[(_,_)])    _ = runREPL d (prevm m) (mpr0,[]) mpr0
-calcUndo d m (p,(_:steps@((_,q):_))) _ = runREPL d (prevm m) (p,steps) q
+calcUndo d m st@(_,[]) currpr = runREPL d m st currpr
+calcUndo d m (mpr0,[(_,_)]) _
+                     = runREPL d (prevm m) (unMark mpr0,[]) mpr0
+calcUndo d m (p,(_:((w,q):steps))) _ 
+                = runREPL d (prevm m) (p,(w,q'):steps) q'
+                where q' = remMark q
 \end{code}
 
 Help
