@@ -1,6 +1,6 @@
 \HDRa{Calculator Tests}\label{ha:calc-test}
 \begin{code}
-module CalcTest where
+module TestCalc where
 import Utilities
 import qualified Data.Map as M
 import Data.List

@@ -128,6 +128,10 @@ as well as a justification string describing what was done.
 type RWResult m s = (String, MPred m s)
 type RWFun m s = MPred m s -> RWResult m s
 \end{code}
+Often we will parameterise such functions with a dictionary:
+\begin{code}
+type DictRWFun m s = Dict m s -> RWFun m s
+\end{code}
 
 We also have steps that are contingent on some side-condition,
 but we don't want to implement a fully automated solver for these conditions,
@@ -168,6 +172,10 @@ and will return a justification string and un-marked predicate:
 type Rewrite m s = Dict m s -> [MPred m s] -> (String, Pred m s)
 \end{code}
 
+When applying general laws (usually as reductions)
+then we need a function that takes a dictionary and predicate
+
+
 
 A dictionary entry is a sum of  definition types defined below
 \begin{code}
@@ -200,6 +208,7 @@ An entry \texttt{"P" |-> PVarEntry ["v1","v2",..,"vn"]}
 declares the alphabet associated with that predicate variable:
 $\alpha P \defs \setof{v_1,v_2,\ldots,v_n}$.
 
+\newpage
 \HDRc{Expression Entry}\label{hc:expr-entry}
 
 \begin{code}
@@ -268,6 +277,23 @@ of a proof step.
  must not call \texttt{simplify} (\secref{hc:simplify})!
 To do so risks an infinite loop.
 }
+
+\newpage
+\HDRc{Law Entry}\label{hc:law-entry}
+
+\begin{code}
+ | LawEntry {                   -- about useful laws
+     plaws  :: [DictRWFun m s]  -- list of laws
+   }
+\end{code}
+We interpret a \texttt{Dict} entry like:
+\begin{verbatim}
+"reduce" |->  LawEntry [r1,....,rn]
+\end{verbatim}
+as describing the law/reduction steps to be tried
+if the \verb"reduce" command is invoked in the calculator.
+The reduction steps are tried in order, from \m{r_1} to \m{r_n}.
+
 
 
 \HDRcstar{Entry Complete}

@@ -9,6 +9,7 @@ import Data.Maybe
 import Debug.Trace
 import PrettyPrint
 import CalcTypes
+import CalcAlphabets
 import CalcPredicates
 import CalcSimplify
 \end{code}
