@@ -219,14 +219,12 @@ stepCComp' ccstep s@(Comp' mp name before after@(npr:rest)) ss mpr
 \HDRb{Definition Expansion}\label{hb:defn-expand}
 
 \begin{code}
-defnExpand = "expand defn. "
-
 expandDefn :: (Mark m, Ord s, Show s) => Dict m s -> m
            -> MPred m s -> BeforeAfter m s
 expandDefn d m mpr
  = case doStepSearch m (expDefs d) mpr of
-     Nothing  ->  ( mpr, "", mpr )
-     Just ba  ->  ba
+     Nothing   ->  ( mpr, "", mpr )
+     Just exp  ->  exp
 
 expDefs :: Dict m s -> RWFun m s
 expDefs d mpr@(ms, Comp name mprs )
@@ -236,4 +234,22 @@ expDefs d mpr@(ms, Comp name mprs )
          in ( what, ( ms, pr') )
     _ -> ( "", mpr )
 expDefs d mpr = ( "", mpr )
+\end{code}
+
+
+\HDRb{Reduction Laws}\label{hb:reduce-laws}
+
+\begin{code}
+doReduce :: (Mark m, Ord s, Show s) => Dict m s -> m
+           -> MPred m s -> BeforeAfter m s
+doReduce d m mpr
+ = case M.lookup "reduce" d of
+    Just (LawEntry laws)  ->  doRed d m mpr laws
+    _                     -> ( mpr, "", mpr )
+
+doRed d m mpr [] = ( mpr, "", mpr )
+doRed d m mpr (rf:rfs)
+ = case doStepSearch m (rf d) mpr of
+     Nothing   ->  doRed d m mpr rfs
+     Just red  ->  red
 \end{code}

@@ -11,6 +11,7 @@ import PrettyPrint
 import CalcTypes
 import StdPrecedences
 import CalcPredicates
+import CalcAlphabets
 import CalcSimplify
 import CalcRecogniser
 import CalcRun
@@ -142,6 +143,8 @@ mtest m = putStrLn $ pmdshow 80 stdDict (stepshow m) marked
 
 \HDRb{Test Dictionaries}
 
+\HDRc{Implies-False Dictionary}
+
 First, a dictionary that defines negation, conjunction, disjunction
 and non-determinisitic choice in a layered way
 on top of implication and False.
@@ -200,7 +203,6 @@ andIFEntry
    , PredEntry True ppAnd andImpFalse simpAnd )
 \end{code}
 
-The dictionary:
 \begin{code}
 impFalseDict :: (Eq m, Ord s, Show s) => Dict m s
 impFalseDict
@@ -210,12 +212,79 @@ impFalseDict
     , orIFEntry
     , ndcIFEntry
     ]
+\end{code}
 
-testDict :: (Eq m, Ord s, Show s) => Dict m s
-testDict = impFalseDict `M.union` stdDict
+\HDRc{Abstract Alphabet Dictionary}
+
+\begin{code}
+absAlfDict
+ = stdAlfDictGen
+      ["v1","v2"] -- Script
+      ["m1","m2"] -- Model
+      ["p1","p2"] -- Static
+\end{code}
+
+Now some predicates for this
+\begin{code}
+a = noMark $ PVar "A"
+
+eqVV = iEqual (Var "v1") (Var "v2")
+eqVK = iEqual (Var "v1") (Z 42)
+eqMV = iEqual (Var "m1") (Var "v2")
+eqMK = iEqual (Var "m1") (Z 42)
+eqPV = iEqual (Var "p1") (Var "v2")
+eqPK = iEqual (Var "p1") (Z 42)
+
+eqVVthenA = iSeq eqVV a
+eqVKthenA = iSeq eqVK a
+eqMVthenA = iSeq eqMV a
+eqMKthenA = iSeq eqMK a
+eqPVthenA = iSeq eqPV a
+eqPKthenA = iSeq eqPK a
+
+eqV'V = iEqual (Var "v1'") (Var "v2")
+eqV'K = iEqual (Var "v1'") (Z 42)
+eqM'V = iEqual (Var "m1'") (Var "v2")
+eqM'K = iEqual (Var "m1'") (Z 42)
+
+eqV'VthenA = iSeq eqV'V a
+eqV'KthenA = iSeq eqV'K a
+eqM'VthenA = iSeq eqM'V a
+eqM'KthenA = iSeq eqM'K a
+
+eqDyn'KthenA
+ = iSeq (iAnd $ map eqIt ["m1'","v2'","v1'","m2'"]) a
+
+eqDuh'KthenA
+ = iSeq (iAnd $ map eqIt ["m1'","v2'","m2'"]) a
+
+eqIt v' = iEqual (Var v') (Z 42)
+\end{code}
+
+\HDRc{Reduction Dictionary}
+
+\begin{code}
+reduceEntry :: Ord s => (String, Entry m s)
+reduceEntry = ("reduce",LawEntry [reduceStd])
+
+reduceDict :: Ord s => Dict m s
+reduceDict = M.fromList [ reduceEntry ]
 \end{code}
 
 \HDRb{Test Calculator}
+
+\HDRc{Test Dictionary}
+
+The test dictionary
+\begin{code}
+testDict :: (Eq m, Ord s, Show s) => Dict m s
+testDict = impFalseDict
+           `M.union` absAlfDict
+           `M.union` reduceDict
+           `M.union` stdDict
+\end{code}
+
+\HDRc{Test Calculator Top-Level}
 
 \begin{code}
 calc mpr = calcREPL testDict mpr

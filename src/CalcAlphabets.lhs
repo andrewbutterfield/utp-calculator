@@ -5,10 +5,47 @@ import Utilities
 import qualified Data.Map as M
 import Data.List
 import CalcTypes
+import CalcPredicates
 \end{code}
 
+\HDRb{Alphabet Introduction}\label{hb:alpha-intro}
 
-We predefine some standard alphabet names
+In most%
+\footnote{Some theories, most notably those involving probability,
+use non-homogeneous relations, usually relating a starting ``state''
+to some final (non-deterministic) set of ``lifted states''.}
+mainstream UTP theories,
+we find definitions of homogeneous relations
+over a collection of observation variables
+$v_1,\ldots,v_n$,
+where the undashed variables are the before-state of the system,
+and their dashed counterparts
+$v_1,\ldots,v_n$
+denote the after-state.
+A distinction is made between observations that correspond
+to the values of program variables (``program'' or ``script'')
+and those that refer to other observable aspects of program execution
+(``auxillary'' or ``model''), as exemplified by the observation $ok$
+in the theory of Designs, that captures the notion of a program starting,
+and terminating.
+
+In the theory of shared-variable concurrency that drove the need for,
+and development of this UTP calculator library,
+we found a need to move away from homogeneous relations,
+to a more nuanced approach,
+that saw some of the model variables
+being treated as having no ``after'' observations,
+because they in fact represented static parameters that captured,
+in a general way,
+the context in which any given language construct was embedded.
+This enabled the construction of compositional semantic theories
+that were also ``context-aware''.
+
+\HDRb{Alphabet Subsets}\label{hb:alpha-subsets}
+
+To support this
+we predefine some standard names for important alphabet subsets
+($Alf,Obs,Obs',Mdl,Mdl',Scr,Scr',Dyn,Dyn',Stc$):
 \begin{code}
 aAlf  = "Alf"   -- entire alphabet
 aObs  = "Obs"   -- all undashed variables
@@ -21,7 +58,10 @@ aDyn  = "Dyn"   -- all undashed dynamic observables
 aDyn' = "Dyn'"  -- all dashed dynamic observables
 aStc  = "Stc"   -- all undashed static parameters
 \end{code}
-A consistent set of definitions should obey the following laws:
+
+\HDRc{Well-Formed Subsets}\label{hc:alpha-wf-subsets}
+
+A consistent set of the above alphabets should obey the following laws:
 \RLEQNS{
    Alf &=& Obs \cup Obs'
 \\ Obs &=& Mdl \cup Scr & \mbox{dashed similarly}
@@ -40,8 +80,13 @@ In most cases, script variables will be dynamic:
 \RLEQNS{
    Scr &\subseteq& Dyn & \mbox{dashed similarly}
 }
+
+
+
+\HDRc{Minimal Definition}\label{hc:alpha-minimal}
+
 A basic minimal definition adhering to all the above rules
-consists of $Scr$, $nonScrDyn$ and $Stc$
+consists of disjoint alphabets $Scr$, $nonScrDyn$ and $Stc$
 with the following calculations of the rest:
 \RLEQNS{
    Scr' &=& (Scr)'
@@ -73,7 +118,7 @@ stdAlfDictGen scr nonScrDyn stc
      ]
 \end{code}
 
-Variable basics:
+\HDRc{ Variable Basics}\label{hc:var-basics}
 \begin{code}
 isDash, notDash :: String -> Bool
 isDash v = last v == '\''
@@ -82,4 +127,41 @@ notDash v = last v /= '\''
 addDash, remDash :: String -> String
 addDash v = v ++"'"
 remDash = init
+\end{code}
+
+\HDRb{Dictionary-based Alphabet Lookup}\label{hb:alpha-lookup}
+
+
+\HDRc{Total Alphabet Lookup}\label{hc:total-alpha-lookup}
+
+It can be helpful to have total alphabet lookup functions,
+returning empty lists if nothing is found:
+\begin{code}
+getAlpha :: String -> Dict m s ->[String]
+getAlpha alfname d
+ = case alookup alfname d of
+     Nothing              ->  []
+     Just (AlfEntry alf)  ->  alf
+\end{code}
+
+\HDRc{Dictionary-based variable properties}\label{hb:var-prop-lookup}
+
+\begin{code}
+isDyn, isDyn', isDynObs, notDynObs :: Dict m s -> String -> Bool
+isDyn d v
+ = case alookup aDyn d of
+    Just (AlfEntry alfpart)  ->  v `elem` alfpart
+    _                        ->  False
+isDyn' d v
+ = case alookup aDyn' d of
+    Just (AlfEntry alfpart)  ->  v `elem` alfpart
+    _                        ->  False
+isDynObs d = isDyn d ||| isDyn' d
+notDynObs d = not . isDynObs d
+\end{code}
+
+Lifting predicates
+\begin{code}
+(|||) p q x = p x || q x
+(&&&) p q x = p x && q x
 \end{code}

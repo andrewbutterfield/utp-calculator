@@ -10,20 +10,11 @@ import Debug.Trace
 import PrettyPrint
 import CalcTypes
 import CalcPredicates
+import CalcAlphabets
 import CalcRecogniser
 import StdPredicates
 \end{code}
 
-
-\begin{code}
-unroll :: (Mark m, Ord s) => RWFun m s
-unroll mw@(_,Comp "Iter"  [mc@(_,c), mpr])
- | isCondition c
-           = lred "loop-unroll" $ bCond mc (bSeq mpr mw) bSkip
-unroll mpr = lred "" mpr
-
-lred nm mpr = ( nm, mpr )
-\end{code}
 
 
 
@@ -37,25 +28,51 @@ non-homogeneous relations,
 where the static parameters have no dashed counterparts.
 In essence we ignore the parameters as far as flow-of-control is concerned:
 \RLEQNS{
-   \Skip &\defs& s'=s \land ls'=ls
+   \Skip &\defs& Dyn' = Dyn
 \\ P ; Q
    &\defs&
-   \exists s_m,ls_m @
-     P[s_m,ls_m/s',ls']
+   \exists Dyn_m @
+     P[Dyn_m/Dyn']
      \land
-     Q[s_m,ls_m/s,ls]
+     Q[Dyn_m/Dyn]
 \\ c * P &\defs& \mu L @ (P ; L) \cond c \Skip
 \\ P \cond c Q &\defs& c \land P \lor \lnot c \land Q
 }
 Here, the definition of $\cond\_$ is entirely standard, of course.
 
-\HDRc{UTCP Skip}
+\HDRc{Standard Skip}\label{hc:std-Skip}
 \RLEQNS{
-   \Skip &\defs& s'=s \land ls'=ls
+   \Skip &\defs& Dyn' = Dyn
 }
 \begin{code}
-defnII = And[ Equal s' s, Equal ls' ls ]
+defnII d
+ = let dyn  = sort $ getAlpha aDyn  d
+       dyn' = sort $ getAlpha aDyn' d
+   in noMark $ mkAnd $ map alfEq $ zip dyn' dyn
+ where
+   alfEq(x',x) = noMark $ Equal (Var x') (Var x)
 \end{code}
+
+\newpage
+\HDRc{Loop UnRolling}\label{hc:loop-unroll}
+
+Iteration  satisfies the loop-unrolling law:
+\[
+  c * P  \quad=\quad (P ; c * P ) \cond c \Skip
+\]
+
+\begin{code}
+unroll :: (Mark m, Ord s) => RWFun m s
+unroll mw@(_,Comp "Iter"  [mc@(_,c), mpr])
+ | isCondition c
+           = lred "loop-unroll" $ bCond mc (bSeq mpr mw) bSkip
+unroll mpr = lred "" mpr
+
+lred nm mpr = ( nm, mpr )
+\end{code}
+
+
+\HDRb{Standard Reductions}\label{hb:std-reduce}
 
 In the calculator we do not implement the definitions
 for $;$ and $c * P$,
@@ -66,10 +83,10 @@ of these and other predicate constructs.
 We define laws that are generally
 viewed as reduction steps going from left-to-right.
 \begin{code}
-reduceUTCP :: (Show s, Ord s) => Dict s -> CalcStep s
+reduceStd :: Ord s => DictRWFun m s
 \end{code}
 
-\HDRb{Skip and Sequential Composition}
+\HDRc{Skip and Sequential Composition}\label{hc:skip-and-seq}
 
 These laws are immediate, and their proof is left as an exercise.
 \RLEQNS{
@@ -77,36 +94,15 @@ These laws are immediate, and their proof is left as an exercise.
 \\ P;\Skip &=& P & \elabel{$;$-r-unit}
 }
 \begin{code}
-reduceUTCP d (Seq Skip pr) = lred ";-lunit" pr
-reduceUTCP d (Seq pr Skip) = lred ";-runit" pr
+reduceStd d (_,Comp "Seq" [(_,Comp "Skip" []), mpr])
+                                            = lred ";-lunit" mpr
+reduceStd d (_,Comp "Seq" [mpr, (_,Comp "Skip" [])])
+                                            = lred ";-runit" mpr
 \end{code}
-
-In the special case of atomic actions ($\alpha A = \setof{s,s'}$), we have:
-\RLEQNS{
-   s'=s ; A &=& A & \elabel{atomic-;-l-unit}
-\\ A ; s'=s &=& A & \elabel{atomic-;-r-unit}
-}
-\begin{code}
-reduceUTCP d (Seq (Equal (Var s1) (Var s2)) pA@(PVar a))
- | isIdleSeqAtom d s1 s2 a  =  lred "atomic-;-lunit" pA
-reduceUTCP d (Seq pA@(PVar a) (Equal (Var s1) (Var s2)))
- | isIdleSeqAtom d s1 s2 a  =  lred "atomic-;-runit" pA
-\end{code}
-
-
-\HDRb{Iteration and Sequential Composition}
-
-\HDRc{Loop UnRolling}
-
-Iteration  satisfies the loop-unrolling law:
-\[
-  c * P  \quad=\quad (P ; c * P ) \cond c \Skip
-\]
-Currently already implemented in \texttt{CalcSteps} (\ref{hb:unroll}).
 
 \HDRc{Conditions preceding Iteration}
 
-The first law we have describes how a boolean variable changes as it
+The first law we might consider describes how a boolean variable changes as it
 crosses a ``$;$-boundary'':
 \RLEQNS{
    A \land c' ; B &=& A ; c \land B & \elabel{condition-$;$-swap}
@@ -144,25 +140,36 @@ we have
 (A \land x'=k ; B[k/x])
 \]
 
-An obvious corollary of the above is:
+This extends to multiple such equalities,
+for all $x'_i \in Dyn'$ and $k_i$ ground:
 \RLEQNS{
-   s' = e \land ls' = f ; A
+   A \land \bigwedge_i x'_i = k_i ; B
    &=&
-   A[e,f/s,ls]
-   & \elabel{$s'$-$ls'$-$;$-prop}
+   A \land \bigwedge_i x'_i = k_i ; B[k_i/x_i]
+   & \elabel{$x'=k$-$;$-prop}
 }
+If we only have such equalities,
+and they cover all dynamic variables ($\setof{x'_i} = Dyn'$),
+then we get:
+\RLEQNS{
+   \bigwedge_i x'_i = k_i ; B
+   &=&
+   B[k_i/x_i]
+   & \elabel{all-$x'=k$-$;$-init}
+}
+We implement this latter one:
 \begin{code}
-reduceUTCP d (Seq (And [ Equal (Var "s'") e,
-                         Equal (Var "ls'") f])
-                  pA )
- = lred "s'ls'-;-prop" $ PSub pA [("s",e),("ls",f)]
-reduceUTCP d (Seq (And [ Equal (Var ls'@"ls'") f,
-                         Equal (Var s'@"s'") e])
-                  pA )
- = lred "s'ls'-;-prop" $ PSub pA [("s",e),("ls",f)]
+reduceStd d
+ (_,Comp "Seq" [ (_,Comp "And" mprs), mpr ])
+ | all (isAfterEqToConst d) mprs
+   && sort (map getLVar mprs) == sort (getAlpha aDyn' d)
+ = lred "all-x'=k-;-init" $ noMark $ PSub mpr $ map eqToSub mprs
+ where
+   eqToSub (_,Equal (Var x') e) = (x',e)
+   getLVar (_,Equal (Var x') _) = x'
 \end{code}
 
-\HDRb{Disjunction and Sequential Composition}
+\HDRc{Disjunction and Sequential Composition}
 
 We more specific laws first, more general later.
 
@@ -173,10 +180,10 @@ We more specific laws first, more general later.
    & \ecite{$;$-$\lor$-3distr}
 }
 \begin{code}
-reduceUTCP d (Seq pA (Seq (Or pBs) pC))
- = lred ";-\\/-3distr" $ Or $ map (bracketWith pA pC) pBs
- where
-   bracketWith p q r = Seq p $ Seq r q
+-- reduceStd d (Seq pA (Seq (Or pBs) pC))
+--  = lred ";-\\/-3distr" $ Or $ map (bracketWith pA pC) pBs
+--  where
+--    bracketWith p q r = Seq p $ Seq r q
 \end{code}
 
 \RLEQNS{
@@ -186,16 +193,16 @@ reduceUTCP d (Seq pA (Seq (Or pBs) pC))
    & \ecite{$\lor$-$;$-distr}
 }
 \begin{code}
-reduceUTCP d (Seq (Or pAs) pB)
- = lred "\\/-;-distr" $ Or $ map (postFixWith pB) pAs
- where
-  postFixWith p q = Seq q p
+-- reduceStd d (Seq (Or pAs) pB)
+--  = lred "\\/-;-distr" $ Or $ map (postFixWith pB) pAs
+--  where
+--   postFixWith p q = Seq q p
 \end{code}
 
 We can always try to apply a substition:
 \begin{code}
-reduceUTCP d (PSub pr sub)
- | canSub pr  =  lred "substn" $ psubst sub pr
+-- reduceStd d (PSub pr sub)
+--  | canSub pr  =  lred "substn" $ psubst sub pr
 \end{code}
 
 \newpage
@@ -209,31 +216,31 @@ are ground:
    & \elabel{$ls'$-cleanup}
 }
 \begin{code}
-reduceUTCP d pr@(Seq (And pAs) (And pBs))
- = case isSafeLSDash d ls' pAs of
-    Nothing -> lred "" pr
-    Just (_,restA) ->
-     case isSafeLSDash d ls pBs of
-      Nothing -> lred "" pr
-      Just (eqB,restB)
-       -> lred "ls'-cleanup" $
-             And [ Seq (mkAnd restA)
-                       (mkAnd restB)
-                 , eqB ]
- where
-   ls = "ls"
-   ls' = "ls'"
-
-   isSafeLSDash d theLS prs
-    = case matchRecog (isObsEqToConst "ls'" d) prs of
-       Nothing -> Nothing
-       Just (pre,eq@(Equal _ k),post) ->
-        if notGround d k
-         then Nothing
-         else if all (dftlyNotInP d theLS) rest
-          then Just (eq,rest)
-          else Nothing
-        where rest = pre++post
+-- reduceStd d pr@(Seq (And pAs) (And pBs))
+--  = case isSafeLSDash d ls' pAs of
+--     Nothing -> lred "" pr
+--     Just (_,restA) ->
+--      case isSafeLSDash d ls pBs of
+--       Nothing -> lred "" pr
+--       Just (eqB,restB)
+--        -> lred "ls'-cleanup" $
+--              And [ Seq (mkAnd restA)
+--                        (mkAnd restB)
+--                  , eqB ]
+--  where
+--    ls = "ls"
+--    ls' = "ls'"
+--
+--    isSafeLSDash d theLS prs
+--     = case matchRecog (isObsEqToConst "ls'" d) prs of
+--        Nothing -> Nothing
+--        Just (pre,eq@(Equal _ k),post) ->
+--         if notGround d k
+--          then Nothing
+--          else if all (dftlyNotInP d theLS) rest
+--           then Just (eq,rest)
+--           else Nothing
+--         where rest = pre++post
 \end{code}
 
 Assuming that $\fv{e'} \subseteq \setof{s',ls'}$, $x'\in\setof{s',ls'}$ and $\fv k \cap \setof{s,ls}=\emptyset$:
@@ -242,25 +249,25 @@ Assuming that $\fv{e'} \subseteq \setof{s',ls'}$, $x'\in\setof{s',ls'}$ and $\fv
 \\ A \land x'=k ; B &=& A ; x=k \land B[k/x] & \elabel{const-$;$-prop}
 }
 \begin{code}
-reduceUTCP d pr@(Seq (And pAs) pB)
- = case matchRecog (isDashedObsExpr d) pAs of
-   Just (pre,Atm e',post)
-    -> lred "bool-;-switch"
-       $ Seq (And (pre++post)) $ And [Atm $ unDash e', pB]
-   Nothing ->
-    case matchRecog (isAfterEqToConst d) pAs of
-     Just (pre,Equal (Var x') k,post)
-      -> let x = init x'
-         in lred "const-;-prop"
-            $ Seq (And (pre++post))
-                   $ And [Equal (Var x) k,PSub pB [(x,k)]]
-     Nothing  ->  lred "" pr
+-- reduceStd d pr@(Seq (And pAs) pB)
+--  = case matchRecog (isDashedObsExpr d) pAs of
+--    Just (pre,Atm e',post)
+--     -> lred "bool-;-switch"
+--        $ Seq (And (pre++post)) $ And [Atm $ unDash e', pB]
+--    Nothing ->
+--     case matchRecog (isAfterEqToConst d) pAs of
+--      Just (pre,Equal (Var x') k,post)
+--       -> let x = init x'
+--          in lred "const-;-prop"
+--             $ Seq (And (pre++post))
+--                    $ And [Equal (Var x) k,PSub pB [(x,k)]]
+--      Nothing  ->  lred "" pr
 \end{code}
 
 
 That's all folks!
 \begin{code}
-reduceUTCP d pr = lred "" pr
+reduceStd d mpr = lred "" mpr
 \end{code}
 
 \newpage
@@ -269,30 +276,30 @@ reduceUTCP d pr = lred "" pr
 Now we hard-code semantic definitions, starting with a dispatch function,
 and then defining each replacement.
 \begin{code}
-defnUTCP :: Ord s => Pred s -> CalcResult s
+-- defnUTCP :: Ord s => Pred s -> CalcResult s
+--
+-- defnUTCP Skip                =  ldefn "II" defnII
+-- defnUTCP (PAtm a)            =  ldefn "A" $ defnAtomic a
+-- defnUTCP PIdle               =  ldefn "Idle" $ defnIdle
+-- defnUTCP (PSeq p q)          =  ldefn ";;" $ defnSeq p q
+-- defnUTCP (PPar p q)          =  ldefn "||" $ defnPar p q
+-- defnUTCP (PCond c p q)       =  ldefn "<$>" $ defnCond c p q
+-- defnUTCP (PIter c p)         =  ldefn "<*>" $ defnIter c p
+-- defnUTCP (PFun "run"   [p])  =  ldefn "run.3" $ defnRun 3 p
+-- defnUTCP (PFun "run.1" [p])  =  ldefn "run.1" $ defnRun 1 p
+-- defnUTCP (PFun "run.2" [p])  =  ldefn "run.2" $ defnRun 2 p
+-- defnUTCP (PFun "run.3" [p])  =  ldefn "run.3" $ defnRun 3 p
+-- defnUTCP (PFun "do" [p])     =  ldefn "do" $ defnDo p
+--
+-- -- specialised "definition" !!! Actually a law.
+-- defnUTCP (PSub (PAtm a) subs)
+--                          =  lred "sub-atomic" $ substnAtomic a subs
+--
+-- defnUTCP pr                  =  ldefn "" pr
 
-defnUTCP Skip                =  ldefn "II" defnII
-defnUTCP (PAtm a)            =  ldefn "A" $ defnAtomic a
-defnUTCP PIdle               =  ldefn "Idle" $ defnIdle
-defnUTCP (PSeq p q)          =  ldefn ";;" $ defnSeq p q
-defnUTCP (PPar p q)          =  ldefn "||" $ defnPar p q
-defnUTCP (PCond c p q)       =  ldefn "<$>" $ defnCond c p q
-defnUTCP (PIter c p)         =  ldefn "<*>" $ defnIter c p
-defnUTCP (PFun "run"   [p])  =  ldefn "run.3" $ defnRun 3 p
-defnUTCP (PFun "run.1" [p])  =  ldefn "run.1" $ defnRun 1 p
-defnUTCP (PFun "run.2" [p])  =  ldefn "run.2" $ defnRun 2 p
-defnUTCP (PFun "run.3" [p])  =  ldefn "run.3" $ defnRun 3 p
-defnUTCP (PFun "do" [p])     =  ldefn "do" $ defnDo p
-
--- specialised "definition" !!! Actually a law.
-defnUTCP (PSub (PAtm a) subs)
-                         =  lred "sub-atomic" $ substnAtomic a subs
-
-defnUTCP pr                  =  ldefn "" pr
-
-ldefn :: String -> Pred s -> CalcResult s
-ldefn "" pr = ( "", pr )
-ldefn nm pr = ( "defn. of " ++ nm, pr )
+ldefn :: String -> RWFun m s
+ldefn "" mpr = ( "", mpr )
+ldefn nm mpr = ( "defn. of " ++ nm, mpr )
 \end{code}
 
 \newpage

@@ -58,50 +58,32 @@ matchRecog recog mprs
 
 \HDRc{Dashed Atomic Predicate}
 \begin{code}
-isDashedObsExpr d (Atm e') = isDashed e' && notGround d e'
-isDashedObsExpr _ _        = False
+isDashedObsExpr :: Ord s => Dict m s -> Recogniser m s
+isDashedObsExpr d (_,Atm e') = isDashed e' && notGround d e'
+isDashedObsExpr _ _          = False
 \end{code}
 
 \HDRc{After-Obs. equated to Ground Value}
 
 $x' = k$, where $x'$ is an after-observable, and $k$ is ground.
 \begin{code}
-isAfterEqToConst d (Equal (Var x') k) = isDyn' d x' && isGround d k
-isAfterEqToConst _ _                  = False
+isAfterEqToConst :: Ord s => Dict m s -> Recogniser m s
+isAfterEqToConst d (_,Equal (Var x') k)
+                                   = isDyn' d x' && isGround d k
+isAfterEqToConst _ _               = False
 \end{code}
 
 \HDRc{Named Obs. equated to Ground Value}
 
 $x = k$, where $x$ is an nominated observable, and $k$ is ground.
 \begin{code}
-isObsEqToConst v d (Equal (Var x) k)  =  v == x && isGround d k
-isObsEqToConst _ _ _                  =  False
+isObsEqToConst :: Ord s => String -> Dict m s -> Recogniser m s
+isObsEqToConst v d (_,Equal (Var x) k) =  v == x && isGround d k
+isObsEqToConst _ _ _                   =  False
 \end{code}
 
 
 \HDRb{Supporting Variable Predicates}
-
-
-Dictionary-based variable properties:
-\begin{code}
-isDyn, isDyn', isDynObs, notDynObs :: Dict m s -> String -> Bool
-isDyn d v
- = case alookup aDyn d of
-    Just (AlfEntry alfpart)  ->  v `elem` alfpart
-    _                        ->  False
-isDyn' d v
- = case alookup aDyn' d of
-    Just (AlfEntry alfpart)  ->  v `elem` alfpart
-    _                        ->  False
-isDynObs d = isDyn d ||| isDyn' d
-notDynObs d = not . isDynObs d
-\end{code}
-
-Lifting predicates
-\begin{code}
-(|||) p q x = p x || q x
-(&&&) p q x = p x && q x
-\end{code}
 
 Lifting variable functions to expressions:
 \begin{code}
