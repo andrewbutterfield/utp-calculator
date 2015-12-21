@@ -223,15 +223,15 @@ defnExpand = "expand defn. "
 
 expandDefn :: (Mark m, Ord s, Show s) => Dict m s -> m
            -> MPred m s -> BeforeAfter m s
-expandDefn d m mpr 
+expandDefn d m mpr
  = case doStepSearch m (expDefs d) mpr of
      Nothing  ->  ( mpr, "", mpr )
      Just ba  ->  ba
-     
+
 expDefs :: Dict m s -> RWFun m s
 expDefs d mpr@(ms, Comp name mprs )
  = case plookup name d of
-    Just pd@(PredEntry _ _ _ _ pdef _)  
+    Just pd@(PredEntry _ _ pdef _)
       -> let ( what, pr' ) = pdef d mprs
          in ( what, ( ms, pr') )
     _ -> ( "", mpr )

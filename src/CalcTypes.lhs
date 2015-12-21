@@ -205,9 +205,7 @@ $\alpha P \defs \setof{v_1,v_2,\ldots,v_n}$.
 \begin{code}
 -- data Entry m s = ....
  | ExprEntry { -- about Expressions
-     ebvars  :: [String]                       -- bound variables
-   , ebody   ::  Expr s                        -- definition body
-   , ecansub :: Bool                           -- substitutable?
+     ecansub :: Bool                           -- substitutable?
    , eprint  :: Dict m s -> [Expr s] -> String -- pretty printer
    , eval    :: Dict m s -> [Expr s]           -- evaluator
              -> ( String, Expr s )
@@ -215,12 +213,9 @@ $\alpha P \defs \setof{v_1,v_2,\ldots,v_n}$.
 \end{code}
 We interpret a \texttt{Dict} entry like
 \begin{verbatim}
-"f" |->  ExprEntry ["v1","v2",...,"vn"] e ss pf ev
+"f" |->  ExprEntry ss pf ev
 \end{verbatim}
 as defining a function:
-\RLEQNS{
-   f(v_1,v_2,\ldots,v_n) &\defs& e
-}
 where $ss$ indicates its substitutability,
 and with $pf_\delta(e_1,e_2,\ldots,e_n)$ being a specialised print function
 that renders a function call as required,
@@ -231,15 +226,12 @@ which may, or may not, be the dictionary in which the entry occurs.
 The string in the result is empty if it failed,
 otherwise gives the name of the function to be used in the justification
 of a proof step.
-The evaluator is free to use or ignore the definition body expression $e$.
 
 \HDRc{Predicate Entry}\label{hc:pred-entry}
 
 \begin{code}
  | PredEntry {    -- about Predicates
-     pbvars  :: [String]                       -- bound vars
-   , pbody   :: Pred m s                       -- defn. body
-   , pcansub :: Bool                           -- substitutable?
+     pcansub :: Bool                           -- substitutable?
    , pprint  :: Dict m s -> MarkStyle m        -- pretty printer
              -> Int -> [MPred m s]
              -> PP
@@ -249,37 +241,33 @@ The evaluator is free to use or ignore the definition body expression $e$.
 \end{code}
 We interpret a \texttt{Dict} entry like
 \begin{verbatim}
-"P" |->  PredEntry ["Q1","Q2",...,"Qn"] pr ss pp pd ps
+"P" |->  PredEntry ss pp pd ps
 \end{verbatim}
-as defining a function:
-\RLEQNS{
-   P(Q_1,Q_2,\ldots,Q_n) &\defs& pr
-}
-and $ss$ is a boolean that is true if the predicate application
+as defining a composite,
+where: $ss$ is a boolean that is true if the predicate application
 is substitutable%
 \footnote{%
 The LHS of a predicate definition is substitutable iff
 $P(Q_1\sigma,\ldots,Q_n\sigma) = pr\sigma$ for any substitution $\sigma$.
 }%
-,
-with $pp_\delta(Q_1,Q_2,\ldots,Q_n)$ being a specialised print function
-that renders a predicate as required,
-$pd$ is a function that expands the definition of $P$
-(which may differ from $pr$),
+;
+ $pp_\delta(Q_1,Q_2,\ldots,Q_n)$ is a specialised print function
+that renders a predicate as required;
+$pd$ is a function that expands the definition of $P$;
 and $ps_\delta(Q_1,Q_2,\ldots,Q_n)$ is a function that
 attempts to simplify the predicate.
-\textbf{WARNING: }
-\textit{the \texttt{prsimp} function above
- must not call \texttt{simplify} (\secref{hc:simplify})!
-To do so risks an infinite loop.
-}
 
 All are parameterised with a dictionary argument ($\delta$),
 which may, or may not, be the dictionary in which the entry occurs.
 The string in the result is empty if it failed,
 otherwise gives the name of the predicate to be used in the justification
 of a proof step.
-The definition expansion is free to use or ignore the definition body expression $pr$.
+
+\textbf{WARNING: }
+\textit{the \texttt{prsimp} function above
+ must not call \texttt{simplify} (\secref{hc:simplify})!
+To do so risks an infinite loop.
+}
 
 
 \HDRcstar{Entry Complete}
@@ -288,6 +276,7 @@ The definition expansion is free to use or ignore the definition body expression
 -- end Entry
 \end{code}
 
+\newpage
 \HDRb{Calculation Steps}\label{hb:calc-types}
 
 \HDRc{Calculation Step Intro}\label{hc:step-intro}

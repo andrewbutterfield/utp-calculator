@@ -68,7 +68,7 @@ asimp :: (Eq s, Ord s, Show s)
 asimp d fn (chgd,es)
  = case elookup fn d of
      Nothing  ->  (chgd, App fn es)
-     Just (ExprEntry _ _ _ _ evalf)
+     Just (ExprEntry _ _ evalf)
        -> case evalf d es of
             ( "", _ )  ->  (chgd, App fn es)
             ( _, e)    ->  (diff, e)
@@ -217,8 +217,8 @@ To do so risks an infinite loop.
 \begin{code}
    compsimp d m name mprs'
     = case plookup name d of
-       Just (PredEntry _ _ _ _ _ psimp)  ->  psimp d mprs'
-       _                                 ->  ("",Comp name mprs')
+       Just (PredEntry _ _ _ psimp)  ->  psimp d mprs'
+       _                             ->  ("",Comp name mprs')
 \end{code}
 Assembling the result:
 \begin{code}
@@ -373,6 +373,6 @@ We sometimes need to know when we can substitute:
 \begin{code}
 canSub d name
  = case plookup name d of
-     Just (PredEntry _ _ cansub _ _ _)  ->  cansub
-     _                                  ->  False
+     Just (PredEntry cansub _ _ _)  ->  cansub
+     _                              ->  False
 \end{code}
