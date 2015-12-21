@@ -371,8 +371,16 @@ pssubst m d sub (mp@(ms,p):mps)
 \newpage
 We sometimes need to know when we can substitute:
 \begin{code}
+canSub :: Dict m s -> String -> Bool
 canSub d name
  = case plookup name d of
      Just (PredEntry cansub _ _ _)  ->  cansub
      _                              ->  False
+     
+substitutable :: Dict m s -> MPred m s -> Bool
+substitutable d (_,Comp name _)
+ = case plookup name d of
+    Just pe@(PredEntry cansub _ _ _)  -> cansub
+    _ -> False
+substitutable _ _ = True
 \end{code}

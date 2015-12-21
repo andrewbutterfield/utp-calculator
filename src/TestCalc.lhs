@@ -226,7 +226,8 @@ absAlfDict
 
 Now some predicates for this
 \begin{code}
-a = noMark $ PVar "A"
+pA = noMark $ PVar "A"
+pB = noMark $ PVar "B"
 
 eqVV = iEqual (Var "v1") (Var "v2")
 eqVK = iEqual (Var "v1") (Z 42)
@@ -235,28 +236,35 @@ eqMK = iEqual (Var "m1") (Z 42)
 eqPV = iEqual (Var "p1") (Var "v2")
 eqPK = iEqual (Var "p1") (Z 42)
 
-eqVVthenA = iSeq eqVV a
-eqVKthenA = iSeq eqVK a
-eqMVthenA = iSeq eqMV a
-eqMKthenA = iSeq eqMK a
-eqPVthenA = iSeq eqPV a
-eqPKthenA = iSeq eqPK a
+eqVVthenA = iSeq eqVV pA
+eqVKthenA = iSeq eqVK pA
+eqMVthenA = iSeq eqMV pA
+eqMKthenA = iSeq eqMK pA
+eqPVthenA = iSeq eqPV pA
+eqPKthenA = iSeq eqPK pA
 
 eqV'V = iEqual (Var "v1'") (Var "v2")
 eqV'K = iEqual (Var "v1'") (Z 42)
 eqM'V = iEqual (Var "m1'") (Var "v2")
+eqM'V' = iEqual (Var "m1'") (Var "v2'")
 eqM'K = iEqual (Var "m1'") (Z 42)
 
-eqV'VthenA = iSeq eqV'V a
-eqV'KthenA = iSeq eqV'K a
-eqM'VthenA = iSeq eqM'V a
-eqM'KthenA = iSeq eqM'K a
+eqV'VthenA = iSeq eqV'V pA
+eqV'KthenA = iSeq eqV'K pA
+eqM'VthenA = iSeq eqM'V pA
+eqM'KthenA = iSeq eqM'K pA
 
 eqDyn'KthenA
- = iSeq (iAnd $ map eqIt ["m1'","v2'","v1'","m2'"]) a
+ = iSeq (iAnd $ map eqIt ["m1'","v2'","v1'","m2'"]) pA
 
 eqDuh'KthenA
- = iSeq (iAnd $ map eqIt ["m1'","v2'","m2'"]) a
+ = iSeq (iAnd $ map eqIt ["m1'","v2'","m2'"]) pA
+
+aAndeqDny'KthenB
+ = iSeq (iAnd $ pA : map eqIt ["m1'","v2'","m2'"]) pB
+
+aAndeqDny'KthenEq
+ = iSeq (iAnd $ pA : map eqIt ["m1'","v2'","m2'"]) eqM'V'
 
 eqIt v' = iEqual (Var v') (Z 42)
 \end{code}
@@ -264,10 +272,10 @@ eqIt v' = iEqual (Var v') (Z 42)
 \HDRc{Reduction Dictionary}
 
 \begin{code}
-reduceEntry :: Ord s => (String, Entry m s)
+reduceEntry :: (Mark m, Ord s, Show s) => (String, Entry m s)
 reduceEntry = ("reduce",LawEntry [reduceStd])
 
-reduceDict :: Ord s => Dict m s
+reduceDict :: (Mark m, Ord s, Show s) => Dict m s
 reduceDict = M.fromList [ reduceEntry ]
 \end{code}
 
@@ -277,7 +285,7 @@ reduceDict = M.fromList [ reduceEntry ]
 
 The test dictionary
 \begin{code}
-testDict :: (Eq m, Ord s, Show s) => Dict m s
+testDict :: (Eq m, Mark m, Ord s, Show s) => Dict m s
 testDict = impFalseDict
            `M.union` absAlfDict
            `M.union` reduceDict

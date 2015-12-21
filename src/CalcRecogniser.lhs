@@ -82,6 +82,12 @@ isObsEqToConst v d (_,Equal (Var x) k) =  v == x && isGround d k
 isObsEqToConst _ _ _                   =  False
 \end{code}
 
+With the above, it can be useful to turn such
+an equality into an equivalent substitution pair:
+\begin{code}
+eqToSub (_,Equal (Var x) e) = (x,e)
+\end{code}
+
 
 \HDRb{Supporting Variable Predicates}
 

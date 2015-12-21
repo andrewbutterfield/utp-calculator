@@ -11,6 +11,7 @@ import PrettyPrint
 import CalcTypes
 import CalcPredicates
 import CalcAlphabets
+import CalcSimplify
 import CalcRecogniser
 import StdPredicates
 \end{code}
@@ -83,7 +84,7 @@ of these and other predicate constructs.
 We define laws that are generally
 viewed as reduction steps going from left-to-right.
 \begin{code}
-reduceStd :: Ord s => DictRWFun m s
+reduceStd :: (Mark m, Ord s, Show s) => DictRWFun m s
 \end{code}
 
 \HDRc{Skip and Sequential Composition}\label{hc:skip-and-seq}
@@ -141,13 +142,25 @@ we have
 \]
 
 This extends to multiple such equalities,
-for all $x'_i \in Dyn'$ and $k_i$ ground:
+for  $x'_i \in Dyn'$ and $k_i$ ground:
 \RLEQNS{
    A \land \bigwedge_i x'_i = k_i ; B
    &=&
    A \land \bigwedge_i x'_i = k_i ; B[k_i/x_i]
-   & \elabel{$x'=k$-$;$-prop}
+   & \elabel{some-$x'=k$-$;$-prop}
 }
+\begin{code}
+-- reduceStd d
+--  (_,Comp "Seq" [ conj@(_,Comp "And" mprs), mpr ])
+--  | not (null x'eqks) && not (null rest)
+--  = lred "some-x'=k-;-prop"
+--      $ bSeq conj $ bPSub mpr $ map eqToSub x'eqks
+--  where
+--    (x'eqks,rest) = partition (isAfterEqToConst d) mprs
+\end{code}
+\textbf{Note:} this law can be repeatedly applied again
+to its result --- it may not be such a good thing to have around!
+
 If we only have such equalities,
 and they cover all dynamic variables ($\setof{x'_i} = Dyn'$),
 then we get:
@@ -163,10 +176,37 @@ reduceStd d
  (_,Comp "Seq" [ (_,Comp "And" mprs), mpr ])
  | all (isAfterEqToConst d) mprs
    && sort (map getLVar mprs) == sort (getAlpha aDyn' d)
- = lred "all-x'=k-;-init" $ noMark $ PSub mpr $ map eqToSub mprs
+ = lred "all-x'=k-;-init" $ bPSub mpr $ map eqToSub mprs
  where
-   eqToSub (_,Equal (Var x') e) = (x',e)
    getLVar (_,Equal (Var x') _) = x'
+\end{code}
+
+Assuming that $\fv{e'} \subseteq Dyn'$,
+$x'\in Dyn'$,
+ and $\fv k \cap Dyn =\emptyset$:
+\RLEQNS{
+   A \land e' ; B &=& A ; e \land B & \elabel{bool-$;$-switch}
+\\ A \land x'=k ; B &=& A ; x=k \land B[k/x] & \elabel{const-$;$-prop}
+}
+\begin{code}
+reduceStd d (_, Comp "Seq" [(_,Comp "And" mpAs), mpB])
+
+ | isJust match1
+     = lred "bool-;-switch"
+        $ bSeq (bAnd (pre1++post1)) $ bAnd [bAtm $ unDash e', mpB]
+
+ | isJust match2
+     = let x = init x'
+       in lred "const-;-prop"
+           $ bSeq (bAnd (pre2++post2))
+                $ bAnd [bEqual (Var x) k,bPSub mpB [(x,k)]]
+ where
+
+   match1 = matchRecog (isDashedObsExpr d) mpAs
+   Just (pre1,(_,Atm e'),post1) = match1
+
+   match2 = matchRecog (isAfterEqToConst d) mpAs
+   Just (pre2,(_,Equal (Var x') k),post2) = match2
 \end{code}
 
 \HDRc{Disjunction and Sequential Composition}
@@ -180,10 +220,13 @@ We more specific laws first, more general later.
    & \ecite{$;$-$\lor$-3distr}
 }
 \begin{code}
--- reduceStd d (Seq pA (Seq (Or pBs) pC))
---  = lred ";-\\/-3distr" $ Or $ map (bracketWith pA pC) pBs
---  where
---    bracketWith p q r = Seq p $ Seq r q
+reduceStd d 
+  (_, Comp "Seq" [ mpA
+                 , (_,Comp "Seq" [ (_,Comp "Or" mpBs)
+                                 , mpC] ) ] )
+ = lred ";-\\/-3distr" $ bOr $ map (bracketWith mpA mpC) mpBs
+ where
+   bracketWith p q r = bSeq p $ bSeq r q
 \end{code}
 
 \RLEQNS{
@@ -193,75 +236,21 @@ We more specific laws first, more general later.
    & \ecite{$\lor$-$;$-distr}
 }
 \begin{code}
--- reduceStd d (Seq (Or pAs) pB)
---  = lred "\\/-;-distr" $ Or $ map (postFixWith pB) pAs
---  where
---   postFixWith p q = Seq q p
+reduceStd d (_,Comp "Seq" [(_,Comp "Or" mpAs), mpB])
+ = lred "\\/-;-distr" $ bOr $ map (postFixWith mpB) mpAs
+ where
+  postFixWith p q = bSeq q p
 \end{code}
+
+
+\HDRc{Substitution}
 
 We can always try to apply a substition:
 \begin{code}
--- reduceStd d (PSub pr sub)
---  | canSub pr  =  lred "substn" $ psubst sub pr
-\end{code}
-
-\newpage
-A useful reduction for tidying up at the end,
-assuming that $ls' \notin A$ and $ls \notin B$, and both $k$ and $h$
-are ground:
-\RLEQNS{
-   A \land ls'=k ; B \land ls'= h
-   &\equiv&
-   (A;B) \land ls'=h
-   & \elabel{$ls'$-cleanup}
-}
-\begin{code}
--- reduceStd d pr@(Seq (And pAs) (And pBs))
---  = case isSafeLSDash d ls' pAs of
---     Nothing -> lred "" pr
---     Just (_,restA) ->
---      case isSafeLSDash d ls pBs of
---       Nothing -> lred "" pr
---       Just (eqB,restB)
---        -> lred "ls'-cleanup" $
---              And [ Seq (mkAnd restA)
---                        (mkAnd restB)
---                  , eqB ]
---  where
---    ls = "ls"
---    ls' = "ls'"
---
---    isSafeLSDash d theLS prs
---     = case matchRecog (isObsEqToConst "ls'" d) prs of
---        Nothing -> Nothing
---        Just (pre,eq@(Equal _ k),post) ->
---         if notGround d k
---          then Nothing
---          else if all (dftlyNotInP d theLS) rest
---           then Just (eq,rest)
---           else Nothing
---         where rest = pre++post
-\end{code}
-
-Assuming that $\fv{e'} \subseteq \setof{s',ls'}$, $x'\in\setof{s',ls'}$ and $\fv k \cap \setof{s,ls}=\emptyset$:
-\RLEQNS{
-   A \land e' ; B &=& A ; e \land B & \elabel{bool-$;$-switch}
-\\ A \land x'=k ; B &=& A ; x=k \land B[k/x] & \elabel{const-$;$-prop}
-}
-\begin{code}
--- reduceStd d pr@(Seq (And pAs) pB)
---  = case matchRecog (isDashedObsExpr d) pAs of
---    Just (pre,Atm e',post)
---     -> lred "bool-;-switch"
---        $ Seq (And (pre++post)) $ And [Atm $ unDash e', pB]
---    Nothing ->
---     case matchRecog (isAfterEqToConst d) pAs of
---      Just (pre,Equal (Var x') k,post)
---       -> let x = init x'
---          in lred "const-;-prop"
---             $ Seq (And (pre++post))
---                    $ And [Equal (Var x) k,PSub pB [(x,k)]]
---      Nothing  ->  lred "" pr
+reduceStd d (_,PSub mpr sub)
+ | substitutable d mpr && chgd = lred "substn" $ noMark pr'
+ where
+   (chgd,pr') = psubst startm d sub mpr
 \end{code}
 
 
@@ -270,37 +259,6 @@ That's all folks!
 reduceStd d mpr = lred "" mpr
 \end{code}
 
-\newpage
-\HDRb{Definition Expansion}
-
-Now we hard-code semantic definitions, starting with a dispatch function,
-and then defining each replacement.
-\begin{code}
--- defnUTCP :: Ord s => Pred s -> CalcResult s
---
--- defnUTCP Skip                =  ldefn "II" defnII
--- defnUTCP (PAtm a)            =  ldefn "A" $ defnAtomic a
--- defnUTCP PIdle               =  ldefn "Idle" $ defnIdle
--- defnUTCP (PSeq p q)          =  ldefn ";;" $ defnSeq p q
--- defnUTCP (PPar p q)          =  ldefn "||" $ defnPar p q
--- defnUTCP (PCond c p q)       =  ldefn "<$>" $ defnCond c p q
--- defnUTCP (PIter c p)         =  ldefn "<*>" $ defnIter c p
--- defnUTCP (PFun "run"   [p])  =  ldefn "run.3" $ defnRun 3 p
--- defnUTCP (PFun "run.1" [p])  =  ldefn "run.1" $ defnRun 1 p
--- defnUTCP (PFun "run.2" [p])  =  ldefn "run.2" $ defnRun 2 p
--- defnUTCP (PFun "run.3" [p])  =  ldefn "run.3" $ defnRun 3 p
--- defnUTCP (PFun "do" [p])     =  ldefn "do" $ defnDo p
---
--- -- specialised "definition" !!! Actually a law.
--- defnUTCP (PSub (PAtm a) subs)
---                          =  lred "sub-atomic" $ substnAtomic a subs
---
--- defnUTCP pr                  =  ldefn "" pr
-
-ldefn :: String -> RWFun m s
-ldefn "" mpr = ( "", mpr )
-ldefn nm mpr = ( "defn. of " ++ nm, mpr )
-\end{code}
 
 \newpage
 \HDRb{The Standard Dictionary}\label{hb:std-dict}
