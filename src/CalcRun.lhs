@@ -63,8 +63,8 @@ runREPL d m state@(mpr0,steps) currpr
    ('u':_) -> calcUndo d m state currpr
    ('d':_) -> calcStep d m (expandDefn d $ nextm m) state currpr
    ('r':_) -> calcStep d m (doReduce   d $ nextm m) state currpr
+   ('c':_) -> calcCStep d m (doCReduce d $ nextm m) state currpr
 --    ('l':_) -> calcStep  d m unroll state currpr
---    ('c':_) -> calcCStep  d m (creduce th $ d) state currpr
    ('x':_) -> return (mpr0,steps,d)
    ('M':_) -> showMarks d m state currpr
    _ -> do putStrLn ("'"++ln++"' ??")
@@ -122,30 +122,34 @@ calcStep d m stepf st@(mpr0,steps) currpr
 
 Apply a given conditional step:
 \begin{code}
--- calcCStep d cstepf st@(mpr0,steps) currpr
---  = case capply cstepf currpr of
---      ( "", _ )  ->  runREPL d st currpr
---      cstep'@( comment, crps' )
---        ->  do putStrLn $ unlines $ ccshow d $ zip [1..] crps'
---               let num = length crps'
---               putStrLn ("Please select 1.."++show num)
---               sel <- fmap getInt getLine
---               if 1 <= sel && sel <= num
---                then do let step' = condResolve d sel cstep'
---                        putStrLn ( "\n = " ++ show comment )
---                        runREPL d (mpr0,(step':steps)) (snd step')
---                else runREPL d st currpr
---  where
---    getInt (c:_)
---     | isDigit c = digitToInt c
---    getInt _ = 0
---
--- ccshow d [] = []
--- ccshow d ((i,(cpr,rpr)):rest)
---  = ["","(" ++ show i++ ") provided:    " ++ pdshow d cpr
---    ,"--"
---    ,pdshow d rpr]
---    ++ ccshow d rest
+calcCStep :: (Mark m, Show m, Ord s, Show s)
+          => Dict m s -> m -> (MPred m s -> BeforeAfters m s)
+          -> (MPred m s, [RWResult m s]) -> MPred m s
+          -> IO ( MPred m s, [RWResult m s], Dict m s )
+calcCStep d m cstepf st@(mpr0,steps) currpr
+ = case cstepf currpr of
+    (_,"",_)  ->  runREPL d m st currpr
+    ( before, comment, afters' )
+      -> do putStrLn $ unlines $ ccshow d $ zip [1..] afters'
+            let num = length afters'
+            putStrLn ("Please select 1.."++show num)
+            sel <- fmap getInt getLine
+            if 1 <= sel && sel <= num
+             then do let step' = condResolve d sel (comment,afters')
+                     putStrLn ( "\n = " ++ show comment )
+                     runREPL d m (mpr0,(step':steps)) (snd step')
+             else runREPL d m st currpr
+ where
+   getInt (c:_)
+    | isDigit c = digitToInt c
+   getInt _ = 0
+
+ccshow d [] = []
+ccshow d ((i,(cpr,rmpr)):rest)
+ = ["","(" ++ show i++ ") provided:    " ++ pdshow 80 d cpr
+   ,"--"
+   ,pmdshow 80 d noStyles rmpr]
+   ++ ccshow d rest
 \end{code}
 
 Showing Marks

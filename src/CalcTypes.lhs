@@ -148,6 +148,7 @@ type CRWResult m s
       , MPred m s)]  -- modified predicate
    )
 type CRWFun m s = MPred m s -> CRWResult m s
+type CDictRWFun m s = Dict m s -> CRWFun m s
 \end{code}
 
 
@@ -283,16 +284,18 @@ To do so risks an infinite loop.
 
 \begin{code}
  | LawEntry {                   -- about useful laws
-     plaws  :: [DictRWFun m s]  -- list of laws
+     reduce  :: [DictRWFun m s]  -- list of reduction laws
+   , creduce :: [CDictRWFun m s] -- list of conditional reductions
    }
 \end{code}
 We interpret a \texttt{Dict} entry like:
 \begin{verbatim}
-"reduce" |->  LawEntry [r1,....,rn]
+"laws" |->  LawEntry [r1,....,rm] [cr1,...,crn]
 \end{verbatim}
 as describing the law/reduction steps to be tried
-if the \verb"reduce" command is invoked in the calculator.
-The reduction steps are tried in order, from \m{r_1} to \m{r_n}.
+if the \verb"reduce" or \verb"creduce" commands are invoked in the calculator.
+The reduction steps are tried in order, from \m{r_1} to \m{r_m}
+or \m{cr_1} to \m{cr_n}.
 
 
 

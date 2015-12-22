@@ -103,8 +103,8 @@ y90 = [(y,Z 90)]
 \HDRc{Test Predicates}
 
 \begin{code}
-xandy = iAnd [px,py,pz]
-xory = iOr [px,py,pz]
+xandy = iAnd [px,py]
+xory = iOr [px,py]
 sub42 :: Ord s => IPred s
 sub42 = iPSub xandy x42
 
@@ -269,14 +269,25 @@ aAndeqDny'KthenEq
 eqIt v' = iEqual (Var v') (Z 42)
 \end{code}
 
-\HDRc{Reduction Dictionary}
+\HDRc{Test Conditional Reductions}
 
 \begin{code}
-reduceEntry :: (Mark m, Ord s, Show s) => (String, Entry m s)
-reduceEntry = ("reduce",LawEntry [reduceStd])
+creduceTest :: Mark m => CDictRWFun m s
+creduceTest d (_,Comp "Imp" [(_,ante),mconsq])
+ = ( "discharge assumption"
+   , [ ( ante, mconsq )                 -- True  => P  =  P
+     , ( mkNot $ noMark ante, bT ) ] )  -- False => _  =  True
+creduceTest _ mpr = ( "", [] )
+\end{code}
 
-reduceDict :: (Mark m, Ord s, Show s) => Dict m s
-reduceDict = M.fromList [ reduceEntry ]
+\HDRc{Laws Dictionary}
+
+\begin{code}
+lawsEntry :: (Mark m, Ord s, Show s) => (String, Entry m s)
+lawsEntry = ("laws",LawEntry [reduceStd] [creduceTest])
+
+lawsDict :: (Mark m, Ord s, Show s) => Dict m s
+lawsDict = M.fromList [ lawsEntry ]
 \end{code}
 
 \HDRb{Test Calculator}
@@ -287,9 +298,9 @@ The test dictionary
 \begin{code}
 testDict :: (Eq m, Mark m, Ord s, Show s) => Dict m s
 testDict = impFalseDict
-           `M.union` absAlfDict
-           `M.union` reduceDict
-           `M.union` stdDict
+           `dictMrg` absAlfDict
+           `dictMrg` lawsDict
+           `dictMrg` stdDict
 \end{code}
 
 \HDRc{Test Calculator Top-Level}

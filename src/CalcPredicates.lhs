@@ -130,15 +130,21 @@ vlookup :: String -> Dict m s -> Maybe (Entry m s)
 vlookup nm d
  = case M.lookup nm d of
      Just ve@(PVarEntry _)  ->  Just ve
-     _                    ->  Nothing
+     _                      ->  Nothing
 \end{code}
 
-When we merge dictionary entries we concat \texttt{AlfEntry},
+When we merge dictionary entries
+we concatenate \texttt{AlfEntry} and \texttt{LawEntry},
 but otherwise take the first:
 \begin{code}
 mergeEntry :: Entry m s -> Entry m s -> Entry m s
 mergeEntry (AlfEntry a1) (AlfEntry a2) = AlfEntry (a1++a2)
+mergeEntry (LawEntry r1 cr1) (LawEntry r2 cr2)
+                                  = LawEntry (r1++r2) (cr1++cr2)
 mergeEntry e _ = e
+
+dictMrg :: Dict m s -> Dict m s -> Dict m s
+dictMrg = M.unionWith mergeEntry
 \end{code}
 
 

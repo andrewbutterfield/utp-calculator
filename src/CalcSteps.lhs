@@ -121,16 +121,17 @@ stepComp' :: RWFun m s
 
 -- end case, processing last components
 stepComp' cstep s@(Comp' mp name before []) ss mpr
- = let result@( (_, what, _), _ ) = stepFocus cstep (mpr, s : ss )
+ = let result@( (_, what, _), _ ) = stepFocus cstep (mpr, s:ss)
    in if null what
       then ( (mpr, "", mpr), ss )
       else result
 
 -- general case, more components remaining
 stepComp' cstep s@(Comp' mp name before after@(npr:rest)) ss mpr
- = let result@( (_, what, _), _ ) = stepFocus cstep (mpr, s : ss )
+ = let result@( (_, what, _), _ )  = stepFocus cstep (mpr, s:ss)
    in if null what
-      then stepComp' cstep (Comp' mp name (before++[mpr]) rest) ss npr
+      then stepComp' cstep
+                     (Comp' mp name (before++[mpr]) rest) ss npr
       else result
 \end{code}
 
@@ -237,19 +238,40 @@ expDefs d mpr = ( "", mpr )
 \end{code}
 
 
-\HDRb{Reduction Laws}\label{hb:reduce-laws}
+\newpage
+
+\HDRb{(Reduction) Laws}\label{hb:reduce-laws}
+
+\HDRc{Simple Reduction}
 
 \begin{code}
 doReduce :: (Mark m, Ord s, Show s) => Dict m s -> m
            -> MPred m s -> BeforeAfter m s
 doReduce d m mpr
- = case M.lookup "reduce" d of
-    Just (LawEntry laws)  ->  doRed d m mpr laws
-    _                     -> ( mpr, "", mpr )
+ = case M.lookup "laws" d of
+    Just (LawEntry red cred)  ->  doRed d m mpr red
+    _                         -> ( mpr, "", mpr )
 
 doRed d m mpr [] = ( mpr, "", mpr )
 doRed d m mpr (rf:rfs)
  = case doStepSearch m (rf d) mpr of
      Nothing   ->  doRed d m mpr rfs
      Just red  ->  red
+\end{code}
+
+\HDRc{Conditional Reduction}
+
+\begin{code}
+doCReduce :: (Mark m, Ord s, Show s) => Dict m s -> m
+           -> MPred m s -> BeforeAfters m s
+doCReduce d m mpr
+ = case M.lookup "laws" d of
+    Just (LawEntry red cred)  ->  doCRed d m mpr cred
+    _                         -> ( mpr, "", [] )
+
+doCRed d m mpr [] = ( mpr, "", [] )
+doCRed d m mpr (rf:rfs)
+ = case doStepCSearch m (rf d) mpr of
+    Nothing   ->  doCRed d m mpr rfs
+    Just red  ->  red
 \end{code}
