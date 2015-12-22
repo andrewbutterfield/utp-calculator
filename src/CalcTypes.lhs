@@ -286,16 +286,18 @@ To do so risks an infinite loop.
  | LawEntry {                   -- about useful laws
      reduce  :: [DictRWFun m s]  -- list of reduction laws
    , creduce :: [CDictRWFun m s] -- list of conditional reductions
+   , unroll  :: [DictRWFun m s]  -- list of loop unrollers
    }
 \end{code}
 We interpret a \texttt{Dict} entry like:
 \begin{verbatim}
-"laws" |->  LawEntry [r1,....,rm] [cr1,...,crn]
+"laws" |->  LawEntry [r1,....,rm] [cr1,...,crn] [u1,..,up]
 \end{verbatim}
 as describing the law/reduction steps to be tried
-if the \verb"reduce" or \verb"creduce" commands are invoked in the calculator.
-The reduction steps are tried in order, from \m{r_1} to \m{r_m}
-or \m{cr_1} to \m{cr_n}.
+if the \verb"reduce",\verb"creduce" or \verb"unroll" commands
+are invoked in the calculator.
+The reduction steps are tried in order, from \m{r_1} to \m{r_m},
+or \m{cr_1} to \m{cr_n} or \m{u_1} to \m{u_p}, as appropriate.
 
 
 

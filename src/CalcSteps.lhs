@@ -249,8 +249,8 @@ doReduce :: (Mark m, Ord s, Show s) => Dict m s -> m
            -> MPred m s -> BeforeAfter m s
 doReduce d m mpr
  = case M.lookup "laws" d of
-    Just (LawEntry red cred)  ->  doRed d m mpr red
-    _                         -> ( mpr, "", mpr )
+    Just (LawEntry red _ _)  ->  doRed d m mpr red
+    _                        -> ( mpr, "", mpr )
 
 doRed d m mpr [] = ( mpr, "", mpr )
 doRed d m mpr (rf:rfs)
@@ -266,7 +266,7 @@ doCReduce :: (Mark m, Ord s, Show s) => Dict m s -> m
            -> MPred m s -> BeforeAfters m s
 doCReduce d m mpr
  = case M.lookup "laws" d of
-    Just (LawEntry red cred)  ->  doCRed d m mpr cred
+    Just (LawEntry _ cred _)  ->  doCRed d m mpr cred
     _                         -> ( mpr, "", [] )
 
 doCRed d m mpr [] = ( mpr, "", [] )
@@ -274,4 +274,21 @@ doCRed d m mpr (rf:rfs)
  = case doStepCSearch m (rf d) mpr of
     Nothing   ->  doCRed d m mpr rfs
     Just red  ->  red
+\end{code}
+
+\HDRc{Loop Unrolling}
+
+\begin{code}
+doUnroll :: (Mark m, Ord s, Show s) => Dict m s -> m
+           -> MPred m s -> BeforeAfter m s
+doUnroll d m mpr
+ = case M.lookup "laws" d of
+    Just (LawEntry _ _ unr)   ->  doUnr d m mpr unr
+    _                         -> ( mpr, "", mpr )
+
+doUnr d m mpr [] = ( mpr, "", mpr )
+doUnr d m mpr (rf:rfs)
+ = case doStepSearch m (rf d) mpr of
+     Nothing   ->  doUnr d m mpr rfs
+     Just red  ->  red
 \end{code}

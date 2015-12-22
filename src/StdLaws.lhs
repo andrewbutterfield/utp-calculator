@@ -55,23 +55,6 @@ defnII d
 \end{code}
 
 \newpage
-\HDRc{Loop UnRolling}\label{hc:loop-unroll}
-
-Iteration  satisfies the loop-unrolling law:
-\[
-  c * P  \quad=\quad (P ; c * P ) \cond c \Skip
-\]
-
-\begin{code}
-unroll :: (Mark m, Ord s) => RWFun m s
-unroll mw@(_,Comp "Iter"  [mc@(_,c), mpr])
- | isCondition c
-           = lred "loop-unroll" $ bCond mc (bSeq mpr mw) bSkip
-unroll mpr = lred "" mpr
-
-lred nm mpr = ( nm, mpr )
-\end{code}
-
 
 \HDRb{Standard Reductions}\label{hb:std-reduce}
 
@@ -84,6 +67,8 @@ of these and other predicate constructs.
 We define laws that are generally
 viewed as reduction steps going from left-to-right.
 \begin{code}
+lred nm mpr = ( nm, mpr )
+
 reduceStd :: (Mark m, Ord s, Show s) => DictRWFun m s
 \end{code}
 
@@ -220,7 +205,7 @@ We more specific laws first, more general later.
    & \ecite{$;$-$\lor$-3distr}
 }
 \begin{code}
-reduceStd d 
+reduceStd d
   (_, Comp "Seq" [ mpA
                  , (_,Comp "Seq" [ (_,Comp "Or" mpBs)
                                  , mpC] ) ] )

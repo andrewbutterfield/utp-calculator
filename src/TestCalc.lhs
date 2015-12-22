@@ -269,7 +269,7 @@ aAndeqDny'KthenEq
 eqIt v' = iEqual (Var v') (Z 42)
 \end{code}
 
-\HDRc{Test Conditional Reductions}
+\HDRc{Test Laws}
 
 \begin{code}
 creduceTest :: Mark m => CDictRWFun m s
@@ -279,12 +279,24 @@ creduceTest d (_,Comp "Imp" [(_,ante),mconsq])
      , ( mkNot $ noMark ante, bT ) ] )  -- False => _  =  True
 creduceTest _ mpr = ( "", [] )
 \end{code}
+Iteration  satisfies the loop-unrolling law:
+\[
+  c * P  \quad=\quad (P ; c * P ) \cond c \Skip
+\]
+\begin{code}
+unrollTst :: (Ord s, Mark m) => DictRWFun m s
+unrollTst d mw@(_,Comp "Iter"  [mc@(_,c), mpr])
+ | isCondition c
+           = ( "loop-unroll"
+             , bCond (bSeq mpr mw) mc bSkip )
+unrollTst _ mpr = ("", mpr)
+\end{code}
 
 \HDRc{Laws Dictionary}
 
 \begin{code}
 lawsEntry :: (Mark m, Ord s, Show s) => (String, Entry m s)
-lawsEntry = ("laws",LawEntry [reduceStd] [creduceTest])
+lawsEntry = ("laws",LawEntry [reduceStd] [creduceTest] [unrollTst])
 
 lawsDict :: (Mark m, Ord s, Show s) => Dict m s
 lawsDict = M.fromList [ lawsEntry ]
