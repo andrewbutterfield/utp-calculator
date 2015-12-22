@@ -292,3 +292,6 @@ doUnr d m mpr (rf:rfs)
      Nothing   ->  doUnr d m mpr rfs
      Just red  ->  red
 \end{code}
+
+Hmmmm, all of the above could be abstracted down to one thing...
+(Even more if we make everyting use \texttt{BeforeAfters}.
