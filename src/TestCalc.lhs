@@ -19,6 +19,7 @@ import StdPredicates
 import CalcZipper
 import CalcSteps
 import StdLaws
+import UTCPSemantics
 \end{code}
 
 \HDRb{Default Mark Type}
@@ -41,18 +42,18 @@ type IPred s = MPred Int s
 
 \begin{code}
 iT, iF :: IPred s
-iT = bT
-iF = bF
+iT = true
+iF = false
 iPV :: String -> IPred s
-iPV = bPV
+iPV = pvar
 iEqual :: Expr s -> Expr s -> IPred s
-iEqual = bEqual
+iEqual = equal
 iAtm :: Expr s -> IPred s
-iAtm = bAtm
+iAtm = atm
 iComp :: String -> [IPred s] -> IPred s
-iComp = bComp
+iComp = comp
 iPSub :: Ord s => IPred s -> Substn s -> IPred s
-iPSub = bPSub
+iPSub = psub
 \end{code}
 
 \HDRc{Building Standard Predicates}
@@ -276,7 +277,7 @@ creduceTest :: Mark m => CDictRWFun m s
 creduceTest d (_,Comp "Imp" [(_,ante),mconsq])
  = ( "discharge assumption"
    , [ ( ante, mconsq )                 -- True  => P  =  P
-     , ( mkNot $ noMark ante, bT ) ] )  -- False => _  =  True
+     , ( mkNot $ noMark ante, true ) ] )  -- False => _  =  True
 creduceTest _ mpr = ( "", [] )
 \end{code}
 Iteration  satisfies the loop-unrolling law:

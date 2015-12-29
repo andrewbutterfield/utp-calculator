@@ -9,7 +9,7 @@ module While where
 -- import Debug.Trace
 -- import PrettyPrint
 import CalcTypes
--- import StdPrecedences
+import StdPrecedences
 import CalcPredicates
 -- import CalcAlphabets
 -- import CalcSimplify
@@ -58,17 +58,29 @@ c = Var "c"
 
 \HDRc{Statements of ``While''}\label{hc:While-stmt}
 
+We list the composite components in decreasing order
+of their precedence, so the first binds tightest.
 \RLEQNS{
    p,q &\in& W & \say{While programs}
 \\ &\defs& skip & \say{Do nothing}
 \\ &|& x:=e  & \say{Assignment}
+\\ &|& c * p & \say{Iteration (``While'')}
 \\ &|& p ; q & \say{Sequencing}
 \\ &|& p \cond c q & \say{Conditional}
-\\ &|& c * p & \say{Iteration (``While'')}
 }
 \begin{code}
-p = "P" ; pP = bPV p
-skip = bComp "skip" []
+p = "P" ; pP = pvar p
+q = "Q" ; pQ = pvar q
+skip        =  comp "skip"  []
+x ^= e      =  comp "asg"   [atm $ Var x, atm e]
+while c p   =  comp "while" [atm c, p]
+seqc p q    =  comp "seq"   [p, q]
+cond c p q  =  comp "cond"  [atm c, p, q]
+\end{code}
+
+Pretty printers for the above:
+\begin{code}
+
 \end{code}
 
 \HDRb{Alphabet of ``While''}\label{hb:While-alpha}

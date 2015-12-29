@@ -82,14 +82,14 @@ and not if it is just sub-components that have changed:
 
 \begin{code}
 -- build a basic predicate at the MPred level
-bT, bF :: Mark m => MPred m s
-bT              =  noMark T
-bF              =  noMark F
-bPV str         =  noMark $ PVar str
-bEqual e1 e2    =  noMark $ Equal e1 e2
-bAtm e          =  noMark $ Atm e
-bComp str mprs  =  noMark $ Comp str mprs
-bPSub mpr subs  =  noMark $ mkPSub mpr subs
+true, false :: Mark m => MPred m s
+true           =  noMark T
+false          =  noMark F
+pvar str       =  noMark $ PVar str
+equal e1 e2    =  noMark $ Equal e1 e2
+atm e          =  noMark $ Atm e
+comp str mprs  =  noMark $ Comp str mprs
+psub mpr subs  =  noMark $ mkPSub mpr subs
 \end{code}
 
 \HDRb{Dictionary}\label{hb:DataDict}
