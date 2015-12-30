@@ -20,6 +20,7 @@ import CalcZipper
 import CalcSteps
 import StdLaws
 import UTCPSemantics
+import UTCPLaws
 \end{code}
 
 \HDRb{Default Mark Type}

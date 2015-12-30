@@ -2,8 +2,15 @@
 \begin{code}
 module UTCPLaws where
 import Debug.Trace
+import Data.List
+import CalcTypes
 import CalcPredicates
+import CalcSimplify
+import CalcRecogniser
 import CalcSteps
+import StdPrecedences
+import StdPredicates
+import StdLaws
 import UTCPSemantics
 \end{code}
 
@@ -32,12 +39,31 @@ In essence we ignore the parameters as far as flow-of-control is concerned:
 }
 Here, the definition of $\cond\_$ is entirely standard, of course.
 
+\HDRb{UTCP Laws}
+
+\HDRc{UTCP Recognisers}
+
+$s'=s$, or $s=s'$
+\begin{code}
+isIdle s1 s2 = s1=="s" && s2=="s'" || s1=="s'" && s2=="s"
+\end{code}
+$s'=s$ conjoined with $A$ whose alphabet is $\setof{s,s'}$.
+\begin{code}
+isIdleSeqAtom d s1 s2 pA
+ | isIdle s1 s2
+    = case plookup pA d of
+       Just (AlfEntry a_alf)  ->  sort a_alf == ["s","s'"]
+       Nothing  ->  False
+ | otherwise  =  False
+\end{code}
+
+
 \HDRc{UTCP Skip}
 \RLEQNS{
    \Skip &\defs& s'=s \land ls'=ls
 }
 \begin{code}
-defnII = And[ Equal s' s, Equal ls' ls ]
+defnUTCPII = bAnd[ equal s' s, equal ls' ls ]
 \end{code}
 
 In the calculator we do not implement the definitions
@@ -49,7 +75,7 @@ of these and other predicate constructs.
 We define laws that are generally
 viewed as reduction steps going from left-to-right.
 \begin{code}
-reduceUTCP :: (Show s, Ord s) => Dict s -> RWFun s
+reduceUTCP :: (Show s, Ord s) => Dict m s -> RWFun m s
 \end{code}
 
 \HDRb{Skip and Sequential Composition}
@@ -60,8 +86,8 @@ These laws are immediate, and their proof is left as an exercise.
 \\ P;\Skip &=& P & \elabel{$;$-r-unit}
 }
 \begin{code}
-reduceUTCP d (Seq Skip pr) = lred ";-lunit" pr
-reduceUTCP d (Seq pr Skip) = lred ";-runit" pr
+reduceUTCP d (Comp "Seq" [(_,Comp "Skip" []), pr]) = lred ";-lunit" pr
+reduceUTCP d (Comp "Seq" [pr, Comp "Skip" []]) = lred ";-runit" pr
 \end{code}
 
 In the special case of atomic actions ($\alpha A = \setof{s,s'}$), we have:
@@ -70,9 +96,9 @@ In the special case of atomic actions ($\alpha A = \setof{s,s'}$), we have:
 \\ A ; s'=s &=& A & \elabel{atomic-;-r-unit}
 }
 \begin{code}
-reduceUTCP d (Seq (Equal (Var s1) (Var s2)) pA@(PVar a))
+reduceUTCP d (Comp "Seq" [(Equal (Var s1) (Var s2)), pA@(PVar a)])
  | isIdleSeqAtom d s1 s2 a  =  lred "atomic-;-lunit" pA
-reduceUTCP d (Seq pA@(PVar a) (Equal (Var s1) (Var s2)))
+reduceUTCP d (Comp "Seq" [pA@(PVar a), (Equal (Var s1) (Var s2))])
  | isIdleSeqAtom d s1 s2 a  =  lred "atomic-;-runit" pA
 \end{code}
 
@@ -135,13 +161,15 @@ An obvious corollary of the above is:
    & \elabel{$s'$-$ls'$-$;$-prop}
 }
 \begin{code}
-reduceUTCP d (Seq (And [ Equal (Var "s'") e,
-                         Equal (Var "ls'") f])
-                  pA )
+reduceUTCP d (Comp "Seq" 
+                [ Comp "And" [ Equal (Var "s'") e
+                             , Equal (Var "ls'") f]
+                , pA])
  = lred "s'ls'-;-prop" $ PSub pA [("s",e),("ls",f)]
-reduceUTCP d (Seq (And [ Equal (Var ls'@"ls'") f,
-                         Equal (Var s'@"s'") e])
-                  pA )
+reduceUTCP d (Comp "Seq" 
+                [ Comp "And" [ Equal (Var ls'@"ls'") f
+                             , Equal (Var s'@"s'") e]
+                , pA])
  = lred "s'ls'-;-prop" $ PSub pA [("s",e),("ls",f)]
 \end{code}
 
@@ -156,10 +184,10 @@ We more specific laws first, more general later.
    & \ecite{$;$-$\lor$-3distr}
 }
 \begin{code}
-reduceUTCP d (Seq pA (Seq (Or pBs) pC))
- = lred ";-\\/-3distr" $ Or $ map (bracketWith pA pC) pBs
+reduceUTCP d (Comp "Seq" [pA, (Comp "Seq" (Comp "Or" pBs) pC)])
+ = lred ";-\\/-3distr" $ Comp "Or" $ map (bracketWith pA pC) pBs
  where
-   bracketWith p q r = Seq p $ Seq r q
+   bracketWith p q r = Comp "Seq" p $ Comp "Seq" r q
 \end{code}
 
 \RLEQNS{
@@ -169,10 +197,10 @@ reduceUTCP d (Seq pA (Seq (Or pBs) pC))
    & \ecite{$\lor$-$;$-distr}
 }
 \begin{code}
-reduceUTCP d (Seq (Or pAs) pB)
- = lred "\\/-;-distr" $ Or $ map (postFixWith pB) pAs
+reduceUTCP d (Comp "Seq" [Comp "Or" pAs, pB])
+ = lred "\\/-;-distr" $ Comp "Or" $ map (postFixWith pB) pAs
  where
-  postFixWith p q = Seq q p
+  postFixWith p q = Comp "Seq" q p
 \end{code}
 
 We can always try to apply a substition:
@@ -192,7 +220,7 @@ are ground:
    & \elabel{$ls'$-cleanup}
 }
 \begin{code}
-reduceUTCP d pr@(Seq (And pAs) (And pBs))
+reduceUTCP d pr@(Comp "Seq" [Comp "And" pAs, Comp "And" pBs])
  = case isSafeLSDash d ls' pAs of
     Nothing -> lred "" pr
     Just (_,restA) ->
@@ -200,7 +228,7 @@ reduceUTCP d pr@(Seq (And pAs) (And pBs))
       Nothing -> lred "" pr
       Just (eqB,restB)
        -> lred "ls'-cleanup" $
-             And [ Seq (mkAnd restA)
+             Comp "And" [ Comp "Seq" (mkAnd restA)
                        (mkAnd restB)
                  , eqB ]
  where
@@ -225,18 +253,18 @@ Assuming that $\fv{e'} \subseteq \setof{s',ls'}$, $x'\in\setof{s',ls'}$ and $\fv
 \\ A \land x'=k ; B &=& A ; x=k \land B[k/x] & \elabel{const-$;$-prop}
 }
 \begin{code}
-reduceUTCP d pr@(Seq (And pAs) pB)
+reduceUTCP d pr@(Comp "Seq" (Comp "And" pAs) pB)
  = case matchRecog (isDashedObsExpr d) pAs of
    Just (pre,Atm e',post)
     -> lred "bool-;-switch"
-       $ Seq (And (pre++post)) $ And [Atm $ unDash e', pB]
+       $ Comp "Seq" (Comp "And" (pre++post)) $ Comp "And" [Atm $ unDash e', pB]
    Nothing ->
     case matchRecog (isAfterEqToConst d) pAs of
      Just (pre,Equal (Var x') k,post)
       -> let x = init x'
          in lred "const-;-prop"
-            $ Seq (And (pre++post))
-                   $ And [Equal (Var x) k,PSub pB [(x,k)]]
+            $ Comp "Seq" (Comp "And" (pre++post))
+                   $ Comp "And" [Equal (Var x) k,PSub pB [(x,k)]]
      Nothing  ->  lred "" pr
 \end{code}
 
@@ -252,28 +280,28 @@ reduceUTCP d pr = lred "" pr
 Now we hard-code semantic definitions, starting with a dispatch function,
 and then defining each replacement.
 \begin{code}
-defnUTCP :: Ord s => Pred s -> RWResult s
+defnUTCP :: Ord s => Pred m s -> (String, Pred m s)
 
-defnUTCP Skip                =  ldefn "II" defnII
-defnUTCP (PAtm a)            =  ldefn "A" $ defnAtomic a
-defnUTCP PIdle               =  ldefn "Idle" $ defnIdle
-defnUTCP (PSeq p q)          =  ldefn ";;" $ defnSeq p q
-defnUTCP (PPar p q)          =  ldefn "||" $ defnPar p q
-defnUTCP (PCond c p q)       =  ldefn "<$>" $ defnCond c p q
-defnUTCP (PIter c p)         =  ldefn "<*>" $ defnIter c p
-defnUTCP (PFun "run"   [p])  =  ldefn "run.3" $ defnRun 3 p
-defnUTCP (PFun "run.1" [p])  =  ldefn "run.1" $ defnRun 1 p
-defnUTCP (PFun "run.2" [p])  =  ldefn "run.2" $ defnRun 2 p
-defnUTCP (PFun "run.3" [p])  =  ldefn "run.3" $ defnRun 3 p
-defnUTCP (PFun "do" [p])     =  ldefn "do" $ defnDo p
+defnUTCP (Comp "Skip" [])        =  ldefn "II" defnUTCPII
+defnUTCP (Comp "PAtm" [a])       =  ldefn "A" $ defnAtomic a
+defnUTCP (Comp "PIdle" [])       =  ldefn "Idle" $ defnIdle
+defnUTCP (Comp "PSeq" [p,q])     =  ldefn ";;" $ defnSeq p q
+defnUTCP (Comp "PPar" [p,q])     =  ldefn "||" $ defnPar p q
+defnUTCP (Comp "PCond" [c,p,q])  =  ldefn "<$>" $ defnCond c p q
+defnUTCP (Comp "PIter" [c,p])    =  ldefn "<*>" $ defnIter c p
+defnUTCP (Comp "run"   [p])      =  ldefn "run.3" $ defnRun 3 p
+defnUTCP (Comp "run.1" [p])      =  ldefn "run.1" $ defnRun 1 p
+defnUTCP (Comp "run.2" [p])      =  ldefn "run.2" $ defnRun 2 p
+defnUTCP (Comp "run.3" [p])      =  ldefn "run.3" $ defnRun 3 p
+defnUTCP (Comp "do" [p])         =  ldefn "do" $ defnDo p
 
 -- specialised "definition" !!! Actually a law.
-defnUTCP (PSub (PAtm a) subs)
+defnUTCP (PSub (Comp "PAtm" [a]) subs)
                          =  lred "sub-atomic" $ substnAtomic a subs
 
 defnUTCP pr                  =  ldefn "" pr
 
-ldefn :: String -> Pred s -> RWResult s
+ldefn :: String -> Pred m s -> RWResult m s
 ldefn "" pr = ( "", pr )
 ldefn nm pr = ( "defn. of " ++ nm, pr )
 \end{code}

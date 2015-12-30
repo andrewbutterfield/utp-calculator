@@ -132,6 +132,7 @@ and introduce the following observation variables:
    in, out &:& Label
 \\ ls, ls' &:& \power Label
 \\ s, s' &:& State
+\\ AlfState &=& Label^2 \times (\power Label)^2 \times State
 }
 The observations $in$ and $out$ have no dashed counterparts,
 as they are static parameters that do not change over time.
@@ -143,7 +144,9 @@ viewed as a before-after relation on $State$:
 \RLEQNS{
    A(s,s') &:& State \rel State
 }
-We can wrap this into an atomic concurrent action by adding in
+We lift this into an atomic concurrent action over the full alphabet
+using $\A$,
+by defining
 the appropriate behaviour w.r.t to $in$, $out$, $ls$ and $ls'$:
 \RLEQNS{
    \A(A)
@@ -276,6 +279,7 @@ Formally, using our shorthand notations, we can define atomic behaviour as:
     \A(A) &\defs& ls(in) \land A \land ls'=ls\ominus(in,out)
 }
 \begin{code}
+patm atom = comp "PAtm" [atom]
 defnAtomic a = bAnd [lsin,a,ls'eqlsinout]
 lsin = atm $ App subsetn [inp,ls]
 lsinout = App sswapn [ls,inp,out]
@@ -288,6 +292,7 @@ A special case of this is the $Idle$ construct:
 \\      &=& s(in) \land s'=s \land ls'=ls\ominus(in,out)
 }
 \begin{code}
+pidle = comp "PIdle" []
 defnIdle = equal s' s
 \end{code}
 
@@ -513,6 +518,7 @@ as we did with $in$ and $out$ (\figref{fig:seq-actual:view}).
 }
 \newpage
 \begin{code}
+pseq = comp "PSeq"
 defnSeq p q = bOr [psub p sub1, psub q sub2]
  where
    sub1 = [("g",g'1),("out",lg)]
@@ -596,6 +602,7 @@ and $Merge(\ell_{g1:},\ell_{g2:})$
 \\&& {} \lor ls(\ell_{g1:},\ell_{g2:}) \land s'=s \land ls'=ls\ominus(\setof{\ell_{g1:},\ell_{g2:}},out)
 }
 \begin{code}
+ppar = comp "PPar"
 defnPar p q = bOr [split, psub p sub1, psub q sub2, merge]
  where
    split = bAnd [ lsin
@@ -642,6 +649,7 @@ converts $in$ into $\ell_{g1}$ or $\ell_{g2}$ as determined by the condition
 \\&& {} \lor Q[\g{2:},\ell_{g2}/g,in]
 }
 \begin{code}
+pcond = comp "PCond"
 defnCond c p q = bOr [ cnd lg1 c,cnd lg2 $ bNot c
                     , psub p sub1, psub q sub2
                     ]
@@ -676,6 +684,7 @@ as we view it as a conditional loop unrolling
 \\&& {} \lor P[\g{:},\ell_{g},in/g,in,out]
 }
 \begin{code}
+piter = comp "PIter"
 defnIter c p = bOr [loop (bNot c) out, loop c lg, psub p sb]
  where
    loop c ell = bAnd [ lsin
