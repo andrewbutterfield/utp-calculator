@@ -153,23 +153,22 @@ This means that \texttt{dftlyP} is not equal to \texttt{not . dftlyNotP}.
 
 Mostly, we want to know if $x \notin P$.
 \begin{code}
-dftlyNotInP :: Dict m s -> String -> Pred m s -> Bool
+dftlyNotInP :: Dict m s -> String -> MPred m s -> Bool
 
-dftlyNotInP d v (PVar p)
+dftlyNotInP d v (_,PVar p)
  = case vlookup p d of
     Just (PVarEntry alf_p)  ->  not (v `elem` alf_p)
     _                       ->  False
 
-dftlyNotInP d v (Equal e1 e2)
+dftlyNotInP d v (_,Equal e1 e2)
                       = dftlyNotInE d v e1 && dftlyNotInE d v e2
-dftlyNotInP d v (Atm e) = dftlyNotInE d v e
+dftlyNotInP d v (_,Atm e) = dftlyNotInE d v e
 
-dftlyNotInP _ _ T = True
-dftlyNotInP _ _ F = True
-dftlyNotInP d v (Comp _ mprs)
-                          = all (dftlyNotInP d v) $ map snd mprs
+dftlyNotInP _ _ (_,T) = True
+dftlyNotInP _ _ (_,F) = True
+dftlyNotInP d v (_,Comp _ mprs) = all (dftlyNotInP d v) mprs
 
-dftlyNotInP d v (PSub mpr sub) = False -- for now
+dftlyNotInP d v (_,PSub mpr sub) = False -- for now
 
 dftlyNotInP _ _ _ = False -- not true, or can't tell !
 \end{code}

@@ -279,8 +279,11 @@ Formally, using our shorthand notations, we can define atomic behaviour as:
     \A(A) &\defs& ls(in) \land A \land ls'=ls\ominus(in,out)
 }
 \begin{code}
+patm :: MPred m s -> MPred m s
 patm atom = comp "PAtm" [atom]
-defnAtomic a = bAnd [lsin,a,ls'eqlsinout]
+defnAtomic :: MPred m s -> Pred m s
+defnAtomic a = mkAnd [lsin,a,ls'eqlsinout]
+
 lsin = atm $ App subsetn [inp,ls]
 lsinout = App sswapn [ls,inp,out]
 ls'eqlsinout = equal ls' lsinout
@@ -292,8 +295,10 @@ A special case of this is the $Idle$ construct:
 \\      &=& s(in) \land s'=s \land ls'=ls\ominus(in,out)
 }
 \begin{code}
+pidle :: MPred m s
 pidle = comp "PIdle" []
-defnIdle = equal s' s
+defnIdle :: Pred m s
+defnIdle = Equal s' s
 \end{code}
 
 Given that $\alpha A = \setof{s,s'}$, we have:
@@ -309,7 +314,7 @@ Here the notation $[\vec e/\vec x]\!|_V$ denotes the substitution restricted
 to the variables in $V$.
 \begin{code}
 substnAtomic d a subs
-  = bAnd (psub a rsubs 
+  = mkAnd (psub a rsubs 
           : map (noMark . snd . psubst startm d subs) 
                                            [lsin, ls'eqlsinout])
   where rsubs = filter ((`elem` ["s","s'"]) . fst) subs
@@ -518,8 +523,10 @@ as we did with $in$ and $out$ (\figref{fig:seq-actual:view}).
 }
 \newpage
 \begin{code}
+pseq :: [MPred m s] -> MPred m s
 pseq = comp "PSeq"
-defnSeq p q = bOr [psub p sub1, psub q sub2]
+defnSeq :: Ord s => MPred m s -> MPred m s -> Pred m s
+defnSeq p q = mkOr [psub p sub1, psub q sub2]
  where
    sub1 = [("g",g'1),("out",lg)]
    sub2 = [("g",g'2),("in",lg)]
@@ -602,8 +609,10 @@ and $Merge(\ell_{g1:},\ell_{g2:})$
 \\&& {} \lor ls(\ell_{g1:},\ell_{g2:}) \land s'=s \land ls'=ls\ominus(\setof{\ell_{g1:},\ell_{g2:}},out)
 }
 \begin{code}
+ppar :: [MPred m s] -> MPred m s
 ppar = comp "PPar"
-defnPar p q = bOr [split, psub p sub1, psub q sub2, merge]
+defnPar :: Ord s => MPred m s -> MPred m s -> Pred m s
+defnPar p q = mkOr [split, psub p sub1, psub q sub2, merge]
  where
    split = bAnd [ lsin
                , equal s' s
@@ -649,10 +658,11 @@ converts $in$ into $\ell_{g1}$ or $\ell_{g2}$ as determined by the condition
 \\&& {} \lor Q[\g{2:},\ell_{g2}/g,in]
 }
 \begin{code}
+pcond :: [MPred m s] -> MPred m s
 pcond = comp "PCond"
-defnCond c p q = bOr [ cnd lg1 c,cnd lg2 $ bNot c
-                    , psub p sub1, psub q sub2
-                    ]
+defnCond :: Ord s => MPred m s -> MPred m s -> MPred m s -> Pred m s
+defnCond c p q = mkOr [ cnd lg1 c,cnd lg2 $ bNot c
+                      , psub p sub1, psub q sub2 ]
  where
    cnd ell c  = bAnd [ lsin
                     , equal s' s
@@ -684,8 +694,10 @@ as we view it as a conditional loop unrolling
 \\&& {} \lor P[\g{:},\ell_{g},in/g,in,out]
 }
 \begin{code}
+piter :: [MPred m s] -> MPred m s
 piter = comp "PIter"
-defnIter c p = bOr [loop (bNot c) out, loop c lg, psub p sb]
+defnIter :: Ord s => MPred m s -> MPred m s -> Pred m s
+defnIter c p = mkOr [loop (bNot c) out, loop c lg, psub p sb]
  where
    loop c ell = bAnd [ lsin
                      , equal s' s
@@ -707,6 +719,7 @@ until a suitable (label-based) termination condition is reached.
 We shall denote by $run(P)$ the result of adding dynamism
 to a static view $P$ in this way.
 \begin{code}
+run :: MPred m s -> MPred m s
 run p = comp "run" [p]
 \end{code}
 
@@ -740,13 +753,15 @@ which we also expand a few times.
 }
 Note that neither $in$, $out$ nor $ls$ are free in $run(P)$.
 \begin{code}
-defnRun 3 p = bSeq (runFirst p) (runLoop p)
-defnRun 2 p = bSeq (psub (runBody p) [("ls",lg)]) (runLoop p)
-defnRun _ p = psub (runLoop p) [("ls",lg)]
+defnRun :: Ord s => Int -> MPred m s -> Pred m s
+defnRun 3 p = mkSeq (runFirst p) (runLoop p)
+defnRun 2 p = mkSeq (psub (runBody p) [("ls",lg)]) (runLoop p)
+defnRun _ p = mkPSub (runLoop p) [("ls",lg)]
 
 runFirst p = psub p [("g",g''),("in",lg),("out",lg'),("ls",lg)]
 runBody p  = psub p [("g",g''),("in",lg),("out",lg')]
 runLoop p  = bIter (bNot $ atm $ subset (mkSet [lg']) ls) (runBody p)
+
 lg' = new1 g'
 g'' = new2 g'
 \end{code}
@@ -757,8 +772,10 @@ that $in$, $out$ and $ls$ are initialised appropriately.
     do(P) &\defs& in=\ell_g \land out=\ell_{g:} \land ls=\ell_g \land run(P)
 }
 \begin{code}
-defnDo p = bAnd [ equal inp lg, equal out lg', equal ls lg, run p ]
+doprog :: MPred m s -> MPred m s
 doprog p = comp "do" [p] -- "do" is a Haskell keyword
+defnDo :: MPred m s -> Pred m s
+defnDo p = mkAnd [ equal inp lg, equal out lg', equal ls lg, run p ]
 \end{code}
 
 
