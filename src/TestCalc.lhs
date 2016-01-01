@@ -22,6 +22,7 @@ import StdLaws
 import UTCPSemantics
 import UTCPLaws
 import UTCPCReduce
+import UTCPCalc
 \end{code}
 
 \HDRb{Default Mark Type}
