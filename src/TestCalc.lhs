@@ -21,6 +21,7 @@ import CalcSteps
 import StdLaws
 import UTCPSemantics
 import UTCPLaws
+import UTCPCReduce
 \end{code}
 
 \HDRb{Default Mark Type}
@@ -287,8 +288,8 @@ Iteration  satisfies the loop-unrolling law:
 \]
 \begin{code}
 unrollTst :: (Ord s, Mark m) => DictRWFun m s
-unrollTst d mw@(_,Comp "Iter"  [mc@(_,c), mpr])
- | isCondition c
+unrollTst d mw@(_,Comp "Iter"  [mc, mpr])
+ | isCondition mc
            = ( "loop-unroll"
              , bCond (bSeq mpr mw) mc bSkip )
 unrollTst _ mpr = ("", mpr)

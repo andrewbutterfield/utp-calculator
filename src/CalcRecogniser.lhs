@@ -132,8 +132,8 @@ unDash, dash :: Ord s => Expr s -> Expr s
 unDash = mapEV remDash
 dash = mapEV addDash
 
-isCondition :: Ord s => Pred m s -> Bool
-isCondition = allPV notDash
+isCondition :: Ord s => MPred m s -> Bool
+isCondition = allPV notDash . snd
 \end{code}
 
 

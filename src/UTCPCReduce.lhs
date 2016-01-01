@@ -1,8 +1,13 @@
 \HDRa{UTCP Conditional Reducer}\label{ha:UTCP-cond:reduce}
 \begin{code}
 module UTCPCReduce where
+import CalcTypes
+import CalcAlphabets
 import CalcPredicates
+import CalcSimplify
 import CalcSteps
+import CalcRecogniser
+import StdPredicates
 import UTCPSemantics
 \end{code}
 
@@ -13,7 +18,7 @@ that is hard to evaluate.
 The user elects which one to use by checking the conditions manually.
 
 \begin{code}
-creduceUTCP :: (Show s, Ord s) => Dict s -> CCalcStep s
+creduceUTCP :: (Mark m, Show s, Ord s) => CDictRWFun m s
 \end{code}
 
 \HDRc{pre- and before-substitutions}
@@ -27,11 +32,22 @@ preSublet (v,e) = notDash v && notDashed e
 preSub :: Ord s => Substn s -> Bool
 preSub = all preSublet
 
-beforeSublet :: Ord s => Dict s -> ( String, Expr s ) -> Bool
+beforeSublet :: Ord s => Dict m s -> ( String, Expr s ) -> Bool
 beforeSublet d (v,e) = isDyn d v && notDashed e
 
-beforeSub :: Ord s => Dict s -> Substn s -> Bool
+beforeSub :: Ord s => Dict m s -> Substn s -> Bool
 beforeSub d = all (beforeSublet d)
+\end{code}
+
+\HDRc{Predicate Simplifier}
+ Sometimes we want to simplify a predicate without fuss
+(marking or comment):
+\begin{code}
+psimp :: (Mark m, Ord s, Show s) 
+      => Dict m s -> MPred m s -> Pred m s
+psimp d = snd . thd . simplify d startm
+
+thd (_,_,z) = z
 \end{code}
 
 
@@ -48,14 +64,15 @@ beforeSub d = all (beforeSublet d)
     = \false
 }
 \begin{code}
-creduceUTCP d (PSub (PAtm pA) [("in",l0),("out",l1),("ls",ns)])
+creduceUTCP d (_,PSub (_,Comp "PAtm" [pA]) 
+                      [("in",l0),("out",l1),("ls",ns)] )
  = lcred "atm-substn" [doA,nowt]
  where
-   nsl0 = Atm $ subset l0 ns
+   nsl0 = atm $ subset l0 ns
    doA  = ( psimp d nsl0
-          , And [pA, Equal ls' $ sswap ns l0 l1 ] )
-   nowt = ( psimp d $ Not nsl0
-          , F )
+          , bAnd [pA, equal ls' $ sswap ns l0 l1 ] )
+   nowt = ( psimp d $ bNot nsl0
+          , false )
 \end{code}
 
 \HDRc{Before-Var Iteration substitution}
@@ -101,15 +118,15 @@ Provided that $\vec x \subseteq in\alpha P$
    (c * P)[\vec e/\vec x] = \Skip[\vec e/\vec x]
 }
 \begin{code}
-creduceUTCP d (PSub w@(Iter c p) sub)
+creduceUTCP d (_,PSub w@(_,Comp "Iter" [c,p]) sub)
  | isCondition c && beforeSub d sub
  = lcred "loop-substn" [ctrue,cfalse]
  where
-   csub = PSub c sub
+   csub = psub c sub
    ctrue  = ( psimp d csub
-            , Seq (PSub p sub) w )
-   cfalse = ( psimp d $ Not csub
-            , PSub Skip sub )
+            , bSeq (psub p sub) w )
+   cfalse = ( psimp d $ bNot csub
+            , psub bSkip sub )
 \end{code}
 
 \HDRc{Before-Var Condition substitution}
@@ -124,22 +141,23 @@ Provided that $\vec x$ are undashed:
    (P \cond c Q)[\vec e/\vec x] = Q[\vec e/\vec x]
 }
 \begin{code}
-creduceUTCP d (PSub (Cond c p q) sub)
+creduceUTCP d (_,PSub (_,Comp "Cond" [c,p,q]) sub)
  | isCondition c && preSub sub
  = lcred "cond-substn" [ctrue,cfalse]
  where
-   csub = PSub c sub
+   csub = psub c sub
    ctrue  = ( psimp d csub
-            , PSub p sub)
-   cfalse = ( psimp d $ Not csub
-            , PSub q sub )
+            , psub p sub)
+   cfalse = ( psimp d $ bNot csub
+            , psub q sub )
 \end{code}
 
 \HDRc{Boolean followed by iteration}
 
 Provided $\fv{b'} \subseteq \setof{s',ls'}$, $x'$ is an observation, and $k$ is ground
 \begin{code}
-creduceUTCP d pr@(Seq a@(And prs) w@(Iter c pB))
+creduceUTCP d mpr@(_,Comp "Seq" [ a@(_,Comp "And" prs) 
+                                , w@(_,Comp "Iter" [c,pB]) ])
  | isCondition c
 
 \end{code}
@@ -149,12 +167,12 @@ creduceUTCP d pr@(Seq a@(And prs) w@(Iter c pB))
 }
 \begin{code}
    = case matchRecog (isDashedObsExpr d) prs of
-     Just (pre,Atm e',post)
+     Just (pre,(_,Atm e'),post)
       -> let
-          e = Atm $ unDash e'
-          continue = ( psimp d $ Imp e c
-                     , Seq (Seq (And (pre++post)) (And [e, pB])) w)
-          stop     = ( psimp d $ Imp e (Not c)
+          e = atm $ unDash e'
+          continue = ( psimp d $ bImp e c
+                     , bSeq (bSeq (bAnd (pre++post)) (bAnd [e, pB])) w)
+          stop     = ( psimp d $ bImp e (bNot c)
                      , a )
          in lcred "loop-step" [continue,stop]
 \end{code}
@@ -174,23 +192,23 @@ creduceUTCP d pr@(Seq a@(And prs) w@(Iter c pB))
 \begin{code}
      Nothing ->
       case matchRecog (isAfterEqToConst d) prs of
-       Just (pre,(Equal (Var x') k),post)
+       Just (pre,(_,Equal (Var x') k),post)
         -> let
             x = init x'
-            e = Equal (Var x) k
-            stop     = ( psimp d $ Imp e (Not c)
+            e = equal (Var x) k
+            stop     = ( psimp d $ bImp e (bNot c)
                        , a )
-            continue = ( psimp d $ Imp e c
-                       , Seq a
-                             (Seq (PSub pB [(x,k)])
-                                  w ))
+            continue = ( psimp d $ bImp e c
+                       , bSeq a
+                             (bSeq (psub pB [(x,k)])
+                                   w ))
            in lcred "obs'-;-*-prop" [continue,stop]
-       Nothing -> lcred "" [(T,pr)]
+       Nothing -> lcred "" [(T,mpr)]
 \end{code}
 
 Other cases, do nothing:
 \begin{code}
-creduceUTCP d pr = lcred "" [(T,pr)]
+creduceUTCP d mpr = lcred "" [(T,mpr)]
 
-lcred nm cprs = ( nm, cprs )
+lcred nm cmprs = ( nm, cmprs )
 \end{code}
