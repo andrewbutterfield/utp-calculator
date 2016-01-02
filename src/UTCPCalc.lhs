@@ -11,6 +11,7 @@ import PrettyPrint
 import CalcTypes
 import CalcPredicates
 import CalcSteps
+import StdPredicates
 import UTCPSemantics
 import UTCPLaws
 import UTCPCReduce
@@ -20,52 +21,50 @@ import CalcRun
 We now define useful bits:
 The static dictionary, and some useful pre-defined variables
 \begin{code}
-true = B True
-false = B False
-
-c = Var "c"
 
 -- arithmetic examples
-(x,y,z) = (Var "x", Var "y", Var "z")
-[add,sub,mul,dvd] = map (\ f -> App f [x,y]) ["+","-","*","/"]
-subs1 = [("x",y),("y",x)]
-subs2 = [("x",mul),("y",dvd),("z",add)]
+-- (x,y,z) = (Var "x", Var "y", Var "z")
+-- [add,sub,mul,dvd] = map (\ f -> App f [x,y]) ["+","-","*","/"]
+-- subs1 = [("x",y),("y",x)]
+-- subs2 = [("x",mul),("y",dvd),("z",add)]
 
-a = PVar "A"; aa = PAtm a
-b = PVar "B"; ab = PAtm b
-cp = Atm c
-athenb = PSeq aa ab; awithb = PPar aa ab
-acondb = PCond cp aa ab
-doa = PIter cp aa
-p = PVar "P" ; q = PVar "Q" ; r=PVar "R"
-pthenq = PSeq p q
-pwithq = PPar p q
-pcondq = PCond cp p q
-dop = PIter cp p
+a = pvar "A"; aa = patm a
+b = pvar "B"; ab = patm b
+c = Var  "c"; cp = atm  c
+athenb = pseq [aa,ab]
+awithb = ppar [aa,ab]
+acondb = pcond [cp,aa,ab]
+doa = piter [cp,aa]
+
+p = pvar "P" ; q = pvar "Q" ; r=pvar "R"
+pthenq = pseq [p,q]
+pwithq = ppar [p,q]
+pcondq = pcond [cp,p,q]
+dop = piter [cp,p]
 
 catalog = putStr $ unlines (map catshow
  [
-   ("a",a)  -- PVar "A";
- , ("aa",aa)  -- PAtm a
- , ("b",b)  -- PVar "B";
- , ("ab",ab)  -- PAtm b
- , ("cp",cp)  -- Atm c
- , ("athenb",athenb)  -- PSeq aa ab;
- , ("awithb",awithb)  -- PPar aa ab
- , ("acondb",acondb)  -- PCond cp aa ab
- , ("doa",doa)  -- PIter cp aa
- , ("p",p)  -- PVar "P"
- , ("q",q)  -- PVar "Q"
- , ("r",r)  -- PVar "R"
- , ("pthenq",pthenq)  -- PSeq p q
- , ("pwithq",pwithq)  -- PPar p q
- , ("pcondq",pcondq)  -- PCond cp p q
- , ("dop",dop)  -- PIter cp p
+   ("a",a)  -- pvar "A";
+ , ("aa",aa)  -- patm a
+ , ("b",b)  -- pvar "B";
+ , ("ab",ab)  -- patm b
+ , ("cp",cp)  -- atm c
+ , ("athenb",athenb)  -- pseq aa ab;
+ , ("awithb",awithb)  -- ppar aa ab
+ , ("acondb",acondb)  -- pcond cp aa ab
+ , ("doa",doa)  -- piter cp aa
+ , ("p",p)  -- pvar "P"
+ , ("q",q)  -- pvar "Q"
+ , ("r",r)  -- pvar "R"
+ , ("pthenq",pthenq)  -- pseq p q
+ , ("pwithq",pwithq)  -- ppar p q
+ , ("pcondq",pcondq)  -- pcond cp p q
+ , ("dop",dop)  -- piter cp p
  ] ++ usage)
 
-catshow ::(String, Pred ()) -> String
-catshow (name,pr) = name ++ " ... " ++ showUTCP pr
-xx = PVar "??"
+catshow :: (String, MPred Int ()) -> String
+catshow (name,mpr) = name ++ " ... " ++ showUTCP mpr
+xx = pvar "??"
 
 usage
  = [ "'run' and 'doprog' wrap predicates in the top-level execution loop"
@@ -74,28 +73,14 @@ usage
    ]
 \end{code}
 
-Now some sample expanded definitions:
-\begin{code}
-par,big :: Ord s => Pred s
-par = defnPar Skip Skip
-big = defnPar (defnSeq Skip defnII) (defnSeq defnII Skip)
-\end{code}
-
 
 \HDRb{The UTCP Theory}
 Our theory:
 \begin{code}
-dictUTCP :: (Eq s, Ord s, Show s) => Dict s
+dictUTCP :: (Eq s, Ord s, Show s) => Dict m s
 dictUTCP
  = foldl1 dictMrg [ M.fromList [(version,AlfEntry [versionUTCP])]
                   , alfDict, setDict, genDict ]
 
-showUTCP pr  = pdshow dictUTCP pr
-
-stepsUTCP :: (Ord s, Show s) => ThSteps s
-stepsUTCP = TS reduceUTCP defnUTCP creduceUTCP
-
-calculemus :: (Ord s, Show s)
-           => Pred s -> IO ( Pred s, [RWResult s], Dict s )
-calculemus pr = calcREPL stepsUTCP dictUTCP pr
+showUTCP (_,pr)  = pdshow 80 dictUTCP pr
 \end{code}
