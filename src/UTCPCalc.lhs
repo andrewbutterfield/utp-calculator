@@ -80,7 +80,7 @@ Our theory:
 dictUTCP :: (Eq s, Ord s, Show s) => Dict m s
 dictUTCP
  = foldl1 dictMrg [ M.fromList [(version,AlfEntry [versionUTCP])]
-                  , alfDict, setDict, genDict ]
+                  , alfUTCPDict, setUTCPDict, genUTCPDict ]
 
 showUTCP (_,pr)  = pdshow 80 dictUTCP pr
 \end{code}

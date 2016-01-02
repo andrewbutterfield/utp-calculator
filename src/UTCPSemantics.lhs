@@ -86,7 +86,7 @@ We define our dictionary alphabet entries,
 and also declare that the predicate variables $A$, $B$ and $C$
 will refer to atomic state-changes, and so only have alphabet $\setof{s,s'}$.
 \begin{code}
-alfDict
+alfUTCPDict
  = M.unionWith mergeEntry dictAlpha dictAtomic
  where
    dictAlpha = stdAlfDictGen ["s"] ["ls"] ["g","in","out"]
@@ -263,9 +263,9 @@ Label Swap:
 
 The Set Dictionary:
 \begin{code}
-setDict :: (Eq s, Ord s, Show s) => Dict m s
-setDict
- = M.fromList 
+setUTCPDict :: (Eq s, Ord s, Show s) => Dict m s
+setUTCPDict
+ = M.fromList
     [ (subsetn,(ExprEntry True showSubSet evalSubset))
     , (sswapn, (ExprEntry True showSSwap evalSSwap))
     ]
@@ -314,8 +314,8 @@ Here the notation $[\vec e/\vec x]\!|_V$ denotes the substitution restricted
 to the variables in $V$.
 \begin{code}
 substnAtomic d a subs
-  = mkAnd (psub a rsubs 
-          : map (noMark . snd . psubst startm d subs) 
+  = mkAnd (psub a rsubs
+          : map (noMark . snd . psubst startm d subs)
                                            [lsin, ls'eqlsinout])
   where rsubs = filter ((`elem` ["s","s'"]) . fst) subs
 \end{code}
@@ -480,9 +480,9 @@ so we have the following law:
 }
 We can now define a generator dictionary:
 \begin{code}
-genDict :: (Eq s, Ord s, Show s) => Dict m s
-genDict
- = M.fromList 
+genUTCPDict :: (Eq s, Ord s, Show s) => Dict m s
+genUTCPDict
+ = M.fromList
     [ (new1n,(ExprEntry True showGNew1 $ does "new1" gNew1))
     , (new2n,(ExprEntry True showGNew2 $ does "new2" gNew2))
     , (split1n,(ExprEntry True showGSplit1 $ does "split1" gSplit1))
