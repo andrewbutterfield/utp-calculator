@@ -294,4 +294,4 @@ doUnr d m mpr (rf:rfs)
 \end{code}
 
 Hmmmm, all of the above could be abstracted down to one thing...
-(Even more if we make everyting use \texttt{BeforeAfters}.
+(Even more if we make everything use \texttt{BeforeAfters}.
