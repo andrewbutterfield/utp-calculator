@@ -4,8 +4,14 @@ module UTCPSemantics where
 import Utilities
 import qualified Data.Map as M
 import Data.List
+import CalcTypes
+import CalcAlphabets
 import CalcPredicates
+import CalcSimplify
+import CalcRecogniser
 import CalcSteps
+import StdPrecedences
+import StdPredicates
 \end{code}
 
 Version
@@ -80,7 +86,7 @@ We define our dictionary alphabet entries,
 and also declare that the predicate variables $A$, $B$ and $C$
 will refer to atomic state-changes, and so only have alphabet $\setof{s,s'}$.
 \begin{code}
-alfDict
+alfUTCPDict
  = M.unionWith mergeEntry dictAlpha dictAtomic
  where
    dictAlpha = stdAlfDictGen ["s"] ["ls"] ["g","in","out"]
@@ -126,6 +132,7 @@ and introduce the following observation variables:
    in, out &:& Label
 \\ ls, ls' &:& \power Label
 \\ s, s' &:& State
+\\ AlfState &=& Label^2 \times (\power Label)^2 \times State
 }
 The observations $in$ and $out$ have no dashed counterparts,
 as they are static parameters that do not change over time.
@@ -137,7 +144,9 @@ viewed as a before-after relation on $State$:
 \RLEQNS{
    A(s,s') &:& State \rel State
 }
-We can wrap this into an atomic concurrent action by adding in
+We lift this into an atomic concurrent action over the full alphabet
+using $\A$,
+by defining
 the appropriate behaviour w.r.t to $in$, $out$, $ls$ and $ls'$:
 \RLEQNS{
    \A(A)
@@ -153,17 +162,22 @@ The situation with language composites is more complex, as we shall see.
 
 We use sets in two key ways:
 checking for membership/subset inclusion;
-and updating by removing elements
+and updating by removing elements.
+\begin{code}
+set = App "set"
+
+mkSet :: Ord s => [Expr s] -> Expr s
+mkSet = set . sort . nub
+\end{code}
 
 
 \HDRd{Set Membership}\label{hd:membership}~
-
 \begin{code}
 subsetn = "subset"
 subset e set = App subsetn [e,set]
-evalSubset d [Set es1,Set es2] = dosubset d es1 es2
-evalSubset d [es1,Set es2] = dosubset d [es1] es2
-evalSubset d [Set es1,es2] = dosubset d es1 [es2]
+evalSubset d [App "set" es1,App "set" es2] = dosubset d es1 es2
+evalSubset d [es1,App "set" es2] = dosubset d [es1] es2
+evalSubset d [App "set" es1,es2] = dosubset d es1 [es2]
 evalSubset d [es1,es2] = dosubset d [es1] [es2]
 evalSubset _ _ = none
 dosubset d es1 es2 -- is es1 a subset of es2 ?
@@ -207,9 +221,9 @@ This induces some funny looking laws:
 \\ x(y) &=& \false & \mbox{think: } y \in \setof x \mbox{ is false, if }y\neq x
 }
 \begin{code}
-showSubSet d [Set elms,Set [set]]
+showSubSet d [App "set" elms,App "set" [set]]
  = edshow d set ++ "(" ++ dlshow d "," elms ++ ")"
-showSubSet d [Set elms,set]
+showSubSet d [App "set" elms,set]
  = edshow d set ++ "(" ++ dlshow d "," elms ++ ")"
 showSubSet d [e,set]
  = edshow d set ++ "(" ++ edshow d e ++ ")"
@@ -238,7 +252,7 @@ evalSSwap d args@[starts,olds,news]
  | all (isGround d) args
  = setswap (setify starts) (setify olds) (setify news)
 evalSSwap _ _ = none
-setify (Set es) = es
+setify (App "set" es) = es
 setify e        = [e]
 setswap starts olds news
                    = ("sswap", mkSet ((starts\\olds)++news))
@@ -249,11 +263,11 @@ Label Swap:
 
 The Set Dictionary:
 \begin{code}
-setDict :: (Eq s, Ord s, Show s) => Dict s
-setDict
- = M.fromList $ mapsnd ExprEntry
-    [ (subsetn,(FD ["elms","set"] Undef showSubSet evalSubset))
-    , (sswapn,(FD ["start","old","new"] Undef showSSwap evalSSwap))
+setUTCPDict :: (Eq s, Ord s, Show s) => Dict m s
+setUTCPDict
+ = M.fromList
+    [ (subsetn,(ExprEntry True showSubSet evalSubset))
+    , (sswapn, (ExprEntry True showSSwap evalSSwap))
     ]
 \end{code}
 
@@ -265,10 +279,14 @@ Formally, using our shorthand notations, we can define atomic behaviour as:
     \A(A) &\defs& ls(in) \land A \land ls'=ls\ominus(in,out)
 }
 \begin{code}
-defnAtomic a = And [lsin,a,ls'eqlsinout]
-lsin = Atm $ App subsetn [inp,ls]
+patm :: MPred m s -> MPred m s
+patm atom = comp "PAtm" [atom]
+defnAtomic :: MPred m s -> Pred m s
+defnAtomic a = mkAnd [lsin,a,ls'eqlsinout]
+
+lsin = atm $ App subsetn [inp,ls]
 lsinout = App sswapn [ls,inp,out]
-ls'eqlsinout = Equal ls' lsinout
+ls'eqlsinout = equal ls' lsinout
 \end{code}
 
 A special case of this is the $Idle$ construct:
@@ -277,7 +295,10 @@ A special case of this is the $Idle$ construct:
 \\      &=& s(in) \land s'=s \land ls'=ls\ominus(in,out)
 }
 \begin{code}
-defnIdle = PAtm $ Equal s' s
+pidle :: MPred m s
+pidle = comp "PIdle" []
+defnIdle :: Pred m s
+defnIdle = Equal s' s
 \end{code}
 
 Given that $\alpha A = \setof{s,s'}$, we have:
@@ -292,8 +313,10 @@ Given that $\alpha A = \setof{s,s'}$, we have:
 Here the notation $[\vec e/\vec x]\!|_V$ denotes the substitution restricted
 to the variables in $V$.
 \begin{code}
-substnAtomic a subs
-  = And (mkPSub a rsubs : map (psubst subs) [lsin, ls'eqlsinout])
+substnAtomic d a subs
+  = mkAnd (psub a rsubs
+          : map (noMark . snd . psubst startm d subs)
+                                           [lsin, ls'eqlsinout])
   where rsubs = filter ((`elem` ["s","s'"]) . fst) subs
 \end{code}
 However, this can be subsumed by \eref{pvar-substn},
@@ -457,13 +480,13 @@ so we have the following law:
 }
 We can now define a generator dictionary:
 \begin{code}
-genDict :: (Eq s, Ord s, Show s) => Dict s
-genDict
- = M.fromList $ mapsnd ExprEntry
-    [ (new1n,(FD ["g"] Undef showGNew1 $ does "new1" gNew1))
-    , (new2n,(FD ["g"] Undef showGNew2 $ does "new2" gNew2))
-    , (split1n,(FD ["g"] Undef showGSplit1 $ does "split1" gSplit1))
-    , (split2n,(FD ["g"] Undef showGSplit2 $ does "split2" gSplit2))
+genUTCPDict :: (Eq s, Ord s, Show s) => Dict m s
+genUTCPDict
+ = M.fromList
+    [ (new1n,(ExprEntry True showGNew1 $ does "new1" gNew1))
+    , (new2n,(ExprEntry True showGNew2 $ does "new2" gNew2))
+    , (split1n,(ExprEntry True showGSplit1 $ does "split1" gSplit1))
+    , (split2n,(ExprEntry True showGSplit2 $ does "split2" gSplit2))
     ]
 \end{code}
 
@@ -500,7 +523,10 @@ as we did with $in$ and $out$ (\figref{fig:seq-actual:view}).
 }
 \newpage
 \begin{code}
-defnSeq p q = Or [mkPSub p sub1, mkPSub q sub2]
+pseq :: [MPred m s] -> MPred m s
+pseq = comp "PSeq"
+defnSeq :: Ord s => MPred m s -> MPred m s -> Pred m s
+defnSeq p q = mkOr [psub p sub1, psub q sub2]
  where
    sub1 = [("g",g'1),("out",lg)]
    sub2 = [("g",g'2),("in",lg)]
@@ -583,16 +609,19 @@ and $Merge(\ell_{g1:},\ell_{g2:})$
 \\&& {} \lor ls(\ell_{g1:},\ell_{g2:}) \land s'=s \land ls'=ls\ominus(\setof{\ell_{g1:},\ell_{g2:}},out)
 }
 \begin{code}
-defnPar p q = Or [split,mkPSub p sub1, mkPSub q sub2,merge]
+ppar :: [MPred m s] -> MPred m s
+ppar = comp "PPar"
+defnPar :: Ord s => MPred m s -> MPred m s -> Pred m s
+defnPar p q = mkOr [split, psub p sub1, psub q sub2, merge]
  where
-   split = And [ lsin
-               , Equal s' s
-               , Equal ls' (sswap ls inp $ mkSet [lg1,lg2]) ]
+   split = bAnd [ lsin
+               , equal s' s
+               , equal ls' (sswap ls inp $ mkSet [lg1,lg2]) ]
    sub1 = [("g",g1''),("in",lg1),("out",lg1')]
    sub2 = [("g",g2''),("in",lg2),("out",lg2')]
-   merge = And [ Atm $ subset (mkSet [lg1',lg2']) ls
-               , Equal s' s
-               , Equal ls' (sswap ls (mkSet[lg1',lg2']) out) ]
+   merge = bAnd [ atm $ subset (mkSet [lg1',lg2']) ls
+               , equal s' s
+               , equal ls' (sswap ls (mkSet[lg1',lg2']) out) ]
 \end{code}
 
 \newpage
@@ -629,14 +658,16 @@ converts $in$ into $\ell_{g1}$ or $\ell_{g2}$ as determined by the condition
 \\&& {} \lor Q[\g{2:},\ell_{g2}/g,in]
 }
 \begin{code}
-defnCond c p q = Or [ cnd lg1 c,cnd lg2 $ Not c
-                    , mkPSub p sub1, mkPSub q sub2
-                    ]
+pcond :: [MPred m s] -> MPred m s
+pcond = comp "PCond"
+defnCond :: Ord s => MPred m s -> MPred m s -> MPred m s -> Pred m s
+defnCond c p q = mkOr [ cnd lg1 c,cnd lg2 $ bNot c
+                      , psub p sub1, psub q sub2 ]
  where
-   cnd ell c  = And [ lsin
-                    , Equal s' s
+   cnd ell c  = bAnd [ lsin
+                    , equal s' s
                     , c
-                    , Equal ls' $ sswap ls inp ell ]
+                    , equal ls' $ sswap ls inp ell ]
    sub1 = [("g",g1'),("in",lg1)]
    sub2 = [("g",g2'),("in",lg2)]
 \end{code}
@@ -663,12 +694,15 @@ as we view it as a conditional loop unrolling
 \\&& {} \lor P[\g{:},\ell_{g},in/g,in,out]
 }
 \begin{code}
-defnIter c p = Or [loop (Not c) out, loop c lg, mkPSub p sb]
+piter :: [MPred m s] -> MPred m s
+piter = comp "PIter"
+defnIter :: Ord s => MPred m s -> MPred m s -> Pred m s
+defnIter c p = mkOr [loop (bNot c) out, loop c lg, psub p sb]
  where
-   loop c ell = And [ lsin
-                     , Equal s' s
+   loop c ell = bAnd [ lsin
+                     , equal s' s
                      , c
-                     , Equal ls' $ sswap ls inp ell ]
+                     , equal ls' $ sswap ls inp ell ]
    sb = [("g",g'),("in",lg),("out",inp)]
 \end{code}
 
@@ -685,7 +719,8 @@ until a suitable (label-based) termination condition is reached.
 We shall denote by $run(P)$ the result of adding dynamism
 to a static view $P$ in this way.
 \begin{code}
-run p = PFun "run" [p]
+run :: MPred m s -> MPred m s
+run p = comp "run" [p]
 \end{code}
 
 We produce $run(P)$ by using the generator $g$
@@ -718,13 +753,15 @@ which we also expand a few times.
 }
 Note that neither $in$, $out$ nor $ls$ are free in $run(P)$.
 \begin{code}
-defnRun 3 p = Seq (runFirst p) (runLoop p)
-defnRun 2 p = Seq (mkPSub (runBody p) [("ls",lg)]) (runLoop p)
-defnRun _ p = PSub (runLoop p) [("ls",lg)]
+defnRun :: Ord s => Int -> MPred m s -> Pred m s
+defnRun 3 p = mkSeq (runFirst p) (runLoop p)
+defnRun 2 p = mkSeq (psub (runBody p) [("ls",lg)]) (runLoop p)
+defnRun _ p = mkPSub (runLoop p) [("ls",lg)]
 
-runFirst p = mkPSub p [("g",g''),("in",lg),("out",lg'),("ls",lg)]
-runBody p  = mkPSub p [("g",g''),("in",lg),("out",lg')]
-runLoop p  = Iter (Not $ Atm $ subset (mkSet [lg']) ls) (runBody p)
+runFirst p = psub p [("g",g''),("in",lg),("out",lg'),("ls",lg)]
+runBody p  = psub p [("g",g''),("in",lg),("out",lg')]
+runLoop p  = bIter (bNot $ atm $ subset (mkSet [lg']) ls) (runBody p)
+
 lg' = new1 g'
 g'' = new2 g'
 \end{code}
@@ -735,8 +772,10 @@ that $in$, $out$ and $ls$ are initialised appropriately.
     do(P) &\defs& in=\ell_g \land out=\ell_{g:} \land ls=\ell_g \land run(P)
 }
 \begin{code}
-defnDo p = And [ Equal inp lg, Equal out lg', Equal ls lg, run p ]
-doprog p = PFun "do" [p] -- "do" is a Haskell keyword
+doprog :: MPred m s -> MPred m s
+doprog p = comp "do" [p] -- "do" is a Haskell keyword
+defnDo :: MPred m s -> Pred m s
+defnDo p = mkAnd [ equal inp lg, equal out lg', equal ls lg, run p ]
 \end{code}
 
 

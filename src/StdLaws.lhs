@@ -161,7 +161,7 @@ reduceStd d
  (_,Comp "Seq" [ (_,Comp "And" mprs), mpr ])
  | all (isAfterEqToConst d) mprs
    && sort (map getLVar mprs) == sort (getAlpha aDyn' d)
- = lred "all-x'=k-;-init" $ bPSub mpr $ map eqToSub mprs
+ = lred "all-x'=k-;-init" $ psub mpr $ map eqToSub mprs
  where
    getLVar (_,Equal (Var x') _) = x'
 \end{code}
@@ -178,13 +178,13 @@ reduceStd d (_, Comp "Seq" [(_,Comp "And" mpAs), mpB])
 
  | isJust match1
      = lred "bool-;-switch"
-        $ bSeq (bAnd (pre1++post1)) $ bAnd [bAtm $ unDash e', mpB]
+        $ bSeq (bAnd (pre1++post1)) $ bAnd [atm $ unDash e', mpB]
 
  | isJust match2
      = let x = init x'
        in lred "const-;-prop"
            $ bSeq (bAnd (pre2++post2))
-                $ bAnd [bEqual (Var x) k,bPSub mpB [(x,k)]]
+                $ bAnd [equal (Var x) k,psub mpB [(x,k)]]
  where
 
    match1 = matchRecog (isDashedObsExpr d) mpAs
