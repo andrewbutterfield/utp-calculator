@@ -4,6 +4,7 @@ module UTCPSemantics where
 import Utilities
 import qualified Data.Map as M
 import Data.List
+import PrettyPrint
 import CalcTypes
 import CalcAlphabets
 import CalcPredicates
@@ -17,6 +18,29 @@ import StdPredicates
 Version
 \begin{code}
 versionUTCP = "UTCP-0.6"
+\end{code}
+
+\HDRb{UTCP Syntax}
+
+\RLEQNS{
+   A,B \in Action &:& State \rel State & \say{Atomic state transformer}
+\\ p,q \in UTCP
+   &::=& Idle & \say{Do nothing}
+\\ &|& \A(A) & \say{Atomic process}
+\\ &|& p \lseq q & \say{Sequential composition}
+\\ &|& p \lcond c q & \say{Conditional}
+\\ &|& p \parallel q & \say{Parallel composition}
+\\ &|& c \wdo p & \say{Iteration}
+}
+
+
+We assign the following precedences to UTCP syntactical constructs,
+interleaving them among the standard predicates.
+\begin{code}
+precPCond = 5 + precSpacer  1
+precPPar  = 5 + precSpacer  2
+precPSeq  = 5 + precSpacer  3
+precPIter = 5 + precSpacer  6
 \end{code}
 
 
@@ -271,7 +295,7 @@ setUTCPDict
     ]
 \end{code}
 
-
+\newpage
 \HDRc{Coding Atomic Semantics}
 
 Formally, using our shorthand notations, we can define atomic behaviour as:
@@ -279,14 +303,27 @@ Formally, using our shorthand notations, we can define atomic behaviour as:
     \A(A) &\defs& ls(in) \land A \land ls'=ls\ominus(in,out)
 }
 \begin{code}
-patm :: MPred m s -> MPred m s
-patm atom = comp "PAtm" [atom]
-defnAtomic :: MPred m s -> Pred m s
-defnAtomic a = mkAnd [lsin,a,ls'eqlsinout]
+nPAtm = "PAtm" -- internal abstract name
+isPAtm (_,Comp n [_]) | n==nPAtm = True; isPAtm _ = False
+
+patm atom = comp nPAtm [atom]
+
+shPAtm = "A" -- show name
+ppPAtm d ms p [mpr]
+ = pplist [ ppa shPAtm
+          , ppbracket "(" (mshowp d ms 0 mpr) ")"]
+ppPAtm d ms p mprs = pps styleRed $ ppa ("invalid-"++shPAtm)
+
+defnAtomic d [a] = ldefn shPAtm $ mkAnd [lsin,a,ls'eqlsinout]
 
 lsin = atm $ App subsetn [inp,ls]
 lsinout = App sswapn [ls,inp,out]
 ls'eqlsinout = equal ls' lsinout
+
+patmEntry :: (Show s, Ord s) => (String, Entry m s)
+patmEntry
+ = ( nPAtm
+   , PredEntry False ppPAtm defnAtomic (pNoChg nPAtm) )
 \end{code}
 
 A special case of this is the $Idle$ construct:
@@ -295,10 +332,21 @@ A special case of this is the $Idle$ construct:
 \\      &=& s(in) \land s'=s \land ls'=ls\ominus(in,out)
 }
 \begin{code}
-pidle :: MPred m s
-pidle = comp "PIdle" []
-defnIdle :: Pred m s
-defnIdle = Equal s' s
+nPIdle = "PIdle"
+isPIdle (_,Comp n []) | n==nPIdle = True; isPIdle _ = False
+
+pidle = comp nPIdle []
+
+shPIdle = "Idle" -- show name
+ppPIdle d ms p [] = ppa shPIdle
+ppPIdle d ms p mprs = pps styleRed $ ppa ("invalid-"++shPIdle)
+
+defnIdle d [] = ldefn shPIdle $ Equal s' s
+
+pidleEntry :: (Show s, Ord s) => (String, Entry m s)
+pidleEntry
+ = ( nPIdle
+   , PredEntry False ppPIdle defnIdle (pNoChg nPIdle) )
 \end{code}
 
 Given that $\alpha A = \setof{s,s'}$, we have:
@@ -323,6 +371,8 @@ However, this can be subsumed by \eref{pvar-substn},
 if we have information about the alphabet of $A$.
 
 \HDRc{Composite Semantics}
+
+Our composites are:
 
 For composite language constructs to work,
 we require that the context of components is somehow ``informed''
@@ -523,10 +573,20 @@ as we did with $in$ and $out$ (\figref{fig:seq-actual:view}).
 }
 \newpage
 \begin{code}
-pseq :: [MPred m s] -> MPred m s
-pseq = comp "PSeq"
-defnSeq :: Ord s => MPred m s -> MPred m s -> Pred m s
-defnSeq p q = mkOr [psub p sub1, psub q sub2]
+nPSeq = "PSeq"
+isPSeq (_,Comp n [_]) | n==nPSeq = True; isPSeq _ = False
+
+pseq = comp nPSeq
+
+shPSeq = ";;"
+ppPSeq d ms p [mpr1,mpr2]
+ = paren p precPSeq
+     $ ppopen  (pad shPSeq) [ mshowp d ms precPSeq mpr1
+                            , mshowp d ms precPSeq mpr2 ]
+ppPSeq d ms p mprs = pps styleRed $ ppa ("invalid-"++shPSeq)
+
+defnSeq d [p,q]
+ = ldefn shPSeq $ mkOr [psub p sub1, psub q sub2]
  where
    sub1 = [("g",g'1),("out",lg)]
    sub2 = [("g",g'2),("in",lg)]
@@ -535,7 +595,13 @@ lg = new1 g
 g' = new2 g
 g'1 = split1 g'
 g'2 = split2 g'
+
+pseqEntry :: (Show s, Ord s) => (String, Entry m s)
+pseqEntry
+ = ( nPSeq
+   , PredEntry False ppPSeq defnSeq (pNoChg nPSeq) )
 \end{code}
+
 
 \newpage
 \HDRc{Parallel Composition Semantics}
@@ -609,10 +675,20 @@ and $Merge(\ell_{g1:},\ell_{g2:})$
 \\&& {} \lor ls(\ell_{g1:},\ell_{g2:}) \land s'=s \land ls'=ls\ominus(\setof{\ell_{g1:},\ell_{g2:}},out)
 }
 \begin{code}
-ppar :: [MPred m s] -> MPred m s
-ppar = comp "PPar"
-defnPar :: Ord s => MPred m s -> MPred m s -> Pred m s
-defnPar p q = mkOr [split, psub p sub1, psub q sub2, merge]
+nPPar = "PPar"
+isPPar (_,Comp n [_]) | n==nPPar = True; isPPar _ = False
+
+ppar = comp nPPar
+
+shPPar = "||"
+ppPPar d ms p [mpr1,mpr2]
+ = paren p precPPar
+     $ ppopen  (pad shPPar) [ mshowp d ms precPPar mpr1
+                            , mshowp d ms precPPar mpr2 ]
+ppPPar d ms p mprs = pps styleRed $ ppa ("invalid-"++shPPar)
+
+defnPPar d [p,q]
+ = ldefn shPPar $ mkOr [split, psub p sub1, psub q sub2, merge]
  where
    split = bAnd [ lsin
                , equal s' s
@@ -622,6 +698,11 @@ defnPar p q = mkOr [split, psub p sub1, psub q sub2, merge]
    merge = bAnd [ atm $ subset (mkSet [lg1',lg2']) ls
                , equal s' s
                , equal ls' (sswap ls (mkSet[lg1',lg2']) out) ]
+
+pparEntry :: (Show s, Ord s) => (String, Entry m s)
+pparEntry
+ = ( nPPar
+   , PredEntry False ppPPar defnPPar (pNoChg nPPar) )
 \end{code}
 
 \newpage
@@ -658,11 +739,25 @@ converts $in$ into $\ell_{g1}$ or $\ell_{g2}$ as determined by the condition
 \\&& {} \lor Q[\g{2:},\ell_{g2}/g,in]
 }
 \begin{code}
-pcond :: [MPred m s] -> MPred m s
-pcond = comp "PCond"
-defnCond :: Ord s => MPred m s -> MPred m s -> MPred m s -> Pred m s
-defnCond c p q = mkOr [ cnd lg1 c,cnd lg2 $ bNot c
-                      , psub p sub1, psub q sub2 ]
+nPCond = "PCond"
+isPCond (_,Comp n [_]) | n==nPCond = True; isPCond _ = False
+
+shPCondL = "<|" ; shPCondR = "|>" ;shPCond = shPCondL++shPCondR
+ppPCond d ms p [mprt,mprc,mpre]
+ = paren p precPCond
+      $ pplist [ mshowp d ms precPCond mprt
+               , ppa $ pad shPCondL
+               , mshowp d ms 0 mprc
+               , ppa $ pad shPCondR
+               , mshowp d ms precPCond mpre ]
+ppCCond d ms p mprs = pps styleRed $ ppa ("invalid-"++shPCond)
+
+
+pcond = comp nPCond
+
+defnPCond d [c,p,q]
+ = ldefn shPCond $ mkOr [ cnd lg1 c,cnd lg2 $ bNot c
+                        , psub p sub1, psub q sub2 ]
  where
    cnd ell c  = bAnd [ lsin
                     , equal s' s
@@ -670,6 +765,11 @@ defnCond c p q = mkOr [ cnd lg1 c,cnd lg2 $ bNot c
                     , equal ls' $ sswap ls inp ell ]
    sub1 = [("g",g1'),("in",lg1)]
    sub2 = [("g",g2'),("in",lg2)]
+
+pcondEntry :: (Show s, Ord s) => (String, Entry m s)
+pcondEntry
+ = ( nPCond
+   , PredEntry False ppPCond defnPCond (pNoChg nPCond) )
 \end{code}
 
 \newpage
@@ -694,17 +794,33 @@ as we view it as a conditional loop unrolling
 \\&& {} \lor P[\g{:},\ell_{g},in/g,in,out]
 }
 \begin{code}
-piter :: [MPred m s] -> MPred m s
+nPIter = "PIter"
+isPIter (_,Comp n [_]) | n==nPIter = True; isPIter _ = False
+
 piter = comp "PIter"
-defnIter :: Ord s => MPred m s -> MPred m s -> Pred m s
-defnIter c p = mkOr [loop (bNot c) out, loop c lg, psub p sb]
+
+shPIter = "??"
+ppPIter d ms p [mpr1,mpr2]
+ = paren p precPIter
+     $ ppopen  (pad shPIter) [ mshowp d ms precPIter mpr1
+                             , mshowp d ms precPIter mpr2 ]
+ppPIter d ms p mprs = pps styleRed $ ppa ("invalid-"++shPIter)
+
+defnIter d [c,p]
+ = ldefn shPIter $ mkOr [loop (bNot c) out, loop c lg, psub p sb]
  where
    loop c ell = bAnd [ lsin
                      , equal s' s
                      , c
                      , equal ls' $ sswap ls inp ell ]
    sb = [("g",g'),("in",lg),("out",inp)]
+
+piterEntry :: (Show s, Ord s) => (String, Entry m s)
+piterEntry
+ = ( nPIter
+   , PredEntry False ppPIter defnAtomic (pNoChg nPIter) )
 \end{code}
+
 
 
 \HDRb{Running a concurrent program}
@@ -719,8 +835,16 @@ until a suitable (label-based) termination condition is reached.
 We shall denote by $run(P)$ the result of adding dynamism
 to a static view $P$ in this way.
 \begin{code}
-run :: MPred m s -> MPred m s
-run p = comp "run" [p]
+nPRun = "PRun"
+isPRun (_,Comp n [_]) | n==nPRun = True; isPRun _ = False
+
+run p = comp nPRun [p]
+
+shPRun = "run"
+ppPRun d ms p [mpr]
+ = pplist [ ppa shPRun
+          , ppbracket "(" (mshowp d ms 0 mpr) ")"]
+ppPRun d ms p mprs = pps styleRed $ ppa ("invalid-"++shPRun)
 \end{code}
 
 We produce $run(P)$ by using the generator $g$
@@ -753,10 +877,14 @@ which we also expand a few times.
 }
 Note that neither $in$, $out$ nor $ls$ are free in $run(P)$.
 \begin{code}
-defnRun :: Ord s => Int -> MPred m s -> Pred m s
-defnRun 3 p = mkSeq (runFirst p) (runLoop p)
-defnRun 2 p = mkSeq (psub (runBody p) [("ls",lg)]) (runLoop p)
-defnRun _ p = mkPSub (runLoop p) [("ls",lg)]
+defnRun 3 d [p]
+ = idefn 3 shPRun $ mkSeq (runFirst p) (runLoop p)
+defnRun 2 d [p]
+ = idefn 2 shPRun $ mkSeq (psub (runBody p) [("ls",lg)]) (runLoop p)
+defnRun _ d [p]
+ = idefn 0 shPRun $ mkPSub (runLoop p) [("ls",lg)]
+
+idefn i str = ldefn (str++'(':show i++")")
 
 runFirst p = psub p [("g",g''),("in",lg),("out",lg'),("ls",lg)]
 runBody p  = psub p [("g",g''),("in",lg),("out",lg')]
@@ -764,7 +892,13 @@ runLoop p  = bIter (bNot $ atm $ subset (mkSet [lg']) ls) (runBody p)
 
 lg' = new1 g'
 g'' = new2 g'
+
+prunEntry :: (Show s, Ord s) => Int -> (String, Entry m s)
+prunEntry n
+ = ( nPRun
+   , PredEntry False ppPRun (defnRun n) (pNoChg nPRun) )
 \end{code}
+
 
 An extension to $run$, called $do$ explicitly mentions the fact
 that $in$, $out$ and $ls$ are initialised appropriately.
@@ -772,19 +906,33 @@ that $in$, $out$ and $ls$ are initialised appropriately.
     do(P) &\defs& in=\ell_g \land out=\ell_{g:} \land ls=\ell_g \land run(P)
 }
 \begin{code}
-doprog :: MPred m s -> MPred m s
+nPDo = "PDo"
+isPDo (_,Comp n [_]) | n==nPDo = True; isPDo _ = False
+
 doprog p = comp "do" [p] -- "do" is a Haskell keyword
-defnDo :: MPred m s -> Pred m s
-defnDo p = mkAnd [ equal inp lg, equal out lg', equal ls lg, run p ]
+
+shPDo = "do"
+ppPDo d ms p [mpr]
+ = pplist [ ppa shPDo
+          , ppbracket "(" (mshowp d ms 0 mpr) ")"]
+ppPDo d ms p mprs = pps styleRed $ ppa ("invalid-"++shPDo)
+
+
+defnDo d [p]
+ = ldefn shPDo
+     $ mkAnd [ equal inp lg, equal out lg', equal ls lg, run p ]
+
+pdoEntry :: (Show s, Ord s) => (String, Entry m s)
+pdoEntry
+ = ( nPDo
+   , PredEntry False ppPDo defnDo (pNoChg nPDo) )
 \end{code}
 
 
 \newpage
 \HDRb{Semantics Summary}
 
-We assume atomic change-state actions $A$, $B$, $C$, $D$, \ldots
-with alphabet $\setof{s,s'}$.
-
+We assume atomic change-state actions $A$ with alphabet $\setof{s,s'}$.
 \RLEQNS{
     \A(A) &\defs& ls(in) \land A \land ls'=ls\ominus(in,out),
     \qquad \alpha A = \setof{s,s'}
@@ -822,3 +970,17 @@ with alphabet $\setof{s,s'}$.
 \\
 \\ do(P) &\defs& in=\ell_g \land out=\ell_{g:} \land ls=\ell_g \land run(P)
 }
+\begin{code}
+semUTCPDict :: (Eq m, Ord s, Show s) => Dict m s
+semUTCPDict
+ = M.fromList
+    [ patmEntry
+    , pidleEntry
+    , pseqEntry
+    , pparEntry
+    , pcondEntry
+    , piterEntry
+    , prunEntry 3
+    , pdoEntry
+    ]
+\end{code}

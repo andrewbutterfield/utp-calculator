@@ -293,7 +293,7 @@ unrollTst d mw@(_,Comp "Iter"  [mc, mpr])
  | isCondition mc
            = ( "loop-unroll"
              , bCond (bSeq mpr mw) mc bSkip )
-unrollTst _ mpr = ("", mpr)
+unrollTst _ mpr = ("", mpr )
 \end{code}
 
 \HDRc{Laws Dictionary}
@@ -310,10 +310,11 @@ lawsDict = M.fromList [ lawsEntry ]
 
 \HDRc{Test Dictionary}
 
-The test dictionary
+Test dictionarys
 \begin{code}
 testDict :: (Eq m, Mark m, Ord s, Show s) => Dict m s
-testDict = impFalseDict
+testDict = dictUTCP
+           -- `dictMrg` impFalseDict
            `dictMrg` absAlfDict
            `dictMrg` lawsDict
            `dictMrg` stdDict

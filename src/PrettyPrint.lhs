@@ -112,6 +112,9 @@ that automatically accumulate the length information.
 ppa :: String -> PP
 ppa str = PP (length str) $ PPA str
 
+pad :: String -> String
+pad s = ' ':s++" "
+
 pps :: Style -> PP -> PP
 pps style pp@(PP len _) = PP len $ PPS style pp
 
@@ -143,6 +146,9 @@ ppsopen style sepstr ppp = ppopen' (pps style $ ppa sepstr) ppp
 
 pplist :: [PP] -> PP
 pplist = ppopen ""
+
+ppbracket :: String -> PP -> String -> PP
+ppbracket lbr pp rbr = ppclosed lbr rbr "" [pp]
 
 ppclosed :: String -> String -> String -> [PP] -> PP
 ppclosed lstr rstr sepstr pps

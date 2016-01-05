@@ -87,9 +87,9 @@ These laws are immediate, and their proof is left as an exercise.
 \\ P;\Skip &=& P & \elabel{$;$-r-unit}
 }
 \begin{code}
-reduceUTCP d (_,Comp "Seq" 
+reduceUTCP d (_,Comp "Seq"
                [(_,Comp "Skip" []), mpr])  =  lred ";-lunit" mpr
-reduceUTCP d (_,Comp "Seq" 
+reduceUTCP d (_,Comp "Seq"
                [mpr, (_,Comp "Skip" [])])  =  lred ";-runit" mpr
 \end{code}
 
@@ -166,12 +166,12 @@ An obvious corollary of the above is:
    & \elabel{$s'$-$ls'$-$;$-prop}
 }
 \begin{code}
-reduceUTCP d (_,Comp "Seq" 
+reduceUTCP d (_,Comp "Seq"
                 [ (_,Comp "And" [ (_,Equal (Var "s'") e)
                                 , (_,Equal (Var "ls'") f) ])
                 , mpA ])
  = lred "s'ls'-;-prop" $ psub mpA [("s",e),("ls",f)]
-reduceUTCP d (_,Comp "Seq" 
+reduceUTCP d (_,Comp "Seq"
                 [ (_,Comp "And" [ (_,Equal (Var ls'@"ls'") f)
                                 , (_,Equal (Var s'@"s'") e) ])
                 , mpA])
@@ -192,7 +192,7 @@ We more specific laws first, more general later.
 reduceUTCP d (_,Comp "Seq" [ mpA
                            , (_,Comp "Seq" [ (_,Comp "Or" mpBs)
                                            , mpC])])
- = lred ";-\\/-3distr" 
+ = lred ";-\\/-3distr"
                    $ comp "Or" $ map (bracketWith mpA mpC) mpBs
  where
    bracketWith p q r = comp "Seq" [p, comp "Seq" [r,q]]
@@ -274,7 +274,7 @@ reduceUTCP d pr@(_,Comp "Seq" [(_,Comp "And" pAs), pB])
      Just (pre,(_,Equal (Var x') k),post)
       -> let x = init x'
          in lred "const-;-prop"
-            $ comp "Seq" 
+            $ comp "Seq"
                 [ comp "And" (pre++post)
                 , comp "And" [ equal (Var x) k
                              , psub pB [(x,k)]]]
@@ -285,37 +285,4 @@ reduceUTCP d pr@(_,Comp "Seq" [(_,Comp "And" pAs), pB])
 That's all folks!
 \begin{code}
 reduceUTCP d mpr = lred "" mpr
-\end{code}
-
-\newpage
-\HDRb{Definition Expansion}
-
-Now we hard-code semantic definitions, starting with a dispatch function,
-and then defining each replacement.
-\begin{code}
-defnUTCP :: (Mark m, Ord s) 
-         => Dict m s -> Pred m s -> (String, Pred m s)
-
-defnUTCP d (Comp "Skip" [])       = ldefn "II" defnUTCPII
-defnUTCP d (Comp "PAtm" [a])      = ldefn "A" $ defnAtomic a
-defnUTCP d (Comp "PIdle" [])      = ldefn "Idle" $ defnIdle
-defnUTCP d (Comp "PSeq" [p,q])    = ldefn ";;" $ defnSeq p q
-defnUTCP d (Comp "PPar" [p,q])    = ldefn "||" $ defnPar p q
-defnUTCP d (Comp "PCond" [c,p,q]) = ldefn "<$>" $ defnCond c p q
-defnUTCP d (Comp "PIter" [c,p])   = ldefn "<*>" $ defnIter c p
-defnUTCP d (Comp "run"   [p])     = ldefn "run.3" $ defnRun 3 p
-defnUTCP d (Comp "run.1" [p])     = ldefn "run.1" $ defnRun 1 p
-defnUTCP d (Comp "run.2" [p])     = ldefn "run.2" $ defnRun 2 p
-defnUTCP d (Comp "run.3" [p])     = ldefn "run.3" $ defnRun 3 p
-defnUTCP d (Comp "do" [p])        = ldefn "do" $ defnDo p
-
--- specialised "definition" !!! Actually a law.
-defnUTCP d (PSub (_,Comp "PAtm" [a]) subs)
-                    =  lred "sub-atomic" $ substnAtomic d a subs
-
-defnUTCP d pr                  =  ldefn "" pr
-
-ldefn :: String -> Pred m s -> (String, Pred m s)
-ldefn "" pr = ( "", pr )
-ldefn nm pr = ( "defn. of " ++ nm, pr )
 \end{code}

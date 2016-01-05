@@ -41,46 +41,20 @@ pthenq = pseq [p,q]
 pwithq = ppar [p,q]
 pcondq = pcond [cp,p,q]
 dop = piter [cp,p]
-
-catalog = putStr $ unlines (map catshow
- [
-   ("a",a)  -- pvar "A";
- , ("aa",aa)  -- patm a
- , ("b",b)  -- pvar "B";
- , ("ab",ab)  -- patm b
- , ("cp",cp)  -- atm c
- , ("athenb",athenb)  -- pseq aa ab;
- , ("awithb",awithb)  -- ppar aa ab
- , ("acondb",acondb)  -- pcond cp aa ab
- , ("doa",doa)  -- piter cp aa
- , ("p",p)  -- pvar "P"
- , ("q",q)  -- pvar "Q"
- , ("r",r)  -- pvar "R"
- , ("pthenq",pthenq)  -- pseq p q
- , ("pwithq",pwithq)  -- ppar p q
- , ("pcondq",pcondq)  -- pcond cp p q
- , ("dop",dop)  -- piter cp p
- ] ++ usage)
-
-catshow :: (String, MPred Int ()) -> String
-catshow (name,mpr) = name ++ " ... " ++ showUTCP mpr
-xx = pvar "??"
-
-usage
- = [ "'run' and 'doprog' wrap predicates in the top-level execution loop"
-   , "To calulate the 'run' execution of 'athenb' (say),"
-   , "                           use 'calculemus $ run athenb'"
-   ]
 \end{code}
 
 
 \HDRb{The UTCP Theory}
 Our theory:
 \begin{code}
-dictUTCP :: (Eq s, Ord s, Show s) => Dict m s
+dictUTCP :: (Eq m, Eq s, Ord s, Show s) => Dict m s
 dictUTCP
  = foldl1 dictMrg [ M.fromList [(version,AlfEntry [versionUTCP])]
-                  , alfUTCPDict, setUTCPDict, genUTCPDict ]
+                  , alfUTCPDict
+                  , setUTCPDict
+                  , genUTCPDict
+                  , semUTCPDict
+                  ]
 
 showUTCP (_,pr)  = pdshow 80 dictUTCP pr
 \end{code}

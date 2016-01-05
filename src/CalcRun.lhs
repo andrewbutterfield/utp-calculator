@@ -204,9 +204,9 @@ stepPrint d m ((comment,mpr):rest)
    ++ stepPrint d (nextm m) rest
 
 
-outcome :: ( MPred m s, [RWResult m s] ) -> MPred m s
-outcome ( mpr0, [] ) = mpr0
-outcome ( _, ((_,mpr'):_)) = mpr'
+outcome :: ( MPred m s, [RWResult m s], Dict m s ) -> MPred m s
+outcome ( mpr0, [],          _ )  =  mpr0
+outcome ( _,    ((_,mpr'):_), _)  =  mpr'
 \end{code}
 
 

@@ -305,7 +305,6 @@ ppCond d ms p [mprt,mprc,mpre]
                , mshowp d ms 0 mprc
                , ppa " |> "
                , mshowp d ms precCond mpre ]
-
 ppCond d ms p mprs = pps styleRed $ ppa "invalid-<|>"
 
 simpCond d [mpr1, mpr2, mpr3] = ( "",  mkCond mpr1 mpr2 mpr3)

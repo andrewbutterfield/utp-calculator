@@ -158,7 +158,14 @@ pdoes :: String -> (Dict m s -> [Pred m s] -> Pred m s)
      -> Dict m s -> [Pred m s]
      -> ( String, Pred m s )
 pdoes nm p d ps = ( nm, p d ps )
+
+pNoChg :: String -> Rewrite m s
 pNoChg name d mprs = ( "", Comp name mprs )
+
+-- labelling definitions
+ldefn :: String -> Pred m s -> (String, Pred m s)
+ldefn "" pr = ( "", pr )
+ldefn nm pr = ( "defn. of " ++ nm, pr )
 \end{code}
 
 

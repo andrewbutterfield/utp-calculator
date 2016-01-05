@@ -51,11 +51,3 @@ precNot   = precSpacer  8
 precEq    = precSpacer  9
 precSub   = precSpacer 10
 \end{code}
-
-Hold these in reserve
-\begin{verbatim}
--- precPCond = 1
--- precPPar  = 2
--- precPSeq  = 3
--- precPIter = 6
-\end{verbatim}
