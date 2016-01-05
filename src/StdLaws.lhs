@@ -69,7 +69,7 @@ viewed as reduction steps going from left-to-right.
 \begin{code}
 lred nm mpr = ( nm, mpr )
 
-reduceStd :: (Mark m, Ord s, Show s) => DictRWFun m s
+reduceStd :: (Ord s, Show s) => DictRWFun s
 \end{code}
 
 \HDRc{Skip and Sequential Composition}\label{hc:skip-and-seq}
@@ -249,7 +249,7 @@ reduceStd d mpr = lred "" mpr
 \HDRb{The Standard Dictionary}\label{hb:std-dict}
 
 \begin{code}
-stdDict :: (Eq m, Ord s, Show s) => Dict m s
+stdDict :: (Ord s, Show s) => Dict s
 stdDict
  = M.fromList
     [ topEntry
@@ -270,8 +270,8 @@ stdDict
 \HDRc{Debugging aids}
 
 \begin{code}
-putPred :: (Eq m, Mark m, Ord s, Show s) => Pred m s -> IO ()
+putPred :: (Ord s, Show s) => Pred s -> IO ()
 putPred = putStrLn . pdshow 80 stdDict
-putMPred :: (Eq m, Mark m, Ord s, Show s) => MPred m s -> IO ()
+putMPred :: (Ord s, Show s) => MPred s -> IO ()
 putMPred = putPred . snd
 \end{code}

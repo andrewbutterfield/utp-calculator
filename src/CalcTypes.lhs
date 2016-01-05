@@ -56,28 +56,43 @@ along with a generic predicate composite, and substitution.
 To implement suitable highlighting,
 we need the calculator to be able to mark (sub-)predicates in some
 way, with markings that can overlap.
+We shall do this by using integers as markers,
+and marking predicates with a marker-set.
 We don't want to check for or pattern-match against
 a special marker predicate, but prefer to add markers everywhere,
 using a mutually recursive datatype:
 \begin{code}
-type MPred m s = ( [m], Pred m s )
+type Mark = Int
+type Marks = [Mark]
 
-data Pred m s
+type MPred s = ( Marks, Pred s )
+
+data Pred s
  = T
  | F
  | PVar String
  | Equal (Expr s) (Expr s)
  | Atm (Expr s)
- | Comp String [MPred m s]
- | PSub (MPred m s) (Substn s)
+ | Comp String [MPred s]
+ | PSub (MPred s) (Substn s)
  | PUndef
  deriving (Ord, Show)
 \end{code}
 
+Mark management:
+\begin{code}
+startm :: Mark
+startm = 0
+nextm, prevm :: Mark -> Mark
+nextm = (+1)
+prevm = subtract 1
+\end{code}
+
+
 Predicate equality is defined on the underlying predicate,
 so that it ignores marking completely.
 \begin{code}
-instance Eq s => Eq (Pred m s) where
+instance Eq s => Eq (Pred s) where
  T == T                              =  True
  F == F                              =  True
  (PVar s1) == (PVar s2)              =  s1 == s2
@@ -90,27 +105,12 @@ instance Eq s => Eq (Pred m s) where
  _ == _                              =  False
 \end{code}
 
-\HDRb{Marking Class}\label{hb:MarkClass}
-
-We use a class for marks that specifies a special `starting' mark value,
-as well as a way to generate a new label from an existing one,
-and to reverse back.
-\begin{code}
-class Mark m where
-  startm :: m
-  nextm :: m -> m -- laws for nextm:
-                  --    (i)  nextm m /= m
-                  --   (ii)  nextm m /= startm
-                  --  (iii)  nextm is bijective
-  prevm :: m -> m -- laws for prevm
-                  --    (i) prevm . nextm = id
-\end{code}
 
 We need a function from markings to styles:
 \begin{code}
-type MarkStyle m = m -> Maybe Style
+type MarkStyle = Int -> Maybe Style
 
-noStyles :: MarkStyle m
+noStyles :: MarkStyle
 noStyles = const Nothing
 \end{code}
 
@@ -125,12 +125,12 @@ The basic idea is that such a step rewrites a current goal
 predicate in some way, and returns both the rewritten result,
 as well as a justification string describing what was done.
 \begin{code}
-type RWResult m s = (String, MPred m s)
-type RWFun m s = MPred m s -> RWResult m s
+type RWResult s = (String, MPred s)
+type RWFun s = MPred s -> RWResult s
 \end{code}
 Often we will parameterise such functions with a dictionary:
 \begin{code}
-type DictRWFun m s = Dict m s -> RWFun m s
+type DictRWFun s = Dict s -> RWFun s
 \end{code}
 
 We also have steps that are contingent on some side-condition,
@@ -142,13 +142,13 @@ So we design a ``step'' that returns the alternative rewrite outcomes,
 along with a clear statement of the condition,
 and allows the user to select which one should be used.
 \begin{code}
-type CRWResult m s
+type CRWResult s
  = ( String
-   , [( Pred m s    -- condition to be discharged
-      , MPred m s)]  -- modified predicate
+   , [( Pred s    -- condition to be discharged
+      , MPred s)]  -- modified predicate
    )
-type CRWFun m s = MPred m s -> CRWResult m s
-type CDictRWFun m s = Dict m s -> CRWFun m s
+type CRWFun s = MPred s -> CRWResult s
+type CDictRWFun s = Dict s -> CRWFun s
 \end{code}
 
 
@@ -160,7 +160,7 @@ type CDictRWFun m s = Dict m s -> CRWFun m s
 We need a dictionary that maps various names
 to appropriate definitions.
 \begin{code}
-type Dict m s = M.Map String (Entry m s)
+type Dict s = M.Map String (Entry s)
 \end{code}
 
 When processing a composite,
@@ -170,7 +170,7 @@ This function will be passed the dictionary,
 and the list of sub-components for it to do its work,
 and will return a justification string and un-marked predicate:
 \begin{code}
-type Rewrite m s = Dict m s -> [MPred m s] -> (String, Pred m s)
+type Rewrite s = Dict s -> [MPred s] -> (String, Pred s)
 \end{code}
 
 When applying general laws (usually as reductions)
@@ -180,13 +180,13 @@ then we need a function that takes a dictionary and predicate
 
 A dictionary entry is a sum of  definition types defined below
 \begin{code}
-data Entry m s =
+data Entry s =
 \end{code}
 
 \HDRc{Alphabet Entry}\label{hc:alfa-entry}
 
 \begin{code}
--- data Entry m s = ....
+-- data Entry s = ....
    AlfEntry {   -- about Alphabets
     avars :: [String]  -- variables
    }
@@ -199,7 +199,7 @@ $A \defs \setof{v_1,v_2,\ldots,v_n}$.
 \HDRc{Predicate Variable Entry}\label{hc:pvar-entry}
 
 \begin{code}
--- data Entry m s = ....
+-- data Entry s = ....
  | PVarEntry {  -- about Predicate Variables
     alfa :: [String]  -- for now, just its alphabet
    }
@@ -213,11 +213,11 @@ $\alpha P \defs \setof{v_1,v_2,\ldots,v_n}$.
 \HDRc{Expression Entry}\label{hc:expr-entry}
 
 \begin{code}
--- data Entry m s = ....
+-- data Entry s = ....
  | ExprEntry { -- about Expressions
      ecansub :: Bool                           -- substitutable?
-   , eprint  :: Dict m s -> [Expr s] -> String -- pretty printer
-   , eval    :: Dict m s -> [Expr s]           -- evaluator
+   , eprint  :: Dict s -> [Expr s] -> String -- pretty printer
+   , eval    :: Dict s -> [Expr s]           -- evaluator
              -> ( String, Expr s )
    }
 \end{code}
@@ -242,11 +242,11 @@ of a proof step.
 \begin{code}
  | PredEntry {    -- about Predicates
      pcansub :: Bool                           -- substitutable?
-   , pprint  :: Dict m s -> MarkStyle m        -- pretty printer
-             -> Int -> [MPred m s]
+   , pprint  :: Dict s -> MarkStyle           -- pretty printer
+             -> Int -> [MPred s]
              -> PP
-   , pdefn   :: Rewrite m s                    -- defn expansion
-   , prsimp  :: Rewrite m s                    -- simplifier
+   , pdefn   :: Rewrite s                    -- defn expansion
+   , prsimp  :: Rewrite s                    -- simplifier
    }
 \end{code}
 We interpret a \texttt{Dict} entry like
@@ -284,9 +284,9 @@ To do so risks an infinite loop.
 
 \begin{code}
  | LawEntry {                   -- about useful laws
-     reduce  :: [DictRWFun m s]  -- list of reduction laws
-   , creduce :: [CDictRWFun m s] -- list of conditional reductions
-   , unroll  :: [DictRWFun m s]  -- list of loop unrollers
+     reduce  :: [DictRWFun s]  -- list of reduction laws
+   , creduce :: [CDictRWFun s] -- list of conditional reductions
+   , unroll  :: [DictRWFun s]  -- list of loop unrollers
    }
 \end{code}
 We interpret a \texttt{Dict} entry like:
@@ -376,18 +376,18 @@ calculation step).
 We have a type that has this information,
 along with a justification string:
 \begin{code}
-type BeforeAfter m s
- = ( MPred m s   -- before predicate, marked
+type BeforeAfter s
+ = ( MPred s   -- before predicate, marked
    , String      -- justification, null if no change occurred
-   , MPred m s ) -- after predicate, marked
+   , MPred s ) -- after predicate, marked
 \end{code}
 In the conditional case, we have lists of outcomes
 paired with conditions:
 \begin{code}
-type BeforeAfters m s
- = ( MPred m s   -- before predicate, marked
+type BeforeAfters s
+ = ( MPred s   -- before predicate, marked
    , String      -- justification, null if no change occurred
-   , [(Pred m s,MPred m s)] ) -- after predicates, marked
+   , [(Pred s,MPred s)] ) -- after predicates, marked
 \end{code}
 
 This seems to present a problem for the zipper,
@@ -398,13 +398,13 @@ However the structure of the two predicates is identical everywhere else
 so a single zipper ``path'' can be applied to both.
 
 \begin{code}
-type MPZip2 m s = (BeforeAfter m s, [MPred' m s])
+type MPZip2 s = (BeforeAfter s, [MPred' s])
 \end{code}
 
 For conditional searches,
 we return a list of \texttt{Pred},\texttt{MPred} pairs:
 \begin{code}
-type CMPZip2 m s = ( BeforeAfters m s, [MPred' m s] )
+type CMPZip2 s = ( BeforeAfters s, [MPred' s] )
 \end{code}
 
 \newpage
@@ -412,7 +412,7 @@ type CMPZip2 m s = ( BeforeAfters m s, [MPred' m s] )
 
 We note, using the notion of ``datatypes as algebras'',
 %( http://chris-taylor.github.io/blog/2013/02/13/the-algebra-of-algebraic-data-types-part-iii/)
-that the \texttt{Pred m s} and \texttt{MPred m s} types above
+that the \texttt{Pred s} and \texttt{MPred s} types above
 correspond to the following algebraic forms:
 \RLEQNS{
    V && & \mbox{Variables}
@@ -435,7 +435,7 @@ correspond to the following algebraic forms:
           + M^* \times MP_M \times (V \times E)^*
 \\      &=& F(MP_M)
 }
-We want to define a ``zipper'' \cite{JFP::Huet1997} for \texttt{MPred m s},
+We want to define a ``zipper'' \cite{JFP::Huet1997} for \texttt{MPred s},
 following Conor McBride's Datatype Differentiation approach\cite{McB:derrti}.
 So, we ``differentiate'' the expression for $MP_M$ above w.r.t. $MP_M$,
 to obtain $MP'_M$:
@@ -456,23 +456,23 @@ We use the following differentiation laws:
 }
 This leads to the following zipper datatypes:
 \begin{code}
-data MPred' m s
+data MPred' s
  = Comp'         -- parent is a Comp node
-     [m]         -- parent marking
+     Marks       -- parent marking
      String      -- parent name
-     [MPred m s] -- components before current focus
-     [MPred m s] -- components after current focus
+     [MPred s] -- components before current focus
+     [MPred s] -- components after current focus
  | PSub'         -- parent is a PSub node
-     [m]         -- parent marking
+     Marks       -- parent marking
      (Substn s)  -- substitution in parent
  deriving Show
 \end{code}
 We then define a zipper as being an predicate
 together with a list of predicate derivatives:
 \begin{code}
-type MPZipper m s
-  = ( MPred m s    -- the current (focus) predicate
-    , [MPred' m s] -- the steps we took to get here,
+type MPZipper s
+  = ( MPred s    -- the current (focus) predicate
+    , [MPred' s] -- the steps we took to get here,
                    -- and what we passed on the way.
     )
 \end{code}
@@ -480,30 +480,30 @@ type MPZipper m s
 \HDRb{Recognisers}\label{hc:recog}
 
 \begin{code}
-type Recogniser m s = MPred m s -> Bool
+type Recogniser s = MPred s -> Bool
 \end{code}
 
 \HDRb{Theory Steps}
 
 %\begin{code}
-%data ThSteps m s
+%data ThSteps s
 % = TS{
 %\end{code}
 %    \begin{description}
 %      \item[Reduce]
 %        Apply a law of predicate calculus in a direction that ``makes progress''.
 %\begin{code}
-%   reduce :: Dict m s -> RWFun m s
+%   reduce :: Dict s -> RWFun s
 %\end{code}
 %      \item[Definition]
 %        Expand a definition
 %\begin{code}
-% , defn :: RWFun m s
+% , defn :: RWFun s
 %\end{code}
 %      \item[Conditional]
 %        Apply a conditional law, also in a direction that makes progress.
 %\begin{code}
-% , creduce :: Dict m s -> CRWFun m s
+% , creduce :: Dict s -> CRWFun s
 %\end{code}
 %    \end{description}
 %\begin{code}

@@ -287,7 +287,7 @@ Label Swap:
 
 The Set Dictionary:
 \begin{code}
-setUTCPDict :: (Eq s, Ord s, Show s) => Dict m s
+setUTCPDict :: (Eq s, Ord s, Show s) => Dict s
 setUTCPDict
  = M.fromList
     [ (subsetn,(ExprEntry True showSubSet evalSubset))
@@ -320,7 +320,7 @@ lsin = atm $ App subsetn [inp,ls]
 lsinout = App sswapn [ls,inp,out]
 ls'eqlsinout = equal ls' lsinout
 
-patmEntry :: (Show s, Ord s) => (String, Entry m s)
+patmEntry :: (Show s, Ord s) => (String, Entry s)
 patmEntry
  = ( nPAtm
    , PredEntry False ppPAtm defnAtomic (pNoChg nPAtm) )
@@ -343,7 +343,7 @@ ppPIdle d ms p mprs = pps styleRed $ ppa ("invalid-"++shPIdle)
 
 defnIdle d [] = ldefn shPIdle $ Equal s' s
 
-pidleEntry :: (Show s, Ord s) => (String, Entry m s)
+pidleEntry :: (Show s, Ord s) => (String, Entry s)
 pidleEntry
  = ( nPIdle
    , PredEntry False ppPIdle defnIdle (pNoChg nPIdle) )
@@ -530,7 +530,7 @@ so we have the following law:
 }
 We can now define a generator dictionary:
 \begin{code}
-genUTCPDict :: (Eq s, Ord s, Show s) => Dict m s
+genUTCPDict :: (Eq s, Ord s, Show s) => Dict s
 genUTCPDict
  = M.fromList
     [ (new1n,(ExprEntry True showGNew1 $ does "new1" gNew1))
@@ -596,7 +596,7 @@ g' = new2 g
 g'1 = split1 g'
 g'2 = split2 g'
 
-pseqEntry :: (Show s, Ord s) => (String, Entry m s)
+pseqEntry :: (Show s, Ord s) => (String, Entry s)
 pseqEntry
  = ( nPSeq
    , PredEntry False ppPSeq defnSeq (pNoChg nPSeq) )
@@ -699,7 +699,7 @@ defnPPar d [p,q]
                , equal s' s
                , equal ls' (sswap ls (mkSet[lg1',lg2']) out) ]
 
-pparEntry :: (Show s, Ord s) => (String, Entry m s)
+pparEntry :: (Show s, Ord s) => (String, Entry s)
 pparEntry
  = ( nPPar
    , PredEntry False ppPPar defnPPar (pNoChg nPPar) )
@@ -766,7 +766,7 @@ defnPCond d [c,p,q]
    sub1 = [("g",g1'),("in",lg1)]
    sub2 = [("g",g2'),("in",lg2)]
 
-pcondEntry :: (Show s, Ord s) => (String, Entry m s)
+pcondEntry :: (Show s, Ord s) => (String, Entry s)
 pcondEntry
  = ( nPCond
    , PredEntry False ppPCond defnPCond (pNoChg nPCond) )
@@ -815,7 +815,7 @@ defnIter d [c,p]
                      , equal ls' $ sswap ls inp ell ]
    sb = [("g",g'),("in",lg),("out",inp)]
 
-piterEntry :: (Show s, Ord s) => (String, Entry m s)
+piterEntry :: (Show s, Ord s) => (String, Entry s)
 piterEntry
  = ( nPIter
    , PredEntry False ppPIter defnAtomic (pNoChg nPIter) )
@@ -893,7 +893,7 @@ runLoop p  = bIter (bNot $ atm $ subset (mkSet [lg']) ls) (runBody p)
 lg' = new1 g'
 g'' = new2 g'
 
-prunEntry :: (Show s, Ord s) => Int -> (String, Entry m s)
+prunEntry :: (Show s, Ord s) => Int -> (String, Entry s)
 prunEntry n
  = ( nPRun
    , PredEntry False ppPRun (defnRun n) (pNoChg nPRun) )
@@ -922,7 +922,7 @@ defnDo d [p]
  = ldefn shPDo
      $ mkAnd [ equal inp lg, equal out lg', equal ls lg, run p ]
 
-pdoEntry :: (Show s, Ord s) => (String, Entry m s)
+pdoEntry :: (Show s, Ord s) => (String, Entry s)
 pdoEntry
  = ( nPDo
    , PredEntry False ppPDo defnDo (pNoChg nPDo) )
@@ -971,7 +971,7 @@ We assume atomic change-state actions $A$ with alphabet $\setof{s,s'}$.
 \\ do(P) &\defs& in=\ell_g \land out=\ell_{g:} \land ls=\ell_g \land run(P)
 }
 \begin{code}
-semUTCPDict :: (Eq m, Ord s, Show s) => Dict m s
+semUTCPDict :: (Ord s, Show s) => Dict s
 semUTCPDict
  = M.fromList
     [ patmEntry

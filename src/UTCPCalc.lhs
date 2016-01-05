@@ -21,13 +21,6 @@ import CalcRun
 We now define useful bits:
 The static dictionary, and some useful pre-defined variables
 \begin{code}
-
--- arithmetic examples
--- (x,y,z) = (Var "x", Var "y", Var "z")
--- [add,sub,mul,dvd] = map (\ f -> App f [x,y]) ["+","-","*","/"]
--- subs1 = [("x",y),("y",x)]
--- subs2 = [("x",mul),("y",dvd),("z",add)]
-
 a = pvar "A"; aa = patm a
 b = pvar "B"; ab = patm b
 c = Var  "c"; cp = atm  c
@@ -47,7 +40,7 @@ dop = piter [cp,p]
 \HDRb{The UTCP Theory}
 Our theory:
 \begin{code}
-dictUTCP :: (Eq m, Eq s, Ord s, Show s) => Dict m s
+dictUTCP :: (Eq s, Ord s, Show s) => Dict s
 dictUTCP
  = foldl1 dictMrg [ M.fromList [(version,AlfEntry [versionUTCP])]
                   , alfUTCPDict

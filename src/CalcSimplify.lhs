@@ -40,7 +40,7 @@ same = False
 
 The top-level expression simplifier.
 \begin{code}
-esimp :: (Eq s, Ord s, Show s) => Dict m s -> Expr s -> (Bool, Expr s)
+esimp :: (Eq s, Ord s, Show s) => Dict s -> Expr s -> (Bool, Expr s)
 esimp d (App fn es) = asimp d fn $ esimps d same [] es
 esimp d esub@(Sub e subs)
  = let
@@ -54,7 +54,7 @@ esimp d e = (same, e)
 Simplifying lists of expressions:
 \begin{code}
 esimps :: (Eq s, Ord s, Show s)
-       => Dict m s -> Bool -> [Expr s]-> [Expr s] -> (Bool, [Expr s])
+       => Dict s -> Bool -> [Expr s]-> [Expr s] -> (Bool, [Expr s])
 esimps d chgd se [] = (chgd, reverse se)
 esimps d chgd se (e:es)
  = let (chgd',e') = esimp d e
@@ -64,7 +64,7 @@ esimps d chgd se (e:es)
 \HDRc{Function Simplification}~
 \begin{code}
 asimp :: (Eq s, Ord s, Show s)
-      => Dict m s -> String -> (Bool,[Expr s]) -> (Bool, Expr s)
+      => Dict s -> String -> (Bool,[Expr s]) -> (Bool, Expr s)
 asimp d fn (chgd,es)
  = case elookup fn d of
      Nothing  ->  (chgd, App fn es)
@@ -76,7 +76,7 @@ asimp d fn (chgd,es)
 
 \HDRc{Substitution Simplification}~
 \begin{code}
-ssimp :: (Eq s, Ord s, Show s) => Dict m s -> Substn s -> (Bool,Substn s)
+ssimp :: (Eq s, Ord s, Show s) => Dict s -> Substn s -> (Bool,Substn s)
 ssimp d subs
  = let
     (vs,es) = unzip subs
@@ -164,8 +164,8 @@ vesubst sub (v,e) = (v,snd $ esubst sub e)
 Now, the predicate simplifier:
 \begin{code}
 simplified = "simplify"
-simplify :: (Mark m, Ord s, Show s)
-         => Dict m s -> m -> MPred m s -> BeforeAfter m s
+simplify :: (Ord s, Show s)
+         => Dict s -> Mark -> MPred s -> BeforeAfter s
 \end{code}
 For atomic predicates,
 we simplify the underlying expression,
@@ -285,7 +285,7 @@ simplify d m mpr@(ms,pr) = ( mpr, "", mpr)
 
 \HDRc{Equality Predicate Simplification}~
 \begin{code}
-sEqual :: Eq s => Expr s -> Expr s -> (Bool, Pred m s)
+sEqual :: Eq s => Expr s -> Expr s -> (Bool, Pred s)
 
 sEqual (St s1) (St s2)
  | s1 == s2     = (diff,T)
@@ -322,9 +322,9 @@ We note that some constructs
 cannot be substituted into until their definitions are expanded.
 
 \begin{code}
-psubst :: (Ord s, Mark m)
-       => m -> Dict m s -> Substn s -> MPred m s
-       -> (Bool, Pred m s)
+psubst :: Ord s
+       => Mark -> Dict s -> Substn s -> MPred s
+       -> (Bool, Pred s)
 
 psubst m d _ (_,T) = (diff,T)
 psubst m d _ (_,F) = (diff,F)
@@ -354,9 +354,9 @@ psubst m d sub mpr@(_,pr)  =  (same, mkPSub mpr sub)
 \end{code}
 Handling lists of predicates:
 \begin{code}
-pssubst :: (Ord s, Mark m)
-        => m -> Dict m s -> Substn s -> [MPred  m s]
-        -> (Bool, [MPred m s])
+pssubst :: Ord s
+        => Mark -> Dict s -> Substn s -> [MPred  s]
+        -> (Bool, [MPred s])
 pssubst m d _ [] = (same,[])
 pssubst m d sub (mp@(ms,p):mps)
  = let
@@ -371,13 +371,13 @@ pssubst m d sub (mp@(ms,p):mps)
 \newpage
 We sometimes need to know when we can substitute:
 \begin{code}
-canSub :: Dict m s -> String -> Bool
+canSub :: Dict s -> String -> Bool
 canSub d name
  = case plookup name d of
      Just (PredEntry cansub _ _ _)  ->  cansub
      _                              ->  False
-     
-substitutable :: Dict m s -> MPred m s -> Bool
+
+substitutable :: Dict s -> MPred s -> Bool
 substitutable d (_,Comp name _)
  = case plookup name d of
     Just pe@(PredEntry cansub _ _ _)  -> cansub

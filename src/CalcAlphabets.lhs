@@ -97,7 +97,7 @@ with the following calculations of the rest:
 }
 with $Obs$, $Alf$ etc derived as above.
 \begin{code}
-stdAlfDictGen :: [String] -> [String] -> [String] -> Dict m s
+stdAlfDictGen :: [String] -> [String] -> [String] -> Dict s
 stdAlfDictGen scr nonScrDyn stc
  = let
     scr' = map addDash scr
@@ -137,7 +137,7 @@ remDash = init
 It can be helpful to have total alphabet lookup functions,
 returning empty lists if nothing is found:
 \begin{code}
-getAlpha :: String -> Dict m s ->[String]
+getAlpha :: String -> Dict s ->[String]
 getAlpha alfname d
  = case alookup alfname d of
      Nothing              ->  []
@@ -147,7 +147,7 @@ getAlpha alfname d
 \HDRc{Dictionary-based variable properties}\label{hb:var-prop-lookup}
 
 \begin{code}
-isDyn, isDyn', isDynObs, notDynObs :: Dict m s -> String -> Bool
+isDyn, isDyn', isDynObs, notDynObs :: Dict s -> String -> Bool
 isDyn d v
  = case alookup aDyn d of
     Just (AlfEntry alfpart)  ->  v `elem` alfpart

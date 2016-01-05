@@ -33,20 +33,20 @@ pretty-printing and highlighting.
 
 \HDRc{Basic Marking}\label{hc:basic-marking}
 \begin{code}
-noMark :: Pred m s -> MPred m s
+noMark :: Pred s -> MPred s
 noMark pr = ([], pr)
 
-unMark :: MPred m s -> MPred m s
+unMark :: MPred s -> MPred s
 unMark (_, pr) = ([], pr)
 
-reMark :: m -> MPred m s -> MPred m s
-reMark m (_, pr) = ([m], pr)
-
-addMark :: m -> MPred m s -> MPred m s
+addMark :: Mark -> MPred s -> MPred s
 addMark m (ms, pr) = (m:ms, pr)
 
-remMark :: MPred m s -> MPred m s
-remMark (ms, pr) = (ttail ms, pr)
+popMark :: MPred s -> MPred s
+popMark (ms, pr) = (ttail ms, pr)
+
+remMark :: Mark -> MPred s -> MPred s
+remMark m (ms, pr) = (ms\\[m], pr)
 \end{code}
 
 \HDRc{Result Marking}\label{hc:result-marking}
@@ -55,9 +55,9 @@ Given a predicate, original marking,
 the explanation and new mark associated with this operation
 and the changed flag, produce the appropriate result:
 \begin{code}
-mkCR :: (Mark m, Ord s, Show s)
-     => Pred m s -> Pred m s -> [m] -> String -> m -> Bool
-     -> BeforeAfter m s
+mkCR :: (Ord s, Show s)
+     => Pred s -> Pred s -> Marks -> String -> Mark -> Bool
+     -> BeforeAfter s
 mkCR before after ms what m True = ( addMark m (ms,before)
                                    , what
                                    , addMark m (ms,after) )
@@ -67,13 +67,13 @@ For composites, we only mark the composite if it changes,
 and not if it is just sub-components that have changed:
 \begin{code}
 -- mkCompR :: (Mark m, Ord s, Show s)
---      => Pred m s  -- original
---      -> Pred m s  -- modified sub-components
---      -> Pred m s  -- modified top-level
---      -> [m] -> String -> m
+--      => Pred s  -- original
+--      -> Pred s  -- modified sub-components
+--      -> Pred s  -- modified top-level
+--      -> Marks -> String -> m
 --      -> Bool -- change somewhere
 --      -> Bool -- top has changed
---      -> BeforeAfter m s
+--      -> BeforeAfter s
 -- mkCompR top comp' top' ms what m False _     = ((ms,top),"",(ms,top))
 -- mkCompR top comp' top' ms what m True False  = ((ms,comp'),what,(ms,comp))
 -- mkCompR top comp' top' ms what m True True   = (what, addMark m (ms,top'))
@@ -82,7 +82,7 @@ and not if it is just sub-components that have changed:
 
 \begin{code}
 -- build a basic predicate at the MPred level
-true, false :: Mark m => MPred m s
+true, false :: MPred s
 true           =  noMark T
 false          =  noMark F
 pvar str       =  noMark $ PVar str
@@ -105,28 +105,28 @@ isAlfEntry _ = False
 isPVarEntry (PVarEntry _) = True
 isPVarEntry _ = False
 
-nullDict :: Dict m s
+nullDict :: Dict s
 nullDict = M.empty
 
-plookup :: String -> Dict m s -> Maybe (Entry m s)
+plookup :: String -> Dict s -> Maybe (Entry s)
 plookup nm d
  = case M.lookup nm d of
      Just pd@(PredEntry _ _ _ _)  ->  Just pd
      _                            ->  Nothing
 
-elookup :: String -> Dict m s -> Maybe (Entry m s)
+elookup :: String -> Dict s -> Maybe (Entry s)
 elookup nm d
  = case M.lookup nm d of
      Just ed@(ExprEntry _ _ _)  ->  Just ed
      _                          ->  Nothing
 
-alookup :: String -> Dict m s -> Maybe (Entry m s)
+alookup :: String -> Dict s -> Maybe (Entry s)
 alookup nm d
  = case M.lookup nm d of
      Just ad@(AlfEntry _)  ->  Just ad
      _                     ->  Nothing
 
-vlookup :: String -> Dict m s -> Maybe (Entry m s)
+vlookup :: String -> Dict s -> Maybe (Entry s)
 vlookup nm d
  = case M.lookup nm d of
      Just ve@(PVarEntry _)  ->  Just ve
@@ -137,33 +137,33 @@ When we merge dictionary entries
 we concatenate \texttt{AlfEntry} and \texttt{LawEntry},
 but otherwise take the first:
 \begin{code}
-mergeEntry :: Entry m s -> Entry m s -> Entry m s
+mergeEntry :: Entry s -> Entry s -> Entry s
 mergeEntry (AlfEntry a1) (AlfEntry a2)       = AlfEntry (a1++a2)
 mergeEntry (LawEntry r1 cr1 u1) (LawEntry r2 cr2 u2)
                          = LawEntry (r1++r2) (cr1++cr2) (u1++u2)
 mergeEntry e _ = e
 
-dictMrg :: Dict m s -> Dict m s -> Dict m s
+dictMrg :: Dict s -> Dict s -> Dict s
 dictMrg = M.unionWith mergeEntry
 \end{code}
 
 
 Default predicate entry functions
 \begin{code}
-pnone :: ( String, Pred m s)
+pnone :: ( String, Pred s)
 pnone = ( "", PUndef )
-nosimp :: [Pred m s] -> ( String, Pred m s)
+nosimp :: [Pred s] -> ( String, Pred s)
 nosimp es = pnone
-pdoes :: String -> (Dict m s -> [Pred m s] -> Pred m s)
-     -> Dict m s -> [Pred m s]
-     -> ( String, Pred m s )
+pdoes :: String -> (Dict s -> [Pred s] -> Pred s)
+     -> Dict s -> [Pred s]
+     -> ( String, Pred s )
 pdoes nm p d ps = ( nm, p d ps )
 
-pNoChg :: String -> Rewrite m s
+pNoChg :: String -> Rewrite s
 pNoChg name d mprs = ( "", Comp name mprs )
 
 -- labelling definitions
-ldefn :: String -> Pred m s -> (String, Pred m s)
+ldefn :: String -> Pred s -> (String, Pred s)
 ldefn "" pr = ( "", pr )
 ldefn nm pr = ( "defn. of " ++ nm, pr )
 \end{code}
@@ -177,8 +177,8 @@ none :: ( String, Expr s)
 none = ( "", Undef )
 noeval :: [Expr s] -> ( String, Expr s)
 noeval es = none
-does :: String -> (Dict m s -> [Expr s] -> Expr s)
-     -> Dict m s -> [Expr s]
+does :: String -> (Dict s -> [Expr s] -> Expr s)
+     -> Dict s -> [Expr s]
      -> ( String, Expr s )
 does nm f d es = ( nm, f d es )
 \end{code}
@@ -189,7 +189,7 @@ does nm f d es = ( nm, f d es )
 We define the display of an expression using a dictionary
 to provide exceptional ways to render things.
 \begin{code}
-edshow :: Show s => Dict m s -> Expr s -> String
+edshow :: Show s => Dict s -> Expr s -> String
 edshow d (St s)     =  show s
 edshow d (B b)      =  show b
 edshow d (Z i)      =  show i
@@ -227,11 +227,11 @@ For now, we don't support infix function syntax.
 
 Now, prettiness..
 \begin{code}
-pdshow :: (Show s, Ord s) => Int -> Dict m s -> Pred m s -> String
+pdshow :: (Show s, Ord s) => Int -> Dict s -> Pred s -> String
 pdshow w d pr = render w $ showp d noStyles 0 pr
 
 pmdshow :: (Show s, Ord s)
-        => Int -> Dict m s -> MarkStyle m -> MPred m s -> String
+        => Int -> Dict s -> MarkStyle -> MPred s -> String
 pmdshow w d msf mpr = render w $ mshowp d msf 0 mpr
 \end{code}
 
@@ -247,14 +247,14 @@ Pretty-printing predicates,
 which now just underlines atomic values,
 and colours equality green and composite names blue.
 \begin{code}
-mshowp :: (Ord s, Show s) => Dict m s -> MarkStyle m -> Int -> MPred m s -> PP
+mshowp :: (Ord s, Show s) => Dict s -> MarkStyle -> Int -> MPred s -> PP
 mshowp d msf p ( ms, pr )
  = sshowp $ catMaybes $ map msf ms
  where
   sshowp []  =  showp d msf p pr
   sshowp (s:ss) = pps s $ sshowp ss
 
-showp :: (Ord s, Show s) => Dict m s -> MarkStyle m -> Int -> Pred m s -> PP
+showp :: (Ord s, Show s) => Dict s -> MarkStyle -> Int -> Pred s -> PP
 showp d _ _ T  = ppa "true"
 showp d _ _ F  = ppa "false"
 showp d _ _ (PVar p)  = ppa p
@@ -272,7 +272,7 @@ showp d ms p (Comp cname pargs)
     _  ->  stdCshow d ms cname pargs
 
 stdCshow :: (Ord s, Show s)
-         => Dict m s -> MarkStyle m -> String -> [MPred m s] -> PP
+         => Dict s -> MarkStyle -> String -> [MPred s] -> PP
 stdCshow d ms cname pargs
  = pplist [ ppa cname
           , ppclosed "(" ")" "," $ map (showp d ms 0 .snd) pargs ]

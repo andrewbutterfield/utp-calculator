@@ -23,8 +23,8 @@ First, some generic intelligent composite constructors:
 
 \begin{code}
 mkAssoc
-  :: String -> (MPred m s -> Bool) -> [MPred m s]-> [MPred m s]
-  -> Pred m s
+  :: String -> (MPred s -> Bool) -> [MPred s]-> [MPred s]
+  -> Pred s
 mkAssoc op isOp srpm [] = Comp op $ reverse srpm
 mkAssoc op isOp srpm (mpr:mprs)
  | isOp mpr = mkAssoc op isOp (reverse (predPrs mpr)++srpm) mprs
@@ -42,13 +42,13 @@ this embodies the following laws:
 \\ 1 \otimes x & = x = & x \otimes 1
 }
 \begin{code}
-sLattice :: (Eq m, Eq s)
+sLattice :: Eq s
          => String
-         -> ([MPred m s] -> Pred m s)
-         -> Pred m s
-         -> Pred m s
-         -> [MPred m s]
-         -> (String, Pred m s)
+         -> ([MPred s] -> Pred s)
+         -> Pred s
+         -> Pred s
+         -> [MPred s]
+         -> (String, Pred s)
 sLattice tag op zero unit mprs
  = ret tag $ zcheck $ filter ((/= unit) . snd) mprs
  where
@@ -92,7 +92,7 @@ botEntry
    , PredEntry False ppBot defnBot (pNoChg "Bot") )
 
 -- build Top and Bot at the MPred level
-bTop, bBot :: Mark m => MPred m s
+bTop, bBot :: MPred s
 bTop = noMark mkTop
 bBot = noMark mkBot
 \end{code}
@@ -118,7 +118,7 @@ simpNot d [(m,Comp name [(_,pr)])]
  | name == "Not"  =  ("~~-simp",pr)
 simpNot _ mprs = ("", Comp "Not" mprs)
 
-notEntry :: (Show s, Ord s) => (String, Entry m s)
+notEntry :: (Show s, Ord s) => (String, Entry s)
 notEntry
  = ( "Not"
    , PredEntry True ppNot (pNoChg "Not") simpNot )
@@ -150,7 +150,7 @@ ppAnd d ms p mprs
 
 simpAnd d mprs  = sLattice "/\\-simplify" mkAnd F T mprs
 
-andEntry :: (Eq m, Show s, Ord s) => (String, Entry m s)
+andEntry :: (Show s, Ord s) => (String, Entry s)
 andEntry
  = ( "And"
    , PredEntry True ppAnd (pNoChg "And") simpAnd )
@@ -182,7 +182,7 @@ ppOr d ms p mprs
 
 simpOr d mprs  = sLattice "\\/-simplify" mkOr T F mprs
 
-orEntry :: (Eq m, Show s, Ord s) => (String, Entry m s)
+orEntry :: (Show s, Ord s) => (String, Entry s)
 orEntry
  = ( "Or"
    , PredEntry True ppOr (pNoChg "Or") simpOr )
@@ -214,7 +214,7 @@ ppNDC d ms p mprs
 
 simpNDC d mprs  = sLattice "|~|-simplify" mkNDC mkBot mkTop mprs
 
-ndcEntry :: (Eq m, Show s, Ord s) => (String, Entry m s)
+ndcEntry :: (Show s, Ord s) => (String, Entry s)
 ndcEntry
  = ( "NDC"
    , PredEntry True ppNDC (pNoChg "NDC") simpNDC )
@@ -247,7 +247,7 @@ simpImp d [ mpr,  (_,F)   ] = ( "=>-simp", mkNot mpr )
 simpImp d [ _,    (_,T)   ] = ( "=>-simp", T         )
 simpImp d [ mpr1, mpr2    ] = ( "",  mkImp mpr1 mpr2 )
 
-impEntry :: (Show s, Ord s) => (String, Entry m s)
+impEntry :: (Show s, Ord s) => (String, Entry s)
 impEntry
  = ( "Imp"
    , PredEntry True ppImp (pNoChg "Imp") simpImp )
@@ -276,7 +276,7 @@ ppRfdby d ms p mprs = pps styleRed $ ppa "invalid-|="
 
 simpRfdby d [mpr1, mpr2] = ( "",  mkImp mpr1 mpr2 )
 
-rfdbyEntry :: (Show s, Ord s) => (String, Entry m s)
+rfdbyEntry :: (Show s, Ord s) => (String, Entry s)
 rfdbyEntry
  = ( "Rfdby"
    , PredEntry False ppRfdby
@@ -309,7 +309,7 @@ ppCond d ms p mprs = pps styleRed $ ppa "invalid-<|>"
 
 simpCond d [mpr1, mpr2, mpr3] = ( "",  mkCond mpr1 mpr2 mpr3)
 
-condEntry :: (Show s, Ord s) => (String, Entry m s)
+condEntry :: (Show s, Ord s) => (String, Entry s)
 condEntry
  = ( "Cond"
    , PredEntry True ppCond simpCond simpCond )
@@ -339,7 +339,7 @@ skipEntry
     , PredEntry False ppSkip simpSkip simpSkip )
 
 -- build Skip at the MPred level
-bSkip :: Mark m => MPred m s
+bSkip :: MPred s
 bSkip = noMark mkSkip
 \end{code}
 
@@ -366,7 +366,7 @@ simpSeq d [ mpr1, mpr2    ]
  | isSkip mpr2 = ( "simp-;",  snd mpr1 )
  | otherwise   = ( "", mkSeq mpr1 mpr2 )
 
-seqEntry :: (Show s, Ord s) => (String, Entry m s)
+seqEntry :: (Show s, Ord s) => (String, Entry s)
 seqEntry
  = ( "Seq"
    , PredEntry False ppSeq
@@ -396,7 +396,7 @@ ppIter d _ p mprs = pps styleRed $ ppa "invalid-*"
 
 simpIter d [mpr1, mpr2 ] = ( "", mkIter mpr1 mpr2 )
 
-iterEntry :: (Show s, Ord s) => (String, Entry m s)
+iterEntry :: (Show s, Ord s) => (String, Entry s)
 iterEntry
  = ( "Iter"
    , PredEntry False ppIter (pNoChg "Iter") simpIter )

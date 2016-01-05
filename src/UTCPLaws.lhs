@@ -75,7 +75,7 @@ of these and other predicate constructs.
 We define laws that are generally
 viewed as reduction steps going from left-to-right.
 \begin{code}
-reduceUTCP :: (Mark m, Show s, Ord s) => DictRWFun m s
+reduceUTCP :: (Show s, Ord s) => DictRWFun s
              -- Dict -> MPred -> (String,MPred)
 \end{code}
 

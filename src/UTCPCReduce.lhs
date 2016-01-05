@@ -18,7 +18,7 @@ that is hard to evaluate.
 The user elects which one to use by checking the conditions manually.
 
 \begin{code}
-creduceUTCP :: (Mark m, Show s, Ord s) => CDictRWFun m s
+creduceUTCP :: (Show s, Ord s) => CDictRWFun s
 \end{code}
 
 \HDRc{pre- and before-substitutions}
@@ -32,10 +32,10 @@ preSublet (v,e) = notDash v && notDashed e
 preSub :: Ord s => Substn s -> Bool
 preSub = all preSublet
 
-beforeSublet :: Ord s => Dict m s -> ( String, Expr s ) -> Bool
+beforeSublet :: Ord s => Dict s -> ( String, Expr s ) -> Bool
 beforeSublet d (v,e) = isDyn d v && notDashed e
 
-beforeSub :: Ord s => Dict m s -> Substn s -> Bool
+beforeSub :: Ord s => Dict s -> Substn s -> Bool
 beforeSub d = all (beforeSublet d)
 \end{code}
 
@@ -43,8 +43,8 @@ beforeSub d = all (beforeSublet d)
  Sometimes we want to simplify a predicate without fuss
 (marking or comment):
 \begin{code}
-psimp :: (Mark m, Ord s, Show s) 
-      => Dict m s -> MPred m s -> Pred m s
+psimp :: (Ord s, Show s)
+      => Dict s -> MPred s -> Pred s
 psimp d = snd . thd . simplify d startm
 
 thd (_,_,z) = z
@@ -64,7 +64,7 @@ thd (_,_,z) = z
     = \false
 }
 \begin{code}
-creduceUTCP d (_,PSub (_,Comp "PAtm" [pA]) 
+creduceUTCP d (_,PSub (_,Comp "PAtm" [pA])
                       [("in",l0),("out",l1),("ls",ns)] )
  = lcred "atm-substn" [doA,nowt]
  where
@@ -156,7 +156,7 @@ creduceUTCP d (_,PSub (_,Comp "Cond" [c,p,q]) sub)
 
 Provided $\fv{b'} \subseteq \setof{s',ls'}$, $x'$ is an observation, and $k$ is ground
 \begin{code}
-creduceUTCP d mpr@(_,Comp "Seq" [ a@(_,Comp "And" prs) 
+creduceUTCP d mpr@(_,Comp "Seq" [ a@(_,Comp "And" prs)
                                 , w@(_,Comp "Iter" [c,pB]) ])
  | isCondition c
 

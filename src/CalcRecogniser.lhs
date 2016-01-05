@@ -42,8 +42,8 @@ then returns a triple as follows:
 \]
 \begin{code}
 matchRecog :: (Ord s, Show s)
-           => Recogniser m s -> [MPred m s]
-           -> Maybe ([MPred m s],MPred m s,[MPred m s])
+           => Recogniser s -> [MPred s]
+           -> Maybe ([MPred s],MPred s,[MPred s])
 matchRecog recog mprs
  = mR [] mprs
  where
@@ -58,7 +58,7 @@ matchRecog recog mprs
 
 \HDRc{Dashed Atomic Predicate}
 \begin{code}
-isDashedObsExpr :: Ord s => Dict m s -> Recogniser m s
+isDashedObsExpr :: Ord s => Dict s -> Recogniser s
 isDashedObsExpr d (_,Atm e') = isDashed e' && notGround d e'
 isDashedObsExpr _ _          = False
 \end{code}
@@ -67,7 +67,7 @@ isDashedObsExpr _ _          = False
 
 $x' = k$, where $x'$ is an after-observable, and $k$ is ground.
 \begin{code}
-isAfterEqToConst :: Ord s => Dict m s -> Recogniser m s
+isAfterEqToConst :: Ord s => Dict s -> Recogniser s
 isAfterEqToConst d (_,Equal (Var x') k)
                                    = isDyn' d x' && isGround d k
 isAfterEqToConst _ _               = False
@@ -77,7 +77,7 @@ isAfterEqToConst _ _               = False
 
 $x = k$, where $x$ is an nominated observable, and $k$ is ground.
 \begin{code}
-isObsEqToConst :: Ord s => String -> Dict m s -> Recogniser m s
+isObsEqToConst :: Ord s => String -> Dict s -> Recogniser s
 isObsEqToConst v d (_,Equal (Var x) k) =  v == x && isGround d k
 isObsEqToConst _ _ _                   =  False
 \end{code}
@@ -108,7 +108,7 @@ mapEV _ e = e
 
 Lifting variable functions to predicates:
 \begin{code}
-allPV :: Ord s => (String -> Bool) -> Pred m s -> Bool
+allPV :: Ord s => (String -> Bool) -> Pred s -> Bool
 allPV vp T = True
 allPV vp F = True
 allPV vp (Equal e1 e2) = allEV vp e1 && allEV vp e2
@@ -124,7 +124,7 @@ isDashed, notDashed :: Ord s => Expr s -> Bool
 isDashed = allEV isDash
 notDashed = allEV notDash
 
-isGround, notGround :: Ord s => Dict m s -> Expr s -> Bool
+isGround, notGround :: Ord s => Dict s -> Expr s -> Bool
 isGround d = allEV (notDynObs d)
 notGround d = allEV (isDynObs d)
 
@@ -132,7 +132,7 @@ unDash, dash :: Ord s => Expr s -> Expr s
 unDash = mapEV remDash
 dash = mapEV addDash
 
-isCondition :: Ord s => MPred m s -> Bool
+isCondition :: Ord s => MPred s -> Bool
 isCondition = allPV notDash . snd
 \end{code}
 
@@ -153,7 +153,7 @@ This means that \texttt{dftlyP} is not equal to \texttt{not . dftlyNotP}.
 
 Mostly, we want to know if $x \notin P$.
 \begin{code}
-dftlyNotInP :: Dict m s -> String -> MPred m s -> Bool
+dftlyNotInP :: Dict s -> String -> MPred s -> Bool
 
 dftlyNotInP d v (_,PVar p)
  = case vlookup p d of
@@ -175,7 +175,7 @@ dftlyNotInP _ _ _ = False -- not true, or can't tell !
 
 For expressions:
 \begin{code}
-dftlyNotInE :: Dict m s -> String -> Expr s -> Bool
+dftlyNotInE :: Dict s -> String -> Expr s -> Bool
 dftlyNotInE d v (B _) = True
 dftlyNotInE d v (Var x) = v /= x
 dftlyNotInE d v (App _ es) = all (dftlyNotInE d v) es

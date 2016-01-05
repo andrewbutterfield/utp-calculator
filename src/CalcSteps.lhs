@@ -20,7 +20,7 @@ import CalcZipper
 A failed step returns a null string,
 and the predicate part is generally considered undefined.
 \begin{code}
-nope :: RWResult m s
+nope :: RWResult s
 nope = ( "", error "calc. step failed" )
 \end{code}
 Given a decision,
@@ -29,7 +29,7 @@ we can resolve a conditional step
 into a completed one:
 \begin{code}
 condResolve :: (Ord s, Show s)
-         => Dict m s -> Int -> CRWResult m s -> RWResult m s
+         => Dict s -> Int -> CRWResult s -> RWResult s
 condResolve d i ( nm, [ (T, outcome) ] ) -- no choice
  = ( nm, outcome )
 condResolve d i ( nm, outcomes )
@@ -46,9 +46,8 @@ condResolve d i ( nm, outcomes )
 We treat things like simplification here as one big atomic modify step.
 
 \begin{code}
-doAtomicStep :: Mark m
-       => m -> (m -> RWFun m s)  -> MPred m s
-       -> Maybe (MPred m s, String, MPred m s)
+doAtomicStep :: Mark -> (Mark -> RWFun s)  -> MPred s
+             -> Maybe (MPred s, String, MPred s)
 doAtomicStep m mcstep mpr
  = let (what,mpr') = mcstep m mpr
    in if null what then Nothing else Just (mpr,what,mpr')
@@ -65,9 +64,8 @@ a predicate, and returning when we succeed.
 
 This call encapsulates the use of zippers completely:
 \begin{code}
-doStepSearch :: Mark m
-       => m -> RWFun m s  -> MPred m s
-       -> Maybe (BeforeAfter m s)
+doStepSearch :: Mark -> RWFun s  -> MPred s
+             -> Maybe (BeforeAfter s)
 doStepSearch m cstep mpr
  = let
      ((mpr1,what,mpr2),ss) = stepFocus cstep $ startMPZ mpr
@@ -81,7 +79,7 @@ doStepSearch m cstep mpr
 We try a step function first at the current focus level,
 only recursing in deeper if that fails:
 \begin{code}
-stepFocus :: RWFun m s -> MPZipper m s -> MPZip2 m s
+stepFocus :: RWFun s -> MPZipper s -> MPZip2 s
 stepFocus cstep mpz@( mpr, ss )
  = let ( what, mpr' ) = cstep mpr
    in if null what
@@ -93,7 +91,7 @@ stepFocus cstep mpz@( mpr, ss )
 
 We are now systematically exploring composite sub-parts:
 \begin{code}
-stepComponents :: RWFun m s -> MPZipper m s -> MPZip2 m s
+stepComponents :: RWFun s -> MPZipper s -> MPZip2 s
 
 -- Substitution, simple, only 1 sub-component:
 stepComponents cstep ( (mp, PSub mpr subs), ss )
@@ -113,11 +111,11 @@ stepComponents cstep ( mpr, ss ) = ( (mpr, "", mpr), ss )
 
 Going through a sub-component list:
 \begin{code}
-stepComp' :: RWFun m s
-          -> MPred' m s   -- current Comp'
-          -> [MPred' m s] -- current zip history
-          -> MPred m s    -- current focus, within Comp
-          -> MPZip2 m s
+stepComp' :: RWFun s
+          -> MPred' s   -- current Comp'
+          -> [MPred' s] -- current zip history
+          -> MPred s    -- current focus, within Comp
+          -> MPZip2 s
 
 -- end case, processing last components
 stepComp' cstep s@(Comp' mp name before []) ss mpr
@@ -147,9 +145,8 @@ a predicate, and returning when we succeed.
 
 This call encapsulates the use of zippers completely:
 \begin{code}
-doStepCSearch :: Mark m
-       => m -> CRWFun m s  -> MPred m s
-       -> Maybe (BeforeAfters m s)
+doStepCSearch :: Mark -> CRWFun s  -> MPred s
+              -> Maybe (BeforeAfters s)
 doStepCSearch m ccstep mpr
  = let
      ((mpr1,what,mprs2),ss) = stepCFocus ccstep $ startMPZ mpr
@@ -163,7 +160,7 @@ doStepCSearch m ccstep mpr
 We try a step function first at the current focus level,
 only recursing in deeper if that fails:
 \begin{code}
-stepCFocus :: CRWFun m s -> MPZipper m s -> CMPZip2 m s
+stepCFocus :: CRWFun s -> MPZipper s -> CMPZip2 s
 stepCFocus ccstep mpz@( mpr, ss )
  = let ( what, cmprs' ) = ccstep mpr
    in if null what
@@ -175,7 +172,7 @@ stepCFocus ccstep mpz@( mpr, ss )
 
 We are now systematically exploring composite sub-parts:
 \begin{code}
-stepCComponents :: CRWFun m s -> MPZipper m s -> CMPZip2 m s
+stepCComponents :: CRWFun s -> MPZipper s -> CMPZip2 s
 
 -- Substitution, simple, only 1 sub-component:
 stepCComponents ccstep ( (mp, PSub mpr subs), ss )
@@ -195,11 +192,11 @@ stepCComponents ccstep ( mpr, ss ) = ( (mpr, "", [(T,mpr)]), ss )
 
 Going through a sub-component list:
 \begin{code}
-stepCComp' :: CRWFun m s
-          -> MPred' m s   -- current Comp'
-          -> [MPred' m s] -- current zip history
-          -> MPred m s    -- current focus, within Comp
-          -> CMPZip2 m s
+stepCComp' :: CRWFun s
+          -> MPred' s   -- current Comp'
+          -> [MPred' s] -- current zip history
+          -> MPred s    -- current focus, within Comp
+          -> CMPZip2 s
 
 -- end case, processing last components
 stepCComp' ccstep s@(Comp' mp name before []) ss mpr
@@ -220,14 +217,14 @@ stepCComp' ccstep s@(Comp' mp name before after@(npr:rest)) ss mpr
 \HDRb{Definition Expansion}\label{hb:defn-expand}
 
 \begin{code}
-expandDefn :: (Mark m, Ord s, Show s) => Dict m s -> m
-           -> MPred m s -> BeforeAfter m s
+expandDefn :: (Ord s, Show s) => Dict s -> Mark
+           -> MPred s -> BeforeAfter s
 expandDefn d m mpr
  = case doStepSearch m (expDefs d) mpr of
      Nothing   ->  ( mpr, "", mpr )
      Just exp  ->  exp
 
-expDefs :: Dict m s -> RWFun m s
+expDefs :: Dict s -> RWFun s
 expDefs d mpr@(ms, Comp name mprs )
  = case plookup name d of
     Just pd@(PredEntry _ _ pdef _)
@@ -245,8 +242,8 @@ expDefs d mpr = ( "", mpr )
 \HDRc{Simple Reduction}
 
 \begin{code}
-doReduce :: (Mark m, Ord s, Show s) => Dict m s -> m
-           -> MPred m s -> BeforeAfter m s
+doReduce :: (Ord s, Show s) => Dict s -> Mark
+           -> MPred s -> BeforeAfter s
 doReduce d m mpr
  = case M.lookup "laws" d of
     Just (LawEntry red _ _)  ->  doRed d m mpr red
@@ -262,8 +259,8 @@ doRed d m mpr (rf:rfs)
 \HDRc{Conditional Reduction}
 
 \begin{code}
-doCReduce :: (Mark m, Ord s, Show s) => Dict m s -> m
-           -> MPred m s -> BeforeAfters m s
+doCReduce :: (Ord s, Show s) => Dict s -> Mark
+           -> MPred s -> BeforeAfters s
 doCReduce d m mpr
  = case M.lookup "laws" d of
     Just (LawEntry _ cred _)  ->  doCRed d m mpr cred
@@ -279,8 +276,8 @@ doCRed d m mpr (rf:rfs)
 \HDRc{Loop Unrolling}
 
 \begin{code}
-doUnroll :: (Mark m, Ord s, Show s) => Dict m s -> m
-           -> MPred m s -> BeforeAfter m s
+doUnroll :: (Ord s, Show s) => Dict s -> Mark
+           -> MPred s -> BeforeAfter s
 doUnroll d m mpr
  = case M.lookup "laws" d of
     Just (LawEntry _ _ unr)   ->  doUnr d m mpr unr

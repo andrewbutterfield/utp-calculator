@@ -21,9 +21,9 @@ import CalcSimplify
 For now we define a simple REPL.
 First, some top-level setup:
 \begin{code}
-calcREPL :: (Mark m, Show m, Ord s, Show s)
-         => Dict m s ->  MPred m s
-         -> IO ( MPred m s, [RWResult m s], Dict m s )
+calcREPL :: (Ord s, Show s)
+         => Dict s ->  MPred s
+         -> IO ( MPred s, [RWResult s], Dict s )
 calcREPL d mpr
  = do putStrLn ""
       putStrLn $ versionShow d'
@@ -47,10 +47,10 @@ versionShow d
 
 Now, the main REPL loop:
 \begin{code}
-runREPL :: (Mark m, Show m, Ord s, Show s)
-        => Dict m s -> m -> (MPred m s, [RWResult m s])
-        -> MPred m s
-        -> IO ( MPred m s, [RWResult m s], Dict m s )
+runREPL :: (Ord s, Show s)
+        => Dict s -> Mark -> (MPred s, [RWResult s])
+        -> MPred s
+        -> IO ( MPred s, [RWResult s], Dict s )
 runREPL d m state@(mpr0,steps) currpr
  = do
   putStr ( "\n"
@@ -78,7 +78,7 @@ calcUndo d m (mpr0,[(_,_)]) _
                      = runREPL d (prevm m) (unMark mpr0,[]) mpr0
 calcUndo d m (p,(_:((w,q):steps))) _
                 = runREPL d (prevm m) (p,(w,q'):steps) q'
-                where q' = remMark q
+                where q' = popMark q
 \end{code}
 
 Help
@@ -103,10 +103,10 @@ calcHelp d m st currpr
 \newpage
 Applying a given kind of step:
 \begin{code}
-calcStep :: (Mark m, Show m, Ord s, Show s)
-         => Dict m s -> m -> (MPred m s -> BeforeAfter m s)
-         -> (MPred m s, [RWResult m s]) -> MPred m s
-         -> IO ( MPred m s, [RWResult m s], Dict m s )
+calcStep :: (Ord s, Show s)
+         => Dict s -> Mark -> (MPred s -> BeforeAfter s)
+         -> (MPred s, [RWResult s]) -> MPred s
+         -> IO ( MPred s, [RWResult s], Dict s )
 calcStep d m stepf st@(mpr0,steps) currpr
  = do case stepf currpr of
        ( _, "", _ )  ->  runREPL d m st currpr
@@ -122,10 +122,10 @@ calcStep d m stepf st@(mpr0,steps) currpr
 
 Apply a given conditional step:
 \begin{code}
-calcCStep :: (Mark m, Show m, Ord s, Show s)
-          => Dict m s -> m -> (MPred m s -> BeforeAfters m s)
-          -> (MPred m s, [RWResult m s]) -> MPred m s
-          -> IO ( MPred m s, [RWResult m s], Dict m s )
+calcCStep :: (Ord s, Show s)
+          => Dict s -> Mark -> (MPred s -> BeforeAfters s)
+          -> (MPred s, [RWResult s]) -> MPred s
+          -> IO ( MPred s, [RWResult s], Dict s )
 calcCStep d m cstepf st@(mpr0,steps) currpr
  = case cstepf currpr of
     (_,"",_)  ->  runREPL d m st currpr
@@ -154,10 +154,10 @@ ccshow d ((i,(cpr,rmpr)):rest)
 
 Showing Marks
 \begin{code}
-showMarks :: (Mark m, Show m, Ord s, Show s)
-          => Dict m s -> m
-          -> (MPred m s, [RWResult m s]) -> MPred m s
-          -> IO ( MPred m s, [RWResult m s], Dict m s )
+showMarks :: (Ord s, Show s)
+          => Dict s -> Mark
+          -> (MPred s, [RWResult s]) -> MPred s
+          -> IO ( MPred s, [RWResult s], Dict s )
 showMarks d m state@(mpr0,steps) currpr
  = do showm (0::Int) (mpr0:map snd steps)
       runREPL d m state currpr
@@ -178,11 +178,11 @@ showMarks d m state@(mpr0,steps) currpr
 First,
 a mark-style function:
 \begin{code}
-stepshow :: (Mark m, Eq m) => m -> MarkStyle m
+stepshow :: Mark -> MarkStyle
 stepshow n m
- | n == prevm m         =  Just styleOld
- | n == m          =  Just styleNew
- | otherwise      =  Nothing
+ | n == prevm m  =  Just styleOld
+ | n == m        =  Just styleNew
+ | otherwise     =  Nothing
  where
    styleOld = Underline
    styleNew = styleRed
@@ -190,75 +190,21 @@ stepshow n m
 
 Now, rendering the results to look pretty:
 \begin{code}
-calcPrint :: (Mark m, Eq m, Ord s, Show s)
-          => ( MPred m s, [RWResult m s], Dict m s ) -> String
+calcPrint :: (Ord s, Show s)
+          => ( MPred s, [RWResult s], Dict s ) -> String
 calcPrint ( mpr0, steps, d )
- = unlines ( "" : versionShow d : "" : pmdshow 80 d (stepshow startm) mpr0
-             : (stepPrint d (nextm startm) $ reverse steps))
+ = unlines ( "" : versionShow d : "" : pmdshow 80 d (stepshow 0) mpr0
+             : (stepPrint d (nextm 0) $ reverse steps))
 
-stepPrint :: (Mark m, Eq m, Ord s, Show s)
-           => Dict m s -> m -> [RWResult m s] -> [String]
+stepPrint :: (Ord s, Show s)
+          => Dict s -> Mark -> [RWResult s] -> [String]
 stepPrint d m [] = []
 stepPrint d m ((comment,mpr):rest)
  = [""," = " ++ show comment,""] ++ [pmdshow 80 d (stepshow m) mpr]
    ++ stepPrint d (nextm m) rest
 
 
-outcome :: ( MPred m s, [RWResult m s], Dict m s ) -> MPred m s
+outcome :: ( MPred s, [RWResult s], Dict s ) -> MPred s
 outcome ( mpr0, [],          _ )  =  mpr0
 outcome ( _,    ((_,mpr'):_), _)  =  mpr'
-\end{code}
-
-
-\newpage
-Now, doing it conditionally%
-\footnote{
-  It should be possible to implement both \texttt{apply} and \texttt{capply}
-  as a single traverse function with appropriate higher
-  function parameters, but right now my head hurts!
-}
-\begin{code}
--- capply :: Ord s => CRWFun s -> Pred s -> CRWResult s
--- capply cstep pr
---  = case cstep pr of
---      ( "", _ ) ->  crapply cstep pr
---      res       ->  res
---
--- crapply :: Ord s => CRWFun s -> Pred s -> CRWResult s
--- crapply cstep (Not p) = cmapplies lnot cstep [p]
--- crapply cstep (And prs) = cmapplies And cstep prs
--- crapply cstep (Or prs) = cmapplies Or cstep prs
--- crapply cstep (Imp p1 p2) = cmapplies imp cstep [p1,p2]
--- crapply cstep (Cond p1 p2 p3) = cmapplies cond cstep [p1,p2,p3]
--- crapply cstep (PSub p sub) = cmapplies (psub sub) cstep [p]
--- crapply cstep (Seq p1 p2) = cmapplies seqs cstep [p1,p2]
--- crapply cstep (Iter p1 p2) = cmapplies iter cstep [p1,p2]
--- crapply cstep (PFun f prs) = cmapplies (PFun f) cstep prs
--- crapply cstep (PAtm p) = cmapplies patm cstep [p]
--- crapply cstep (PSeq p1 p2) = cmapplies pseq cstep [p1,p2]
--- crapply cstep (PPar p1 p2) = cmapplies ppar cstep [p1,p2]
--- crapply cstep (PCond p1 p2 p3) = cmapplies pcond cstep [p1,p2,p3]
--- crapply cstep (PIter p1 p2) = cmapplies piter cstep [p1,p2]
--- crapply cstep p = ( "", [] )
---
--- cmapplies :: Ord s
---           => ([Pred s] -> Pred s) -> CRWFun s -> [Pred s]
---           -> CRWResult s
--- cmapplies cons cstep prs
---  = ( comment, mapsnd cons crps )
---  where ( comment, crps ) = crapplies cstep prs
---
--- crapplies :: Ord s => CRWFun s -> [Pred s]
---                    -> ( String, [(Pred s,[Pred s])] )
--- crapplies _ [] = ( "", [] )
--- crapplies cstep [pr]
---  = ( comment, mapsnd (:[]) crps' )
---  where ( comment, crps' ) = capply cstep pr
--- crapplies cstep (pr:prs)
---  = case capply cstep pr of
---      (  "", _ )
---        -> ( comment, mapsnd (pr:) crps' )
---           where ( comment, crps' ) = crapplies cstep prs
---      ( comment, crps' )
---        -> ( comment, mapsnd (:prs) crps' )
 \end{code}
