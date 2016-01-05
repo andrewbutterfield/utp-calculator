@@ -218,6 +218,13 @@ aAndeqDny'KthenEq
 eqIt v' = equal (Var v') (Z 42)
 \end{code}
 
+A test for atomic substitution
+\begin{code}
+asubjunk :: MPred ()
+asubjunk = psub pA [("x",Z 42),("y'",Z 666)]
+(aBefore,what,aAfter) = simplify testDict 99 asubjunk
+\end{code}
+
 \HDRc{Test Laws}
 
 \begin{code}
@@ -261,7 +268,7 @@ testDict :: (Ord s, Show s) => Dict s
 testDict = dictUTCP
            -- `dictMrg` impFalseDict
            -- `dictMrg` absAlfDict
-           -- `dictMrg` lawsDict
+           `dictMrg` lawsDict
            `dictMrg` stdDict
 \end{code}
 

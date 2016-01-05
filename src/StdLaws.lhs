@@ -228,17 +228,6 @@ reduceStd d (_,Comp "Seq" [(_,Comp "Or" mpAs), mpB])
 \end{code}
 
 
-\HDRc{Substitution}
-
-We can always try to apply a substition:
-\begin{code}
-reduceStd d (_,PSub mpr sub)
- | substitutable d mpr && chgd = lred "substn" $ noMark pr'
- where
-   (chgd,pr') = psubst startm d sub mpr
-\end{code}
-
-
 That's all folks!
 \begin{code}
 reduceStd d mpr = lred "" mpr

@@ -77,9 +77,9 @@ isAfterEqToConst _ _               = False
 
 $x = k$, where $x$ is an nominated observable, and $k$ is ground.
 \begin{code}
-isObsEqToConst :: Ord s => String -> Dict s -> Recogniser s
-isObsEqToConst v d (_,Equal (Var x) k) =  v == x && isGround d k
-isObsEqToConst _ _ _                   =  False
+namedObsEqToConst :: Ord s => String -> Dict s -> Recogniser s
+namedObsEqToConst v d (_,Equal (Var x) k) =  v == x && isGround d k
+namedObsEqToConst _ _ _                   =  False
 \end{code}
 
 With the above, it can be useful to turn such

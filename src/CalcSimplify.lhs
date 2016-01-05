@@ -156,10 +156,9 @@ vesubst sub (v,e) = (v,snd $ esubst sub e)
 
 
 
-\HDRb{Predicate Simplification}
+\HDRb{Predicate Simplification}\label{hb:simplify}
 
 
-\HDRc{Simplify}\label{hc:simplify}
 
 Now, the predicate simplifier:
 \begin{code}
@@ -167,6 +166,9 @@ simplified = "simplify"
 simplify :: (Ord s, Show s)
          => Dict s -> Mark -> MPred s -> BeforeAfter s
 \end{code}
+
+\HDRc{Atomic Simplifier}\label{hc:simplify-atomic}
+
 For atomic predicates,
 we simplify the underlying expression,
 and lift any variable booleans to their predicate equivalent.
@@ -177,6 +179,9 @@ simplify d m mpr@(ms,pr@(Atm e))
     (chgd,B False)  ->  mkCR pr F        ms simplified m chgd
     (chgd,e')       ->  mkCR pr (Atm e') ms simplified m chgd
 \end{code}
+
+\HDRc{Equality Simplifier}\label{hc:simplify-equal}
+
 For equality we simplify both expressions,
 and then attempt to simplify the equality to true or false.
 \begin{code}
@@ -189,6 +194,9 @@ simplify d m mpr@(ms,(Equal e1 e2))
    in if chgd then (addMark m mpr, simplified, addMark m (ms,pr'))
               else (mpr,"",mpr)
 \end{code}
+
+\HDRc{Composite Simplifier}\label{hc:simplify-comp}
+
 For composites,
 we first simplify the components,
 and then look in the dictionary by name for a simplifier.
@@ -230,6 +238,9 @@ Assembling the result:
     = ( addMark m (ms,compN befores)
       , what, addMark m (ms,top') )
 \end{code}
+
+\HDRc{Predicate Substitution Simplifier}\label{hc:simplify-pred-subst}
+
 For predicate substitutions,
 we first simplify the substitution part,
 and them
@@ -250,9 +261,9 @@ which can be used to remove some elements from the substitution.
 \begin{code}
   sbstsimp d m ms (subchgd,subs') spr@(mp,PVar p)
    = case vlookup p d of
-      Just (AlfEntry alf)
+      Just (PVarEntry alf)
        -> ( addMark m mpr
-          , ""
+          , "pvar-substn"
           , addMark m
              (ms,mkPSub spr $ filter ((`elem` alf) . fst) subs'))
       _ -> (mpr,"",mpr)

@@ -12,6 +12,9 @@ import StdPrecedences
 import StdPredicates
 import StdLaws
 import UTCPSemantics
+import Debug.Trace
+
+dbg txt thing = trace (txt++show thing) thing
 \end{code}
 
 
@@ -211,12 +214,6 @@ reduceUTCP d (_,Comp "Seq" [(_,Comp "Or" mpAs), mpB])
   postFixWith p q = comp "Seq" [q, p]
 \end{code}
 
-We can always try to apply a substitution:
-\begin{code}
-reduceUTCP d (_,PSub mpr sub)
- | substitutable d mpr
-        = lred "substn" $ noMark $ snd $ psubst startm d sub mpr
-\end{code}
 
 \newpage
 A useful reduction for tidying up at the end,
@@ -231,10 +228,10 @@ are ground:
 \begin{code}
 reduceUTCP d pr@(_,Comp "Seq" [ (_,Comp "And" pAs)
                               , (_,Comp "And" pBs)])
- = case isSafeLSDash d ls' pAs of
+ = case isSafeLSDash d ls' ls' pAs of
     Nothing -> lred "" pr
     Just (_,restA) ->
-     case isSafeLSDash d ls pBs of
+     case isSafeLSDash d ls' ls pBs of
       Nothing -> lred "" pr
       Just (eqB,restB)
        -> lred "ls'-cleanup" $
@@ -245,13 +242,13 @@ reduceUTCP d pr@(_,Comp "Seq" [ (_,Comp "And" pAs)
    ls = "ls"
    ls' = "ls'"
 
-   isSafeLSDash d theLS prs
-    = case matchRecog (isObsEqToConst "ls'" d) prs of
+   isSafeLSDash d theLS unwanted prs
+    = case matchRecog (namedObsEqToConst theLS d) prs of
        Nothing -> Nothing
        Just (pre,eq@(_,Equal _ k),post) ->
         if notGround d k
          then Nothing
-         else if all (dftlyNotInP d theLS) rest
+         else if all (dftlyNotInP d unwanted) rest
           then Just (eq,rest)
           else Nothing
         where rest = pre++post
