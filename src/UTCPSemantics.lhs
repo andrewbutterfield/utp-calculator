@@ -188,10 +188,15 @@ We use sets in two key ways:
 checking for membership/subset inclusion;
 and updating by removing elements.
 \begin{code}
-set = App "set"
+setn = "set"
+set = App setn
 
 mkSet :: Ord s => [Expr s] -> Expr s
 mkSet = set . sort . nub
+
+showSet d elms = "{" ++ dlshow d "," elms ++ "}"
+
+evalSet _ _ = none
 \end{code}
 
 
@@ -290,7 +295,8 @@ The Set Dictionary:
 setUTCPDict :: (Eq s, Ord s, Show s) => Dict s
 setUTCPDict
  = M.fromList
-    [ (subsetn,(ExprEntry True showSubSet evalSubset))
+    [ (setn,(ExprEntry True showSet evalSet))
+    , (subsetn,(ExprEntry True showSubSet evalSubset))
     , (sswapn, (ExprEntry True showSSwap evalSSwap))
     ]
 \end{code}

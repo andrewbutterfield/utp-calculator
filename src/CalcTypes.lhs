@@ -307,6 +307,29 @@ or \m{cr_1} to \m{cr_n} or \m{u_1} to \m{u_p}, as appropriate.
 -- end Entry
 \end{code}
 
+\HDRc{Displaying Dictionaries}\label{hc:show-dicts}
+
+\begin{code}
+instance Show (Entry s) where
+ show (AlfEntry vars) = "Alf {"++seplist ',' vars++"}"
+ show (PVarEntry vars) = "PVar {"++seplist ',' vars++"}"
+ show (ExprEntry csub _ _) = "Expr, subst? = "++show csub
+ show (PredEntry csub _ _ _) = "Pred, subst? = "++show csub
+ show (LawEntry r c u)
+    = "Laws, #red="++show (length r)
+      ++ ", #cred="++show (length c)
+      ++ ", #loop="++show (length u)
+
+seplist _ [] = []
+seplist _ [xs] = xs
+seplist s (xs:xss) = xs ++ s:seplist s xss
+
+dictshow d
+ = putStrLn $ unlines $ map entryShow $ M.assocs d
+
+entryShow ( n, e ) = n ++ " :- " ++ show e
+\end{code}
+
 \newpage
 \HDRb{Calculation Steps}\label{hb:calc-types}
 

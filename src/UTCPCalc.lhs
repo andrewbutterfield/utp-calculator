@@ -47,6 +47,7 @@ dictUTCP
                   , setUTCPDict
                   , genUTCPDict
                   , semUTCPDict
+                  , lawsUTCPDict
                   ]
 
 showUTCP (_,pr)  = pdshow 80 dictUTCP pr

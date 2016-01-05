@@ -260,7 +260,7 @@ Test dictionarys
 testDict :: (Ord s, Show s) => Dict s
 testDict = dictUTCP
            -- `dictMrg` impFalseDict
-           `dictMrg` absAlfDict
+           -- `dictMrg` absAlfDict
            `dictMrg` lawsDict
            `dictMrg` stdDict
 \end{code}

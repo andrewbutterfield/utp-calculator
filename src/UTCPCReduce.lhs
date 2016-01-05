@@ -1,6 +1,7 @@
 \HDRa{UTCP Conditional Reducer}\label{ha:UTCP-cond:reduce}
 \begin{code}
 module UTCPCReduce where
+import qualified Data.Map as M
 import CalcTypes
 import CalcAlphabets
 import CalcPredicates
@@ -9,6 +10,7 @@ import CalcSteps
 import CalcRecogniser
 import StdPredicates
 import UTCPSemantics
+import UTCPLaws
 \end{code}
 
 To avoid having to support a wide range of expression-related theories,
@@ -211,4 +213,14 @@ Other cases, do nothing:
 creduceUTCP d mpr = lcred "" [(T,mpr)]
 
 lcred nm cmprs = ( nm, cmprs )
+\end{code}
+
+
+\begin{code}
+lawsUTCPDict :: (Ord s, Show s) => Dict s
+lawsUTCPDict
+ = M.fromList
+    [ ( "laws"
+      , LawEntry [reduceUTCP] [creduceUTCP] [])
+    ]
 \end{code}
