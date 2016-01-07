@@ -330,105 +330,6 @@ dictshow d
 entryShow ( n, e ) = n ++ " :- " ++ show e
 \end{code}
 
-\newpage
-\HDRb{Calculation Steps}\label{hb:calc-types}
-
-\HDRc{Calculation Step Intro}\label{hc:step-intro}
-
-Imagine an predicate $p$ containing sub-predicates $q_1$, $q_2$ and $q_3$,
-to which we apply $step$ three times,
-which results in the following changes:
-\[
-  step_i : q_i \mapsto q'_i, \qquad i \in 1\ldots 3
-\]
-The presentation of the calculation should look like the following,
-where underlining denotes ``old'' and the colour red denotes ``new'':
-\RLEQNS{
-\\ && p
-\EQ{defn of $p$ (w.l.o.g.)}
-\\&& ( \ldots \OLD{q_1} \ldots q_2 \ldots q_3 \ldots)
-\EQm{step_1}
-\\&& ( \ldots \NEW{q'_1} \ldots \OLD{q_2} \ldots q_3 \ldots)
-\EQm{step_2}
-\\&& ( \ldots q'_1 \ldots \NEW{q'_2} \ldots \OLD{q_3} \ldots)
-\EQm{step_3}
-\\&& ( \ldots q'_1 \ldots q'_2 \ldots \NEW{q'_3} \ldots)
-}
-Notice how each $step_i$ affects the Old/New marking of both its predecessor
-and successor predicates.
-Rather than having two markings (Old/New) it turns out to be more efficient
-to have a numeric marking, so $step_i$ introduces mark number $i$.
-The interpetation of such marks as old, new or irrelevant can then be done
-relative to the numbering of the step outcome being rendered for display.
-
-We can breakdown the above calculation using mark numbers ($M_i$) as follows
-\RLEQNS{
-   p  && ( \ldots q_1 \ldots q_2 \ldots q_3 \ldots)
-\EQm{step_1}
-\\ pe_1 && ( \ldots \OLD{M_1(q_1)} \ldots q_2 \ldots q_3 \ldots) & \mbox{display 1=Old}
-\\
-\\ ne_1 && ( \ldots M_1(q'_1) \ldots q_2 \ldots q_3 \ldots)
-\EQm{step_2}
-\\ pe_2 && ( \ldots \NEW{M_1(q'_1)} \ldots \OLD{M_2(q_2)} \ldots q_3 \ldots) & \mbox{display 1=New, 2=Old}
-\\
-\\ ne_2 && ( \ldots M_1(q'_1) \ldots M_2(q'_2) \ldots q_3 \ldots)
-\EQm{step_3}
-\\ pe_3 && ( \ldots M_1(q'_1) \ldots \NEW{M_2(q'_2)} \ldots \OLD{M_3(q_3)} \ldots) & \mbox{display 2=New, 3=Old}
-\\
-\\ ne_3 && ( \ldots M_1(q'_1) \ldots M_2(q'_2) \ldots \NEW{M_3(q'_3)} \ldots) & \mbox{display 3=New}
-}
-
-So we see that $step_i$ takes $ne_{i-1}$ and produces:
-\begin{itemize}
-  \item $pe_i$, where $M_i$ has been wrapped around $q_i$
-  \item $ne_i$, which is $pe_i$, where $q_i$ (already marked with $M_i$)
-   is replaced by $q'_i$.
-\end{itemize}
-What is not obvious from the above example is what should happen
-when two successive steps affect the same or a nested sub-predicate.
-Here we find we need to be able to associate multiple marks with
-any sub-component.
-
-\HDRc{Calculation Step Types}\label{hc:step-types}
-
-In order to mark and highlight predicates in calculation steps,
-we need to return not just the modified result, marked at the point of change,
-but also the original predicate, also marked at the same location
-(with the same mark in each case --- the mark identifies the specific
-calculation step).
-We have a type that has this information,
-along with a justification string:
-\begin{code}
-type BeforeAfter s
- = ( MPred s   -- before predicate, marked
-   , String      -- justification, null if no change occurred
-   , MPred s ) -- after predicate, marked
-\end{code}
-In the conditional case, we have lists of outcomes
-paired with conditions:
-\begin{code}
-type BeforeAfters s
- = ( MPred s   -- before predicate, marked
-   , String      -- justification, null if no change occurred
-   , [(Pred s,MPred s)] ) -- after predicates, marked
-\end{code}
-
-This seems to present a problem for the zipper,
-as we have to identify corresponding locations,
-where $q_i$ and $q'_i$ reside,
-in two different versions of a single predicate.
-However the structure of the two predicates is identical everywhere else
-so a single zipper ``path'' can be applied to both.
-
-\begin{code}
-type MPZip2 s = (BeforeAfter s, [MPred' s])
-\end{code}
-
-For conditional searches,
-we return a list of \texttt{Pred},\texttt{MPred} pairs:
-\begin{code}
-type CMPZip2 s = ( BeforeAfters s, [MPred' s] )
-\end{code}
 
 \newpage
 \HDRb{Zipper Datatypes}\label{hb:zipper-types}
@@ -500,35 +401,115 @@ type MPZipper s
     )
 \end{code}
 
+\newpage
+\HDRb{Calculation Steps}\label{hb:calc-types}
+
+\HDRc{Calculation Step Intro}\label{hc:step-intro}
+
+Imagine an predicate $p$ containing sub-predicates $q_1$, $q_2$ and $q_3$,
+to which we apply $step$ three times,
+which results in the following changes:
+\[
+  step_i : q_i \mapsto q'_i, \qquad i \in 1\ldots 3
+\]
+The presentation of the calculation should look like the following,
+where underlining denotes ``old'' and the colour red denotes ``new'':
+\RLEQNS{
+  && ( \ldots \OLD{q_1} \ldots q_2 \ldots q_3 \ldots)
+\EQm{step_1}
+\\&& ( \ldots \NEW{q'_1} \ldots \OLD{q_2} \ldots q_3 \ldots)
+\EQm{step_2}
+\\&& ( \ldots q'_1 \ldots \NEW{q'_2} \ldots \OLD{q_3} \ldots)
+\EQm{step_3}
+\\&& ( \ldots q'_1 \ldots q'_2 \ldots \NEW{q'_3} \ldots)
+}
+Notice how each $step_i$ affects the Old/New marking of both its predecessor
+and successor predicates.
+Rather than having two markings (Old/New) it turns out to be more efficient
+to have a numeric marking, so $step_i$ introduces mark number $i$.
+The interpretation of such marks as old, new or irrelevant can then be done
+relative to the numbering of the step outcome being rendered for display.
+
+We can breakdown the above calculation using mark numbers ($M_i$) as follows
+\RLEQNS{
+   ne_0  && ( \ldots q_1 \ldots q_2 \ldots q_3 \ldots)
+\EQm{step_1}
+\\ pe_1 && ( \ldots \OLD{M_1(q_1)} \ldots q_2 \ldots q_3 \ldots) & \mbox{display 1=Old}
+\\
+\\ ne_1 && ( \ldots M_1(q'_1) \ldots q_2 \ldots q_3 \ldots)
+\EQm{step_2}
+\\ pe_2 && ( \ldots \NEW{M_1(q'_1)} \ldots \OLD{M_2(q_2)} \ldots q_3 \ldots) & \mbox{display 1=New, 2=Old}
+\\
+\\ ne_2 && ( \ldots M_1(q'_1) \ldots M_2(q'_2) \ldots q_3 \ldots)
+\EQm{step_3}
+\\ pe_3 && ( \ldots M_1(q'_1) \ldots \NEW{M_2(q'_2)} \ldots \OLD{M_3(q_3)} \ldots) & \mbox{display 2=New, 3=Old}
+\\
+\\ ne_3 && ( \ldots M_1(q'_1) \ldots M_2(q'_2) \ldots \NEW{M_3(q'_3)} \ldots) & \mbox{display 3=New}
+}
+
+So we see that $step_i$ takes $ne_{i-1}$ and produces:
+\begin{itemize}
+  \item $pe_i$, where $M_i$ has been wrapped around $q_i$
+  \item $ne_i$, which is $pe_i$, where $q_i$ (already marked with $M_i$)
+   is replaced by $q'_i$.
+\end{itemize}
+What is not obvious from the above example is what should happen
+when two successive steps affect the same or a nested sub-predicate.
+Here we find we need to be able to associate multiple marks with
+any sub-component.
+
+\HDRc{Calculation Step Types}\label{hc:step-types}
+
+In order to mark and highlight predicates in calculation steps,
+we need to return not just the modified result, marked at the point of change,
+but also the original predicate, also marked at the same location
+(with the same mark in each case --- the mark identifies the specific
+calculation step).
+We have a type that has this information,
+along with a justification string:
+\begin{code}
+type BeforeAfter s
+ = ( MPred s   -- before predicate, marked
+   , String      -- justification, null if no change occurred
+   , MPred s ) -- after predicate, marked
+\end{code}
+In the conditional case, we have lists of outcomes
+paired with conditions:
+\begin{code}
+type BeforeAfters s
+ = ( MPred s   -- before predicate, marked
+   , String      -- justification, null if no change occurred
+   , [(Pred s,MPred s)] ) -- after predicates, marked
+\end{code}
+
+This seems to present a problem for the zipper,
+as we have to identify corresponding locations,
+where $q_i$ and $q'_i$ reside,
+in two different versions of a single predicate.
+However the structure of the two predicates is identical everywhere else
+so a single zipper ``path'' can be applied to both.
+
+\begin{code}
+type MPZip2 s = (BeforeAfter s, [MPred' s])
+\end{code}
+
+For conditional searches,
+we return a list of \texttt{Pred},\texttt{MPred} pairs:
+\begin{code}
+type CMPZip2 s = ( BeforeAfters s, [MPred' s] )
+\end{code}
+
+A calculation log records all pertinent data regarding a calculation
+\begin{code}
+type CalcLog s = ( MPred s      -- initial predicate (pe1)
+                 , [RWResult s] -- steps, most recent first
+                 , Dict s )     -- final dictionary
+\end{code}
+
+
+
 \HDRb{Recognisers}\label{hc:recog}
 
 \begin{code}
 type Recogniser s = MPred s -> Bool
 \end{code}
-
-\HDRb{Theory Steps}
-
-%\begin{code}
-%data ThSteps s
-% = TS{
-%\end{code}
-%    \begin{description}
-%      \item[Reduce]
-%        Apply a law of predicate calculus in a direction that ``makes progress''.
-%\begin{code}
-%   reduce :: Dict s -> RWFun s
-%\end{code}
-%      \item[Definition]
-%        Expand a definition
-%\begin{code}
-% , defn :: RWFun s
-%\end{code}
-%      \item[Conditional]
-%        Apply a conditional law, also in a direction that makes progress.
-%\begin{code}
-% , creduce :: Dict s -> CRWFun s
-%\end{code}
-%    \end{description}
-%\begin{code}
-%}
-%\end{code}

@@ -14,7 +14,74 @@ import CalcSteps
 import CalcSimplify
 \end{code}
 
+\HDRb{Introduction}
 
+We want to produce a result of the form
+\RLEQNS{
+   ne_0  && ( \ldots q_1 \ldots q_2 \ldots q_3 \ldots)
+\EQm{step_1}
+\\ pe_1 && ( \ldots \OLD{M_1(q_1)} \ldots q_2 \ldots q_3 \ldots) & \mbox{display 1=Old}
+\\
+\\ ne_1 && ( \ldots M_1(q'_1) \ldots q_2 \ldots q_3 \ldots)
+\EQm{step_2}
+\\ pe_2 && ( \ldots \NEW{M_1(q'_1)} \ldots \OLD{M_2(q_2)} \ldots q_3 \ldots) & \mbox{display 1=New, 2=Old}
+\\
+\\ ne_2 && ( \ldots M_1(q'_1) \ldots M_2(q'_2) \ldots q_3 \ldots)
+\EQm{step_3}
+\\ pe_3 && ( \ldots M_1(q'_1) \ldots \NEW{M_2(q'_2)} \ldots \OLD{M_3(q_3)} \ldots) & \mbox{display 2=New, 3=Old}
+\\
+\\ ne_3 && ( \ldots M_1(q'_1) \ldots M_2(q'_2) \ldots \NEW{M_3(q'_3)} \ldots) & \mbox{display 3=New}
+}
+that will display as
+\RLEQNS{
+   pe_1 && ( \ldots \OLD{M_1(q_1)} \ldots q_2 \ldots q_3 \ldots) & \mbox{display 1=Old}
+\EQm{step_1}
+\\ pe_2 && ( \ldots \NEW{M_1(q'_1)} \ldots \OLD{M_2(q_2)} \ldots q_3 \ldots) & \mbox{display 1=New, 2=Old}
+\EQm{step_2}
+\\ pe_3 && ( \ldots M_1(q'_1) \ldots \NEW{M_2(q'_2)} \ldots \OLD{M_3(q_3)} \ldots) & \mbox{display 2=New, 3=Old}
+\EQm{step_3}
+\\ ne_3 && ( \ldots M_1(q'_1) \ldots M_2(q'_2) \ldots \NEW{M_3(q'_3)} \ldots) & \mbox{display 3=New}
+}
+We expect both $pe_i$ and $ne_i$ to contain mark $i$,
+and $pe_i$ to also contain mark $i-1$ (as it's obtained from $ne_{i-1}$
+by marking it with $i$).
+
+
+\HDRc{Calculation process}
+
+We start with $ne_0 = p$, and no steps
+\[ (ne_0,\seqof{}) \]
+Running $step_1$ on $ne_0$ produces $(pe_1,ne_1)$
+We replace $ne_0$ with $pe_1$, and push $ne_1$ onto the list
+\[ (pe_1,\seqof{ne_1}) \]
+Running $step_2$ on $ne_1$ produces $(pe_2,ne_2)$
+We replace $ne_1$ with $pe_2$, and push $ne_2$ onto the list
+\[ (pe_1,\seqof{ne_2,pe_2}) \]
+Running $step_3$ on $ne_2$ produces $(pe_3,ne_3)$
+We replace $ne_2$ with $pe_3$, and push $ne_3$ onto the list
+\[ (pe_1,\seqof{ne_3,pe_3,pe_2}) \]
+
+Running $step_i$ on $ne_{i-1}$ produces $(pe_i,ne_i)$
+We replace $ne_{i-1}$ with $pe_i$, and push $ne_i$ onto the list
+\[ (pe_1,\seqof{ne_i,pe_i,\dots,pe_3,pe_2}) \]
+
+Note that $pe_i = M_i(ne_{i-1})$.
+
+For undo, we can revert $pe_i$ back to $ne_{i-1}$
+by removing all occurrences of marking $i$.
+
+Given a structure of the form
+\[
+  (p_1,\seqof{p_k,p_{k-1},\dots,p_i,\dots,p_3,p_2})
+\]
+we have the following invariant:
+\RLEQNS{
+   \setof k &\in& markings(p_k) & \say{the $ne_k$ case}
+\\ \setof{i-1,i} &\subseteq& markings(p_i), 1 < i < k &\say{the $pe_i$ case}
+\\ \setof 1 &=& markings(p_1) & \say{the $pe_1$ case}
+}
+
+Why do we have $p_1$ seperate? And why the \texttt{Dict} component?
 \newpage
 \HDRb{Calculator REPL}
 
@@ -23,7 +90,7 @@ First, some top-level setup:
 \begin{code}
 calcREPL :: (Ord s, Show s)
          => Dict s ->  MPred s
-         -> IO ( MPred s, [RWResult s], Dict s )
+         -> IO (CalcLog s)
 calcREPL d mpr
  = do putStrLn ""
       putStrLn $ versionShow d'
@@ -50,7 +117,7 @@ Now, the main REPL loop:
 runREPL :: (Ord s, Show s)
         => Dict s -> Mark -> (MPred s, [RWResult s])
         -> MPred s
-        -> IO ( MPred s, [RWResult s], Dict s )
+        -> IO (CalcLog s)
 runREPL d m state@(mpr0,steps) currpr
  = do
   putStr ( "\n"
@@ -106,7 +173,7 @@ Applying a given kind of step:
 calcStep :: (Ord s, Show s)
          => Dict s -> Mark -> (MPred s -> BeforeAfter s)
          -> (MPred s, [RWResult s]) -> MPred s
-         -> IO ( MPred s, [RWResult s], Dict s )
+         -> IO (CalcLog s)
 calcStep d m stepf st@(mpr0,steps) currpr
  = do case stepf currpr of
        ( _, "", _ )  ->  runREPL d m st currpr
@@ -125,7 +192,7 @@ Apply a given conditional step:
 calcCStep :: (Ord s, Show s)
           => Dict s -> Mark -> (MPred s -> BeforeAfters s)
           -> (MPred s, [RWResult s]) -> MPred s
-          -> IO ( MPred s, [RWResult s], Dict s )
+          -> IO (CalcLog s)
 calcCStep d m cstepf st@(mpr0,steps) currpr
  = case cstepf currpr of
     (_,"",_)  ->  runREPL d m st currpr
@@ -157,9 +224,9 @@ Showing Marks
 showMarks :: (Ord s, Show s)
           => Dict s -> Mark
           -> (MPred s, [RWResult s]) -> MPred s
-          -> IO ( MPred s, [RWResult s], Dict s )
+          -> IO (CalcLog s)
 showMarks d m state@(mpr0,steps) currpr
- = do showm (0::Int) (mpr0:map snd steps)
+ = do showm (0::Int) (mpr0:map snd (reverse steps))
       runREPL d m state currpr
  where
    showm _ [] = return ()
@@ -190,8 +257,7 @@ stepshow n m
 
 Now, rendering the results to look pretty:
 \begin{code}
-calcPrint :: (Ord s, Show s)
-          => ( MPred s, [RWResult s], Dict s ) -> String
+calcPrint :: (Ord s, Show s) => CalcLog s -> String
 calcPrint ( mpr0, steps, d )
  = unlines ( "" : versionShow d : "" : pmdshow 80 d (stepshow 0) mpr0
              : (stepPrint d (nextm 0) $ reverse steps))
@@ -204,7 +270,7 @@ stepPrint d m ((comment,mpr):rest)
    ++ stepPrint d (nextm m) rest
 
 
-outcome :: ( MPred s, [RWResult s], Dict s ) -> MPred s
+outcome :: CalcLog s -> MPred s
 outcome ( mpr0, [],          _ )  =  mpr0
 outcome ( _,    ((_,mpr'):_), _)  =  mpr'
 \end{code}
