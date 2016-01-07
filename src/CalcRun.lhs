@@ -76,12 +76,13 @@ Given a structure of the form
 \]
 we have the following invariant:
 \RLEQNS{
-   \setof k &\in& markings(p_k) & \say{the $ne_k$ case}
+   \setof{k-1} &\in& markings(p_k) & \say{the $ne_k$ case}
 \\ \setof{i-1,i} &\subseteq& markings(p_i), 1 < i < k &\say{the $pe_i$ case}
 \\ \setof 1 &=& markings(p_1) & \say{the $pe_1$ case}
 }
 
-Why do we have $p_1$ seperate? And why the \texttt{Dict} component?
+Why do we have $p_1$ separate? And why the \texttt{Dict} component?
+
 \newpage
 \HDRb{Calculator REPL}
 
@@ -120,6 +121,9 @@ runREPL :: (Ord s, Show s)
         -> IO (CalcLog s)
 runREPL d m state@(mpr0,steps) currpr
  = do
+  if invMarks (mpr0,steps,d)
+   then putStrLn "Marking Invariant holds"
+   else putStrLn "**** Marking Invariant fails ****"
   putStr ( "\n"
          ++ pmdshow 80 d noStyles currpr
          ++ "\n\n ?,d,r,l,s,c,u,x :- " )
@@ -181,10 +185,10 @@ calcStep d m stepf st@(mpr0,steps) currpr
          -> do  putStrLn ( "\n = " ++ show comment )
                 let st' = stUpdate before (comment,after) st
                 runREPL d (nextm m) st' after
- where
-   stUpdate before wafter ( mpr0, []) = ( before, [wafter] )
-   stUpdate before wafter ( mpr0, ((what,_):steps))
-    = ( mpr0, (wafter:(what,before):steps) )
+
+stUpdate before wafter ( mpr0, []) = ( before, [wafter] )
+stUpdate before wafter ( mpr0, ((what,_):steps))
+ = ( mpr0, (wafter:(what,before):steps) )
 \end{code}
 
 Apply a given conditional step:
@@ -202,15 +206,18 @@ calcCStep d m cstepf st@(mpr0,steps) currpr
             putStrLn ("Please select 1.."++show num)
             sel <- fmap getInt getLine
             if 1 <= sel && sel <= num
-             then do let step' = condResolve d sel (comment,afters')
+             then do let (_,after) = condResolve d sel (comment,afters')
                      putStrLn ( "\n = " ++ show comment )
-                     runREPL d m (mpr0,(step':steps)) (snd step')
+                     let st' = stUpdate before (comment,after) st
+                     runREPL d (nextm m) st' after
              else runREPL d m st currpr
  where
    getInt (c:_)
     | isDigit c = digitToInt c
    getInt _ = 0
 
+ccshow :: (Show s, Ord s)
+       => Dict s -> [(Int,(Pred s, MPred s))] -> [String]
 ccshow d [] = []
 ccshow d ((i,(cpr,rmpr)):rest)
  = ["","(" ++ show i++ ") provided:    " ++ pdshow 80 d cpr
@@ -219,6 +226,7 @@ ccshow d ((i,(cpr,rmpr)):rest)
    ++ ccshow d rest
 \end{code}
 
+\newpage
 Showing Marks
 \begin{code}
 showMarks :: (Ord s, Show s)
@@ -226,17 +234,34 @@ showMarks :: (Ord s, Show s)
           -> (MPred s, [RWResult s]) -> MPred s
           -> IO (CalcLog s)
 showMarks d m state@(mpr0,steps) currpr
- = do showm (0::Int) (mpr0:map snd (reverse steps))
+ = do showm (1::Int) (mpr0:map snd (reverse steps))
       runREPL d m state currpr
+
+showm _ [] = return ()
+showm i (mpr:mprs)
+ = do putStrLn (show i ++ " ! " ++ show (marksOf mpr))
+      showm (i+1) mprs
+
+marksOf :: MPred s -> [Mark]
+marksOf  ( ms, pr ) = ms ++ predMarks pr
+
+predMarks (Comp _ mprs) = concat $ map marksOf mprs
+predMarks (PSub mpr _) = marksOf mpr
+predMarks _ = []
+
+invMarks :: CalcLog s -> Bool
+invMarks (mpr0, [],_) =  null $ marksOf mpr0
+invMarks (mpr0, rws@((_,ne):pes),_)
+ = invMarks1 mpr0
+   && invMarksNE k ne
+   && all invPE (zip [2..] $ reverse pes)
  where
-   showm _ [] = return ()
-   showm i (mpr:mprs)
-    = do putStrLn (show i ++ " ! " ++ show (marksOf mpr))
-         showm (i+1) mprs
-   marksOf  ( ms, pr ) = ms ++ predMarks pr
-   predMarks (Comp _ mprs) = concat $ map marksOf mprs
-   predMarks (PSub mpr _) = marksOf mpr
-   predMarks _ = []
+   k = max 1 $ length pes
+   invPE (i,(_,mpr)) = invMarksPE i mpr
+
+invMarks1 mpr     =  marksOf mpr \\ [1] == []
+invMarksPE i mpr  =  [i-1,i] \\ marksOf mpr == []
+invMarksNE i mpr  =  i `elem` marksOf mpr
 \end{code}
 
 \newpage
