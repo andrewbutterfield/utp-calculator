@@ -155,7 +155,7 @@ Undoing
 calcUndo d m st@(_,[]) = runREPL d m st
 calcUndo d m (n_k,(_,q):steps)
                 = runREPL d (prevm m) (q',steps)
-                where q' = popMark q
+                where q' = stripMark m q
 \end{code}
 
 Help

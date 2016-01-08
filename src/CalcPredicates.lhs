@@ -49,6 +49,17 @@ remMark :: Mark -> MPred s -> MPred s
 remMark m (ms, pr) = (ms\\[m], pr)
 \end{code}
 
+We also need sometimes to strip out a remark at all levels
+in a predicate:
+\begin{code}
+stripMark :: Mark -> MPred s -> MPred s
+stripMark m (ms, pr) = (ms\\[m], stripMark' m pr)
+
+stripMark' m (Comp n mprs)  = Comp n $ map (stripMark m) mprs
+stripMark' m (PSub mpr sub) = PSub (stripMark m mpr) sub
+stripMark' m pr             = pr
+\end{code}
+
 \HDRc{Result Marking}\label{hc:result-marking}
 
 Given a predicate, original marking,
