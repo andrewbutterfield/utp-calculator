@@ -81,7 +81,12 @@ we have the following invariant:
 \\ \setof 1 &=& markings(p_1) & \say{the $pe_1$ case}
 }
 
-Why do we have $p_1$ separate? And why the \texttt{Dict} component?
+Why do we have $p_1$ separate?
+Because the others are in fact paired with a string ($w_k$) identifying the step.
+\[
+  (p_1,\seqof{(w_{k-1},p_k),(w_{k-2},p_{k-1}),
+   \dots,(w_{i-1},p_i),\dots,(w_2,p_3),(w_1,p_2)})
+\]
 
 \newpage
 \HDRb{Calculator REPL}

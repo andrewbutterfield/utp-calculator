@@ -505,6 +505,8 @@ type CalcLog s = ( MPred s      -- initial predicate (pe1)
                  , [RWResult s] -- steps, most recent first
                  , Dict s )     -- final dictionary
 \end{code}
+The dictionary is included as it is required, for example,
+to pretty-print the predicates.
 
 
 
