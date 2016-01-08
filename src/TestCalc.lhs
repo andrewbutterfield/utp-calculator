@@ -222,7 +222,7 @@ A test for atomic substitution
 \begin{code}
 asubjunk :: MPred ()
 asubjunk = psub pA [("x",Z 42),("y'",Z 666)]
-(aBefore,what,aAfter) = simplify testDict 99 asubjunk
+(aBefore,what,aAfter) = simplify impDict 99 asubjunk
 \end{code}
 
 \HDRc{Test Laws}
@@ -264,10 +264,14 @@ lawsDict = M.fromList [ lawsEntry ]
 
 Test dictionarys
 \begin{code}
-testDict :: (Ord s, Show s) => Dict s
-testDict = dictUTCP
-           -- `dictMrg` impFalseDict
-           -- `dictMrg` absAlfDict
+utcpDict :: (Ord s, Show s) => Dict s
+utcpDict = dictUTCP
+           `dictMrg` lawsDict
+           `dictMrg` stdDict
+
+impDict :: (Ord s, Show s) => Dict s
+impDict  = impFalseDict
+           `dictMrg` absAlfDict
            `dictMrg` lawsDict
            `dictMrg` stdDict
 \end{code}
@@ -275,7 +279,7 @@ testDict = dictUTCP
 \HDRc{Test Calculator Top-Level}
 
 \begin{code}
-calc mpr = calcREPL testDict mpr
+calc mpr = calcREPL utcpDict mpr
 putcalc :: (Ord s, Show s) => MPred s -> IO ()
 putcalc mpr
   = do res <- calc mpr

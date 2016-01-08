@@ -47,45 +47,49 @@ and $pe_i$ to also contain mark $i-1$ (as it's obtained from $ne_{i-1}$
 by marking it with $i$).
 
 
+\newpage
 \HDRc{Calculation process}
 
 We start with $ne_0 = p$, and no steps
 \[ (ne_0,\seqof{}) \]
 Running $step_1$ on $ne_0$ produces $(pe_1,ne_1)$
-We replace $ne_0$ with $pe_1$, and push $ne_1$ onto the list
-\[ (pe_1,\seqof{ne_1}) \]
+We replace $ne_0$ with $ne_1$, and push $pe_1$ onto the list
+\[ (ne_1,\seqof{pe_1}) \]
 Running $step_2$ on $ne_1$ produces $(pe_2,ne_2)$
-We replace $ne_1$ with $pe_2$, and push $ne_2$ onto the list
-\[ (pe_1,\seqof{ne_2,pe_2}) \]
+We replace $ne_1$ with $ne_2$, and push $pe_2$ onto the list
+\[ (ne_2,\seqof{pe_2,pe_1}) \]
 Running $step_3$ on $ne_2$ produces $(pe_3,ne_3)$
-We replace $ne_2$ with $pe_3$, and push $ne_3$ onto the list
-\[ (pe_1,\seqof{ne_3,pe_3,pe_2}) \]
+We replace $ne_2$ with $ne_3$, and push $pe_3$ onto the list
+\[ (ne_3,\seqof{pe_3,pe_2,pe_1}) \]
 
 Running $step_i$ on $ne_{i-1}$ produces $(pe_i,ne_i)$
-We replace $ne_{i-1}$ with $pe_i$, and push $ne_i$ onto the list
-\[ (pe_1,\seqof{ne_i,pe_i,\dots,pe_3,pe_2}) \]
+We replace $ne_{i-1}$ with $ne_i$, and push $pe_i$ onto the list
+\[ (ne_i,\seqof{pe_i,pe_{i-1},\dots,pe_2,pe_1}) \]
 
 Note that $pe_i = M_i(ne_{i-1})$.
 
 For undo, we can revert $pe_i$ back to $ne_{i-1}$
 by removing all occurrences of marking $i$.
 
+\def\CALCINV{
 Given a structure of the form
 \[
-  (p_1,\seqof{p_k,p_{k-1},\dots,p_i,\dots,p_3,p_2})
+  (n_k,\seqof{p_k,p_{k-1},\dots,p_i,\dots,p_2,p_1})
 \]
 we have the following invariant:
 \RLEQNS{
-   \setof{k-1} &\in& markings(p_k) & \say{the $ne_k$ case}
-\\ \setof{i-1,i} &\subseteq& markings(p_i), 1 < i < k &\say{the $pe_i$ case}
-\\ \setof 1 &=& markings(p_1) & \say{the $pe_1$ case}
+    1 &\in& markings(p_1) & \say{the $pe_1$ case}
+\\ \setof{i-1,i} &\subseteq& markings(p_i), 1 < i \leq k &\say{the $pe_i$ case}
+\\ k &\in& markings(n_k) & \say{the $ne_k$ case}
 }
+}
+\CALCINV
 
-Why do we have $p_1$ separate?
+Why do we have $n_k$ separate?
 Because the others are in fact paired with a string ($w_k$) identifying the step.
 \[
-  (p_1,\seqof{(w_{k-1},p_k),(w_{k-2},p_{k-1}),
-   \dots,(w_{i-1},p_i),\dots,(w_2,p_3),(w_1,p_2)})
+  (n_k,\seqof{(w_k,p_k),(w_{k-1},p_{k-1}),
+   \dots,(w_i,p_i),\dots,(w_2,p_2),(w_1,p_1)})
 \]
 
 \newpage
@@ -100,7 +104,7 @@ calcREPL :: (Ord s, Show s)
 calcREPL d mpr
  = do putStrLn ""
       putStrLn $ versionShow d'
-      runREPL d' startm (mpr,[]) mpr
+      runREPL d' startm (mpr,[])
  where d' = M.unionWith mergeEntry d dictVersion
 
 dictVersion
@@ -122,44 +126,41 @@ Now, the main REPL loop:
 \begin{code}
 runREPL :: (Ord s, Show s)
         => Dict s -> Mark -> (MPred s, [RWResult s])
-        -> MPred s
         -> IO (CalcLog s)
-runREPL d m state@(mpr0,steps) currpr
+runREPL d m state@(currpr,steps)
  = do
-  if invMarks (mpr0,steps,d)
+  if invMarks (currpr,steps,d)
    then putStrLn "Marking Invariant holds"
    else putStrLn "**** Marking Invariant fails ****"
-  putStr ( "\n"
+  putStr ( "\n Step " ++ show m ++ "\n"
          ++ pmdshow 80 d noStyles currpr
          ++ "\n\n ?,d,r,l,s,c,u,x :- " )
   ln <- getLine
   case ln of
-   ('?':_) -> calcHelp d m state currpr
-   ('s':_) -> calcStep d m (simplify d $ nextm m) state currpr
-   ('u':_) -> calcUndo d m state currpr
-   ('d':_) -> calcStep d m (expandDefn d $ nextm m) state currpr
-   ('r':_) -> calcStep d m (doReduce   d $ nextm m) state currpr
-   ('c':_) -> calcCStep d m (doCReduce d $ nextm m) state currpr
-   ('l':_) -> calcStep  d m (doUnroll d $ nextm m) state currpr
-   ('x':_) -> return (mpr0,steps,d)
-   ('M':_) -> showMarks d m state currpr
+   ('?':_) -> calcHelp d m state
+   ('s':_) -> calcStep d m (simplify d $ nextm m) state 
+   ('u':_) -> calcUndo d m state 
+   ('d':_) -> calcStep d m (expandDefn d $ nextm m) state 
+   ('r':_) -> calcStep d m (doReduce   d $ nextm m) state
+   ('c':_) -> calcCStep d m (doCReduce d $ nextm m) state
+   ('l':_) -> calcStep  d m (doUnroll d $ nextm m) state
+   ('x':_) -> return (currpr,steps,d)
+   ('M':_) -> showMarks d m state
    _ -> do putStrLn ("'"++ln++"' ??")
-           runREPL d m (mpr0,steps) currpr
+           runREPL d m (currpr,steps)
 \end{code}
 
 Undoing
 \begin{code}
-calcUndo d m st@(_,[]) currpr = runREPL d m st currpr
-calcUndo d m (mpr0,[(_,_)]) _
-                     = runREPL d (prevm m) (unMark mpr0,[]) mpr0
-calcUndo d m (p,(_:((w,q):steps))) _
-                = runREPL d (prevm m) (p,(w,q'):steps) q'
+calcUndo d m st@(_,[]) = runREPL d m st
+calcUndo d m (n_k,(_,q):steps)
+                = runREPL d (prevm m) (q',steps)
                 where q' = popMark q
 \end{code}
 
 Help
 \begin{code}
-calcHelp d m st currpr
+calcHelp d m st
  = do putStr $ unlines
        [ ""
        , "? - this help message"
@@ -173,7 +174,7 @@ calcHelp d m st currpr
        , "c - conditional reduction step"
        , "M - show marks (DEBUG)"
        ]
-      runREPL d m st currpr
+      runREPL d m st
 \end{code}
 
 \newpage
@@ -181,30 +182,28 @@ Applying a given kind of step:
 \begin{code}
 calcStep :: (Ord s, Show s)
          => Dict s -> Mark -> (MPred s -> BeforeAfter s)
-         -> (MPred s, [RWResult s]) -> MPred s
+         -> (MPred s, [RWResult s])
          -> IO (CalcLog s)
-calcStep d m stepf st@(mpr0,steps) currpr
+calcStep d m stepf st@(currpr,steps) 
  = do case stepf currpr of
-       ( _, "", _ )  ->  runREPL d m st currpr
+       ( _, "", _ )  ->  runREPL d m st
        ( before,comment, after )
          -> do  putStrLn ( "\n = " ++ show comment )
-                let st' = stUpdate before (comment,after) st
-                runREPL d (nextm m) st' after
+                let st' = stUpdate (comment,before) after st
+                runREPL d (nextm m) st'
 
-stUpdate before wafter ( mpr0, []) = ( before, [wafter] )
-stUpdate before wafter ( mpr0, ((what,_):steps))
- = ( mpr0, (wafter:(what,before):steps) )
+stUpdate wbefore after ( _, steps) = ( after, wbefore:steps) 
 \end{code}
 
 Apply a given conditional step:
 \begin{code}
 calcCStep :: (Ord s, Show s)
           => Dict s -> Mark -> (MPred s -> BeforeAfters s)
-          -> (MPred s, [RWResult s]) -> MPred s
+          -> (MPred s, [RWResult s])
           -> IO (CalcLog s)
-calcCStep d m cstepf st@(mpr0,steps) currpr
+calcCStep d m cstepf st@(currpr,steps) 
  = case cstepf currpr of
-    (_,"",_)  ->  runREPL d m st currpr
+    (_,"",_)  ->  runREPL d m st
     ( before, comment, afters' )
       -> do putStrLn $ unlines $ ccshow d $ zip [1..] afters'
             let num = length afters'
@@ -213,9 +212,9 @@ calcCStep d m cstepf st@(mpr0,steps) currpr
             if 1 <= sel && sel <= num
              then do let (_,after) = condResolve d sel (comment,afters')
                      putStrLn ( "\n = " ++ show comment )
-                     let st' = stUpdate before (comment,after) st
-                     runREPL d (nextm m) st' after
-             else runREPL d m st currpr
+                     let st' = stUpdate (comment, before) after st
+                     runREPL d (nextm m) st'
+             else runREPL d m st
  where
    getInt (c:_)
     | isDigit c = digitToInt c
@@ -236,11 +235,11 @@ Showing Marks
 \begin{code}
 showMarks :: (Ord s, Show s)
           => Dict s -> Mark
-          -> (MPred s, [RWResult s]) -> MPred s
+          -> (MPred s, [RWResult s])
           -> IO (CalcLog s)
-showMarks d m state@(mpr0,steps) currpr
- = do showm (1::Int) (mpr0:map snd (reverse steps))
-      runREPL d m state currpr
+showMarks d m state@(currpr,steps) 
+ = do showm (1::Int) $ reverse (currpr:map snd steps)
+      runREPL d m state
 
 showm _ [] = return ()
 showm i (mpr:mprs)
@@ -253,20 +252,23 @@ marksOf  ( ms, pr ) = ms ++ predMarks pr
 predMarks (Comp _ mprs) = concat $ map marksOf mprs
 predMarks (PSub mpr _) = marksOf mpr
 predMarks _ = []
+\end{code}
 
+\CALCINV
+\begin{code}
 invMarks :: CalcLog s -> Bool
-invMarks (mpr0, [],_) =  null $ marksOf mpr0
-invMarks (mpr0, rws@((_,ne):pes),_)
- = invMarks1 mpr0
-   && invMarksNE k ne
-   && all invPE (zip [2..] $ reverse pes)
+invMarks (n_0, [],_) =  null $ marksOf n_0
+invMarks (n_k, ps,_)
+ = invMarksNE k n_k
+   && all invPE (zip [1..] $ reverse ps)
  where
-   k = max 1 $ length pes
-   invPE (i,(_,mpr)) = invMarksPE i mpr
+   k = length ps
+   invPE (i,(_,p_i)) = invMarksPE i p_i
 
-invMarks1 mpr     =  marksOf mpr \\ [1] == []
-invMarksPE i mpr  =  [i-1,i] \\ marksOf mpr == []
-invMarksNE i mpr  =  i `elem` marksOf mpr
+invMarksPE i p_i
+ | i == 1         =  1 `elem` marksOf p_i 
+ | otherwise      =  [i-1,i] \\ marksOf p_i == []
+invMarksNE k n_k  =  k `elem` marksOf n_k
 \end{code}
 
 \newpage
@@ -289,14 +291,16 @@ Now, rendering the results to look pretty:
 \begin{code}
 calcPrint :: (Ord s, Show s) => CalcLog s -> String
 calcPrint ( mpr0, steps, d )
- = unlines ( "" : versionShow d : "" : pmdshow 80 d (stepshow 0) mpr0
-             : (stepPrint d (nextm 0) $ reverse steps))
+ = unlines ( "" : versionShow d : "" 
+             : (stepPrint d (nextm 0) $ reverse steps)
+               ++ [pmdshow 80 d (stepshow 0) mpr0])
 
 stepPrint :: (Ord s, Show s)
           => Dict s -> Mark -> [RWResult s] -> [String]
 stepPrint d m [] = []
 stepPrint d m ((comment,mpr):rest)
- = [""," = " ++ show comment,""] ++ [pmdshow 80 d (stepshow m) mpr]
+ = [pmdshow 80 d (stepshow m) mpr]
+   ++[""," = " ++ show comment,""] 
    ++ stepPrint d (nextm m) rest
 
 
