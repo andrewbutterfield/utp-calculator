@@ -285,4 +285,15 @@ putcalc mpr
   = do res <- calc mpr
        putStrLn "\n\nTRANSCRIPT:"
        putStrLn $ calcPrint res
+
+viewcalc (currpr,steps,_)
+ = vc 0 $ reverse (("QED",currpr):steps)
+ where
+   vc _ [] = return ()
+   vc s ((what,mpr):rest)
+     = do putStrLn ("Step "++show s)
+          putView mpr
+          putStrLn ("\n= '"++what++"'\n")
+          vc (s+1) rest
+
 \end{code}

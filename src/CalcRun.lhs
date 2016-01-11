@@ -138,14 +138,16 @@ runREPL d m state@(currpr,steps)
   ln <- getLine
   case ln of
    ('?':_) -> calcHelp d m state
-   ('s':_) -> calcStep d m (simplify d $ nextm m) state 
-   ('u':_) -> calcUndo d m state 
-   ('d':_) -> calcStep d m (expandDefn d $ nextm m) state 
+   ('s':_) -> calcStep d m (simplify d $ nextm m) state
+   ('u':_) -> calcUndo d m state
+   ('d':_) -> calcStep d m (expandDefn d $ nextm m) state
    ('r':_) -> calcStep d m (doReduce   d $ nextm m) state
    ('c':_) -> calcCStep d m (doCReduce d $ nextm m) state
    ('l':_) -> calcStep  d m (doUnroll d $ nextm m) state
    ('x':_) -> return (currpr,steps,d)
    ('M':_) -> showMarks d m state
+   ('B':_) -> viewBefore d m state
+   ('A':_) -> viewAfter d m state
    _ -> do putStrLn ("'"++ln++"' ??")
            runREPL d m (currpr,steps)
 \end{code}
@@ -173,6 +175,8 @@ calcHelp d m st
        , "l - loop unrolling"
        , "c - conditional reduction step"
        , "M - show marks (DEBUG)"
+       , "B - view before (DEBUG)"
+       , "A - view after (DEBUG)"
        ]
       runREPL d m st
 \end{code}
@@ -184,7 +188,7 @@ calcStep :: (Ord s, Show s)
          => Dict s -> Mark -> (MPred s -> BeforeAfter s)
          -> (MPred s, [RWResult s])
          -> IO (CalcLog s)
-calcStep d m stepf st@(currpr,steps) 
+calcStep d m stepf st@(currpr,steps)
  = do case stepf currpr of
        ( _, "", _ )  ->  runREPL d m st
        ( before,comment, after )
@@ -192,7 +196,7 @@ calcStep d m stepf st@(currpr,steps)
                 let st' = stUpdate (comment,before) after st
                 runREPL d (nextm m) st'
 
-stUpdate wbefore after ( _, steps) = ( after, wbefore:steps) 
+stUpdate wbefore after ( _, steps) = ( after, wbefore:steps)
 \end{code}
 
 Apply a given conditional step:
@@ -201,7 +205,7 @@ calcCStep :: (Ord s, Show s)
           => Dict s -> Mark -> (MPred s -> BeforeAfters s)
           -> (MPred s, [RWResult s])
           -> IO (CalcLog s)
-calcCStep d m cstepf st@(currpr,steps) 
+calcCStep d m cstepf st@(currpr,steps)
  = case cstepf currpr of
     (_,"",_)  ->  runREPL d m st
     ( before, comment, afters' )
@@ -237,7 +241,7 @@ showMarks :: (Ord s, Show s)
           => Dict s -> Mark
           -> (MPred s, [RWResult s])
           -> IO (CalcLog s)
-showMarks d m state@(currpr,steps) 
+showMarks d m state@(currpr,steps)
  = do showm (1::Int) $ reverse (currpr:map snd steps)
       runREPL d m state
 
@@ -254,6 +258,20 @@ predMarks (PSub mpr _) = marksOf mpr
 predMarks _ = []
 \end{code}
 
+Viewing before and after
+\begin{code}
+viewAfter d m state@(currpr,steps)
+ = do putView currpr
+      runREPL d m state
+
+viewBefore d m state@(currpr,[])
+ = do putView currpr
+      runREPL d m state
+viewBefore d m state@(currpr,(_,prevpr):_)
+ = do putView prevpr
+      runREPL d m state
+\end{code}
+
 \CALCINV
 \begin{code}
 invMarks :: CalcLog s -> Bool
@@ -266,7 +284,7 @@ invMarks (n_k, ps,_)
    invPE (i,(_,p_i)) = invMarksPE i p_i
 
 invMarksPE i p_i
- | i == 1         =  1 `elem` marksOf p_i 
+ | i == 1         =  1 `elem` marksOf p_i
  | otherwise      =  [i-1,i] \\ marksOf p_i == []
 invMarksNE k n_k  =  k `elem` marksOf n_k
 \end{code}
@@ -277,10 +295,11 @@ invMarksNE k n_k  =  k `elem` marksOf n_k
 First,
 a mark-style function:
 \begin{code}
-stepshow :: Mark -> MarkStyle
-stepshow n m
- | n == prevm m  =  Just styleOld
- | n == m        =  Just styleNew
+type StepNo = Int
+stepshow :: StepNo -> MarkStyle
+stepshow s m
+ | s == prevm m  =  Just styleOld
+ | s == m        =  Just styleNew
  | otherwise     =  Nothing
  where
    styleOld = Underline
@@ -290,18 +309,18 @@ stepshow n m
 Now, rendering the results to look pretty:
 \begin{code}
 calcPrint :: (Ord s, Show s) => CalcLog s -> String
-calcPrint ( mpr0, steps, d )
- = unlines ( "" : versionShow d : "" 
-             : (stepPrint d (nextm 0) $ reverse steps)
-               ++ [pmdshow 80 d (stepshow 0) mpr0])
+calcPrint ( currpr, steps, d )
+ = unlines ( "" : versionShow d : ""
+             : (stepPrint d 0 $ reverse steps)
+               ++ [pmdshow 80 d (stepshow $ length steps) currpr])
 
 stepPrint :: (Ord s, Show s)
-          => Dict s -> Mark -> [RWResult s] -> [String]
-stepPrint d m [] = []
-stepPrint d m ((comment,mpr):rest)
- = [pmdshow 80 d (stepshow m) mpr]
-   ++[""," = " ++ show comment,""] 
-   ++ stepPrint d (nextm m) rest
+          => Dict s -> StepNo -> [RWResult s] -> [String]
+stepPrint d s [] = []
+stepPrint d s ((comment,mpr):rest)
+ = [pmdshow 80 d (stepshow s) mpr]
+   ++[""," = " ++ show comment,""]
+   ++ stepPrint d (s+1) rest
 
 
 outcome :: CalcLog s -> MPred s

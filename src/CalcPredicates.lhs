@@ -60,36 +60,6 @@ stripMark' m (PSub mpr sub) = PSub (stripMark m mpr) sub
 stripMark' m pr             = pr
 \end{code}
 
-\HDRc{Result Marking}\label{hc:result-marking}
-
-Given a predicate, original marking,
-the explanation and new mark associated with this operation
-and the changed flag, produce the appropriate result:
-\begin{code}
-mkCR :: (Ord s, Show s)
-     => Pred s -> Pred s -> Marks -> String -> Mark -> Bool
-     -> BeforeAfter s
-mkCR before after ms what m True = ( addMark m (ms,before)
-                                   , what
-                                   , addMark m (ms,after) )
-mkCR pr _ ms _ _ False  = ((ms,pr),"",(ms,pr))
-\end{code}
-For composites, we only mark the composite if it changes,
-and not if it is just sub-components that have changed:
-\begin{code}
--- mkCompR :: (Mark m, Ord s, Show s)
---      => Pred s  -- original
---      -> Pred s  -- modified sub-components
---      -> Pred s  -- modified top-level
---      -> Marks -> String -> m
---      -> Bool -- change somewhere
---      -> Bool -- top has changed
---      -> BeforeAfter s
--- mkCompR top comp' top' ms what m False _     = ((ms,top),"",(ms,top))
--- mkCompR top comp' top' ms what m True False  = ((ms,comp'),what,(ms,comp))
--- mkCompR top comp' top' ms what m True True   = (what, addMark m (ms,top'))
-\end{code}
-
 
 \begin{code}
 -- build a basic predicate at the MPred level

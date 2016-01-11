@@ -105,6 +105,44 @@ instance Eq s => Eq (Pred s) where
  _ == _                              =  False
 \end{code}
 
+Sometimes we need to view everything:
+\begin{code}
+viewPred :: Show s => MPred s -> String
+viewPred
+ = unlines . vPred 0
+ where
+
+   ind i strs = map (replicate i ' ' ++) strs
+
+   vPred i (ms, T) = ind i ["T : "++show ms]
+   vPred i (ms, F) = ind i ["F : "++show ms]
+   vPred i (ms, PVar pv) = ind i ["PVar '"++pv++"' : "++show ms]
+   vPred i (ms, Equal e1 e2)
+     = ind i ["Equal : "++show ms]
+       ++ vExpr (i+2) e1
+       ++ vExpr (i+2) e2
+   vPred i (ms, Atm e)
+    = ind i ["Atm : "++show ms]
+      ++ vExpr (i+2) e
+   vPred i (ms, Comp name mprs)
+    = ind i ["Comp '"++name++"' : "++show ms]
+      ++ concat (map (vPred (i+2)) mprs)
+   vPred i (ms, PSub mpr sub)
+    = ind i ["Psub : "++show ms]
+      ++ vPred (i+2) mpr
+      ++ vSbst (i+2) sub
+
+   vExpr i (St s)  = ind i ["St "++show s]
+   vExpr i (B b)   = ind i ["B "++show b]
+   vExpr i (Z z)   = ind i ["Z "++show z]
+   vExpr i (Var v) = ind i ["Var "++"'"++v++"'"]
+   vExpr i e       = ind i ["Expr..."]
+
+   vSbst i subs = ind i ["Subst for "++show (map fst subs)]
+
+putView :: Show s => MPred s -> IO ()
+putView = putStrLn . viewPred
+\end{code}
 
 We need a function from markings to styles:
 \begin{code}

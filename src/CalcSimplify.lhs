@@ -173,11 +173,17 @@ For atomic predicates,
 we simplify the underlying expression,
 and lift any variable booleans to their predicate equivalent.
 \begin{code}
-simplify d m mpr@(ms,pr@(Atm e))
+simplify d m mbefore@(ms,Atm e)
  = case esimp d e of
-    (chgd,B True)   ->  mkCR pr T        ms simplified m chgd
-    (chgd,B False)  ->  mkCR pr F        ms simplified m chgd
-    (chgd,e')       ->  mkCR pr (Atm e') ms simplified m chgd
+    (chgd,B True)   ->  atmBeforeAfter T        chgd
+    (chgd,B False)  ->  atmBeforeAfter F        chgd
+    (chgd,e')       ->  atmBeforeAfter (Atm e') chgd
+ where
+  atmBeforeAfter after chgd
+   | chgd       =  ( addMark m mbefore
+                   , simplified
+                   , addMark m (ms,after) )
+   | otherwise  =  (mbefore, "", mbefore)
 \end{code}
 
 \HDRc{Equality Simplifier}\label{hc:simplify-equal}
@@ -195,6 +201,7 @@ simplify d m mpr@(ms,(Equal e1 e2))
               else (mpr,"",mpr)
 \end{code}
 
+\newpage
 \HDRc{Composite Simplifier}\label{hc:simplify-comp}
 
 For composites,
@@ -203,42 +210,43 @@ and then look in the dictionary by name for a simplifier.
 \begin{code}
 simplify d m mpr@(ms,pr@(Comp name mprs))
  = let
-    (subchgs,befores,afters) = subsimp d m same [] [] mprs
-    (what,comppr') = compsimp d m name afters
+    (subchgs,befores,afters) = subsimp same [] [] mprs
+    (what,comppr') = compsimp afters
     topchgd = not $ null what
-   in assemble mpr comppr' (Comp name) befores afters
-              ms simplified m (subchgs||topchgd) topchgd
+   in assemble comppr' befores afters
+              (subchgs||topchgd) topchgd
  where
 
-   subsimp d m chgd befores afters []
+   subsimp chgd befores afters []
     = ( chgd, reverse befores, reverse afters )
-   subsimp d m chgd befores afters  (mpr:mprs)
+   subsimp chgd befores afters  (mpr:mprs)
     = let (before,what,after) = simplify d m mpr
       in if null what
-       then subsimp d m chgd (mpr:befores) (mpr:afters)  mprs
-       else subsimp d m diff (before:befores) (after:afters) mprs
+       then subsimp chgd (mpr:befores) (mpr:afters)  mprs
+       else subsimp diff (before:befores) (after:afters) mprs
 \end{code}
 \textbf{WARNING: }
 \textit{the \texttt{psimp} simplifier below must not call \texttt{simplify}!
 To do so risks an infinite loop.
 }
 \begin{code}
-   compsimp d m name mprs'
+   compsimp mprs'
     = case plookup name d of
        Just (PredEntry _ _ _ psimp)  ->  psimp d mprs'
        _                             ->  ("",Comp name mprs')
 \end{code}
 Assembling the result:
 \begin{code}
-   assemble orig top' compN befores afters ms what m False _
-    = ( orig, "", orig )
-   assemble orig top' compN befores afters ms what m _ False
-    = ( (ms,compN befores), what, (ms,compN afters) )
-   assemble orig top' compN befores afters ms what m _ True
-    = ( addMark m (ms,compN befores)
-      , what, addMark m (ms,top') )
+   assemble top' befores afters False _
+    = ( mpr, "", mpr )
+   assemble top' befores afters _ False
+    = ((ms,Comp name befores), simplified, (ms,Comp name afters))
+   assemble top' befores afters _ True
+    = ( addMark m (ms,Comp name befores)
+      , simplified, addMark m (ms,top') )
 \end{code}
 
+\newpage
 \HDRc{Predicate Substitution Simplifier}\label{hc:simplify-pred-subst}
 
 For predicate substitutions,
@@ -248,7 +256,7 @@ make a distinction between predicate variables,
 and general predicates.
 \begin{code}
 simplify d m mpr@(ms,(PSub spr subs))
- = sbstsimp d m ms (ssimp d subs) spr
+ = sbstsimp (ssimp d subs) spr
  where
 \end{code}
 For predicate variables,
@@ -259,7 +267,7 @@ which can be used to remove some elements from the substitution.
    & \elabel{pvar-substn}
 }
 \begin{code}
-  sbstsimp d m ms (subchgd,subs') spr@(mp,PVar p)
+  sbstsimp (subchgd,subs') spr@(mp,PVar p)
    = case vlookup p d of
       Just (PVarEntry alf)
        -> ( addMark m mpr
@@ -270,30 +278,31 @@ which can be used to remove some elements from the substitution.
 \end{code}
 In the general case,
 we simplify both predicate and substitution parts,
-and combine.
+and combine.s
 \begin{code}
-  sbstsimp d m ms (subschgd,subs') spr
+  sbstsimp (subschgd,subs') spr
    = let
       (before,what,after) = simplify d m spr
       predchgd = not $ null what
       (topchgd,npr') = psubst m d subs' after
-     in assemble mpr npr' before after subs'
-                ms simplified m
+     in assemble npr' before after subs'
                 (subschgd||topchgd||predchgd) topchgd
    where
-    assemble orig top'  before after subs' ms what m False _
-     = (orig, "", orig)
-    assemble orig top' before after subs' ms what m _ False
-     = ((ms,mkPSub before subs'), what, (ms,mkPSub after subs'))
-    assemble orig top' before after subs' ms what m _ True
+    assemble top'  before after subs' False _
+     = (mpr, "", mpr)
+    assemble top' before after subs' _ False
+     = ( (ms,mkPSub before subs')
+       , simplified, (ms,mkPSub after subs') )
+    assemble top' before after subs'  _ True
      = ( addMark m (ms,mkPSub before subs')
-       , what, addMark m (ms,top') )
+       , simplified, addMark m (ms,top') )
 \end{code}
 All other cases are as simple as can be, considering\ldots
 \begin{code}
 simplify d m mpr@(ms,pr) = ( mpr, "", mpr)
 \end{code}
 
+\newpage
 \HDRc{Equality Predicate Simplification}~
 \begin{code}
 sEqual :: Eq s => Expr s -> Expr s -> (Bool, Pred s)
@@ -376,7 +385,6 @@ pssubst m d sub (mp@(ms,p):mps)
     mmp = if pdiff then addMark m mp' else mp'
     (psdiff, mps') = pssubst m d sub mps
    in (pdiff||psdiff, mp':mps')
-
 \end{code}
 
 \newpage
