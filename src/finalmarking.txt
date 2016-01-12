@@ -1,0 +1,126 @@
+
+Step 0
+A(A) ;; A(B)
+
+B1   RENDER  step=0  1 -> Old; 0 -> New
+
+Comp 'PSeq' : [1]      OK
+  Comp 'PAtm' : []
+    PVar 'A' : []
+  Comp 'PAtm' : []
+    PVar 'B' : []
+
+Step 1
+A(A)[g:1,lg/g,out] \/ A(B)[g:2,lg/g,in]
+
+
+B2  RENDER  step=1  2 -> Old  1 -> New
+
+Comp 'Or' : [1]
+  Psub : []
+    Comp 'PAtm' : [2]    FAILS to render [2] as Old !!!!
+      PVar 'A' : []
+    Subst for ["g","out"]
+  Psub : []
+    Comp 'PAtm' : []
+      PVar 'B' : []
+    Subst for ["g","in"]
+
+
+Step 2
+(ls(in) /\ A /\ ls' = ls (-/+) (in,out))[g:1,lg/g,out] \/ A(B)[g:2,lg/g,in]
+
+
+B3  RENDER  step=2  3 -> Old  2 -> New
+
+Comp 'Or' : [1]
+  Psub : []
+    Comp 'And' : [2]  FAILS to render [2] as New !!!
+      Atm : []
+        Expr...
+      PVar 'A' : []
+      Equal : []
+        Var 'ls''
+        Expr...
+    Subst for ["g","out"]
+  Psub : []
+    Comp 'PAtm' : [3]  FAILS to render [3] as Old !!!
+      PVar 'B' : []
+    Subst for ["g","in"]
+
+Step 3
+    (ls(in) /\ A /\ ls' = ls (-/+) (in,out))[g:1,lg/g,out]
+ \/ (ls(in) /\ B /\ ls' = ls (-/+) (in,out))[g:2,lg/g,in]
+
+B4  RENDER  step=3  4 -> Old  3 -> New
+
+Comp 'Or' : [1]
+  Psub : [4]  wrong marking !!!!!       OK
+    Comp 'And' : [2]
+      Atm : []
+        Expr...
+      PVar 'A' : []
+      Equal : []
+        Var 'ls''
+        Expr...
+    Subst for ["g","out"]
+  Psub : [4]                OK
+    Comp 'And' : [3]    FAILS to render [3] as New
+      Atm : []
+        Expr...
+      PVar 'B' : []
+      Equal : []
+        Var 'ls''
+        Expr...
+    Subst for ["g","in"]
+
+
+Step 4
+    ls(in) /\ A[g:1,lg/g,out] /\ ls' = ls (-/+) (in,lg)
+ \/ ls(lg) /\ B[g:2,lg/g,in] /\ ls' = ls (-/+) (lg,out)
+
+
+B5  RENDER step=4  5 -> Old  4 -> New
+
+Comp 'Or' : [1]
+  Comp 'And' : [4]   OK
+    Atm : []
+      Expr...
+    Psub : [5]      OK
+      PVar 'A' : []
+      Subst for ["g","out"]
+    Equal : [5]      rendered, but wrong marking
+      Var 'ls''
+      Expr...
+  Comp 'And' : [4]   OK
+    Atm : [5]
+      Expr...
+    Psub : [5]
+      PVar 'B' : []
+      Subst for ["g","in"]
+    Equal : [5]   rendered, but wrong marking
+      Var 'ls''
+      Expr...
+
+Step 5
+ls(in) /\ A /\ ls' = ls (-/+) (in,lg) \/ ls(lg) /\ B /\ ls' = ls (-/+) (lg,out)
+
+ ?,d,r,l,s,c,u,x :- A5  RENDER step=5  6 -> Old  5 -> New
+Comp 'Or' : [1]
+  Comp 'And' : [4]
+    Atm : []
+      Expr...
+    PVar 'A' : [5]  OK
+    Equal : [5]  rendered but wrong marking
+      Var 'ls''
+      Expr...
+  Comp 'And' : [4]
+    Atm : [5]     rendered but wrong marking
+      Expr...
+    PVar 'B' : [5]   OK
+    Equal : [5]    rendered but wrong marking
+      Var 'ls''
+      Expr...
+
+
+----- rendering
