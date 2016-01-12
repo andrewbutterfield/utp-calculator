@@ -200,7 +200,14 @@ evalSet _ _ = none
 \end{code}
 
 
+\newpage
 \HDRd{Set Membership}\label{hd:membership}~
+
+This is complicated by the fact we interpret
+non-set expressions as singleton sets,
+so $x \subseteq y$ when both are not sets
+is considered to be $\setof x \subseteq \setof  y$
+(which of course is really $x=y$).
 \begin{code}
 subsetn = "subset"
 subset e set = App subsetn [e,set]
@@ -259,6 +266,7 @@ showSubSet d [e,set]
 \end{code}
 
 
+\newpage
 \HDRd{Set Swapping}
 
 We update a set by removing some elements
