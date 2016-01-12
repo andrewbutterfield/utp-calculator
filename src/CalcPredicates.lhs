@@ -162,6 +162,7 @@ does :: String -> (Dict s -> [Expr s] -> Expr s)
      -> Dict s -> [Expr s]
      -> ( String, Expr s )
 does nm f d es = ( nm, f d es )
+justMakes _ f d es = ( "", f d es )
 \end{code}
 
 

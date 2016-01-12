@@ -547,10 +547,10 @@ We can now define a generator dictionary:
 genUTCPDict :: (Eq s, Ord s, Show s) => Dict s
 genUTCPDict
  = M.fromList
-    [ (new1n,(ExprEntry True showGNew1 $ does "new1" gNew1))
-    , (new2n,(ExprEntry True showGNew2 $ does "new2" gNew2))
-    , (split1n,(ExprEntry True showGSplit1 $ does "split1" gSplit1))
-    , (split2n,(ExprEntry True showGSplit2 $ does "split2" gSplit2))
+    [ (new1n,(ExprEntry True showGNew1 $ justMakes "new1" gNew1))
+    , (new2n,(ExprEntry True showGNew2 $ justMakes "new2" gNew2))
+    , (split1n,(ExprEntry True showGSplit1 $ justMakes "split1" gSplit1))
+    , (split2n,(ExprEntry True showGSplit2 $ justMakes "split2" gSplit2))
     ]
 \end{code}
 
