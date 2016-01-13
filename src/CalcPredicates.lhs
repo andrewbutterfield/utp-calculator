@@ -225,9 +225,7 @@ paren outerp innerp (PP w (PPC _ _ sepp pps))
 paren outerp innerp pp = pp
 \end{code}
 
-Pretty-printing predicates,
-which now just underlines atomic values,
-and colours equality green and composite names blue.
+Pretty-printing predicates.
 \begin{code}
 mshowp :: (Ord s, Show s) => Dict s -> MarkStyle -> Int -> MPred s -> PP
 mshowp d msf p ( ms, pr )
@@ -245,8 +243,8 @@ showp d _ p (Equal e1 e2)
        $ ppopen' (ppa " = ")
                  [ppa $ edshow d e1, ppa $ edshow d e2]
 showp d _ p (Atm e) = ppa $ edshow d e
-showp d ms p (PSub pr sub)
-   = pplist $ [showp d ms precSub $ snd pr, ppa $ showSub d sub]
+showp d ms p (PSub mpr sub)
+   = pplist $ [mshowp d ms precSub mpr, ppa $ showSub d sub]
 
 showp d ms p (Comp cname pargs)
  = case plookup cname d of
@@ -257,5 +255,5 @@ stdCshow :: (Ord s, Show s)
          => Dict s -> MarkStyle -> String -> [MPred s] -> PP
 stdCshow d ms cname pargs
  = pplist [ ppa cname
-          , ppclosed "(" ")" "," $ map (showp d ms 0 .snd) pargs ]
+          , ppclosed "(" ")" "," $ map (mshowp d ms 0) pargs ]
 \end{code}

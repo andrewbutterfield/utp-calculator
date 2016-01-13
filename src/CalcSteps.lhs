@@ -71,8 +71,8 @@ doStepSearch :: Show s => Mark -> RWFun s  -> MPred s
 doStepSearch m cstep mpr
  = let
      ((mpr1,what,mpr2),ss) = stepFocus cstep $ startMPZ mpr
-     pmpr' = unzipMPZ ss $ addMark m $ dbg "dSS.mpr1:\n" mpr1
-     nmpr' = unzipMPZ ss $ addMark m $ dbg "dSS.mpr2:\n" mpr2
+     pmpr' = unzipMPZ ss $ addMark m mpr1
+     nmpr' = unzipMPZ ss $ addMark m mpr2
    in if null what then Nothing else Just (pmpr',what,nmpr')
 \end{code}
 

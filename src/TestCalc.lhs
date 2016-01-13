@@ -286,6 +286,13 @@ putcalc mpr
        putStrLn "\n\nTRANSCRIPT:"
        putStrLn $ calcPrint res
 
+tshow :: (Show s, Ord s) => MPred s -> String
+tshow = pmdshow 80 utcpDict noStyles
+tput :: (Show s, Ord s) => MPred s -> IO ()
+tput = putStrLn . tshow
+tsimp :: (Show s, Ord s) => MPred s -> BeforeAfter s
+tsimp = simplify utcpDict 42
+
 viewcalc (currpr,steps,_)
  = vc 0 $ reverse (("QED",currpr):steps)
  where
