@@ -65,6 +65,11 @@ sLattice tag op zero unit mprs
 \newpage
 
 \HDRb{Standard Definitions}\label{hb:std-defs}
+
+First, a composite recogniser:
+\begin{code}
+isComp cname (_, Comp nm _) = nm == cname ; isComp _ _ = False
+\end{code}
 \HDRc{Lattice Top/Bottom}\label{hc:def-Top-Bot}
 
 \RLEQNS{
@@ -73,11 +78,11 @@ sLattice tag op zero unit mprs
 \\ &|& \mBot & \tBot
 }
 \begin{code}
-isTop (_,Comp "Skip" _) = True  ;  isTop _ = False
-isBot (_,Comp "Skip" _) = True  ;  isBot _ = False
+nTop = "Top" ; nBot = "nBot"
+isTop = isComp nTop ; isBot  = isComp nBot
 
-mkTop = Comp "Top" []
-mkBot = Comp "Bot" []
+mkTop = Comp nTop []
+mkBot = Comp nBot []
 
 ppTop d ms p _ = ppa "T"
 ppBot d ms p _ = ppa "_|_"
@@ -86,11 +91,11 @@ defnTop d _ = ("",F) -- assuming full predicate lattice
 defnBot d _ = ("",T) -- assuming full predicate lattice
 
 topEntry
- = ( "Top"
-   , PredEntry False ppTop defnTop (pNoChg "Top") )
+ = ( nTop
+   , PredEntry False ppTop defnTop (pNoChg nTop) )
 botEntry
- = ( "Bot"
-   , PredEntry False ppBot defnBot (pNoChg "Bot") )
+ = ( nBot
+   , PredEntry False ppBot defnBot (pNoChg nBot) )
 
 -- build Top and Bot at the MPred level
 bTop, bBot :: MPred s
@@ -106,7 +111,8 @@ bBot = noMark mkBot
 \\ &|& \mNot & \tNot
 }
 \begin{code}
-nNot = "Not"
+nNot = "Not" ; isNot  = isComp nNot
+
 mkNot mpr = Comp nNot [mpr]
 
 ppNot d ms p [mpr] -- ignore marking for now
@@ -146,8 +152,7 @@ bNot mpr = noMark $ mkNot mpr
 \\ &|& \mAnd & \tAnd
 }
 \begin{code}
-nAnd = "And"
-isAnd (_,Comp nAnd _) = True  ;  isAnd _ = False
+nAnd = "And" ; isAnd  = isComp nAnd
 
 mkAnd [] = T
 mkAnd [(_,pr)] = pr
@@ -179,8 +184,7 @@ bAnd mprs = noMark $ mkAnd mprs
 \\ &|& \mOr & \tOr
 }
 \begin{code}
-nOr = "Or"
-isOr (_,Comp nOr _) = True  ;  isOr _ = False
+nOr = "Or" ; isOr  = isComp nOr
 
 mkOr [] = T
 mkOr [(_,pr)] = pr
@@ -212,8 +216,7 @@ bOr mprs = noMark $ mkOr mprs
 \\ &|& \mNDC & \tNDC
 }
 \begin{code}
-nNDC = "NDC"
-isNDC (_,Comp nNDC _) = True  ;  isNDC _ = False
+nNDC = "NDC" ; isNDC  = isComp nNDC
 
 mkNDC [] = T
 mkNDC [(_,pr)] = pr
@@ -245,8 +248,7 @@ bNDC mprs = noMark $ mkNDC mprs
 \\ &|& \mImp & \tImp
 }
 \begin{code}
-nImp = "Imp"
-isImp (_,Comp nImp _) = True  ;  isImp _ = False
+nImp = "Imp" ; isImp  = isComp nImp
 
 mkImp mpr1 mpr2 = Comp nImp [mpr1,mpr2]
 
@@ -291,8 +293,7 @@ bImp mpr1 mpr2 = noMark $ mkImp mpr1 mpr2
 \\ &|& \mRby & \tRby
 }
 \begin{code}
-nRfdby = "Rfdby"
-isRfdby (_,Comp nRfdby _) = True  ;  isRfdby _ = False
+nRfdby = "Rfdby" ; isRfdby  = isComp nRfdby
 
 mkRfdby mpr1 mpr2 = Comp nRfdby [mpr1,mpr2]
 
@@ -322,8 +323,7 @@ bRfdby mpr1 mpr2 = noMark $ mkRfdby mpr1 mpr2
 \\ &|& \mCond & \tCond
 }
 \begin{code}
-nCond = "Cond"
-isCond (_,Comp nCond _) = True  ;  isCond _ = False
+nCond = "Cond" ; isCond  = isComp nCond
 
 mkCond mpr1 mpr2 mpr3 = Comp nCond [mpr1,mpr2,mpr3]
 
@@ -355,8 +355,7 @@ bCond mpr1 mpr2 mpr3 = noMark $ mkCond mpr1 mpr2 mpr3
 \\ &|& \mSkip & \tSkip
 }
 \begin{code}
-nSkip = "Skip"
-isSkip (_,Comp nSkip _) = True  ;  isSkip _ = False
+nSkip = "Skip" ; isSkip  = isComp nSkip
 
 mkSkip = Comp nSkip []
 
@@ -381,8 +380,7 @@ bSkip = noMark mkSkip
 \\ &|& \mSeq & \tSeq
 }
 \begin{code}
-nSeq = "Seq"
-isSeq (_,Comp nSeq _) = True  ;  isSeq _ = False
+nSeq = "Seq" ; isSeq  = isComp nSeq
 
 mkSeq mpr1 mpr2 = Comp nSeq [mpr1,mpr2]
 
@@ -422,8 +420,7 @@ bSeq mpr1 mpr2 = noMark $ mkSeq mpr1 mpr2
 \\ &|& \mIter & \tIter
 }
 \begin{code}
-nIter = "Iter"
-isIter (_,Comp nIter _) = True  ;  isIter _ = False
+nIter = "Iter" ; isIter  = isComp nIter 
 
 mkIter mpr1 mpr2 = Comp nIter [mpr1,mpr2]
 
