@@ -302,7 +302,7 @@ stepshow s m
  | otherwise     =  Nothing
  where
    styleOld = Underline
-   styleNew = styleRed
+   styleNew = styleMagenta
 \end{code}
 
 Now, rendering the results to look pretty:
