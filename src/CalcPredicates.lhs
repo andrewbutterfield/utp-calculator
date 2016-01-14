@@ -217,14 +217,6 @@ pmdshow :: (Show s, Ord s)
 pmdshow w d msf mpr = render w $ mshowp d msf 0 mpr
 \end{code}
 
-Code to add parentheses when required by a change in current precedence level.
-\begin{code}
-paren :: Int -> Int -> PP -> PP
-paren outerp innerp (PP w (PPC _ _ sepp pps))
- | innerp < outerp  =  (PP w (PPC (ppa "(") (ppa ")") sepp pps))
-paren outerp innerp pp = pp
-\end{code}
-
 Pretty-printing predicates.
 \begin{code}
 mshowp :: (Ord s, Show s) => Dict s -> MarkStyle -> Int -> MPred s -> PP

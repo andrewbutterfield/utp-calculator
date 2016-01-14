@@ -7,7 +7,7 @@ module While where
 -- import Data.Char
 -- import Data.Maybe
 -- import Debug.Trace
--- import PrettyPrint
+import PrettyPrint
 import CalcTypes
 import StdPrecedences
 import CalcPredicates
@@ -78,9 +78,11 @@ seqc p q    =  comp "seq"   [p, q]
 cond c p q  =  comp "cond"  [atm c, p, q]
 \end{code}
 
-Pretty printers for the above:
+Pretty printers for the above composites:
 \begin{code}
+-- Dict s -> MarkStyle -> Int -> [MPred s] -> PP
 
+ppSkip _ _ _ _ = ppa "skip"
 \end{code}
 
 \HDRb{Alphabet of ``While''}\label{hb:While-alpha}

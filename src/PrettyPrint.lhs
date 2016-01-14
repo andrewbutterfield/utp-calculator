@@ -4,9 +4,9 @@ module PrettyPrint
  ( Style(..)
  , styleRed, styleMagenta
  , PP(..), PP'(..)
- , ppsize,ppstr,pppps
  , ppa,pad,pps,ppc
  , ppnul,ppopen',ppopen,ppsopen,pplist,ppbracket,ppclosed
+ , paren
  , renderIn,render )
 where
 import Utilities
@@ -74,6 +74,74 @@ data PP' = PPA String        -- atom
          deriving (Eq,Ord,Show)
 \end{code}
 
+
+\HDRb{Smart Constructors}
+
+We build smart versions of the \texttt{PPA}, \texttt{PPS} and \texttt{PPC}
+constructors
+that automatically accumulate the length information.
+\begin{code}
+ppa :: String -> PP
+ppa str = PP (length str) $ PPA str
+
+pps :: Style -> PP -> PP
+pps style pp@(PP len _) = PP len $ PPS style pp
+
+ppc :: PP -> PP -> PP -> [PP] -> PP
+ppc lpp rpp sepp pps
+ = PP len $ PPC lpp rpp sepp pps
+ where
+  len = ppsize lpp + ppsize rpp + seps pps * ppsize sepp
+         + sum (map ppsize pps)
+  seps xs
+   | len == 0  =  0
+   | otherwise  =  len - 1
+   where len = length xs
+\end{code}
+
+A useful utility for putting space around things (typically operators):
+\begin{code}
+pad :: String -> String
+pad s = ' ':s++" "
+\end{code}
+
+We then provide some useful builders for common idioms,
+mostly where delimiters and separators are atomic.
+\begin{code}
+ppnul :: PP -- the empty string
+ppnul = ppa ""
+
+ppopen' :: PP -> [PP] -> PP
+ppopen' = ppc ppnul ppnul
+
+ppopen :: String -> [PP] -> PP
+ppopen sepstr pps = ppopen' (ppa sepstr) pps
+
+ppsopen :: Style -> String -> [PP] -> PP
+ppsopen style sepstr ppp = ppopen' (pps style $ ppa sepstr) ppp
+
+pplist :: [PP] -> PP
+pplist = ppopen ""
+
+ppbracket :: String -> PP -> String -> PP
+ppbracket lbr pp rbr = ppclosed lbr rbr "" [pp]
+
+ppclosed :: String -> String -> String -> [PP] -> PP
+ppclosed lstr rstr sepstr pps
+  = ppc (ppa lstr) (ppa rstr) (ppa sepstr) pps
+\end{code}
+Code to add parentheses when required by a change in current precedence level.
+This assume that lower precedence values mean looser binding,
+so if the inner is looser than the outer we need to bracket it.
+\begin{code}
+paren :: Int -> Int -> PP -> PP
+paren outerp innerp (PP w (PPC _ _ sepp pps))
+ | innerp < outerp  =  ppc (ppa "(") (ppa ")") sepp pps
+paren outerp innerp pp = pp
+\end{code}
+
+
+
 \HDRb{Simple Rendering}
 
 It is useful to get the size of a \texttt{PP}, as well as the string produced
@@ -95,67 +163,19 @@ ppstr stls (PP _ (PPS style pp))
 
 ppstr stls (PP _ (PPC lpp rpp sepp []))
                               = ppstr stls lpp ++ ppstr stls rpp
+
 ppstr stls (PP _ (PPC lpp rpp sepp pps))
  | ppsize lpp == 0  =  pppps stls rpp sepp pps
  | otherwise        =  ppstr stls lpp ++ pppps stls rpp sepp pps
-
-pppps :: [Style] -> PP -> PP -> [PP] -> String
-pppps stls rpp sepp []        =  ppstr stls rpp
-pppps stls rpp sepp [pp]      =  ppstr stls pp ++ ppstr stls rpp
-pppps stls rpp sepp (pp:pps)
-  =  ppstr stls pp ++ ppstr stls sepp ++ pppps stls rpp sepp pps
-\end{code}
-
-\HDRb{Smart Constructors}
-
-We build smart versions of the \texttt{PPA} and \texttt{PPC} constructors
-that automatically accumulate the length information.
-\begin{code}
-ppa :: String -> PP
-ppa str = PP (length str) $ PPA str
-
-pad :: String -> String
-pad s = ' ':s++" "
-
-pps :: Style -> PP -> PP
-pps style pp@(PP len _) = PP len $ PPS style pp
-
-ppc :: PP -> PP -> PP -> [PP] -> PP
-ppc lpp rpp sepp pps
- = PP len $ PPC lpp rpp sepp pps
  where
-  len = ppsize lpp + ppsize rpp + seps pps * ppsize sepp
-         + sum (map ppsize pps)
-  seps xs
-   | len == 0  =  0
-   | otherwise  =  len - 1
-   where len = length xs
+
+  pppps :: [Style] -> PP -> PP -> [PP] -> String
+  pppps stls rpp sepp []        =  ppstr stls rpp
+  pppps stls rpp sepp [pp]      =  ppstr stls pp ++ ppstr stls rpp
+  pppps stls rpp sepp (pp:pps)
+    =  ppstr stls pp ++ ppstr stls sepp ++ pppps stls rpp sepp pps
 \end{code}
 
-We then provide some useful builders for common idioms,
-mostly where delimiters and separators are atomic.
-\begin{code}
-ppnul :: PP
-ppnul = ppa ""
-
-ppopen' = ppc ppnul ppnul
-
-ppopen :: String -> [PP] -> PP
-ppopen sepstr pps = ppopen' (ppa sepstr) pps
-
-ppsopen :: Style -> String -> [PP] -> PP
-ppsopen style sepstr ppp = ppopen' (pps style $ ppa sepstr) ppp
-
-pplist :: [PP] -> PP
-pplist = ppopen ""
-
-ppbracket :: String -> PP -> String -> PP
-ppbracket lbr pp rbr = ppclosed lbr rbr "" [pp]
-
-ppclosed :: String -> String -> String -> [PP] -> PP
-ppclosed lstr rstr sepstr pps
-  = ppc (ppa lstr) (ppa rstr) (ppa sepstr) pps
-\end{code}
 
 
 \HDRb{Full Rendering}
