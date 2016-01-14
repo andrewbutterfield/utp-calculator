@@ -1,7 +1,6 @@
 \HDRa{UTCP Conditional Reducer}\label{ha:UTCP-cond:reduce}
 \begin{code}
 module UTCPCReduce where
-import qualified Data.Map as M
 import CalcTypes
 import CalcAlphabets
 import CalcPredicates
@@ -219,7 +218,7 @@ lcred nm cmprs = ( nm, cmprs )
 \begin{code}
 lawsUTCPDict :: (Ord s, Show s) => Dict s
 lawsUTCPDict
- = M.fromList
+ = makeDict
     [ ( "laws"
       , LawEntry [reduceUTCP] [creduceUTCP] [])
     ]

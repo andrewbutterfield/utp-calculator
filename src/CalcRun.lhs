@@ -2,7 +2,6 @@
 \begin{code}
 module CalcRun where
 import Utilities
-import qualified Data.Map as M
 import Data.List
 import Data.Char
 import Data.Maybe
@@ -105,10 +104,10 @@ calcREPL d mpr
  = do putStrLn ""
       putStrLn $ versionShow d'
       runREPL d' startm (mpr,[])
- where d' = M.unionWith mergeEntry d dictVersion
+ where d' = dictMrg d dictVersion
 
 dictVersion
-  = M.fromList [( version
+  = makeDict [( version
                 , AlfEntry [ "0.0.1"
                            ]
                )]

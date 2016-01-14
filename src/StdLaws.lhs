@@ -2,7 +2,6 @@
 \begin{code}
 module StdLaws where
 import Utilities
-import qualified Data.Map as M
 import Data.List
 import Data.Char
 import Data.Maybe
@@ -240,7 +239,7 @@ reduceStd d mpr = lred "" mpr
 \begin{code}
 stdDict :: (Ord s, Show s) => Dict s
 stdDict
- = M.fromList
+ = makeDict
     [ topEntry
     , botEntry
     , notEntry

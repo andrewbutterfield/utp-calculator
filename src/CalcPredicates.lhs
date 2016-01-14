@@ -75,7 +75,7 @@ psub mpr subs  =  noMark $ mkPSub mpr subs
 
 \HDRb{Dictionary}\label{hb:DataDict}
 
-Dictionary query and construction
+\HDRc{Dictionary query}
 \begin{code}
 isPredEntry (PredEntry _ _ _ _) = True
 isPredEntry _ = False
@@ -112,6 +112,13 @@ vlookup nm d
  = case M.lookup nm d of
      Just ve@(PVarEntry _)  ->  Just ve
      _                      ->  Nothing
+\end{code}
+
+\HDRc{Dictionary Construction}
+
+\begin{code}
+makeDict :: [(String, Entry s)] -> Dict s
+makeDict = M.fromList
 \end{code}
 
 When we merge dictionary entries

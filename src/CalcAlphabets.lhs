@@ -2,7 +2,6 @@
 \begin{code}
 module CalcAlphabets where
 import Utilities
-import qualified Data.Map as M
 import Data.List
 import CalcTypes
 import CalcPredicates
@@ -108,7 +107,7 @@ stdAlfDictGen scr nonScrDyn stc
     obs = mdl ++ scr
     obs' = mdl' ++ scr'
     alf = obs ++ obs'
-   in M.fromList $ mapsnd (AlfEntry . sort)
+   in makeDict $ mapsnd (AlfEntry . sort)
      [ (aAlf, alf)
      , (aObs, obs), (aObs', obs')
      , (aMdl, mdl), (aMdl', mdl')

@@ -368,13 +368,6 @@ precPCond = 1
 precPIter = 6
 \end{code}
 
-Code to add parentheses when required by a change in current precedence level.
-\begin{code}
-paren :: Int -> Int -> PP -> PP
-paren outerp innerp (PP w (PPC _ _ sepp pps))
- | innerp < outerp  =  (PP w (PPC (ppa "(") (ppa ")") sepp pps))
-paren outerp innerp pp = pp
-\end{code}
 
 \newpage
 Pretty-printing predicates

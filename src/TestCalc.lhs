@@ -2,7 +2,6 @@
 \begin{code}
 module TestCalc where
 import Utilities
-import qualified Data.Map as M
 import Data.List
 import Data.Char
 import Data.Maybe
@@ -155,7 +154,7 @@ andIFEntry
 \begin{code}
 impFalseDict :: (Ord s, Show s) => Dict s
 impFalseDict
- = M.fromList
+ = makeDict
     [ notIFEntry
     , andIFEntry
     , orIFEntry
@@ -255,7 +254,7 @@ lawsEntry :: (Ord s, Show s) => (String, Entry s)
 lawsEntry = ("laws",LawEntry [reduceStd] [creduceTest] [unrollTst])
 
 lawsDict :: (Ord s, Show s) => Dict s
-lawsDict = M.fromList [ lawsEntry ]
+lawsDict = makeDict [ lawsEntry ]
 \end{code}
 
 \HDRb{Test Calculator}

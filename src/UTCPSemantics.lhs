@@ -2,7 +2,6 @@
 \begin{code}
 module UTCPSemantics where
 import Utilities
-import qualified Data.Map as M
 import Data.List
 import PrettyPrint
 import CalcTypes
@@ -111,10 +110,10 @@ and also declare that the predicate variables $A$, $B$ and $C$
 will refer to atomic state-changes, and so only have alphabet $\setof{s,s'}$.
 \begin{code}
 alfUTCPDict
- = M.unionWith mergeEntry dictAlpha dictAtomic
+ = dictMrg dictAlpha dictAtomic
  where
    dictAlpha = stdAlfDictGen ["s"] ["ls"] ["g","in","out"]
-   dictAtomic = M.fromList $ mapsnd PVarEntry
+   dictAtomic = makeDict $ mapsnd PVarEntry
                         [("A", ss'),("B", ss'),("C", ss')]
    ss' = ["s", "s'"]
 \end{code}
@@ -302,7 +301,7 @@ The Set Dictionary:
 \begin{code}
 setUTCPDict :: (Eq s, Ord s, Show s) => Dict s
 setUTCPDict
- = M.fromList
+ = makeDict
     [ (setn,(ExprEntry True showSet evalSet))
     , (subsetn,(ExprEntry True showSubSet evalSubset))
     , (sswapn, (ExprEntry True showSSwap evalSSwap))
@@ -546,7 +545,7 @@ We can now define a generator dictionary:
 \begin{code}
 genUTCPDict :: (Eq s, Ord s, Show s) => Dict s
 genUTCPDict
- = M.fromList
+ = makeDict
     [ (new1n,(ExprEntry True showGNew1 $ justMakes "new1" gNew1))
     , (new2n,(ExprEntry True showGNew2 $ justMakes "new2" gNew2))
     , (split1n,(ExprEntry True showGSplit1 $ justMakes "split1" gSplit1))
@@ -987,7 +986,7 @@ We assume atomic change-state actions $A$ with alphabet $\setof{s,s'}$.
 \begin{code}
 semUTCPDict :: (Ord s, Show s) => Dict s
 semUTCPDict
- = M.fromList
+ = makeDict
     [ patmEntry
     , pidleEntry
     , pseqEntry

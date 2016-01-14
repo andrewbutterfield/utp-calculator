@@ -2,7 +2,6 @@
 \begin{code}
 module UTCPCalc where
 import Utilities
-import qualified Data.Map as M
 import Data.List
 import Data.Char
 import Data.Maybe
@@ -42,7 +41,7 @@ Our theory:
 \begin{code}
 dictUTCP :: (Eq s, Ord s, Show s) => Dict s
 dictUTCP
- = foldl1 dictMrg [ M.fromList [(version,AlfEntry [versionUTCP])]
+ = foldl1 dictMrg [ makeDict [(version,AlfEntry [versionUTCP])]
                   , alfUTCPDict
                   , setUTCPDict
                   , genUTCPDict

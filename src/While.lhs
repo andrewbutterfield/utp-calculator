@@ -18,7 +18,7 @@ import CalcPredicates
 -- import StdPredicates
 -- import CalcZipper
 -- import CalcSteps
--- import StdLaws
+import StdLaws
 \end{code}
 
 \HDRb{Introduction to ``While''}\label{hb:While-intro}
@@ -69,20 +69,41 @@ of their precedence, so the first binds tightest.
 \\ &|& p \cond c q & \say{Conditional}
 }
 \begin{code}
-p = "P" ; pP = pvar p
-q = "Q" ; pQ = pvar q
-skip        =  comp "skip"  []
-x ^= e      =  comp "asg"   [atm $ Var x, atm e]
-while c p   =  comp "while" [atm c, p]
-seqc p q    =  comp "seq"   [p, q]
-cond c p q  =  comp "cond"  [atm c, p, q]
+pP          =  pvar nP                        ; nP   = "P"
+pQ          =  pvar nQ                        ; nQ   = "Q"
+skip        =  comp nskp []                   ; nskp = "skip"
+x ^= e      =  comp nasg [atm $ Var x, atm e] ; nasg = "asg"
+while c p   =  comp nwhl [atm c, p]           ; nwhl = "while"
+seqc p q    =  comp nseq [p, q]               ; nseq = "seq"
+cond c p q  =  comp ncnd [atm c, p, q]        ; ncnd = "cond"
 \end{code}
 
 Pretty printers for the above composites:
 \begin{code}
+precAsg = precSpacer 9 + 5
+precWhl = precSpacer 7 + 5
+precSqc = precSpacer 4 + 5
+precCnd = precSpacer 3 + 5
+
 -- Dict s -> MarkStyle -> Int -> [MPred s] -> PP
 
-ppSkip _ _ _ _ = ppa "skip"
+ppSkip _ _ _ _ = ppa nskp
+
+ppAsg :: (Show s, Ord s)
+       => Dict s -> MarkStyle -> Int -> [MPred s] -> PP
+ppAsg d ms p [mpr1,mpr2]
+ = paren p precAsg
+     $ ppopen " := " [ mshowp d ms precAsg mpr1
+                     , mshowp d ms precAsg mpr2 ]
+ppAsg d ms p mprs = pps styleRed $ ppa "invalid-:="
+
+ppSeqc :: (Show s, Ord s)
+       => Dict s -> MarkStyle -> Int -> [MPred s] -> PP
+ppSeqc d ms p [mpr1,mpr2]
+ = paren p precSqc
+     $ ppopen " ; " [ mshowp d ms precSqc mpr1
+                    , mshowp d ms precSqc mpr2 ]
+ppSeqc d ms p mprs = pps styleRed $ ppa "invalid-;"
 \end{code}
 
 \HDRb{Alphabet of ``While''}\label{hb:While-alpha}
@@ -92,5 +113,48 @@ ppSkip _ _ _ _ = ppa "skip"
 \HDRb{Reductions for ``While''}\label{hb:While-reduce}
 
 \HDRb{Laws of ``While''}\label{hb:While-laws}
+
+\HDRb{Dictionary for ``While''}\label{hb:While-laws}
+
+\begin{code}
+dSkip = ( nskp
+        , PredEntry
+            False
+            ppSkip
+            (pNoChg nskp)
+            (pNoChg nskp)
+        )
+
+dAsg :: (Show s, Ord s) => (String,Entry s)
+dAsg = ( nasg
+        , PredEntry
+            False
+            ppAsg
+            (pNoChg nasg)
+            (pNoChg nasg)
+        )
+
+dSeqc :: (Show s, Ord s) => (String,Entry s)
+dSeqc = ( nseq
+        , PredEntry
+            False
+            ppSeqc
+            (pNoChg nseq)
+            (pNoChg nseq)
+        )
+
+dictWhile :: (Ord s, Show s) => Dict s
+dictWhile
+ = makeDict
+    [ dSkip
+    , dAsg
+    , dSeqc
+    ]
+
+whileDict :: (Ord s, Show s) => Dict s
+whileDict
+ =  dictWhile
+    `dictMrg` stdDict
+\end{code}
 
 \HDRb{Tests for ``While''}\label{hb:While-tests}
