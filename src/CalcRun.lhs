@@ -130,10 +130,9 @@ runREPL :: (Ord s, Show s)
 runREPL d m state@(currpr,steps)
  = do
   if invMarks (currpr,steps,d)
-   then putStrLn "Marking Invariant holds"
+   then return ()
    else putStrLn "**** Marking Invariant fails ****"
-  putStr ( "\n Step " ++ show m ++ "\n"
-         ++ pmdshow 80 d noStyles currpr
+  putStr ( pmdshow 80 d noStyles currpr
          ++ "\n\n ?,d,r,l,s,c,u,x :- " )
   ln <- getLine
   case ln of
@@ -319,7 +318,7 @@ stepPrint :: (Ord s, Show s)
 stepPrint d s [] = []
 stepPrint d s ((comment,mpr):rest)
  = [pmdshow 80 d (stepshow s) mpr]
-   ++[""," = " ++ show comment,""]
+   ++[" = " ++ show comment]
    ++ stepPrint d (s+1) rest
 
 
