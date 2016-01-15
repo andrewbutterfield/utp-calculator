@@ -12,9 +12,9 @@ import CalcTypes
 import StdPrecedences
 import CalcPredicates
 import CalcAlphabets
--- import CalcSimplify
+import CalcSimplify
 -- import CalcRecogniser
--- import CalcRun
+import CalcRun
 import StdPredicates
 -- import CalcZipper
 -- import CalcSteps
@@ -46,14 +46,24 @@ w = "w" ; vw = Var w
 
 \HDRc{Expressions of ``While''}\label{hc:While-expr}
 
+We have numbers (integers), basic arithmetic and comparisons
 \RLEQNS{
    e &\in& E & \say{Expressions}
+\\ &\defs& n & \say{---Numbers}
+\\ &  |  & v & \say{---Variables}
+\\ &  |  & e + e & \say{---Addition}
+\\ &  |  & -e & \say{---Negation}
+\\ &  |  & e < e & \say{--Less Than}
 \\ b,c &\in& E & \say{Boolean Valued}
 }
 \begin{code}
-e = Var "e"
+e = Var "e";
 b = Var "b"
 c = Var "c"
+
+add e f = App nadd [e, f] ; nadd = "add"
+minus e = App nmns [e]    ; nmns = "minus"
+lt e f  = App nlt [e,f]   ; nlt = "lt"
 \end{code}
 
 \HDRc{Statements of ``While''}\label{hc:While-stmt}
@@ -62,11 +72,11 @@ We list the composite components in decreasing order
 of their precedence, so the first binds tightest.
 \RLEQNS{
    p,q &\in& W & \say{While programs}
-\\ &\defs& skip & \say{Do nothing}
-\\ &|& x:=e  & \say{Assignment}
-\\ &|& c * p & \say{Iteration (``While'')}
-\\ &|& p ; q & \say{Sequencing}
-\\ &|& p \cond c q & \say{Conditional}
+\\ &\defs& skip & \say{---Do nothing}
+\\ &|& x:=e  & \say{---Assignment}
+\\ &|& c * p & \say{---Iteration (``While'')}
+\\ &|& p ; q & \say{---Sequencing}
+\\ &|& p \cond c q & \say{---Conditional}
 }
 \begin{code}
 pP          =  pvar nP                        ; nP   = "P"
@@ -139,6 +149,52 @@ ok' = "ok'" ; vok' = Var ok'
 wAlfDict = stdAlfDictGen [u,v,w]  -- script (dynamic)
                          [ok]     -- model (dynamic)
                          []       -- parameters (static)
+\end{code}
+
+\HDRc{Expression Semantics}
+
+\HDRd{Addition}
+\begin{code}
+showAdd :: Show s => Dict s -> [Expr s] -> String
+showAdd d [e,f] = "("++edshow d e++" + "++edshow d f++")"
+showAdd d es = "<<BAD-ADD>>"
+
+evalAdd d [Z 0,f] = ("+-lunit",f)
+evalAdd d [e,Z 0] = ("+-runit",e)
+evalAdd d [Z m,Z n] =  ("add",Z (m+n))
+evalAdd d [e,f] = ("", add e f)
+evalAdd d es = ("bad-add",App "?+" es)
+
+dAdd :: Show s => (String, Entry s)
+dAdd = ( nadd, ExprEntry True showAdd evalAdd )
+\end{code}
+
+\HDRd{Negation}
+\begin{code}
+showMinus :: Show s => Dict s -> [Expr s] -> String
+showMinus d [e] = "-("++edshow d e++")"
+showMinus d es = "<<BAD-MINUS>>"
+
+evalMinus d [Z m] =  ("minus",Z $ negate m)
+evalMinus d [e] = ("", minus e)
+evalMinus d es = ("bad-minus",App "?-" es)
+
+dMinus :: Show s => (String, Entry s)
+dMinus = ( nmns, ExprEntry True showMinus evalMinus )
+\end{code}
+
+\HDRd{Less-Than}
+\begin{code}
+showLT :: Show s => Dict s -> [Expr s] -> String
+showLT d [e,f] = "("++edshow d e++" < "++edshow d f++")"
+showLT d es = "<<BAD-LT>>"
+
+evalLT d [Z m,Z n] =  ("lt",B (m < n))
+evalLT d [e,f] = ("", lt e f)
+evalLT d es = ("bad-lt",App "?<" es)
+
+dLT :: Show s => (String, Entry s)
+dLT = ( nlt, ExprEntry True showLT evalLT )
 \end{code}
 
 \HDRc{Semantic Predicates}
@@ -241,6 +297,9 @@ dictWhile
     , dSqc
     , dCnd
     , dDsgn
+    , dAdd
+    , dMinus
+    , dLT
     ]
 
 whileDict :: (Ord s, Show s) => Dict s
@@ -258,4 +317,19 @@ wshow = pmdshow 80 whileDict noStyles
 
 wput :: (Show s, Ord s) => MPred s -> IO ()
 wput = putStrLn . wshow
+
+
+wcalc mpr = calcREPL whileDict mpr
+wputcalc :: (Ord s, Show s) => MPred s -> IO ()
+wputcalc mpr
+  = do res <- wcalc mpr
+       putStrLn "\n\nTRANSCRIPT:"
+       putStrLn $ calcPrint res
+
+wsimp :: (Show s, Ord s) => MPred s -> (String, MPred s)
+wsimp mpr
+  = (what,mpr')
+  where (_,what,mpr') = simplify whileDict 42 mpr
+wsimp2 :: (Show s, Ord s) => (String, MPred s) -> (String, MPred s)
+wsimp2 = wsimp . snd
 \end{code}

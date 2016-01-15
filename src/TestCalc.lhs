@@ -291,15 +291,4 @@ tput :: (Show s, Ord s) => MPred s -> IO ()
 tput = putStrLn . tshow
 tsimp :: (Show s, Ord s) => MPred s -> BeforeAfter s
 tsimp = simplify utcpDict 42
-
-viewcalc (currpr,steps,_)
- = vc 0 $ reverse (("QED",currpr):steps)
- where
-   vc _ [] = return ()
-   vc s ((what,mpr):rest)
-     = do putStrLn ("Step "++show s)
-          putView mpr
-          putStrLn ("\n= '"++what++"'\n")
-          vc (s+1) rest
-
 \end{code}

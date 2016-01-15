@@ -472,19 +472,19 @@ Coding the dictionary entries for generator $new_i$ and $split_i$.
 \begin{code}
 new1n = "new1"
 new1 g = App new1n [g]
-gNew1 d [g] = new1 g
+gNew1 [g] = new1 g
 
 new2n = "new2"
 new2 g = App new2n [g]
-gNew2 d [g] = new2 g
+gNew2 [g] = new2 g
 
 split1n = "split1"
 split1 g = App split1n [g]
-gSplit1 d [g] = split1 g
+gSplit1 [g] = split1 g
 
 split2n = "split2"
 split2 g = App split2n [g]
-gSplit2 d [g] = split2 g
+gSplit2 [g] = split2 g
 \end{code}
 
 \HDRd{Generator Shorthand}
@@ -546,10 +546,10 @@ We can now define a generator dictionary:
 genUTCPDict :: (Eq s, Ord s, Show s) => Dict s
 genUTCPDict
  = makeDict
-    [ (new1n,(ExprEntry True showGNew1 $ justMakes "new1" gNew1))
-    , (new2n,(ExprEntry True showGNew2 $ justMakes "new2" gNew2))
-    , (split1n,(ExprEntry True showGSplit1 $ justMakes "split1" gSplit1))
-    , (split2n,(ExprEntry True showGSplit2 $ justMakes "split2" gSplit2))
+    [ (new1n,(ExprEntry True showGNew1 $ justMakes gNew1))
+    , (new2n,(ExprEntry True showGNew2 $ justMakes gNew2))
+    , (split1n,(ExprEntry True showGSplit1 $ justMakes gSplit1))
+    , (split2n,(ExprEntry True showGSplit2 $ justMakes gSplit2))
     ]
 \end{code}
 

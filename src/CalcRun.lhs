@@ -104,20 +104,14 @@ calcREPL d mpr
  = do putStrLn ""
       putStrLn $ versionShow d'
       runREPL d' startm (mpr,[])
- where d' = dictMrg d dictVersion
+ where d' = dictMrg d $ dictVersion calcVersion
 
-dictVersion
-  = makeDict [( version
-                , AlfEntry [ "0.0.1"
-                           ]
-               )]
-
-version = "version"
+calcVersion = "UTP-Calc v0.0.1"
 
 versionShow d
  = case alookup version d of
     Just (AlfEntry vs)
-            -> "UTP-Calc v" ++ (concat $ intersperse ", " vs)
+            -> (concat $ intersperse ", " vs)
     Nothing -> ""
 \end{code}
 

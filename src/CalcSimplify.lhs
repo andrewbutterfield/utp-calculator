@@ -58,7 +58,7 @@ esimps :: (Eq s, Ord s, Show s)
 esimps d chgd se [] = (chgd, reverse se)
 esimps d chgd se (e:es)
  = let (chgd',e') = esimp d e
-   in esimps d (chgd||chgd') (e:se) es
+   in esimps d (chgd||chgd') (e':se) es
 \end{code}
 
 \HDRc{Function Simplification}~

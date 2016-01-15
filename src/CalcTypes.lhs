@@ -369,6 +369,7 @@ entryShow ( n, e ) = n ++ " :- " ++ show e
 \end{code}
 
 
+
 \newpage
 \HDRb{Zipper Datatypes}\label{hb:zipper-types}
 
@@ -545,6 +546,22 @@ type CalcLog s = ( MPred s      -- initial predicate (pe1)
 \end{code}
 The dictionary is included as it is required, for example,
 to pretty-print the predicates.
+
+It can help to be able to see all the gory details.
+\begin{code}
+viewcalc :: Show s => CalcLog s -> IO ()
+viewcalc (currpr,steps,_)
+ = vc 0 $ reverse (("QED",currpr):steps)
+ where
+   vc _ [] = return ()
+   vc s ((what,mpr):rest)
+     = do putStrLn ("Step "++show s)
+          putView mpr
+          putStrLn ("\n= '"++what++"'\n")
+          vc (s+1) rest
+\end{code}
+
+
 
 
 

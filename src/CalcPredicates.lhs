@@ -119,6 +119,14 @@ vlookup nm d
 \begin{code}
 makeDict :: [(String, Entry s)] -> Dict s
 makeDict = M.fromList
+
+entry :: String -> Entry s -> Dict s
+entry s e = makeDict [(s, e)]
+
+dictVersion :: String -> Dict s
+dictVersion vtxt = entry version $ AlfEntry [vtxt]
+
+version = "Version"
 \end{code}
 
 When we merge dictionary entries
@@ -168,8 +176,8 @@ noeval es = none
 does :: String -> (Dict s -> [Expr s] -> Expr s)
      -> Dict s -> [Expr s]
      -> ( String, Expr s )
-does nm f d es = ( nm, f d es )
-justMakes _ f d es = ( "", f d es )
+does what f d es = ( what, f d es )
+justMakes f d es = ( "",   f es )
 \end{code}
 
 
