@@ -66,8 +66,16 @@ sLattice tag op zero unit mprs
 
 \HDRb{Standard Definitions}\label{hb:std-defs}
 
-First, a composite recogniser:
+\HDRc{Non-composite Predicates}
+
 \begin{code}
+bT = noMark T
+bF = noMark F
+\end{code}
+
+Next, a composite recogniser:
+\begin{code}
+isComp :: String -> Recogniser s
 isComp cname (_, Comp nm _) = nm == cname ; isComp _ _ = False
 \end{code}
 \HDRc{Lattice Top/Bottom}\label{hc:def-Top-Bot}
@@ -102,6 +110,8 @@ bTop, bBot :: MPred s
 bTop = noMark mkTop
 bBot = noMark mkBot
 \end{code}
+
+
 
 \newpage
 \HDRc{Negation}\label{hc:def-Not}
@@ -286,6 +296,52 @@ bImp mpr1 mpr2 = noMark $ mkImp mpr1 mpr2
 \end{code}
 
 \newpage
+\HDRc{Equivalence}\label{hc:def-Eqv}
+\RLEQNS{
+  p \in Pred &::=& \ldots
+\\ &|& \mEqv & \tEqv
+}
+\begin{code}
+nEqv = "Eqv" ; isEqv  = isComp nEqv
+
+mkEqv mpr1 mpr2 = Comp nEqv [mpr1,mpr2]
+
+ppEqv d ms p [mpr1,mpr2]
+ = paren p (precEqv-1) -- bracket self
+     $ ppopen  " == " [ mshowp d ms precEqv mpr1
+                      , mshowp d ms precEqv mpr2 ]
+ppEqv d ms p mprs = pps styleRed $ ppa "invalid-=="
+\end{code}
+$p \implies p = \true$ (simple cases only)
+\begin{code}
+simpEqv d [ (_,T), (_,T)  ] = ( "==-simp", T         )
+simpEqv d [ (_,F), (_,F)  ] = ( "==-simp", T         )
+\end{code}
+$\true \equiv p = p$ and \emph{v.v.}
+\begin{code}
+simpEqv d [ (_,T), (_,pr) ] = ( "==-simp", pr        )
+simpEqv d [ (_,pr), (_,T) ] = ( "==-simp", pr        )
+\end{code}
+$p \equiv \false = \lnot p$ and \emph{v.v.}
+\begin{code}
+simpEqv d [ mpr,  (_,F)   ] = ( "==-simp", mkNot mpr )
+simpEqv d [ (_,F),  mpr   ] = ( "==-simp", mkNot mpr )
+\end{code}
+\begin{code}
+simpEqv d [ mpr1, mpr2    ] = ( "",  mkEqv mpr1 mpr2 )
+
+eqvEntry :: (Show s, Ord s) => (String, Entry s)
+eqvEntry
+ = ( nEqv
+   , PredEntry True ppEqv (pNoChg nEqv) simpEqv )
+
+-- build an Eqv at the MPred level
+bEqv mpr1 mpr2 = noMark $ mkEqv mpr1 mpr2
+\end{code}
+
+
+
+\newpage
 \HDRc{Refinement}\label{hc:def-Rfdby}
 
 \RLEQNS{
@@ -420,7 +476,7 @@ bSeq mpr1 mpr2 = noMark $ mkSeq mpr1 mpr2
 \\ &|& \mIter & \tIter
 }
 \begin{code}
-nIter = "Iter" ; isIter  = isComp nIter 
+nIter = "Iter" ; isIter  = isComp nIter
 
 mkIter mpr1 mpr2 = Comp nIter [mpr1,mpr2]
 

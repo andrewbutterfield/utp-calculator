@@ -247,6 +247,7 @@ stdDict
     , orEntry
     , ndcEntry
     , impEntry
+    , eqvEntry
     , rfdbyEntry
     , condEntry
     , skipEntry

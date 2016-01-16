@@ -231,7 +231,9 @@ expDefs d mpr@(ms, Comp name mprs )
  = case plookup name d of
     Just pd@(PredEntry _ _ pdef _)
       -> let ( what, pr' ) = pdef d mprs
-         in ( what, ( ms, pr') )
+         in if null what
+             then ( "", mpr )
+             else ( "Defn. "++what, ( ms, pr') )
     _ -> ( "", mpr )
 expDefs d mpr = ( "", mpr )
 \end{code}

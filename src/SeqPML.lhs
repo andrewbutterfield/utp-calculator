@@ -26,6 +26,7 @@ import StdLaws
 %%
 \def\pseq{\mathbin{;\!;}}
 \def\pcond{\mathbin{\vartriangleleft\vartriangleright}}
+\def\pgrd{\mathrel{\&}}
 
 \HDRb{Introduction to Seq-PML}\label{hb:Seq-PML-intro}
 
@@ -47,21 +48,21 @@ r = "r" ; vr = Var r
 \HDRc{Alphabet of Seq-PML}\label{hb:Seq-PML-alpha}
 
 We have a (non-script) dynamic state ($res$) which records the current resource set
-and another non-script dynamic ($c$) which propagates ``pull'' from later
+and another non-script dynamic ($rpt$) which propagates a request to repeat (because not satisfied) from later
 processes back to those composed in front.
 \begin{code}
 res  = "res"  ; vres  = Var res
 res' = "res'" ; vres' = Var res'
-c  = "c"  ; vc  = Var c
-c' = "c'" ; vc' = Var c'
+rpt  = "rpt"  ; vrpt  = Var rpt  ; arpt  = atm vrpt
+rpt' = "rpt'" ; vrpt' = Var rpt' ; arpt' = atm vrpt'
 \end{code}
 
 \HDRc{The Alphabet Dictionary}\label{hc:Seq-PML-alfa-dict}
 
 \begin{code}
-wAlfDict = stdAlfDictGen [res,c]  -- script (dynamic)
-                         []       -- model (dynamic)
-                         []       -- parameters (static)
+wAlfDict = stdAlfDictGen [res,rpt]  -- script (dynamic)
+                         []         -- model (dynamic)
+                         []         -- parameters (static)
 \end{code}
 
 \newpage
@@ -77,9 +78,11 @@ and membership queries on same
 \\ &  |  & rs \setminus rs & \say{---Removal}
 \\ &  |  & r \in rs & \say{---Membership}
 \\ &  |  & rs \subseteq rs & \say{---Subset}
+\\ g &\in& Grd & \say{Boolean Guards}
 }
 \begin{code}
 rs = Var "rs"; rr = Var "rr" ; pr = Var "pr";
+g = "g" ; vg = Var "g" ; ag = atm vg
 \end{code}
 
 
@@ -224,9 +227,10 @@ dictWE = makeDict [dSet, dU, dI, dR, dM]
    A,B &\in& PML_{Seq} & \say{SeqPML programs}
 \\ &\defs& skip & \say{---Do nothing}
 \\ &|& N?rr!pr  & \say{---\texttt{action}}
-\\ &|& p^\omega & \say{---\texttt{iteration}}
-\\ &|& p \pseq q & \say{---\texttt{sequence}}
-\\ &|& p \pcond c q & \say{---\texttt{select}}
+\\ &|& A^\omega & \say{---\texttt{iteration}}
+\\ &|& A \pseq B & \say{---\texttt{sequence}}
+\\ &|& A \pcond B & \say{---\texttt{select}}
+\\ &|& g \pgrd B & \say{---Guarded Actions}
 }
 \begin{code}
 pA             =  pvar nA           ; nA   = "A"
@@ -236,28 +240,35 @@ precAct = precSpacer 9 + 5
 precWhl = precSpacer 7 + 5
 precSqc = precSpacer 4 + 5
 precCnd = precSpacer 3 + 5
+precGrd = precSpacer 8 + 5
 \end{code}
 
 
 \HDRc{Skip}\label{hc:Seq-PML-skip}
 \RLEQNS{
-   A,B &\in& PML_{Seq} & \say{SeqPML programs}
-\\ &\defs& skip & \say{---Do nothing}
+   PML_{Seq} &=& \dots \mid skip  \mid \dots
+\\ skip &\defs& res' = res \land rpt' = rpt
 }
 \begin{code}
 pskip          =  comp nskp []      ; nskp = "skip"
 
 ppPSkip _ _ _ _ = ppa nskp
 
+defPSkip :: Rewrite s
+defPSkip _ _ = ( nskp, mkAnd [ equal vres' vres
+                             , equal vrpt' vrpt ])
+
 dPSkip = ( nskp
-         , PredEntry False ppPSkip (pNoChg nskp) (pNoChg nskp))
+         , PredEntry False ppPSkip defPSkip (pNoChg nskp))
 \end{code}
 
 \newpage
 \HDRc{Basic Actions}\label{hc:Seq-PML-action}
 \RLEQNS{
-   A,B &\in& PML_{Seq} & \say{SeqPML programs}
-\\ &|& N?rr!pr  & \say{---\texttt{action}}
+   PML_{Seq} &= & \dots \mid  N?rr!pr \mid \dots
+\\ N?rr!pr &\defs& rr \subseteq res
+\\ && \pgrd
+             res' = res \cup pr
 }
 \begin{code}
 action n rr pr =  comp nact [atm $ Var n, atm rr, atm pr]
@@ -273,15 +284,56 @@ ppAct d ms p [nm,rr,pr]
           , mshowp d ms 0 pr ]
 ppAct d ms p mprs = pps styleRed $ ppa "invalid-Act"
 
+defAct d [_,rr,pr] = ( "INVALID", comp nact [] )
+defAct d mprs = ( "INVALID", comp nact mprs )
+
 dAct :: (Show s, Ord s) => (String,Entry s)
 dAct = ( nact
         , PredEntry False ppAct (pNoChg nact) (pNoChg nact))
 \end{code}
 
+\newpage
+\HDRc{Guarded Actions}\label{hc:Seq-PML-guards}
+
+Not part of the language per-se,
+but a useful way -station,
+and where all the ``real action'' happens.
+\RLEQNS{
+   PML_{Seq} &= & \dots \mid  g \pgrd B \mid \dots
+\\ g \pgrd B &\defs& rpt = \lnot g \land (B \cond g W) 
+   & W \say{to be defined.}
+}
+We will determine $W$ once we see the contexts in which it arises.
+\begin{code}
+pgrd g p =  comp ngrd [atm $ g, p]
+ngrd = "grd"
+
+ppGrd :: (Show s, Ord s)
+       => Dict s -> MarkStyle -> Int -> [MPred s] -> PP
+ppGrd d ms p [mpr1,mpr2]
+ = paren p precSqc
+     $ ppopen " & " [ mshowp d ms precGrd mpr1
+                    , mshowp d ms precGrd mpr2 ]
+ppGrd d ms p mprs = pps styleRed $ ppa "invalid-&"
+
+--
+defGrd d [g,p] = ( "grd", mkAnd [ bEqv arpt (bNot g)
+                                , bCond pB ag pW ] )
+defGrd d mprs = ( "INVALID", Comp ngrd mprs )
+
+pW = pvar "W" -- the mysterious 'W' !
+--
+dGrd :: (Show s, Ord s) => (String,Entry s)
+dGrd = ( ngrd
+        , PredEntry False ppGrd defGrd (pNoChg nact))
+\end{code}
+
+\newpage
 \HDRc{Omega Loops}\label{hc:Seq-PML-iterate}
 \RLEQNS{
-   A,B &\in& PML_{Seq} & \say{SeqPML programs}
-\\ &|& p^\omega & \say{---\texttt{iteration}}
+   PML_{Seq} &=& \dots \mid A^\omega
+\\ A^\omega &\defs& rpt' * A 
+\\
 }
 \begin{code}
 omega p        =  comp nw [p]       ; nw = "omega"
@@ -293,12 +345,14 @@ ppWhl d ms p [mpr1]
           , ppa "^w" ]
 ppWhl d ms p mprs = pps styleRed $ ppa "invalid-Omega"
 
+defOmega _ [p] = ( "omega", mkIter arpt' p )
+defOmega d mprs = ( "INVALID", Comp nw mprs )
+
 dOmega :: (Show s, Ord s) => (String,Entry s)
 dOmega = ( nw
-         , PredEntry False ppWhl (pNoChg nw) (pNoChg nw))
+         , PredEntry False ppWhl defOmega (pNoChg nw))
 \end{code}
 
-\newpage
 \HDRc{Sequencing}\label{hc:Seq-PML-sequence}
 \RLEQNS{
    A,B &\in& PML_{Seq} & \say{SeqPML programs}
@@ -315,16 +369,21 @@ ppSeqc d ms p [mpr1,mpr2]
                      , mshowp d ms precSqc mpr2 ]
 ppSeqc d ms p mprs = pps styleRed $ ppa "invalid-;;"
 
+simpSeqc _ [(_,Comp skp _),(_,b)]
+ | skp == nskp  = ("seq-lunit", b)
+simpSeqc _ [(_,a),(_,Comp skp _)]
+ | skp == nskp  = ("seq-runit", a)
+simpSeqc _ mprs = ( "", Comp nseq mprs )
+ 
 dSqc :: (Show s, Ord s) => (String,Entry s)
 dSqc = ( nseq
-        , PredEntry False ppSeqc (pNoChg nseq) (pNoChg nseq))
+        , PredEntry False ppSeqc (pNoChg nseq) simpSeqc)
 \end{code}
 
-
+\newpage
 \HDRc{Selection}\label{hc:Seq-PML-selection}
 \RLEQNS{
-   A,B &\in& PML_{Seq} & \say{SeqPML programs}
-\\ &|& p \pcond c q & \say{---\texttt{select}}
+   PML_{Seq} &=& \dots \mid A \pcond B
 }
 \begin{code}
 pcond p q      =  comp ncnd [p, q]  ; ncnd = "pcond"
@@ -345,11 +404,8 @@ dCnd = ( ncnd
 
 \begin{code}
 dictWP :: (Ord s, Show s) => Dict s
-dictWP = makeDict [dPSkip, dAct, dOmega, dSqc, dCnd]
+dictWP = makeDict [dPSkip, dAct, dGrd, dOmega, dSqc, dCnd]
 \end{code}
-
-
-
 
 
 \newpage
