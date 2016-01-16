@@ -127,6 +127,7 @@ dictVersion :: String -> Dict s
 dictVersion vtxt = entry version $ AlfEntry [vtxt]
 
 version = "Version"
+laws = "laws" -- for "the" LawEntry
 \end{code}
 
 When we merge dictionary entries

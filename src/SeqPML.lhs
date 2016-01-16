@@ -343,7 +343,6 @@ dCnd = ( ncnd
 
 \HDRc{The Predicate Dictionary}\label{hc:Seq-PML-pred-dict}
 
-
 \begin{code}
 dictWP :: (Ord s, Show s) => Dict s
 dictWP = makeDict [dPSkip, dAct, dOmega, dSqc, dCnd]
@@ -356,8 +355,60 @@ dictWP = makeDict [dPSkip, dAct, dOmega, dSqc, dCnd]
 \newpage
 \HDRb{Reductions for Seq-PML}\label{hb:Seq-PML-reduce}
 
+\begin{code}
+wReduce ::DictRWFun s
+\end{code}
+
+Default case: no change.
+\begin{code}
+wReduce _ mpr = ( "", mpr )
+\end{code}
+
+\HDRc{The Reduction Entry}\label{hc:Seq-PML-reduce-ent}
+
+\begin{code}
+wRedEntry :: (Ord s, Show s) => Dict s
+wRedEntry = entry laws $ LawEntry [wReduce] [] []
+\end{code}
+
 \newpage
 \HDRb{Conditional Reductions for Seq-PML}\label{hb:Seq-PML-creduce}
+
+\begin{code}
+wCReduce :: CDictRWFun s
+\end{code}
+
+Default case: no change.
+\begin{code}
+wCReduce _ mpr = ( "", [(T,mpr)] )
+\end{code}
+
+\HDRc{The Conditional Reduction Entry}\label{hc:Seq-PML-reduce-ent}
+
+\begin{code}
+wCRedEntry :: (Ord s, Show s) => Dict s
+wCRedEntry = entry laws $ LawEntry [] [wCReduce] []
+\end{code}
+
+
+\newpage
+\HDRb{Loop Unrolling for Seq-PML}\label{hb:Seq-PML-unroll}
+
+\begin{code}
+wUnroll ::DictRWFun s
+\end{code}
+
+Default case: no change.
+\begin{code}
+wUnroll _ mpr = ( "", mpr )
+\end{code}
+
+\HDRc{The Unroll Entry}\label{hc:Seq-PML-reduce-ent}
+
+\begin{code}
+wLoopEntry :: (Ord s, Show s) => Dict s
+wLoopEntry = entry laws $ LawEntry [] [] [wUnroll]
+\end{code}
 
 \newpage
 \HDRb{Dictionary for Seq-PML}\label{hb:Seq-PML-laws}
@@ -368,6 +419,9 @@ wDict
  =  dictVersion "Seq-PML 0.1"
     `dictMrg` dictWE
     `dictMrg` dictWP
+    `dictMrg` wRedEntry
+    `dictMrg` wCRedEntry
+    `dictMrg` wLoopEntry
     `dictMrg` wAlfDict
     `dictMrg` wAlfDict
     `dictMrg` stdDict
