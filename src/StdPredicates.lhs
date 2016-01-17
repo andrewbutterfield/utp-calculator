@@ -23,8 +23,8 @@ First, some generic intelligent composite constructors:
 
 \begin{code}
 mkAssoc
-  :: String -> (MPred m s -> Bool) -> [MPred m s]-> [MPred m s]
-  -> Pred m s
+  :: String -> (MPred s -> Bool) -> [MPred s]-> [MPred s]
+  -> Pred s
 mkAssoc op isOp srpm [] = Comp op $ reverse srpm
 mkAssoc op isOp srpm (mpr:mprs)
  | isOp mpr = mkAssoc op isOp (reverse (predPrs mpr)++srpm) mprs
@@ -33,6 +33,7 @@ mkAssoc op isOp srpm (mpr:mprs)
 predPrs (_,Comp _ prs) = prs  ;  predPrs _ = []
 \end{code}
 
+\newpage
 \HDRc{Lattice Simplification}~
 
 Given binary operator $\otimes$ with zero $0$ and unit $1$
@@ -42,11 +43,18 @@ this embodies the following laws:
 \\ 1 \otimes x & = x = & x \otimes 1
 }
 \begin{code}
+sLattice :: Eq s
+         => String
+         -> ([MPred s] -> Pred s)
+         -> Pred s
+         -> Pred s
+         -> [MPred s]
+         -> (String, Pred s)
 sLattice tag op zero unit mprs
  = ret tag $ zcheck $ filter ((/= unit) . snd) mprs
  where
    zcheck mprs
-    | any ((==zero) . snd) mprs  =  []
+    | any ((==zero) . snd) mprs  =  [([], zero)]
     | otherwise = mprs
    ret tag mprs'
     | map snd mprs'==map snd mprs  =  ( "", op mprs )
@@ -57,6 +65,19 @@ sLattice tag op zero unit mprs
 \newpage
 
 \HDRb{Standard Definitions}\label{hb:std-defs}
+
+\HDRc{Non-composite Predicates}
+
+\begin{code}
+bT = noMark T
+bF = noMark F
+\end{code}
+
+Next, a composite recogniser:
+\begin{code}
+isComp :: String -> Recogniser s
+isComp cname (_, Comp nm _) = nm == cname ; isComp _ _ = False
+\end{code}
 \HDRc{Lattice Top/Bottom}\label{hc:def-Top-Bot}
 
 \RLEQNS{
@@ -65,25 +86,32 @@ sLattice tag op zero unit mprs
 \\ &|& \mBot & \tBot
 }
 \begin{code}
-isTop (_,Comp "Skip" _) = True  ;  isTop _ = False
-isBot (_,Comp "Skip" _) = True  ;  isBot _ = False
+nTop = "Top" ; nBot = "nBot"
+isTop = isComp nTop ; isBot  = isComp nBot
 
-mkTop = Comp "Top" []
-mkBot = Comp "Bot" []
+mkTop = Comp nTop []
+mkBot = Comp nBot []
 
-ppTop d p _ = pps styleBlue $ ppa "T"
-ppBot d p _ = pps styleBlue $ ppa "_|_"
+ppTop d ms p _ = ppa "T"
+ppBot d ms p _ = ppa "_|_"
 
-simpTop d _ = ("",F) -- assuming full predicate lattice
-simpBot d _ = ("",T) -- assuming full predicate lattice
+defnTop d _ = ("",F) -- assuming full predicate lattice
+defnBot d _ = ("",T) -- assuming full predicate lattice
 
-topEntry = ("Top", PredEntry [] PUndef ppTop simpTop)
-botEntry = ("Bot", PredEntry [] PUndef ppBot simpBot)
+topEntry
+ = ( nTop
+   , PredEntry False ppTop defnTop (pNoChg nTop) )
+botEntry
+ = ( nBot
+   , PredEntry False ppBot defnBot (pNoChg nBot) )
 
 -- build Top and Bot at the MPred level
+bTop, bBot :: MPred s
 bTop = noMark mkTop
 bBot = noMark mkBot
 \end{code}
+
+
 
 \newpage
 \HDRc{Negation}\label{hc:def-Not}
@@ -93,19 +121,34 @@ bBot = noMark mkBot
 \\ &|& \mNot & \tNot
 }
 \begin{code}
-mkNot mpr = Comp "Not" [mpr]
+nNot = "Not" ; isNot  = isComp nNot
 
-ppNot d p [(m,pr)] -- ignore marking for now
+mkNot mpr = Comp nNot [mpr]
+
+ppNot d ms p [mpr] -- ignore marking for now
  = paren p precNot
-       $ pplist [pps styleBlue $ ppa "~", showp d precNot pr]
-ppNot d p _ = pps styleRed $ ppa "invalid-~"
-
+       $ pplist [ppa "~", mshowp d ms precNot mpr]
+ppNot d ms p _ = pps styleRed $ ppa "invalid-~"
+\end{code}
+$\lnot\true=\false$
+\begin{code}
 simpNot d [(m,T)] = ("~-simp",F)
+\end{code}
+$\lnot\false=\true$
+\begin{code}
 simpNot d [(m,F)] = ("~-simp",T)
-simpNot _ mprs = ("", Comp "Not" mprs)
+\end{code}
+$\lnot\lnot p = p$
+\begin{code}
+simpNot d [(m,Comp name [(_,pr)])]
+ | name == nNot  =  ("~~-simp",pr)
 
-notEntry :: (Show s, Ord s) => (String, Entry m s)
-notEntry = ("Not", PredEntry ["P"] PUndef ppNot simpNot)
+simpNot _ mprs = ("", Comp nNot mprs)
+
+notEntry :: (Show s, Ord s) => (String, Entry s)
+notEntry
+ = ( nNot
+   , PredEntry True ppNot (pNoChg nNot) simpNot )
 
 -- build a Not at the MPred level
 bNot mpr = noMark $ mkNot mpr
@@ -119,23 +162,25 @@ bNot mpr = noMark $ mkNot mpr
 \\ &|& \mAnd & \tAnd
 }
 \begin{code}
-isAnd (_,Comp "And" _) = True  ;  isAnd _ = False
+nAnd = "And" ; isAnd  = isComp nAnd
 
 mkAnd [] = T
 mkAnd [(_,pr)] = pr
-mkAnd mprs = mkAssoc "And" isAnd [] mprs
+mkAnd mprs = mkAssoc nAnd isAnd [] mprs
 
-ppAnd d p [] = showp d p T
-ppAnd d p [(m,pr)] = showp d p pr
-ppAnd d p mprs
+ppAnd d ms p [] = showp d ms p T
+ppAnd d ms p [mpr] = mshowp d ms p mpr
+ppAnd d ms p mprs
  = paren p precAnd
-     $ ppsopen styleBlue " /\\ "
-     $ map (showp d precAnd . snd) mprs
+     $ ppopen " /\\ "
+     $ map (mshowp d ms precAnd) mprs
 
 simpAnd d mprs  = sLattice "/\\-simplify" mkAnd F T mprs
 
-andEntry :: (Show s, Ord s) => (String, Entry m s)
-andEntry = ("And", PredEntry ["P$"] PUndef ppAnd simpAnd)
+andEntry :: (Show s, Ord s) => (String, Entry s)
+andEntry
+ = ( nAnd
+   , PredEntry True ppAnd (pNoChg nAnd) simpAnd )
 
 -- build an And at the MPred level
 bAnd mprs = noMark $ mkAnd mprs
@@ -149,23 +194,25 @@ bAnd mprs = noMark $ mkAnd mprs
 \\ &|& \mOr & \tOr
 }
 \begin{code}
-isOr (_,Comp "Or" _) = True  ;  isOr _ = False
+nOr = "Or" ; isOr  = isComp nOr
 
 mkOr [] = T
 mkOr [(_,pr)] = pr
-mkOr mprs = mkAssoc "Or" isOr [] mprs
+mkOr mprs = mkAssoc nOr isOr [] mprs
 
-ppOr d p [] = showp d p T
-ppOr d p [(m,pr)] = showp d p pr
-ppOr d p mprs
+ppOr d ms p [] = showp d ms p T
+ppOr d ms p [mpr] = mshowp d ms p mpr
+ppOr d ms p mprs
  = paren p precOr
-     $ ppsopen styleBlue " \\/ "
-     $ map (showp d precOr . snd) mprs
+     $ ppopen " \\/ "
+     $ map (mshowp d ms precOr) mprs
 
 simpOr d mprs  = sLattice "\\/-simplify" mkOr T F mprs
 
-orEntry :: (Show s, Ord s) => (String, Entry m s)
-orEntry = ("Or", PredEntry ["P$"] PUndef ppOr simpOr)
+orEntry :: (Show s, Ord s) => (String, Entry s)
+orEntry
+ = ( nOr
+   , PredEntry True ppOr (pNoChg nOr) simpOr )
 
 -- build an Or at the MPred level
 bOr mprs = noMark $ mkOr mprs
@@ -179,23 +226,25 @@ bOr mprs = noMark $ mkOr mprs
 \\ &|& \mNDC & \tNDC
 }
 \begin{code}
-isNDC (_,Comp "NDC" _) = True  ;  isNDC _ = False
+nNDC = "NDC" ; isNDC  = isComp nNDC
 
 mkNDC [] = T
 mkNDC [(_,pr)] = pr
-mkNDC mprs = mkAssoc "NDC" isNDC [] mprs
+mkNDC mprs = mkAssoc nNDC isNDC [] mprs
 
-ppNDC d p [] = showp d p T
-ppNDC d p [(m,pr)] = showp d p pr
-ppNDC d p mprs
+ppNDC d ms p [] = showp d ms p T
+ppNDC d ms p [mpr] = mshowp d ms p mpr
+ppNDC d ms p mprs
  = paren p precNDC
-     $ ppsopen styleBlue " |~| "
-     $ map (showp d precNDC . snd) mprs
+     $ ppopen " |~| "
+     $ map (mshowp d ms precNDC) mprs
 
-simpNDC d mprs  = sLattice "|~|-simplify" mkNDC T F mprs
+simpNDC d mprs  = sLattice "|~|-simplify" mkNDC mkBot mkTop mprs
 
-ndcEntry :: (Show s, Ord s) => (String, Entry m s)
-ndcEntry = ("NDC", PredEntry ["P$"] PUndef ppNDC simpNDC)
+ndcEntry :: (Show s, Ord s) => (String, Entry s)
+ndcEntry
+ = ( nNDC
+   , PredEntry True ppNDC (pNoChg nNDC) simpNDC )
 
 -- build an NDC at the MPred level
 bNDC mprs = noMark $ mkNDC mprs
@@ -209,28 +258,88 @@ bNDC mprs = noMark $ mkNDC mprs
 \\ &|& \mImp & \tImp
 }
 \begin{code}
-isImp (_,Comp "Imp" _) = True  ;  isImp _ = False
+nImp = "Imp" ; isImp  = isComp nImp
 
-mkImp mpr1 mpr2 = Comp "Imp" [mpr1,mpr2]
+mkImp mpr1 mpr2 = Comp nImp [mpr1,mpr2]
 
-ppImp d p [mpr1,mpr2]
- = paren p precImp
-     $ ppsopen styleBlue " => " [ showp d precImp $ snd mpr1
-                                , showp d precImp $ snd mpr2 ]
-ppImp d p mprs = pps styleRed $ ppa "invalid-=>"
-
+ppImp d ms p [mpr1,mpr2]
+ = paren p (precImp-1) -- bracket self
+     $ ppopen  " => " [ mshowp d ms precImp mpr1
+                      , mshowp d ms precImp mpr2 ]
+ppImp d ms p mprs = pps styleRed $ ppa "invalid-=>"
+\end{code}
+$\true \implies p = p$
+\begin{code}
 simpImp d [ (_,T), (_,pr) ] = ( "=>-simp", pr        )
+\end{code}
+$\false \implies p = \true$
+\begin{code}
 simpImp d [ (_,F), _      ] = ( "=>-simp", T         )
+\end{code}
+$p \implies \false = \lnot p$
+\begin{code}
 simpImp d [ mpr,  (_,F)   ] = ( "=>-simp", mkNot mpr )
+\end{code}
+$p \implies \true = \true$
+\begin{code}
 simpImp d [ _,    (_,T)   ] = ( "=>-simp", T         )
+
 simpImp d [ mpr1, mpr2    ] = ( "",  mkImp mpr1 mpr2 )
 
-impEntry :: (Show s, Ord s) => (String, Entry m s)
-impEntry = ("Imp", PredEntry ["P","Q"] PUndef ppImp simpImp)
+impEntry :: (Show s, Ord s) => (String, Entry s)
+impEntry
+ = ( nImp
+   , PredEntry True ppImp (pNoChg nImp) simpImp )
 
 -- build an Imp at the MPred level
 bImp mpr1 mpr2 = noMark $ mkImp mpr1 mpr2
 \end{code}
+
+\newpage
+\HDRc{Equivalence}\label{hc:def-Eqv}
+\RLEQNS{
+  p \in Pred &::=& \ldots
+\\ &|& \mEqv & \tEqv
+}
+\begin{code}
+nEqv = "Eqv" ; isEqv  = isComp nEqv
+
+mkEqv mpr1 mpr2 = Comp nEqv [mpr1,mpr2]
+
+ppEqv d ms p [mpr1,mpr2]
+ = paren p (precEqv-1) -- bracket self
+     $ ppopen  " == " [ mshowp d ms precEqv mpr1
+                      , mshowp d ms precEqv mpr2 ]
+ppEqv d ms p mprs = pps styleRed $ ppa "invalid-=="
+\end{code}
+$p \implies p = \true$ (simple cases only)
+\begin{code}
+simpEqv d [ (_,T), (_,T)  ] = ( "==-simp", T         )
+simpEqv d [ (_,F), (_,F)  ] = ( "==-simp", T         )
+\end{code}
+$\true \equiv p = p$ and \emph{v.v.}
+\begin{code}
+simpEqv d [ (_,T), (_,pr) ] = ( "==-simp", pr        )
+simpEqv d [ (_,pr), (_,T) ] = ( "==-simp", pr        )
+\end{code}
+$p \equiv \false = \lnot p$ and \emph{v.v.}
+\begin{code}
+simpEqv d [ mpr,  (_,F)   ] = ( "==-simp", mkNot mpr )
+simpEqv d [ (_,F),  mpr   ] = ( "==-simp", mkNot mpr )
+\end{code}
+\begin{code}
+simpEqv d [ mpr1, mpr2    ] = ( "",  mkEqv mpr1 mpr2 )
+
+eqvEntry :: (Show s, Ord s) => (String, Entry s)
+eqvEntry
+ = ( nEqv
+   , PredEntry True ppEqv (pNoChg nEqv) simpEqv )
+
+-- build an Eqv at the MPred level
+bEqv mpr1 mpr2 = noMark $ mkEqv mpr1 mpr2
+\end{code}
+
+
 
 \newpage
 \HDRc{Refinement}\label{hc:def-Rfdby}
@@ -240,21 +349,23 @@ bImp mpr1 mpr2 = noMark $ mkImp mpr1 mpr2
 \\ &|& \mRby & \tRby
 }
 \begin{code}
-isRfdby (_,Comp "Rfdby" _) = True  ;  isRfdby _ = False
+nRfdby = "Rfdby" ; isRfdby  = isComp nRfdby
 
-mkRfdby mpr1 mpr2 = Comp "Rfdby" [mpr1,mpr2]
+mkRfdby mpr1 mpr2 = Comp nRfdby [mpr1,mpr2]
 
-ppRfdby d p [mpr1,mpr2]
+ppRfdby d ms p [mpr1,mpr2]
  = paren p precRfdby
-     $ ppsopen styleBlue " |= " [ showp d precRfdby $ snd mpr1
-                                , showp d precRfdby $ snd mpr2 ]
-ppRfdby d p mprs = pps styleRed $ ppa "invalid-|="
+     $ ppopen " |= " [ mshowp d ms precRfdby mpr1
+                     , mshowp d ms precRfdby mpr2 ]
+ppRfdby d ms p mprs = pps styleRed $ ppa "invalid-|="
 
 simpRfdby d [mpr1, mpr2] = ( "",  mkImp mpr1 mpr2 )
 
-rfdbyEntry :: (Show s, Ord s) => (String, Entry m s)
-rfdbyEntry = ( "Rfdby"
-             , PredEntry ["P","Q"] PUndef ppRfdby simpRfdby)
+rfdbyEntry :: (Show s, Ord s) => (String, Entry s)
+rfdbyEntry
+ = ( nRfdby
+   , PredEntry False ppRfdby
+               (pNoChg nRfdby) simpRfdby )
 
 -- build an Rfdby at the MPred level
 bRfdby mpr1 mpr2 = noMark $ mkRfdby mpr1 mpr2
@@ -268,25 +379,25 @@ bRfdby mpr1 mpr2 = noMark $ mkRfdby mpr1 mpr2
 \\ &|& \mCond & \tCond
 }
 \begin{code}
-isCond (_,Comp "Cond" _) = True  ;  isCond _ = False
+nCond = "Cond" ; isCond  = isComp nCond
 
-mkCond mpr1 mpr2 mpr3 = Comp "Cond" [mpr1,mpr2,mpr3]
+mkCond mpr1 mpr2 mpr3 = Comp nCond [mpr1,mpr2,mpr3]
 
-ppCond d p [mprt,mprc,mpre]
+ppCond d ms p [mprt,mprc,mpre]
  = paren p precCond
-      $ pplist [ showp d precCond $ snd mprt
-               , pps styleBlue $ ppa " <| "
-               , showp d 0 $ snd mprc
-               , pps styleBlue $ ppa " |> "
-               , showp d precCond $ snd mpre ]
+      $ pplist [ mshowp d ms precCond mprt
+               , ppa " <| "
+               , mshowp d ms 0 mprc
+               , ppa " |> "
+               , mshowp d ms precCond mpre ]
+ppCond d ms p mprs = pps styleRed $ ppa "invalid-<|>"
 
-ppCond d p mprs = pps styleRed $ ppa "invalid-<|>"
+simpCond d [mpr1, mpr2, mpr3] = ( "",  mkCond mpr1 mpr2 mpr3)
 
-simpCond d [mpr1, mpr2] = ( "",  mkImp mpr1 mpr2 )
-
-condEntry :: (Show s, Ord s) => (String, Entry m s)
-condEntry = ( "Cond"
-            , PredEntry ["P","c","R"] PUndef ppCond simpCond)
+condEntry :: (Show s, Ord s) => (String, Entry s)
+condEntry
+ = ( nCond
+   , PredEntry True ppCond simpCond simpCond )
 
 -- build an Cond at the MPred level
 bCond mpr1 mpr2 mpr3 = noMark $ mkCond mpr1 mpr2 mpr3
@@ -300,17 +411,20 @@ bCond mpr1 mpr2 mpr3 = noMark $ mkCond mpr1 mpr2 mpr3
 \\ &|& \mSkip & \tSkip
 }
 \begin{code}
-isSkip (_,Comp "Skip" _) = True  ;  isSkip _ = False
+nSkip = "Skip" ; isSkip  = isComp nSkip
 
-mkSkip = Comp "Skip" []
+mkSkip = Comp nSkip []
 
-ppSkip d p _ = pps styleBlue $ ppa "II"
+ppSkip d _ p _ = ppa "II"
 
 simpSkip d _ = ("",mkSkip)
 
-skipEntry = ("Skip", PredEntry [] PUndef ppSkip simpSkip)
+skipEntry
+  = ( nSkip
+    , PredEntry False ppSkip simpSkip simpSkip )
 
 -- build Skip at the MPred level
+bSkip :: MPred s
 bSkip = noMark mkSkip
 \end{code}
 
@@ -322,23 +436,33 @@ bSkip = noMark mkSkip
 \\ &|& \mSeq & \tSeq
 }
 \begin{code}
-isSeq (_,Comp "Seq" _) = True  ;  isSeq _ = False
+nSeq = "Seq" ; isSeq  = isComp nSeq
 
-mkSeq mpr1 mpr2 = Comp "Seq" [mpr1,mpr2]
+mkSeq mpr1 mpr2 = Comp nSeq [mpr1,mpr2]
 
-ppSeq d p [mpr1,mpr2]
+ppSeq d ms p [mpr1,mpr2]
  = paren p precSeq
-     $ ppsopen styleBlue " ; " [ showp d precSeq $ snd mpr1
-                               , showp d precSeq $ snd mpr2 ]
-ppSeq d p mprs = pps styleRed $ ppa "invalid-;"
+     $ ppopen " ; " [ mshowp d ms precSeq mpr1
+                    , mshowp d ms precSeq mpr2 ]
+ppSeq d ms p mprs = pps styleRed $ ppa "invalid-;"
 
 simpSeq d [ mpr1, mpr2    ]
+\end{code}
+  $\Skip \seq p = p$
+\begin{code}
  | isSkip mpr1 = ( "simp-;",  snd mpr2 )
+\end{code}
+  $p \seq \Skip = p$
+\begin{code}
  | isSkip mpr2 = ( "simp-;",  snd mpr1 )
+
  | otherwise   = ( "", mkSeq mpr1 mpr2 )
 
-seqEntry :: (Show s, Ord s) => (String, Entry m s)
-seqEntry = ("Seq", PredEntry ["P","Q"] PUndef ppSeq simpSeq)
+seqEntry :: (Show s, Ord s) => (String, Entry s)
+seqEntry
+ = ( nSeq
+   , PredEntry False ppSeq
+               (pNoChg nSeq) simpSeq )
 
 -- build an Seq at the MPred level
 bSeq mpr1 mpr2 = noMark $ mkSeq mpr1 mpr2
@@ -352,53 +476,23 @@ bSeq mpr1 mpr2 = noMark $ mkSeq mpr1 mpr2
 \\ &|& \mIter & \tIter
 }
 \begin{code}
-isIter (_,Comp "Iter" _) = True  ;  isIter _ = False
+nIter = "Iter" ; isIter  = isComp nIter
 
-mkIter mpr1 mpr2 = Comp "Iter" [mpr1,mpr2]
+mkIter mpr1 mpr2 = Comp nIter [mpr1,mpr2]
 
-ppIter d p [mpr1,mpr2]
+ppIter d ms p [mpr1,mpr2]
  = paren p precIter
-     $ ppsopen styleBlue " * " [ showp d precIter $ snd mpr1
-                               , showp d precIter $ snd mpr2 ]
-ppIter d p mprs = pps styleRed $ ppa "invalid-*"
+     $ ppopen " * " [ mshowp d ms precIter mpr1
+                    , mshowp d ms precIter mpr2 ]
+ppIter d _ p mprs = pps styleRed $ ppa "invalid-*"
 
 simpIter d [mpr1, mpr2 ] = ( "", mkIter mpr1 mpr2 )
 
-iterEntry :: (Show s, Ord s) => (String, Entry m s)
-iterEntry = ( "Iter"
-            , PredEntry ["c","Q"] PUndef ppIter simpIter )
+iterEntry :: (Show s, Ord s) => (String, Entry s)
+iterEntry
+ = ( nIter
+   , PredEntry False ppIter (pNoChg nIter) simpIter )
 
 -- build an Iter at the MPred level
 bIter mpr1 mpr2 = noMark $ mkIter mpr1 mpr2
-\end{code}
-
-\newpage
-\HDRb{The Standard Dictionary}\label{hb:std-dict}
-
-\begin{code}
-stdDict :: (Ord s, Show s) => Dict m s
-stdDict
- = M.fromList
-    [ topEntry
-    , botEntry
-    , notEntry
-    , andEntry
-    , orEntry
-    , ndcEntry
-    , impEntry
-    , rfdbyEntry
-    , condEntry
-    , skipEntry
-    , seqEntry
-    , iterEntry
-    ]
-\end{code}
-
-\HDRc{Debugging aids}
-
-\begin{code}
-putPred :: (Mark m, Ord s, Show s) => Pred m s -> IO ()
-putPred = putStrLn . pdshow 80 stdDict
-putMPred :: (Mark m, Ord s, Show s) => MPred m s -> IO ()
-putMPred = putPred . snd
 \end{code}

@@ -5,6 +5,7 @@ import Utilities
 import qualified Data.Map as M
 import Data.List
 import Data.Char
+import Data.Maybe
 import Debug.Trace
 import PrettyPrint
 import CalcTypes
@@ -28,96 +29,140 @@ ssame sub1 sub2 = sort sub1 == sort sub2
 We treat expressions as atomic from the perspective of
 pretty-printing and highlighting.
 
-\HDRb{Marking Class}\label{hm:MarkClass}
+\HDRb{Marking}\label{hb:marking}
 
-
-We also want to have a general facility to mark terms for highlighting
-or processing in various ways.
-We use a class for marks that supplies a special `unmarked' value:
+\HDRc{Basic Marking}\label{hc:basic-marking}
 \begin{code}
-class Mark m where nomark :: m
+noMark :: Pred s -> MPred s
+noMark pr = ([], pr)
+
+unMark :: MPred s -> MPred s
+unMark (_, pr) = ([], pr)
+
+addMark :: Mark -> MPred s -> MPred s
+addMark m (ms, pr) = (m:ms, pr)
+
+popMark :: MPred s -> MPred s
+popMark (ms, pr) = (ttail ms, pr)
+
+remMark :: Mark -> MPred s -> MPred s
+remMark m (ms, pr) = (ms\\[m], pr)
+\end{code}
+
+We also need sometimes to strip out a remark at all levels
+in a predicate:
+\begin{code}
+stripMark :: Mark -> MPred s -> MPred s
+stripMark m (ms, pr) = (ms\\[m], stripMark' m pr)
+
+stripMark' m (Comp n mprs)  = Comp n $ map (stripMark m) mprs
+stripMark' m (PSub mpr sub) = PSub (stripMark m mpr) sub
+stripMark' m pr             = pr
 \end{code}
 
 
-\HDRc{Default Mark Type}
-
-We will use non-negative \emph{Int} as markers
 \begin{code}
-instance Mark Int where nomark = 0
-
-noMark :: Pred Int s -> MPred Int s
-noMark pr = (nomark, pr)
-
 -- build a basic predicate at the MPred level
-bT              =  noMark T
-bF              =  noMark F
-bPV str         =  noMark $ PVar str
-bEqual e1 e2    =  noMark $ Equal e1 e2
-bAtm e          =  noMark $ Atm e
-bComp str mprs  =  noMark $ Comp str mprs
-bPSub mpr subs  =  noMark $ mkPSub mpr subs
+true, false :: MPred s
+true           =  noMark T
+false          =  noMark F
+pvar str       =  noMark $ PVar str
+equal e1 e2    =  noMark $ Equal e1 e2
+atm e          =  noMark $ Atm e
+comp str mprs  =  noMark $ Comp str mprs
+psub mpr subs  =  noMark $ mkPSub mpr subs
 \end{code}
 
 \HDRb{Dictionary}\label{hb:DataDict}
 
-Dictionary query and construction
+\HDRc{Dictionary query}
 \begin{code}
 isPredEntry (PredEntry _ _ _ _) = True
 isPredEntry _ = False
-isExprEntry (ExprEntry _ _ _ _) = True
+isExprEntry (ExprEntry _ _ _) = True
 isExprEntry _ = False
 isAlfEntry (AlfEntry _) = True
 isAlfEntry _ = False
 isPVarEntry (PVarEntry _) = True
 isPVarEntry _ = False
 
-nullDict :: Dict m s
+nullDict :: Dict s
 nullDict = M.empty
 
-plookup :: String -> Dict m s -> Maybe (Entry m s)
+plookup :: String -> Dict s -> Maybe (Entry s)
 plookup nm d
  = case M.lookup nm d of
      Just pd@(PredEntry _ _ _ _)  ->  Just pd
      _                            ->  Nothing
 
-elookup :: String -> Dict m s -> Maybe (Entry m s)
+elookup :: String -> Dict s -> Maybe (Entry s)
 elookup nm d
  = case M.lookup nm d of
-     Just ed@(ExprEntry _ _ _ _)  ->  Just ed
-     _                            ->  Nothing
+     Just ed@(ExprEntry _ _ _)  ->  Just ed
+     _                          ->  Nothing
 
-alookup :: String -> Dict m s -> Maybe (Entry m s)
+alookup :: String -> Dict s -> Maybe (Entry s)
 alookup nm d
  = case M.lookup nm d of
      Just ad@(AlfEntry _)  ->  Just ad
      _                     ->  Nothing
 
-vlookup :: String -> Dict m s -> Maybe (Entry m s)
+vlookup :: String -> Dict s -> Maybe (Entry s)
 vlookup nm d
  = case M.lookup nm d of
      Just ve@(PVarEntry _)  ->  Just ve
-     _                    ->  Nothing
+     _                      ->  Nothing
 \end{code}
 
-When we merge dictionary entries we concat \texttt{AlfEntry},
+\HDRc{Dictionary Construction}
+
+\begin{code}
+makeDict :: [(String, Entry s)] -> Dict s
+makeDict = M.fromList
+
+entry :: String -> Entry s -> Dict s
+entry s e = makeDict [(s, e)]
+
+dictVersion :: String -> Dict s
+dictVersion vtxt = entry version $ AlfEntry [vtxt]
+
+version = "Version"
+laws = "laws" -- for "the" LawEntry
+\end{code}
+
+When we merge dictionary entries
+we concatenate \texttt{AlfEntry} and \texttt{LawEntry},
 but otherwise take the first:
 \begin{code}
-mergeEntry :: Entry m s -> Entry m s -> Entry m s
-mergeEntry (AlfEntry a1) (AlfEntry a2) = AlfEntry (a1++a2)
+mergeEntry :: Entry s -> Entry s -> Entry s
+mergeEntry (AlfEntry a1) (AlfEntry a2)       = AlfEntry (a1++a2)
+mergeEntry (LawEntry r1 cr1 u1) (LawEntry r2 cr2 u2)
+                         = LawEntry (r1++r2) (cr1++cr2) (u1++u2)
 mergeEntry e _ = e
+
+dictMrg :: Dict s -> Dict s -> Dict s
+dictMrg = M.unionWith mergeEntry
 \end{code}
 
 
 Default predicate entry functions
 \begin{code}
-pnone :: ( String, Pred m s)
+pnone :: ( String, Pred s)
 pnone = ( "", PUndef )
-nosimp :: [Pred m s] -> ( String, Pred m s)
+nosimp :: [Pred s] -> ( String, Pred s)
 nosimp es = pnone
-pdoes :: String -> (Dict m s -> [Pred m s] -> Pred m s)
-     -> Dict m s -> [Pred m s]
-     -> ( String, Pred m s )
+pdoes :: String -> (Dict s -> [Pred s] -> Pred s)
+     -> Dict s -> [Pred s]
+     -> ( String, Pred s )
 pdoes nm p d ps = ( nm, p d ps )
+
+pNoChg :: String -> Rewrite s
+pNoChg name d mprs = ( "", Comp name mprs )
+
+-- labelling definitions
+ldefn :: String -> Pred s -> (String, Pred s)
+ldefn "" pr = ( "", pr )
+ldefn nm pr = ( "defn. of " ++ nm, pr )
 \end{code}
 
 
@@ -129,87 +174,11 @@ none :: ( String, Expr s)
 none = ( "", Undef )
 noeval :: [Expr s] -> ( String, Expr s)
 noeval es = none
-does :: String -> (Dict m s -> [Expr s] -> Expr s)
-     -> Dict m s -> [Expr s]
+does :: String -> (Dict s -> [Expr s] -> Expr s)
+     -> Dict s -> [Expr s]
      -> ( String, Expr s )
-does nm f d es = ( nm, f d es )
-\end{code}
-
-
-We predefine some standard alphabet names
-\begin{code}
-aAlf  = "Alf"   -- entire alphabet
-aObs  = "Obs"   -- all undashed variables
-aObs' = "Obs'"  -- all dashed variables
-aMdl  = "Mdl"   -- all undashed model variables
-aMdl' = "Mdl'"  -- all dashed model variables
-aScr  = "Scr"   -- all undashed script variables
-aScr' = "Scr'"  -- all dashed script variables
-aDyn  = "Dyn"   -- all undashed dynamic observables
-aDyn' = "Dyn'"  -- all dashed dynamic observables
-aStc  = "Stc"   -- all undashed static parameters
-\end{code}
-A consistent set of definitions should obey the following laws:
-\RLEQNS{
-   Alf &=& Obs \cup Obs'
-\\ Obs &=& Mdl \cup Scr & \mbox{dashed similarly}
-\\ Obs &=& Dyn \cup Stc & \mbox{dashed similarly}
-\\ \emptyset &=& Mdl \cap Scr & \mbox{dashed similarly}
-\\ \emptyset &=& Dyn \cap Stc & \mbox{dashed similarly}
-\\ Stc' &=& \emptyset
-}
-The last law is why we do not provide a\texttt{ Stc'} alphabet entry.
-
-In general we expect the relation to be homogeneous on the dynamic variables
-\RLEQNS{
-   Dyn' &=& (Dyn)'
-}
-In most cases, script variables will be dynamic:
-\RLEQNS{
-   Scr &\subseteq& Dyn & \mbox{dashed similarly}
-}
-A basic minimal definition adhering to all the above rules
-consists of $Scr$, $nonScrDyn$ and $Stc$
-with the following calculations of the rest:
-\RLEQNS{
-   Scr' &=& (Scr)'
-\\ Dyn &=& Scr \cup nonScrDyn
-\\ Dyn' &=& (Dyn)'
-\\ Mdl &=& nonScrDyn \cup Stc
-\\ Mdl' &=& (nonScrDyn)'
-}
-with $Obs$, $Alf$ etc derived as above.
-\begin{code}
-stdAlfDictGen :: [String] -> [String] -> [String] -> Dict m s
-stdAlfDictGen scr nonScrDyn stc
- = let
-    scr' = map addDash scr
-    dyn = scr ++ nonScrDyn
-    dyn' = map addDash dyn
-    mdl = nonScrDyn ++ stc
-    mdl' = map addDash nonScrDyn
-    obs = mdl ++ scr
-    obs' = mdl' ++ scr'
-    alf = obs ++ obs'
-   in M.fromList $ mapsnd (AlfEntry . sort)
-     [ (aAlf, alf)
-     , (aObs, obs), (aObs', obs')
-     , (aMdl, mdl), (aMdl', mdl')
-     , (aScr, scr), (aScr', scr')
-     , (aDyn, dyn), (aDyn', dyn')
-     , (aStc, stc)
-     ]
-\end{code}
-
-Variable basics:
-\begin{code}
-isDash, notDash :: String -> Bool
-isDash v = last v == '\''
-notDash v = last v /= '\''
-
-addDash, remDash :: String -> String
-addDash v = v ++"'"
-remDash = init
+does what f d es = ( what, f d es )
+justMakes f d es = ( "",   f es )
 \end{code}
 
 
@@ -218,7 +187,7 @@ remDash = init
 We define the display of an expression using a dictionary
 to provide exceptional ways to render things.
 \begin{code}
-edshow :: Show s => Dict m s -> Expr s -> String
+edshow :: Show s => Dict s -> Expr s -> String
 edshow d (St s)     =  show s
 edshow d (B b)      =  show b
 edshow d (Z i)      =  show i
@@ -226,8 +195,8 @@ edshow d (Var v)    =  v
 edshow d Undef      =  "Undefined"
 edshow d (App f es)
  = case elookup f d of
-    Nothing  ->  stdFShow d f es
-    Just (ExprEntry _ _ showf _) -> showf d es
+    Nothing                    ->  stdFShow d f es
+    Just (ExprEntry _ showf _) -> showf d es
 edshow d (Sub e sub) = pshow d e ++ showSub d sub
 
 dlshow d sep xs = concat (intersperse sep $ map (edshow d) xs)
@@ -253,44 +222,46 @@ stdFDefn d fname vs ebody eval = (vs,ebody,stdFShow d fname,eval)
 \end{code}
 For now, we don't support infix function syntax.
 
+
 Now, prettiness..
 \begin{code}
-pdshow w d = render w . showp d 0
+pdshow :: (Show s, Ord s) => Int -> Dict s -> Pred s -> String
+pdshow w d pr = render w $ showp d noStyles 0 pr
+
+pmdshow :: (Show s, Ord s)
+        => Int -> Dict s -> MarkStyle -> MPred s -> String
+pmdshow w d msf mpr = render w $ mshowp d msf 0 mpr
 \end{code}
 
-Code to add parentheses when required by a change in current precedence level.
+Pretty-printing predicates.
 \begin{code}
-paren :: Int -> Int -> PP -> PP
-paren outerp innerp (PP w (PPC _ _ sepp pps))
- | innerp < outerp  =  (PP w (PPC (ppa "(") (ppa ")") sepp pps))
-paren outerp innerp pp = pp
-\end{code}
+mshowp :: (Ord s, Show s) => Dict s -> MarkStyle -> Int -> MPred s -> PP
+mshowp d msf p ( ms, pr )
+ = sshowp $ catMaybes $ map msf ms
+ where
+  sshowp []  =  showp d msf p pr
+  sshowp (s:ss) = pps s $ sshowp ss
 
-
-Pretty-printing predicates,
-which now just underlines atomic values,
-and colours equality green and composite names blue.
-\begin{code}
-showp :: (Ord s, Show s) => Dict m s -> Int -> Pred m s -> PP
-showp d _ T  = pps Underline $ ppa "true"
-showp d _ F  = pps Underline $ ppa "false"
-showp d _ (PVar p)  = ppa p
-showp d p (Equal e1 e2)
+showp :: (Ord s, Show s) => Dict s -> MarkStyle -> Int -> Pred s -> PP
+showp d _ _ T  = ppa "true"
+showp d _ _ F  = ppa "false"
+showp d _ _ (PVar p)  = ppa p
+showp d _ p (Equal e1 e2)
    = paren p precEq
-       $ ppopen' (pps styleGreen $ ppa " = ")
+       $ ppopen' (ppa " = ")
                  [ppa $ edshow d e1, ppa $ edshow d e2]
-showp d p (Atm e) = ppa $ edshow d e
-showp d p (PSub pr sub)
-   = pplist $ [showp d precSub $ snd pr, ppa $ showSub d sub]
+showp d _ p (Atm e) = ppa $ edshow d e
+showp d ms p (PSub mpr sub)
+   = pplist $ [mshowp d ms precSub mpr, ppa $ showSub d sub]
 
-showp d p (Comp cname pargs)
+showp d ms p (Comp cname pargs)
  = case plookup cname d of
-    Nothing  ->  stdCshow d cname pargs
-    Just (PredEntry _ _ showf _) -> showf d p pargs
+    Just (PredEntry _ showf _ _) -> showf d ms p pargs
+    _  ->  stdCshow d ms cname pargs
 
 stdCshow :: (Ord s, Show s)
-         => Dict m s -> String -> [MPred m s] -> PP
-stdCshow d cname pargs
- = pplist [ pps styleBlue $ ppa cname
-          , ppclosed "(" ")" "," $ map (showp d 0 .snd) pargs ]
+         => Dict s -> MarkStyle -> String -> [MPred s] -> PP
+stdCshow d ms cname pargs
+ = pplist [ ppa cname
+          , ppclosed "(" ")" "," $ map (mshowp d ms 0) pargs ]
 \end{code}

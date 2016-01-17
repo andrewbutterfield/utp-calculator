@@ -1,0 +1,350 @@
+*TestCalc> calc $ athenb
+
+UTP-Calc vUTCP-0.6, 0.0.1
+Marking Invariant holds
+
+ Step 0
+A(A) ;; A(B)
+
+ ?,d,r,l,s,c,u,x :- d
+
+ = "defn. of ;;"
+dSS.mpr2:
+([],Comp "Or" [([],PSub ([],Comp "PAtm" [([],PVar "A")]) [("g",App "split1" [App "new2" [Var "g"]]),("out",App "new1" [Var "g"])]),([],PSub ([],Comp "PAtm" [([],PVar "B")]) [("g",App "split2" [App "new2" [Var "g"]]),("in",App "new1" [Var "g"])])])
+dSS.mpr1:
+([],Comp "PSeq" [([],Comp "PAtm" [([],PVar "A")]),([],Comp "PAtm" [([],PVar "B")])])
+Marking Invariant holds
+
+ Step 1
+A(A)[g:1,lg/g,out] \/ A(B)[g:2,lg/g,in]
+
+ ?,d,r,l,s,c,u,x :- ?
+
+? - this help message
+s - simplify everywhere
+x - exit, returning proof script
+u - undo
+most subsequent commands affect the first applicable location
+d - definition expansion
+r - reduction law application
+l - loop unrolling
+c - conditional reduction step
+M - show marks (DEBUG)
+B - view before (DEBUG)
+A - view after (DEBUG)
+Marking Invariant holds
+
+ Step 1
+A(A)[g:1,lg/g,out] \/ A(B)[g:2,lg/g,in]
+
+ ?,d,r,l,s,c,u,x :- M
+1 ! [1]
+2 ! [1]
+Marking Invariant holds
+
+ Step 1
+A(A)[g:1,lg/g,out] \/ A(B)[g:2,lg/g,in]
+
+ ?,d,r,l,s,c,u,x :- B
+Comp 'PSeq' : [1]
+  Comp 'PAtm' : []
+    PVar 'A' : []
+  Comp 'PAtm' : []
+    PVar 'B' : []
+
+Marking Invariant holds
+
+ Step 1
+A(A)[g:1,lg/g,out] \/ A(B)[g:2,lg/g,in]
+
+ ?,d,r,l,s,c,u,x :- A
+Comp 'Or' : [1]
+  Psub : []
+    Comp 'PAtm' : []
+      PVar 'A' : []
+    Subst for ["g","out"]
+  Psub : []
+    Comp 'PAtm' : []
+      PVar 'B' : []
+    Subst for ["g","in"]
+
+Marking Invariant holds
+
+ Step 1
+A(A)[g:1,lg/g,out] \/ A(B)[g:2,lg/g,in]
+
+ ?,d,r,l,s,c,u,x :- d
+
+ = "defn. of A"
+dSS.mpr2:
+([],Comp "And" [([],Atm (App "subset" [Var "in",Var "ls"])),([],PVar "A"),([],Equal (Var "ls'") (App "sswap" [Var "ls",Var "in",Var "out"]))])
+dSS.mpr1:
+([],Comp "PAtm" [([],PVar "A")])
+Marking Invariant holds
+
+ Step 2
+(ls(in) /\ A /\ ls' = ls (-/+) (in,out))[g:1,lg/g,out] \/ A(B)[g:2,lg/g,in]
+
+ ?,d,r,l,s,c,u,x :- M
+1 ! [1]
+2 ! [1,2]
+3 ! [1,2]
+Marking Invariant holds
+
+ Step 2
+(ls(in) /\ A /\ ls' = ls (-/+) (in,out))[g:1,lg/g,out] \/ A(B)[g:2,lg/g,in]
+
+ ?,d,r,l,s,c,u,x :- B
+Comp 'Or' : [1]
+  Psub : []
+    Comp 'PAtm' : [2]
+      PVar 'A' : []
+    Subst for ["g","out"]
+  Psub : []
+    Comp 'PAtm' : []
+      PVar 'B' : []
+    Subst for ["g","in"]
+
+Marking Invariant holds
+
+ Step 2
+(ls(in) /\ A /\ ls' = ls (-/+) (in,out))[g:1,lg/g,out] \/ A(B)[g:2,lg/g,in]
+
+ ?,d,r,l,s,c,u,x :- A
+Comp 'Or' : [1]
+  Psub : []
+    Comp 'And' : [2]
+      Atm : []
+        Expr...
+      PVar 'A' : []
+      Equal : []
+        Var 'ls''
+        Expr...
+    Subst for ["g","out"]
+  Psub : []
+    Comp 'PAtm' : []
+      PVar 'B' : []
+    Subst for ["g","in"]
+
+Marking Invariant holds
+
+ Step 2
+(ls(in) /\ A /\ ls' = ls (-/+) (in,out))[g:1,lg/g,out] \/ A(B)[g:2,lg/g,in]
+
+ ?,d,r,l,s,c,u,x :- d
+
+ = "defn. of A"
+dSS.mpr2:
+([],Comp "And" [([],Atm (App "subset" [Var "in",Var "ls"])),([],PVar "B"),([],Equal (Var "ls'") (App "sswap" [Var "ls",Var "in",Var "out"]))])
+dSS.mpr1:
+([],Comp "PAtm" [([],PVar "B")])
+Marking Invariant holds
+
+ Step 3
+    (ls(in) /\ A /\ ls' = ls (-/+) (in,out))[g:1,lg/g,out]
+ \/ (ls(in) /\ B /\ ls' = ls (-/+) (in,out))[g:2,lg/g,in]
+
+ ?,d,r,l,s,c,u,x :- M
+1 ! [1]
+2 ! [1,2]
+3 ! [1,2,3]
+4 ! [1,2,3]
+Marking Invariant holds
+
+ Step 3
+    (ls(in) /\ A /\ ls' = ls (-/+) (in,out))[g:1,lg/g,out]
+ \/ (ls(in) /\ B /\ ls' = ls (-/+) (in,out))[g:2,lg/g,in]
+
+ ?,d,r,l,s,c,u,x :- B
+Comp 'Or' : [1]
+  Psub : []
+    Comp 'And' : [2]
+      Atm : []
+        Expr...
+      PVar 'A' : []
+      Equal : []
+        Var 'ls''
+        Expr...
+    Subst for ["g","out"]
+  Psub : []
+    Comp 'PAtm' : [3]
+      PVar 'B' : []
+    Subst for ["g","in"]
+
+Marking Invariant holds
+
+ Step 3
+    (ls(in) /\ A /\ ls' = ls (-/+) (in,out))[g:1,lg/g,out]
+ \/ (ls(in) /\ B /\ ls' = ls (-/+) (in,out))[g:2,lg/g,in]
+
+ ?,d,r,l,s,c,u,x :- A
+Comp 'Or' : [1]
+  Psub : []
+    Comp 'And' : [2]
+      Atm : []
+        Expr...
+      PVar 'A' : []
+      Equal : []
+        Var 'ls''
+        Expr...
+    Subst for ["g","out"]
+  Psub : []
+    Comp 'And' : [3]
+      Atm : []
+        Expr...
+      PVar 'B' : []
+      Equal : []
+        Var 'ls''
+        Expr...
+    Subst for ["g","in"]
+
+Marking Invariant holds
+
+ Step 3
+    (ls(in) /\ A /\ ls' = ls (-/+) (in,out))[g:1,lg/g,out]
+ \/ (ls(in) /\ B /\ ls' = ls (-/+) (in,out))[g:2,lg/g,in]
+
+ ?,d,r,l,s,c,u,x :- s
+
+ = "simplify"
+Marking Invariant holds
+
+ Step 4
+    ls(in) /\ A[g:1,lg/g,out] /\ ls' = ls (-/+) (in,lg)
+ \/ ls(lg) /\ B[g:2,lg/g,in] /\ ls' = ls (-/+) (lg,out)
+
+ ?,d,r,l,s,c,u,x :- M
+1 ! [1]
+2 ! [1,2]
+3 ! [1,2,3]
+4 ! [1,4,2,4,3]
+5 ! [1,4,4]
+Marking Invariant holds
+
+ Step 4
+    ls(in) /\ A[g:1,lg/g,out] /\ ls' = ls (-/+) (in,lg)
+ \/ ls(lg) /\ B[g:2,lg/g,in] /\ ls' = ls (-/+) (lg,out)
+
+ ?,d,r,l,s,c,u,x :- B
+Comp 'Or' : [1]
+  Psub : [4]
+    Comp 'And' : [2]
+      Atm : []
+        Expr...
+      PVar 'A' : []
+      Equal : []
+        Var 'ls''
+        Expr...
+    Subst for ["g","out"]
+  Psub : [4]
+    Comp 'And' : [3]
+      Atm : []
+        Expr...
+      PVar 'B' : []
+      Equal : []
+        Var 'ls''
+        Expr...
+    Subst for ["g","in"]
+
+Marking Invariant holds
+
+ Step 4
+    ls(in) /\ A[g:1,lg/g,out] /\ ls' = ls (-/+) (in,lg)
+ \/ ls(lg) /\ B[g:2,lg/g,in] /\ ls' = ls (-/+) (lg,out)
+
+ ?,d,r,l,s,c,u,x :- A
+Comp 'Or' : [1]
+  Comp 'And' : [4]
+    Atm : []
+      Expr...
+    Psub : []
+      PVar 'A' : []
+      Subst for ["g","out"]
+    Equal : []
+      Var 'ls''
+      Expr...
+  Comp 'And' : [4]
+    Atm : []
+      Expr...
+    Psub : []
+      PVar 'B' : []
+      Subst for ["g","in"]
+    Equal : []
+      Var 'ls''
+      Expr...
+
+Marking Invariant holds
+
+ Step 4
+    ls(in) /\ A[g:1,lg/g,out] /\ ls' = ls (-/+) (in,lg)
+ \/ ls(lg) /\ B[g:2,lg/g,in] /\ ls' = ls (-/+) (lg,out)
+
+ ?,d,r,l,s,c,u,x :- s
+
+ = "simplify"
+Marking Invariant holds
+
+ Step 5
+ls(in) /\ A /\ ls' = ls (-/+) (in,lg) \/ ls(lg) /\ B /\ ls' = ls (-/+) (lg,out)
+
+ ?,d,r,l,s,c,u,x :- M
+1 ! [1]
+2 ! [1,2]
+3 ! [1,2,3]
+4 ! [1,4,2,4,3]
+5 ! [1,4,5,5,4,5,5,5]
+6 ! [1,4,5,5,4,5,5,5]
+Marking Invariant holds
+
+ Step 5
+ls(in) /\ A /\ ls' = ls (-/+) (in,lg) \/ ls(lg) /\ B /\ ls' = ls (-/+) (lg,out)
+
+ ?,d,r,l,s,c,u,x :- B
+Comp 'Or' : [1]
+  Comp 'And' : [4]
+    Atm : []
+      Expr...
+    Psub : [5]
+      PVar 'A' : []
+      Subst for ["g","out"]
+    Equal : [5]
+      Var 'ls''
+      Expr...
+  Comp 'And' : [4]
+    Atm : [5]
+      Expr...
+    Psub : [5]
+      PVar 'B' : []
+      Subst for ["g","in"]
+    Equal : [5]
+      Var 'ls''
+      Expr...
+
+Marking Invariant holds
+
+ Step 5
+ls(in) /\ A /\ ls' = ls (-/+) (in,lg) \/ ls(lg) /\ B /\ ls' = ls (-/+) (lg,out)
+
+ ?,d,r,l,s,c,u,x :- A
+Comp 'Or' : [1]
+  Comp 'And' : [4]
+    Atm : []
+      Expr...
+    PVar 'A' : [5]
+    Equal : [5]
+      Var 'ls''
+      Expr...
+  Comp 'And' : [4]
+    Atm : [5]
+      Expr...
+    PVar 'B' : [5]
+    Equal : [5]
+      Var 'ls''
+      Expr...
+
+Marking Invariant holds
+
+ Step 5
+ls(in) /\ A /\ ls' = ls (-/+) (in,lg) \/ ls(lg) /\ B /\ ls' = ls (-/+) (lg,out)
+
+ ?,d,r,l,s,c,u,x :- x

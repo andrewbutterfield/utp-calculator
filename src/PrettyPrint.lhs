@@ -1,6 +1,14 @@
 \HDRa{Pretty Printer}\label{ha:pretty-printer}
 \begin{code}
-module PrettyPrint where
+module PrettyPrint
+ ( Style(..)
+ , styleRed, styleMagenta
+ , PP(..), PP'(..)
+ , ppa,pad,pps,ppc
+ , ppnul,ppopen',ppopen,ppsopen,pplist,ppbracket,ppclosed
+ , paren
+ , renderIn,render )
+where
 import Utilities
 import Data.List
 \end{code}
@@ -14,42 +22,38 @@ We also provide a (simple) means for applying ``styles''.
 
 \HDRb{Styles}
 
-Styles (keeping it very simple for now):
+For now we use ANSI escape sequences to apply styles.
+This works fine in an OS X Terminal,
+but doesn't work in a DOS Window.
 \begin{code}
 data Style = Underline
            | Colour Char
            deriving (Eq,Ord,Show)
 
+styleRed     = Colour '1'
+styleGreen   = Colour '2'
+styleBlue    = Colour '4'
+styleYellow  = Colour '3'
+styleMagenta = Colour '5'
+styleCyan    = Colour '6'
+styleWhite   = Colour '7' --light grey!!
+\end{code}
+
+Implementation details
+\begin{code}
 showStyle :: Style -> String
 showStyle Underline   =  setUnderline
 showStyle (Colour c)  =  setColour c
 
 resetStyle :: String
-resetStyle        =  "\ESC[m\STX"
-setUnderline      =  "\ESC[4m\STX"
-setColour colour  =  "\ESC[1;3"++colour:"m\STX"
+resetStyle            =  "\ESC[m\STX"
+setUnderline          =  "\ESC[4m\STX"
+setColour colourCode  =  "\ESC[3"++colourCode:"m\STX"
 
 setStyle :: [Style] -> String
-setStyle  = concat . reverse . map showStyle
+--setStyle  = concat . reverse . map showStyle
+setStyle  = concat . map showStyle
 reset = putStrLn resetStyle -- useful in GHCi to tidy up!
-
-styleRed :: Style
-styleRed = Colour '1'
-codeRed :: String
-codeRed = setColour '1'
-styleGreen :: Style
-styleGreen = Colour '2'
-codeGreen :: String
-codeGreen = setColour '2'
-styleBlue :: Style
-styleBlue = Colour '4'
-codeBlue :: String
-codeBlue = setColour '4'
--- blue    '4'
--- yellow  '3'
--- magenta '5'
--- cyan    '6'
--- white   '7' --light grey!!
 \end{code}
 
 
@@ -69,6 +73,74 @@ data PP' = PPA String        -- atom
          | PPC PP PP PP [PP] -- rdelim ldelim sep pps
          deriving (Eq,Ord,Show)
 \end{code}
+
+
+\HDRb{Smart Constructors}
+
+We build smart versions of the \texttt{PPA}, \texttt{PPS} and \texttt{PPC}
+constructors
+that automatically accumulate the length information.
+\begin{code}
+ppa :: String -> PP
+ppa str = PP (length str) $ PPA str
+
+pps :: Style -> PP -> PP
+pps style pp@(PP len _) = PP len $ PPS style pp
+
+ppc :: PP -> PP -> PP -> [PP] -> PP
+ppc lpp rpp sepp pps
+ = PP len $ PPC lpp rpp sepp pps
+ where
+  len = ppsize lpp + ppsize rpp + seps pps * ppsize sepp
+         + sum (map ppsize pps)
+  seps xs
+   | len == 0  =  0
+   | otherwise  =  len - 1
+   where len = length xs
+\end{code}
+
+A useful utility for putting space around things (typically operators):
+\begin{code}
+pad :: String -> String
+pad s = ' ':s++" "
+\end{code}
+
+We then provide some useful builders for common idioms,
+mostly where delimiters and separators are atomic.
+\begin{code}
+ppnul :: PP -- the empty string
+ppnul = ppa ""
+
+ppopen' :: PP -> [PP] -> PP
+ppopen' = ppc ppnul ppnul
+
+ppopen :: String -> [PP] -> PP
+ppopen sepstr pps = ppopen' (ppa sepstr) pps
+
+ppsopen :: Style -> String -> [PP] -> PP
+ppsopen style sepstr ppp = ppopen' (pps style $ ppa sepstr) ppp
+
+pplist :: [PP] -> PP
+pplist = ppopen ""
+
+ppbracket :: String -> PP -> String -> PP
+ppbracket lbr pp rbr = ppclosed lbr rbr "" [pp]
+
+ppclosed :: String -> String -> String -> [PP] -> PP
+ppclosed lstr rstr sepstr pps
+  = ppc (ppa lstr) (ppa rstr) (ppa sepstr) pps
+\end{code}
+Code to add parentheses when required by a change in current precedence level.
+This assume that lower precedence values mean looser binding,
+so if the inner is looser than the outer we need to bracket it.
+\begin{code}
+paren :: Int -> Int -> PP -> PP
+paren outerp innerp (PP w (PPC _ _ sepp pps))
+ | innerp < outerp  =  ppc (ppa "(") (ppa ")") sepp pps
+paren outerp innerp pp = pp
+\end{code}
+
+
 
 \HDRb{Simple Rendering}
 
@@ -91,71 +163,33 @@ ppstr stls (PP _ (PPS style pp))
 
 ppstr stls (PP _ (PPC lpp rpp sepp []))
                               = ppstr stls lpp ++ ppstr stls rpp
+
 ppstr stls (PP _ (PPC lpp rpp sepp pps))
  | ppsize lpp == 0  =  pppps stls rpp sepp pps
  | otherwise        =  ppstr stls lpp ++ pppps stls rpp sepp pps
-
-pppps :: [Style] -> PP -> PP -> [PP] -> String
-pppps stls rpp sepp []        =  ppstr stls rpp
-pppps stls rpp sepp [pp]      =  ppstr stls pp ++ ppstr stls rpp
-pppps stls rpp sepp (pp:pps)
-  =  ppstr stls pp ++ ppstr stls sepp ++ pppps stls rpp sepp pps
-\end{code}
-
-\HDRb{Smart Constructors}
-
-We build smart versions of the \texttt{PPA} and \texttt{PPC} constructors
-that automatically accumulate the length information.
-\begin{code}
-ppa :: String -> PP
-ppa str = PP (length str) $ PPA str
-
-pps :: Style -> PP -> PP
-pps style pp@(PP len _) = PP len $ PPS style pp
-
-ppc :: PP -> PP -> PP -> [PP] -> PP
-ppc lpp rpp sepp pps
- = PP len $ PPC lpp rpp sepp pps
  where
-  len = ppsize lpp + ppsize rpp + seps pps * ppsize sepp
-         + sum (map ppsize pps)
-  seps xs
-   | len == 0  =  0
-   | otherwise  =  len - 1
-   where len = length xs
+
+  pppps :: [Style] -> PP -> PP -> [PP] -> String
+  pppps stls rpp sepp []        =  ppstr stls rpp
+  pppps stls rpp sepp [pp]      =  ppstr stls pp ++ ppstr stls rpp
+  pppps stls rpp sepp (pp:pps)
+    =  ppstr stls pp ++ ppstr stls sepp ++ pppps stls rpp sepp pps
 \end{code}
 
-We then provide some useful builders for common idioms,
-mostly where delimiters and separators are atomic.
-\begin{code}
-ppnul :: PP
-ppnul = ppa ""
-
-ppopen' = ppc ppnul ppnul
-
-ppopen :: String -> [PP] -> PP
-ppopen sepstr pps = ppopen' (ppa sepstr) pps
-
-ppsopen :: Style -> String -> [PP] -> PP
-ppsopen style sepstr ppp = ppopen' (pps style $ ppa sepstr) ppp
-
-pplist :: [PP] -> PP
-pplist = ppopen ""
-
-ppclosed :: String -> String -> String -> [PP] -> PP
-ppclosed lstr rstr sepstr pps
-  = ppc (ppa lstr) (ppa rstr) (ppa sepstr) pps
-\end{code}
 
 
 \HDRb{Full Rendering}
 
 Now, rendering it as a `nice' string.
 We provide the desired column width at the top level,
-along with an initial indentation of zero.
+along with an specified initial indentation
+or one set to zero.
 \begin{code}
+renderIn :: Int -> Int -> PP -> String
+renderIn w0 ind = fmtShow . layout [] (w0-ind) ind
+
 render :: Int -> PP -> String
-render w0 = fmtShow . layout [] w0 0
+render w0 = renderIn w0 0
 \end{code}
 
 \HDRc{Lines and Formatting}

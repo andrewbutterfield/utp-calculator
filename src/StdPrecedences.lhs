@@ -21,6 +21,7 @@ for the kinds of things we usually write.}%
 :
 \RLEQNS{
    P \refinedby Q \implies R &=& P \refinedby (Q \implies R) & \refinedby_1
+\\ P \equiv Q \implies R  &=& P \equiv (Q \implies R) & \equiv_1
 \\ P \implies Q \cond R S &=& P \implies (Q \cond R S) & \implies_2
 \\ P \cond Q R \seq S     &=& P \cond Q (R \seq D)     & \cond\!_3
 \\ P \seq Q \lor R        &=& P \seq (Q \lor R)        & \seq_4
@@ -40,6 +41,7 @@ precSpacer n = 100 + 10 * n
 Now, precedences, higher is tighter, 0 is ``loosest''.
 \begin{code}
 precRfdby = precSpacer  1
+precEqv   = precSpacer  1
 precImp   = precSpacer  2
 precCond  = precSpacer  3
 precSeq   = precSpacer  4
@@ -51,11 +53,3 @@ precNot   = precSpacer  8
 precEq    = precSpacer  9
 precSub   = precSpacer 10
 \end{code}
-
-Hold these in reserve
-\begin{verbatim}
--- precPCond = 1
--- precPPar  = 2
--- precPSeq  = 3
--- precPIter = 6
-\end{verbatim}
