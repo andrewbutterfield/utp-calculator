@@ -24,30 +24,39 @@
 %
 % Standard Predicates
 %
-\def\mTop{\top} \def\tTop{\mbox{(Lattice) Top, a.k.a. miracle}}
-\def\mBot{\bot}  \def\tBot{\mbox{(Lattice) Bottom, a.k.a. abort/Chaos}}
 \def\mNot{\lnot p} \def\tNot{\mbox{Negation}}
 \def\mAnd{p_1 \land p_2 \land \ldots \land p_n} \def\tAnd{\mbox{Conjunction}}
 \def\mOr{p_1 \lor p_2 \lor \ldots \lor p_n} \def\tOr{\mbox{Disjunction}}
-\def\mNDC{p_1 \ndc p_2 \ndc \ldots \ndc p_n} \def\tNDC{\mbox{Non-Det. Choice}}
 \def\mImp{p_1 \implies p_2} \def\tImp{\mbox{Implication}}
 \def\mEqv{p_1 \equiv p_2} \def\tEqv{\mbox{Equivalence}}
+
+\def\STANDARD{\RLEQNS{
+   p \in P &::=& \ldots & \mbox{As per \secref{hc:PredData}}
+\\ &|& \mNot & \tNot
+\\ &|& \mAnd & \tAnd
+\\ &|& \mOr & \tOr
+\\ &|& \mImp & \tImp
+\\ &|& \mEqv & \tEqv
+}}
+
+
+%
+% UTP Standard Predicates
+%
+\def\mTop{\top} \def\tTop{\mbox{(Lattice) Top, a.k.a. miracle}}
+\def\mBot{\bot}  \def\tBot{\mbox{(Lattice) Bottom, a.k.a. abort/Chaos}}
+\def\mNDC{p_1 \ndc p_2 \ndc \ldots \ndc p_n} \def\tNDC{\mbox{Non-Det. Choice}}
 \def\mRby{p_1 \refinedby p_2} \def\tRby{\mbox{Refinement}}
 \def\mCond{p_1 \cond{p_2} p_3} \def\tCond{\mbox{Conditional}}
 \def\mSkip{\Skip} \def\tSkip{\mbox{Skip}}
 \def\mSeq{p_1 \seq p_2} \def\tSeq{\mbox{Sequencing}}
 \def\mIter{p_1 * p_2} \def\tIter{\mbox{Iteration}}
 
-\def\STANDARD{\RLEQNS{
+\def\UTPSTANDARD{\RLEQNS{
    p \in P &::=& \ldots & \mbox{As per \secref{hc:PredData}}
 \\ &|& \mTop & \tTop
 \\ &|& \mBot & \tBot
-\\ &|& \mNot & \tNot
-\\ &|& \mAnd & \tAnd
-\\ &|& \mOr & \tOr
 \\ &|& \mNDC & \tNDC
-\\ &|& \mImp & \tImp
-\\ &|& \mEqv & \tEqv
 \\ &|& \mRby & \tRby
 \\ &|& \mCond & \tCond
 \\ &|& \mSkip & \tSkip
