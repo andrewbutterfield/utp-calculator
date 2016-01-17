@@ -7,7 +7,7 @@ module StdPrecedences where
 
 We provide dictionary entries that instantiate particular composites
 to produce
-a fairly standard UTP predicate language as follows:
+a fairly standard predicate language as follows:
 \STANDARD
 
 \newpage
@@ -18,7 +18,6 @@ determined by the following \emph{choices}%
 \footnote{These are not laws,
 just conventions we feel are most useful
 for the kinds of things we usually write.}%
-:
 \RLEQNS{
    P \refinedby Q \implies R &=& P \refinedby (Q \implies R) & \refinedby_1
 \\ P \equiv Q \implies R  &=& P \equiv (Q \implies R) & \equiv_1
