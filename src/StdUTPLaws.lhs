@@ -233,6 +233,32 @@ That's all folks!
 reduceStd d mpr = lred "" mpr
 \end{code}
 
+Now, the standard reduction dictionary entry:
+\begin{code}
+stdReduceEntry :: (Show s, Ord s) => Dict s
+stdReduceEntry = entry laws $ LawEntry [reduceStd] [] []
+\end{code}
+
+\HDRb{Standard Loop Unrolling}\label{hb:std-loop-unroll}
+
+Iteration  satisfies the loop-unrolling law:
+\[
+  c * P  \quad=\quad (P ; c * P ) \cond c \Skip
+\]
+\begin{code}
+unrollStd :: Ord s => DictRWFun s
+unrollStd d mw@(_,Comp nm  [mc, mpr])
+ | nm== nIter && isCondition mc
+           = ( "std-loop-unroll"
+             , bCond (bSeq mpr mw) mc bSkip )
+unrollStd _ mpr = ("", mpr )
+\end{code}
+
+Now, the standard unroll dictionary entry:
+\begin{code}
+stdUnrollEntry :: (Show s, Ord s) => Dict s
+stdUnrollEntry = entry laws $ LawEntry [] [] [unrollStd]
+\end{code}
 
 \newpage
 \HDRb{The Standard UTP Dictionary}\label{hb:std-UTP-dict}
@@ -249,5 +275,6 @@ stdUTPDict
     , skipEntry
     , seqEntry
     , iterEntry
-    ]
+    ] `dictMrg` stdReduceEntry
+      `dictMrg` stdUnrollEntry
 \end{code}

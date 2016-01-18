@@ -50,21 +50,22 @@ r = "r" ; vr = Var r
 \HDRc{Alphabet of Seq-PML}\label{hb:Seq-PML-alpha}
 
 We have a (non-script) dynamic state ($res$) which records the current resource set
-and another non-script dynamic ($rpt$) which propagates a request to repeat (because not satisfied) from later
+and another non-script dynamic ($rdy$) which propagates a willingnes to run
+(because now satisfied) from later
 processes back to those composed in front.
 \begin{code}
 res  = "res"  ; vres  = Var res
 res' = "res'" ; vres' = Var res'
-rpt  = "rpt"  ; vrpt  = Var rpt  ; arpt  = atm vrpt
-rpt' = "rpt'" ; vrpt' = Var rpt' ; arpt' = atm vrpt'
+rdy  = "rdy"  ; vrdy  = Var rdy  ; ardy  = atm vrdy
+rdy' = "rdy'" ; vrdy' = Var rdy' ; ardy' = atm vrdy'
 \end{code}
 
 \HDRc{The Alphabet Dictionary}\label{hc:Seq-PML-alfa-dict}
 
 \begin{code}
-wAlfDict = stdAlfDictGen [res,rpt]  -- script (dynamic)
-                         []         -- model (dynamic)
-                         []         -- parameters (static)
+wAlfDict = stdAlfDictGen [res]  -- script (dynamic)
+                         [rdy]  -- model (dynamic)
+                         []     -- parameters (static)
 \end{code}
 
 \newpage
@@ -227,10 +228,10 @@ dictWE = makeDict [dSet, dU, dI, dR, dM]
 
 \RLEQNS{
    A,B &\in& PML_{Seq} & \say{SeqPML programs}
-\\ &\defs& skip & \say{---Do nothing}
+\\ &\defs& \Skip & \say{---Do nothing (UTP Std)}
 \\ &|& N?rr!pr  & \say{---\texttt{action}}
 \\ &|& A^\omega & \say{---\texttt{iteration}}
-\\ &|& A \pseq B & \say{---\texttt{sequence}}
+\\ &|& A ; B & \say{---\texttt{sequence} (UTP Std)}
 \\ &|& A \pcond B & \say{---\texttt{select}}
 \\ &|& g \pgrd B & \say{---Guarded Actions}
 }
@@ -245,24 +246,6 @@ precCnd = precSpacer 3 + 5
 precGrd = precSpacer 8 + 5
 \end{code}
 
-
-\HDRc{Skip}\label{hc:Seq-PML-skip}
-\RLEQNS{
-   PML_{Seq} &=& \dots \mid skip  \mid \dots
-\\ skip &\defs& res' = res \land rpt' = rpt
-}
-\begin{code}
-pskip          =  comp nskp []      ; nskp = "skip"
-
-ppPSkip _ _ _ _ = ppa nskp
-
-defPSkip :: Rewrite s
-defPSkip _ _ = ( nskp, mkAnd [ equal vres' vres
-                             , equal vrpt' vrpt ])
-
-dPSkip = ( nskp
-         , PredEntry False ppPSkip defPSkip (pNoChg nskp))
-\end{code}
 
 \newpage
 \HDRc{Basic Actions}\label{hc:Seq-PML-action}
@@ -302,7 +285,7 @@ but a useful way -station,
 and where all the ``real action'' happens.
 \RLEQNS{
    PML_{Seq} &= & \dots \mid  g \pgrd B \mid \dots
-\\ g \pgrd B &\defs& rpt = \lnot g \land (B \cond g W)
+\\ g \pgrd B &\defs& rdy = \lnot g \land (B \cond g W)
    & W \say{to be defined.}
 }
 We will determine $W$ once we see the contexts in which it arises.
@@ -319,7 +302,7 @@ ppGrd d ms p [mpr1,mpr2]
 ppGrd d ms p mprs = pps styleRed $ ppa "invalid-&"
 
 --
-defGrd d [g,p] = ( "grd", mkAnd [ bEqv arpt (bNot g)
+defGrd d [g,p] = ( "grd", mkAnd [ bEqv ardy g
                                 , bCond pB ag pW ] )
 defGrd d mprs = ( "INVALID", Comp ngrd mprs )
 
@@ -334,7 +317,7 @@ dGrd = ( ngrd
 \HDRc{Omega Loops}\label{hc:Seq-PML-iterate}
 \RLEQNS{
    PML_{Seq} &=& \dots \mid A^\omega
-\\ A^\omega &\defs& rpt' * A
+\\ A^\omega &\defs& \lnot rdy' * A
 \\
 }
 \begin{code}
@@ -347,39 +330,12 @@ ppWhl d ms p [mpr1]
           , ppa "^w" ]
 ppWhl d ms p mprs = pps styleRed $ ppa "invalid-Omega"
 
-defOmega _ [p] = ( "omega", mkIter arpt' p )
+defOmega _ [p] = ( "omega", mkIter (bNot ardy') p )
 defOmega d mprs = ( "INVALID", Comp nw mprs )
 
 dOmega :: (Show s, Ord s) => (String,Entry s)
 dOmega = ( nw
          , PredEntry False ppWhl defOmega (pNoChg nw))
-\end{code}
-
-\HDRc{Sequencing}\label{hc:Seq-PML-sequence}
-\RLEQNS{
-   A,B &\in& PML_{Seq} & \say{SeqPML programs}
-\\ &|& p \pseq q & \say{---\texttt{sequence}}
-}
-\begin{code}
-pseq p q       =  comp nseq [p, q]  ; nseq = "pseq"
-
-ppSeqc :: (Show s, Ord s)
-       => Dict s -> MarkStyle -> Int -> [MPred s] -> PP
-ppSeqc d ms p [mpr1,mpr2]
- = paren p precSqc
-     $ ppopen " ;; " [ mshowp d ms precSqc mpr1
-                     , mshowp d ms precSqc mpr2 ]
-ppSeqc d ms p mprs = pps styleRed $ ppa "invalid-;;"
-
-simpSeqc _ [(_,Comp skp _),(_,b)]
- | skp == nskp  = ("seq-lunit", b)
-simpSeqc _ [(_,a),(_,Comp skp _)]
- | skp == nskp  = ("seq-runit", a)
-simpSeqc _ mprs = ( "", Comp nseq mprs )
-
-dSqc :: (Show s, Ord s) => (String,Entry s)
-dSqc = ( nseq
-        , PredEntry False ppSeqc (pNoChg nseq) simpSeqc)
 \end{code}
 
 \newpage
@@ -406,7 +362,7 @@ dCnd = ( ncnd
 
 \begin{code}
 dictWP :: (Ord s, Show s) => Dict s
-dictWP = makeDict [dPSkip, dAct, dGrd, dOmega, dSqc, dCnd]
+dictWP = makeDict [dAct, dGrd, dOmega, dCnd]
 \end{code}
 
 
@@ -452,12 +408,17 @@ wCRedEntry = entry laws $ LawEntry [] [wCReduce] []
 \newpage
 \HDRb{Loop Unrolling for Seq-PML}\label{hb:Seq-PML-unroll}
 
+Here we remove the requirement that the loop predicate
+be a condition.
+Iteration  satisfies the loop-unrolling law:
+\[
+  C * P  \quad=\quad (P ; C * P ) \cond C \Skip
+\]
 \begin{code}
-wUnroll ::DictRWFun s
-\end{code}
-
-Default case: no change.
-\begin{code}
+wUnroll :: Ord s => DictRWFun s
+wUnroll d mw@(_,Comp nm  [mc, mpr])
+ | nm == nIter = ( "Seq-PML unroll"
+                 , bCond (bSeq mpr mw) mc bSkip )
 wUnroll _ mpr = ( "", mpr )
 \end{code}
 
@@ -481,7 +442,7 @@ wDict
     `dictMrg` wCRedEntry
     `dictMrg` wLoopEntry
     `dictMrg` wAlfDict
-    `dictMrg` wAlfDict
+    `dictMrg` stdUTPDict
     `dictMrg` stdDict
 \end{code}
 
@@ -498,10 +459,7 @@ wput = putStrLn . wshow
 
 wcalc mpr = calcREPL wDict mpr
 wputcalc :: (Ord s, Show s) => MPred s -> IO ()
-wputcalc mpr
-  = do res <- wcalc mpr
-       putStrLn "\n\nTRANSCRIPT:"
-       putStrLn $ calcPrint res
+wputcalc mpr = printREPL wDict mpr
 
 wsimp :: (Show s, Ord s) => MPred s -> (String, MPred s)
 wsimp mpr

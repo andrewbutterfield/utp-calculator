@@ -319,3 +319,11 @@ outcome :: CalcLog s -> MPred s
 outcome ( mpr0, [],          _ )  =  mpr0
 outcome ( _,    ((_,mpr'):_), _)  =  mpr'
 \end{code}
+
+Calculation and prettiness all in one go:
+\begin{code}
+printREPL d mpr
+  = do res <- calcREPL d mpr
+       putStrLn "\n\nTRANSCRIPT:"
+       putStrLn $ calcPrint res
+\end{code}
