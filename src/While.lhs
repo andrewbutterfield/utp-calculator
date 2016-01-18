@@ -18,7 +18,7 @@ import CalcRun
 import StdPredicates
 -- import CalcZipper
 -- import CalcSteps
-import StdLaws
+import StdUTPLaws
 \end{code}
 
 \HDRb{Introduction to ``While''}\label{hb:While-intro}

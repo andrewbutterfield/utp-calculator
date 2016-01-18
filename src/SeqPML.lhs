@@ -16,9 +16,11 @@ import CalcSimplify
 import CalcRecogniser
 import CalcRun
 import StdPredicates
+import StdLaws
 -- import CalcZipper
 -- import CalcSteps
-import StdLaws
+import StdUTPPredicates
+import StdUTPLaws
 \end{code}
 
 %%
@@ -300,7 +302,7 @@ but a useful way -station,
 and where all the ``real action'' happens.
 \RLEQNS{
    PML_{Seq} &= & \dots \mid  g \pgrd B \mid \dots
-\\ g \pgrd B &\defs& rpt = \lnot g \land (B \cond g W) 
+\\ g \pgrd B &\defs& rpt = \lnot g \land (B \cond g W)
    & W \say{to be defined.}
 }
 We will determine $W$ once we see the contexts in which it arises.
@@ -332,7 +334,7 @@ dGrd = ( ngrd
 \HDRc{Omega Loops}\label{hc:Seq-PML-iterate}
 \RLEQNS{
    PML_{Seq} &=& \dots \mid A^\omega
-\\ A^\omega &\defs& rpt' * A 
+\\ A^\omega &\defs& rpt' * A
 \\
 }
 \begin{code}
@@ -374,7 +376,7 @@ simpSeqc _ [(_,Comp skp _),(_,b)]
 simpSeqc _ [(_,a),(_,Comp skp _)]
  | skp == nskp  = ("seq-runit", a)
 simpSeqc _ mprs = ( "", Comp nseq mprs )
- 
+
 dSqc :: (Show s, Ord s) => (String,Entry s)
 dSqc = ( nseq
         , PredEntry False ppSeqc (pNoChg nseq) simpSeqc)

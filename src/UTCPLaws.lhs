@@ -10,7 +10,7 @@ import CalcRecogniser
 import CalcSteps
 import StdPrecedences
 import StdPredicates
-import StdLaws
+import StdUTPLaws
 import UTCPSemantics
 import Debug.Trace
 

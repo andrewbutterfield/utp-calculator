@@ -17,7 +17,7 @@ import CalcRun
 import StdPredicates
 import CalcZipper
 import CalcSteps
-import StdLaws
+import StdUTPLaws
 import UTCPSemantics
 import UTCPLaws
 import UTCPCReduce
