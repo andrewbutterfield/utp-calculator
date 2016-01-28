@@ -1,6 +1,6 @@
-\HDRa{Sequential PML}\label{ha:Seq:PML}
+\HDRa{Wheels Within Wheels}\label{ha:WWW}
 \begin{code}
-module SeqPML where
+module WWW where
 -- import Utilities
 -- import qualified Data.Map as M
 import Data.List
@@ -23,20 +23,27 @@ import StdUTPPredicates
 import StdUTPLaws
 \end{code}
 
+
+\textbf{\emph{This is SeqPML, renamed WWW, provided the section/subsection
+structured, with most syntactical, alphabet a predicate material
+to be harvested in the first instance from the UTCP files}}
 %%
 %% local macros
 %%
-\def\pseq{\mathbin{;\!;}}
-\def\pcond{\mathbin{\vartriangleleft\vartriangleright}}
+\def\wseq{\mathbin{;\!;}}
+\def\wcond{\mathbin{\vartriangleleft\vartriangleright}}
 \def\pgrd{\mathrel{\&}}
 
-\HDRb{Introduction to Seq-PML}\label{hb:Seq-PML-intro}
+\HDRb{Introduction to WWW}\label{hb:WWW-intro}
 
-This is a sequential version of PML (no \texttt{branch}es),
-to explore ``whatever comes after'' context sensitivity
+This is UTCP where we explore the ``WWW'' variant
+based on the healthiness condition:
+\RLEQNS{
+\mathbf{W}(P) &\defs& \lnot ls(out) * P
+}
 
 \newpage
-\HDRb{Variables of Seq-PML}\label{hb:Seq-PML-vars}
+\HDRb{Variables of WWW}\label{hb:WWW-vars}
 
 \RLEQNS{
    p,q,r &\in& R & \say{Resource-Ids}
@@ -47,7 +54,7 @@ q = "q" ; vq = Var q
 r = "r" ; vr = Var r
 \end{code}
 
-\HDRc{Alphabet of Seq-PML}\label{hb:Seq-PML-alpha}
+\HDRc{Alphabet of WWW}\label{hb:WWW-alpha}
 
 We have a (non-script) dynamic state ($res$) which records the current resource set
 and another non-script dynamic ($rdy$) which propagates a willingnes to run
@@ -60,7 +67,7 @@ rdy  = "rdy"  ; vrdy  = Var rdy  ; ardy  = atm vrdy
 rdy' = "rdy'" ; vrdy' = Var rdy' ; ardy' = atm vrdy'
 \end{code}
 
-\HDRc{The Alphabet Dictionary}\label{hc:Seq-PML-alfa-dict}
+\HDRc{The Alphabet Dictionary}\label{hc:WWW-alfa-dict}
 
 \begin{code}
 wAlfDict = stdAlfDictGen [res]  -- script (dynamic)
@@ -69,7 +76,7 @@ wAlfDict = stdAlfDictGen [res]  -- script (dynamic)
 \end{code}
 
 \newpage
-\HDRb{Expressions of Seq-PML}\label{hb:Seq-PML-expr}
+\HDRb{Expressions of WWW}\label{hb:WWW-expr}
 
 We just have sets of resources,
 and membership queries on same
@@ -89,7 +96,7 @@ g = "g" ; vg = Var "g" ; ag = atm vg
 \end{code}
 
 
-\HDRc{Set Enumerations}\label{hc:Seq-PML-set-enum}
+\HDRc{Set Enumerations}\label{hc:WWW-set-enum}
 \RLEQNS{
    rs,rr,pr &\in& RS & \say{Resource Sets}
 \\ &\defs& r^* & \say{---Enumeration}
@@ -105,7 +112,7 @@ dSet = ( nset, ExprEntry True showSet $ justMakes set )
 \end{code}
 
 
-\HDRc{Set Union}\label{hc:Seq-PML-set-union}
+\HDRc{Set Union}\label{hc:WWW-set-union}
 \RLEQNS{
    rs,rr,pr &\in& RS & \say{Resource Sets}
 \\ &  |  & rs \cup rs & \say{---Union}
@@ -127,7 +134,7 @@ dU = ( nu, ExprEntry True showU evalU )
 \end{code}
 
 
-\HDRc{Set Intersection}\label{hc:Seq-PML-set-int}
+\HDRc{Set Intersection}\label{hc:WWW-set-int}
 \RLEQNS{
    rs,rr,pr &\in& RS & \say{Resource Sets}
 \\ &  |  & rs \cap rs & \say{---Intersection}
@@ -150,7 +157,7 @@ dI = ( nint, ExprEntry True showI evalI )
 \end{code}
 
 
-\HDRc{Set Removal}\label{hc:Seq-PML-set-rem}
+\HDRc{Set Removal}\label{hc:WWW-set-rem}
 \RLEQNS{
    rs,rr,pr &\in& RS & \say{Resource Sets}
 \\ &  |  & rs \setminus rs & \say{---Removal}
@@ -172,7 +179,7 @@ dR = ( nrem, ExprEntry True showR evalR )
 \end{code}
 
 \newpage
-\HDRc{Set Membership}\label{hc:Seq-PML-member}
+\HDRc{Set Membership}\label{hc:WWW-member}
 \RLEQNS{
    rs,rr,pr &\in& RS & \say{Resource Sets}
 \\ &  |  & r \in rs & \say{---Membership}
@@ -194,7 +201,7 @@ dM = ( nmem, ExprEntry True showM evalM )
 \end{code}
 
 
-\HDRc{Subsets}\label{hc:Seq-PML-subset}
+\HDRc{Subsets}\label{hc:WWW-subset}
 \RLEQNS{
    rs,rr,pr &\in& RS & \say{Resource Sets}
 \\ &  |  & rs \subseteq rs & \say{---Subset}
@@ -216,7 +223,7 @@ dS = ( nsubset, ExprEntry True showS evalS )
 \end{code}
 
 
-\HDRc{The Expression Dictionary}\label{hc:Seq-PML-expr-dict}
+\HDRc{The Expression Dictionary}\label{hc:WWW-expr-dict}
 
 \begin{code}
 dictWE :: (Ord s, Show s) => Dict s
@@ -224,7 +231,7 @@ dictWE = makeDict [dSet, dU, dI, dR, dM]
 \end{code}
 
 \newpage
-\HDRb{Predicates for Seq-PML}\label{hb:Seq-PML-stmt}
+\HDRb{Predicates for WWW}\label{hb:WWW-stmt}
 
 \RLEQNS{
    A,B &\in& PML_{Seq} & \say{SeqPML programs}
@@ -232,7 +239,7 @@ dictWE = makeDict [dSet, dU, dI, dR, dM]
 \\ &|& N?rr!pr  & \say{---\texttt{action}}
 \\ &|& A^\omega & \say{---\texttt{iteration}}
 \\ &|& A ; B & \say{---\texttt{sequence} (UTP Std)}
-\\ &|& A \pcond B & \say{---\texttt{select}}
+\\ &|& A \wcond B & \say{---\texttt{select}}
 \\ &|& g \pgrd B & \say{---Guarded Actions}
 }
 \begin{code}
@@ -248,7 +255,7 @@ precGrd = precSpacer 8 + 5
 
 
 \newpage
-\HDRc{Basic Actions}\label{hc:Seq-PML-action}
+\HDRc{Basic Actions}\label{hc:WWW-action}
 \RLEQNS{
    PML_{Seq} &= & \dots \mid  N?rr!pr \mid \dots
 \\ N?rr!pr &\defs& rr \subseteq res
@@ -278,7 +285,7 @@ dAct = ( nact
 \end{code}
 
 \newpage
-\HDRc{Guarded Actions}\label{hc:Seq-PML-guards}
+\HDRc{Guarded Actions}\label{hc:WWW-guards}
 
 Not part of the language per-se,
 but a useful way -station,
@@ -314,7 +321,7 @@ dGrd = ( ngrd
 \end{code}
 
 \newpage
-\HDRc{Omega Loops}\label{hc:Seq-PML-iterate}
+\HDRc{Omega Loops}\label{hc:WWW-iterate}
 \RLEQNS{
    PML_{Seq} &=& \dots \mid A^\omega
 \\ A^\omega &\defs& \lnot rdy' * A
@@ -345,9 +352,9 @@ dOmega = ( nw
 \end{code}
 
 \newpage
-\HDRc{Selection}\label{hc:Seq-PML-selection}
+\HDRc{Selection}\label{hc:WWW-selection}
 \RLEQNS{
-   PML_{Seq} &=& \dots \mid A \pcond B
+   PML_{Seq} &=& \dots \mid A \wcond B
 }
 \begin{code}
 pcond p q      =  comp ncnd [p, q]  ; ncnd = "pcond"
@@ -364,7 +371,7 @@ dCnd = ( ncnd
         , PredEntry False ppCnd (pNoChg ncnd) (pNoChg ncnd))
 \end{code}
 
-\HDRc{The Predicate Dictionary}\label{hc:Seq-PML-pred-dict}
+\HDRc{The Predicate Dictionary}\label{hc:WWW-pred-dict}
 
 \begin{code}
 dictWP :: (Ord s, Show s) => Dict s
@@ -373,7 +380,7 @@ dictWP = makeDict [dAct, dGrd, dOmega, dCnd]
 
 
 \newpage
-\HDRb{Reductions for Seq-PML}\label{hb:Seq-PML-reduce}
+\HDRb{Reductions for WWW}\label{hb:WWW-reduce}
 
 \begin{code}
 wReduce ::DictRWFun s
@@ -384,7 +391,7 @@ Default case: no change.
 wReduce _ mpr = ( "", mpr )
 \end{code}
 
-\HDRc{The Reduction Entry}\label{hc:Seq-PML-reduce-ent}
+\HDRc{The Reduction Entry}\label{hc:WWW-reduce-ent}
 
 \begin{code}
 wRedEntry :: (Ord s, Show s) => Dict s
@@ -392,7 +399,7 @@ wRedEntry = entry laws $ LawEntry [wReduce] [] []
 \end{code}
 
 \newpage
-\HDRb{Conditional Reductions for Seq-PML}\label{hb:Seq-PML-creduce}
+\HDRb{Conditional Reductions for WWW}\label{hb:WWW-creduce}
 
 \begin{code}
 wCReduce :: CDictRWFun s
@@ -403,7 +410,7 @@ Default case: no change.
 wCReduce _ mpr = ( "", [(T,mpr)] )
 \end{code}
 
-\HDRc{The Conditional Reduction Entry}\label{hc:Seq-PML-reduce-ent}
+\HDRc{The Conditional Reduction Entry}\label{hc:WWW-reduce-ent}
 
 \begin{code}
 wCRedEntry :: (Ord s, Show s) => Dict s
@@ -412,7 +419,7 @@ wCRedEntry = entry laws $ LawEntry [] [wCReduce] []
 
 
 \newpage
-\HDRb{Loop Unrolling for Seq-PML}\label{hb:Seq-PML-unroll}
+\HDRb{Loop Unrolling for WWW}\label{hb:WWW-unroll}
 
 Here we remove the requirement that the loop predicate
 be a condition.
@@ -423,12 +430,12 @@ Iteration  satisfies the loop-unrolling law:
 \begin{code}
 wUnroll :: Ord s => DictRWFun s
 wUnroll d mw@(_,Comp nm  [mc, mpr])
- | nm == nIter = ( "Seq-PML unroll"
+ | nm == nIter = ( "WWW unroll"
                  , bCond (bSeq mpr mw) mc bSkip )
 wUnroll _ mpr = ( "", mpr )
 \end{code}
 
-\HDRc{The Unroll Entry}\label{hc:Seq-PML-reduce-ent}
+\HDRc{The Unroll Entry}\label{hc:WWW-reduce-ent}
 
 \begin{code}
 wLoopEntry :: (Ord s, Show s) => Dict s
@@ -436,12 +443,12 @@ wLoopEntry = entry laws $ LawEntry [] [] [wUnroll]
 \end{code}
 
 \newpage
-\HDRb{Dictionary for Seq-PML}\label{hb:Seq-PML-laws}
+\HDRb{Dictionary for WWW}\label{hb:WWW-laws}
 
 \begin{code}
 wDict :: (Ord s, Show s) => Dict s
 wDict
- =  dictVersion "Seq-PML 0.1"
+ =  dictVersion "WWW 0.1"
     `dictMrg` dictWE
     `dictMrg` dictWP
     `dictMrg` wRedEntry
@@ -453,7 +460,7 @@ wDict
 \end{code}
 
 \newpage
-\HDRb{Seq-PML Calculator}\label{hb:Seq-PML-CALC}
+\HDRb{WWW Calculator}\label{hb:WWW-CALC}
 
 \begin{code}
 wshow :: (Show s, Ord s) => MPred s -> String

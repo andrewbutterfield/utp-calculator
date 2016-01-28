@@ -16,6 +16,7 @@ import CalcSimplify
 -- import CalcRecogniser
 import CalcRun
 import StdPredicates
+import StdLaws
 -- import CalcZipper
 -- import CalcSteps
 import StdUTPLaws
@@ -153,7 +154,7 @@ wAlfDict = stdAlfDictGen [u,v,w]  -- script (dynamic)
 
 \HDRc{Expression Semantics}
 
-\HDRd{Addition}
+\HDRd{Addition}~
 \begin{code}
 showAdd :: Show s => Dict s -> [Expr s] -> String
 showAdd d [e,f] = "("++edshow d e++" + "++edshow d f++")"
@@ -169,7 +170,7 @@ dAdd :: Show s => (String, Entry s)
 dAdd = ( nadd, ExprEntry True showAdd evalAdd )
 \end{code}
 
-\HDRd{Negation}
+\HDRd{Negation}~
 \begin{code}
 showMinus :: Show s => Dict s -> [Expr s] -> String
 showMinus d [e] = "-("++edshow d e++")"
@@ -183,7 +184,7 @@ dMinus :: Show s => (String, Entry s)
 dMinus = ( nmns, ExprEntry True showMinus evalMinus )
 \end{code}
 
-\HDRd{Less-Than}
+\HDRd{Less-Than}~
 \begin{code}
 showLT :: Show s => Dict s -> [Expr s] -> String
 showLT d [e,f] = "("++edshow d e++" < "++edshow d f++")"
@@ -223,11 +224,11 @@ defnDsgn d [mpr1,mpr2]
 
 \HDRc{Definitions for ``While''}\label{hb:While-alpha}
 
-\RLEQNS{
-}
-\begin{code}
+We do not provide any explicit definitions here at present,
+preferring to rely on pre-canned ``reductions''
+and laws to facilitate calculation.
 
-\end{code}
+
 \HDRb{Reductions for ``While''}\label{hb:While-reduce}
 
 \HDRb{Laws of ``While''}\label{hb:While-laws}
