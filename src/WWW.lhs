@@ -1,7 +1,7 @@
 \HDRa{Wheels Within Wheels}\label{ha:WWW}
 \begin{code}
 module WWW where
--- import Utilities
+import Utilities
 -- import qualified Data.Map as M
 import Data.List
 -- import Data.Char
@@ -24,401 +24,369 @@ import StdUTPLaws
 \end{code}
 
 
-\textbf{\emph{This is SeqPML, renamed WWW, provided the section/subsection
+\textbf{\emph{This is SeqPML, renamed WWW, providing the section/subsection
 structured, with most syntactical, alphabet a predicate material
 to be harvested in the first instance from the UTCP files}}
 %%
 %% local macros
 %%
-\def\wseq{\mathbin{;\!;}}
-\def\wcond{\mathbin{\vartriangleleft\vartriangleright}}
-\def\pgrd{\mathrel{\&}}
-
+\def\W{\mathbf{W}}
 \HDRb{Introduction to WWW}\label{hb:WWW-intro}
 
 This is UTCP where we explore the ``WWW'' variant
 based on the healthiness condition:
 \RLEQNS{
-\mathbf{W}(P) &\defs& \lnot ls(out) * P
+\W(P) &\defs& \lnot ls(out) * P
 }
 
-\newpage
 \HDRb{Variables of WWW}\label{hb:WWW-vars}
 
-\RLEQNS{
-   p,q,r &\in& R & \say{Resource-Ids}
-}
+We shall define some generic \texttt{PVar}s:
 \begin{code}
-p = "p" ; vp = Var p
-q = "q" ; vq = Var q
-r = "r" ; vr = Var r
+pA = pvar "A" ; pB = pvar "B"  -- atomic actions
+pP = pvar "P" ; pQ = pvar "Q"  -- general programs
 \end{code}
+
 
 \HDRc{Alphabet of WWW}\label{hb:WWW-alpha}
 
-We have a (non-script) dynamic state ($res$) which records the current resource set
-and another non-script dynamic ($rdy$) which propagates a willingnes to run
-(because now satisfied) from later
-processes back to those composed in front.
+\HDRd{Dynamic Observables}
+
+Program (variable) state 
+($s,s' : State = Var \pfun Val$),
+and the set of active labels
+($ls,ls': \Set Label$).
 \begin{code}
-res  = "res"  ; vres  = Var res
-res' = "res'" ; vres' = Var res'
-rdy  = "rdy"  ; vrdy  = Var rdy  ; ardy  = atm vrdy
-rdy' = "rdy'" ; vrdy' = Var rdy' ; ardy' = atm vrdy'
+s  = Var "s"  ; s'  = Var "s'"
+ls = Var "ls" ; ls' = Var "ls'"
+\end{code}
+
+\HDRd{Static Parameters}
+
+Label Generator 
+($g : Gen$),
+and the variables that record the start label
+($in:Label$)
+and the finish label 
+($out:Label$).
+\begin{code}
+g   = Var "g"
+inp = Var "in" -- "in" is a Haskell keyword
+out = Var "out"
 \end{code}
 
 \HDRc{The Alphabet Dictionary}\label{hc:WWW-alfa-dict}
 
+We define our dictionary alphabet entries,
+and also declare that the predicate variables $A$, $B$ and $C$
+will refer to atomic state-changes, and so only have alphabet $\setof{s,s'}$.
 \begin{code}
-wAlfDict = stdAlfDictGen [res]  -- script (dynamic)
-                         [rdy]  -- model (dynamic)
-                         []     -- parameters (static)
+w3AlfDict
+ = dictMrg dictAlpha dictAtomic
+ where
+   dictAlpha = stdAlfDictGen ["s"] ["ls"] ["g","in","out"]
+   dictAtomic = makeDict $ mapsnd PVarEntry
+                        [("A", ss'),("B", ss'),("C", ss')]
+   ss' = ["s", "s'"]
 \end{code}
 
-\newpage
+
 \HDRb{Expressions of WWW}\label{hb:WWW-expr}
 
-We just have sets of resources,
-and membership queries on same
-\RLEQNS{
-   rs,rr,pr &\in& RS & \say{Resource Sets}
-\\ &\defs& r^* & \say{---Enumeration}
-\\ &  |  & rs \cup rs & \say{---Union}
-\\ &  |  & rs \cap rs & \say{---Intersection}
-\\ &  |  & rs \setminus rs & \say{---Removal}
-\\ &  |  & r \in rs & \say{---Membership}
-\\ &  |  & rs \subseteq rs & \say{---Subset}
-\\ g &\in& Grd & \say{Boolean Guards}
-}
+
+\HDRc{Set Expressions}
+
+We use sets in two key ways:
+checking for membership/subset inclusion;
+and updating by removing elements.
 \begin{code}
-rs = Var "rs"; rr = Var "rr" ; pr = Var "pr";
-g = "g" ; vg = Var "g" ; ag = atm vg
+setn = "set"
+set = App setn
+
+mkSet :: Ord s => [Expr s] -> Expr s
+mkSet = set . sort . nub
+
+showSet d elms = "{" ++ dlshow d "," elms ++ "}"
+
+evalSet _ _ = none
 \end{code}
 
 
-\HDRc{Set Enumerations}\label{hc:WWW-set-enum}
+\HDRd{Set Membership}\label{hd:membership}~
+
+This is complicated by the fact we interpret
+non-set expressions as singleton sets,
+so $x \subseteq y$ when both are not sets
+is considered to be $\setof x \subseteq \setof  y$
+(which of course is really $x=y$).
+\begin{code}
+subsetn = "subset"
+subset e set = App subsetn [e,set]
+evalSubset d [App "set" es1,App "set" es2] = dosubset d es1 es2
+evalSubset d [es1,App "set" es2] = dosubset d [es1] es2
+evalSubset d [App "set" es1,es2] = dosubset d es1 [es2]
+evalSubset d [es1,es2] = dosubset d [es1] [es2]
+evalSubset _ _ = none
+dosubset d es1 es2 -- is es1 a subset of es2 ?
+  | null es1lesses2  =  ( "subset", B True )
+  | all (isGround d) (es1lesses2 ++ es2)
+                     =  ( "subset", B False )
+  | otherwise        =  none
+  where
+    es1lesses2 = es1 \\ es2
+\end{code}
+
+We support a shorthand (that views a set as its own collection
+of corresponding $n$-ary characteristic functions)
+that denotes $x \in S$ by $S(x)$ and $ X \subseteq S$ by $S(X)$,
+and omits $\{$ and $\}$ from around enumerations when context makes
+it clear a set is expected
+
+\begin{code}
+showSubSet d [App "set" elms,App "set" [set]]
+ = edshow d set ++ "(" ++ dlshow d "," elms ++ ")"
+showSubSet d [App "set" elms,set]
+ = edshow d set ++ "(" ++ dlshow d "," elms ++ ")"
+showSubSet d [e,set]
+ = edshow d set ++ "(" ++ edshow d e ++ ")"
+\end{code}
+
+\HDRd{Set Swapping}
+
+We update a set by removing some elements
+and replacing them with new ones:
 \RLEQNS{
-   rs,rr,pr &\in& RS & \say{Resource Sets}
-\\ &\defs& r^* & \say{---Enumeration}
+   A \ominus (B,C) &\defs& (A \setminus B) \cup C
 }
 \begin{code}
-set es = App nset es ; nset = "set"
+sswapn = "sswap"
+sswap start old new = App sswapn [start,old,new]
+showSSwap d [start,old,new]
+ = edshow d start
+   ++ " (-/+) ("
+   ++ edshow d old
+   ++ ","
+   ++ edshow d new
+   ++ ")"
 
-showSet :: Show s => Dict s -> [Expr s] -> String
-showSet d es = "{"++dlshow d "," es++"}"
+evalSSwap d args@[starts,olds,news]
+ | all (isGround d) args
+ = setswap (setify starts) (setify olds) (setify news)
+evalSSwap _ _ = none
+setify (App "set" es) = es
+setify e        = [e]
+setswap starts olds news
+                   = ("sswap", mkSet ((starts\\olds)++news))
+\end{code}
 
-dSet :: Show s => (String, Entry s)
-dSet = ( nset, ExprEntry True showSet $ justMakes set )
+The Set Dictionary:
+\begin{code}
+w3SetDict :: (Eq s, Ord s, Show s) => Dict s
+w3SetDict
+ = makeDict
+    [ (setn,(ExprEntry True showSet evalSet))
+    , (subsetn,(ExprEntry True showSubSet evalSubset))
+    , (sswapn, (ExprEntry True showSSwap evalSSwap))
+    ]
 \end{code}
 
 
-\HDRc{Set Union}\label{hc:WWW-set-union}
+\HDRc{Label Generation}
+
+Imagine that we have a mechanism for generating labels as follows:
 \RLEQNS{
-   rs,rr,pr &\in& RS & \say{Resource Sets}
-\\ &  |  & rs \cup rs & \say{---Union}
+  g &\in& G & \text{a label generator}
+\\ \ell &\in& L & \text{labels}
+\\ new &:& G \fun L \times G & \text{generating a new label}
+\\ split &:& G \fun G \times G & \text{split one generator into two}
 }
+
+Coding the function projections 
+$new_i = \pi_i \circ new$ 
+and $split_i = \pi_i \circ split$.
 \begin{code}
-u rs1 rs2 = App nu [rs1, rs2] ; nu = "U"
+new1n = "new1"
+new1 g = App new1n [g]
+gNew1 [g] = new1 g
 
-showU :: Show s => Dict s -> [Expr s] -> String
-showU d [e,f] = "("++edshow d e++" U "++edshow d f++")"
-showU d es = "<<BAD-U>>"
+new2n = "new2"
+new2 g = App new2n [g]
+gNew2 [g] = new2 g
 
-evalU d [App nm1 es1,App nm2 es2]
- | nm1==nset && nm2==nset  =  ("union",set (es1++es2))
-evalU d [e,f] = ("", u e f)
-evalU d es = ("bad-U",App "?U" es)
+split1n = "split1"
+split1 g = App split1n [g]
+gSplit1 [g] = split1 g
 
-dU :: Show s => (String, Entry s)
-dU = ( nu, ExprEntry True showU evalU )
+split2n = "split2"
+split2 g = App split2n [g]
+gSplit2 [g] = split2 g
 \end{code}
 
+\HDRd{Generator Shorthand}
 
-\HDRc{Set Intersection}\label{hc:WWW-set-int}
+To make calculation easier, we shall introduce the following shorthands:
 \RLEQNS{
-   rs,rr,pr &\in& RS & \say{Resource Sets}
-\\ &  |  & rs \cap rs & \say{---Intersection}
+\\ \ell_g &\defs& new_1(g)
+\\ \g:    &\defs& new_2(g)
+\\ \g1    &\defs& split_1(g)
+\\ \g2    &\defs& split_2(g)
 }
 \begin{code}
-intsct rs1 rs2 = App nint [rs1, rs2] ; nint = "int"
-
-showI :: Show s => Dict s -> [Expr s] -> String
-showI d [e,f] = "("++edshow d e++" I "++edshow d f++")"
-showI d es = "<<BAD-I>>"
-
-evalI d [App nm1 es1,App nm2 es2]
- | nm1==nset && nm2==nset
-                       = ("intersect",set (es1 `intersect` es2))
-evalI d [e,f] = ("", intsct e f)
-evalI d es = ("bad-I",App "?I" es)
-
-dI :: (Eq s, Show s) => (String, Entry s)
-dI = ( nint, ExprEntry True showI evalI )
+showGNew1   d [g] = 'l':edshow d g
+showGNew2   d [g] = edshow d g ++ ":"
+showGSplit1 d [g] = edshow d g ++ "1"
+showGSplit2 d [g] = edshow d g ++ "2"
 \end{code}
 
-
-\HDRc{Set Removal}\label{hc:WWW-set-rem}
-\RLEQNS{
-   rs,rr,pr &\in& RS & \say{Resource Sets}
-\\ &  |  & rs \setminus rs & \say{---Removal}
-}
+We can now define a generator dictionary:
 \begin{code}
-rmv rs1 rs2 = App nrem [rs1, rs2] ; nrem = "rem"
-
-showR :: Show s => Dict s -> [Expr s] -> String
-showR d [e,f] = "("++edshow d e++" \\ "++edshow d f++")"
-showR d es = "<<BAD-\\>>"
-
-evalR d [App nm1 es1,App nm2 es2]
- | nm1==nset && nm2==nset  =  ("remove",set (es1 \\ es2))
-evalR d [e,f] = ("", rmv e f)
-evalR d es = ("bad-R",App "?\\" es)
-
-dR :: (Eq s, Show s) => (String, Entry s)
-dR = ( nrem, ExprEntry True showR evalR )
+w3GenDict :: (Eq s, Ord s, Show s) => Dict s
+w3GenDict
+ = makeDict
+    [ (new1n,(ExprEntry True showGNew1 $ justMakes gNew1))
+    , (new2n,(ExprEntry True showGNew2 $ justMakes gNew2))
+    , (split1n,(ExprEntry True showGSplit1 $ justMakes gSplit1))
+    , (split2n,(ExprEntry True showGSplit2 $ justMakes gSplit2))
+    ]
 \end{code}
-
-\newpage
-\HDRc{Set Membership}\label{hc:WWW-member}
-\RLEQNS{
-   rs,rr,pr &\in& RS & \say{Resource Sets}
-\\ &  |  & r \in rs & \say{---Membership}
-}
-\begin{code}
-mem r rs = App nmem [r, rs] ; nmem = "in"
-
-showM :: Show s => Dict s -> [Expr s] -> String
-showM d [e,f] = "("++edshow d e++" in "++edshow d f++")"
-showM d es = "<<BAD-in>>"
-
-evalM d [e,App nm es]
- | nm==nset   =  ("membership", B (e `elem` es))
-evalM d [e,f] =  ("", mem e f)
-evalM d es    =  ("bad-in", App "?in" es)
-
-dM :: (Show s, Eq s) => (String, Entry s)
-dM = ( nmem, ExprEntry True showM evalM )
-\end{code}
-
-
-\HDRc{Subsets}\label{hc:WWW-subset}
-\RLEQNS{
-   rs,rr,pr &\in& RS & \say{Resource Sets}
-\\ &  |  & rs \subseteq rs & \say{---Subset}
-}
-\begin{code}
-subset rs1 rs2 = App nsubset [rs1, rs2] ; nsubset = "subset"
-
-showS :: Show s => Dict s -> [Expr s] -> String
-showS d [e,f] = "("++edshow d e++" |= "++edshow d f++")"
-showS d es = "<<BAD-S>>"
-
-evalS d [App nm1 es1,App nm2 es2]
- | nm1==nset && nm2==nset  =  ("subset",B $ null (es1\\es2))
-evalS d [e,f] = ("", subset e f)
-evalS d es = ("bad-S",App "?S" es)
-
-dS :: (Eq s, Show s) => (String, Entry s)
-dS = ( nsubset, ExprEntry True showS evalS )
-\end{code}
-
 
 \HDRc{The Expression Dictionary}\label{hc:WWW-expr-dict}
 
 \begin{code}
-dictWE :: (Ord s, Show s) => Dict s
-dictWE = makeDict [dSet, dU, dI, dR, dM]
+dictW3E :: (Ord s, Show s) => Dict s
+dictW3E = w3SetDict `dictMrg` w3GenDict
 \end{code}
 
-\newpage
 \HDRb{Predicates for WWW}\label{hb:WWW-stmt}
 
 \RLEQNS{
-   A,B &\in& PML_{Seq} & \say{SeqPML programs}
-\\ &\defs& \Skip & \say{---Do nothing (UTP Std)}
-\\ &|& N?rr!pr  & \say{---\texttt{action}}
-\\ &|& A^\omega & \say{---\texttt{iteration}}
-\\ &|& A ; B & \say{---\texttt{sequence} (UTP Std)}
-\\ &|& A \wcond B & \say{---\texttt{select}}
-\\ &|& g \pgrd B & \say{---Guarded Actions}
+   A,B \in Action &:& State \rel State & \say{Atomic state transformer}
+\\ p,q \in W3
+   &::=& Idle & \say{Do nothing}
+\\ &|& \A(A) & \say{Atomic process}
+\\ &|& p \lseq q & \say{Sequential composition}
+\\ &|& p \lcond c q & \say{Conditional}
+\\ &|& p \parallel q & \say{Parallel composition}
+\\ &|& c \wdo p & \say{Iteration}
 }
+We assign the following precedences to W3 syntactical constructs,
+interleaving them among the standard predicates.
 \begin{code}
-pA             =  pvar nA           ; nA   = "A"
-pB             =  pvar nB           ; nB   = "B"
-
-precAct = precSpacer 9 + 5
-precWhl = precSpacer 7 + 5
-precSqc = precSpacer 4 + 5
-precCnd = precSpacer 3 + 5
-precGrd = precSpacer 8 + 5
+precPCond = 5 + precSpacer  1
+precPPar  = 5 + precSpacer  2
+precPSeq  = 5 + precSpacer  3
+precPIter = 5 + precSpacer  6
 \end{code}
 
+\HDRc{Healthiness Predicates}
 
-\newpage
-\HDRc{Basic Actions}\label{hc:WWW-action}
+We define our healthiness condition:
 \RLEQNS{
-   PML_{Seq} &= & \dots \mid  N?rr!pr \mid \dots
-\\ N?rr!pr &\defs& rr \subseteq res
-\\ && \pgrd
-             res' = res \cup pr
+\W(P) &\defs& \lnot ls(out) * P
 }
 \begin{code}
-action n rr pr =  comp nact [atm $ Var n, atm rr, atm pr]
-nact = "act"
+nW = "W" -- internal abstract name
+isW (_,Comp n [_]) | n==nW = True; isW _ = False
 
-ppAct :: (Show s, Ord s)
-       => Dict s -> MarkStyle -> Int -> [MPred s] -> PP
-ppAct d ms p [nm,rr,pr]
- = pplist [ mshowp d ms 0 nm
-          , ppa "?"
-          , mshowp d ms 0 rr
-          , ppa "!"
-          , mshowp d ms 0 pr ]
-ppAct d ms p mprs = pps styleRed $ ppa "invalid-Act"
+w atom = comp nW [atom]
 
-defAct d [_,rr,pr] = ( "INVALID", comp nact [] )
-defAct d mprs = ( "INVALID", comp nact mprs )
+shW = "W" -- show name
+ppW d ms p [mpr]
+ = pplist [ ppa shW
+          , ppbracket "(" (mshowp d ms 0 mpr) ")"]
+ppW d ms p mprs = pps styleRed $ ppa ("invalid-"++shW)
 
-dAct :: (Show s, Ord s) => (String,Entry s)
-dAct = ( nact
-        , PredEntry False ppAct (pNoChg nact) (pNoChg nact))
+defnW d [mpr] = ldefn shW $ mkIter (bNot lsout) mpr 
+
+lsout = atm $ App subsetn [out,ls]
+
+wEntry :: (Show s, Ord s) => (String, Entry s)
+wEntry
+ = ( nW
+   , PredEntry False ppW defnW (pNoChg nW) )
 \end{code}
 
-\newpage
-\HDRc{Guarded Actions}\label{hc:WWW-guards}
 
-Not part of the language per-se,
-but a useful way -station,
-and where all the ``real action'' happens.
+\HDRc{Coding Atomic Semantics}
+
+Formally, using our shorthand notations, we can define atomic behaviour as:
 \RLEQNS{
-   PML_{Seq} &= & \dots \mid  g \pgrd B \mid \dots
-\\ g \pgrd B &\defs& rdy = \lnot g \land (B \cond g W)
-   & W \say{to be defined.}
-}
-We will determine $W$ once we see the contexts in which it arises.
-\begin{code}
-pgrd g p =  comp ngrd [atm $ g, p]
-ngrd = "grd"
-
-ppGrd :: (Show s, Ord s)
-       => Dict s -> MarkStyle -> Int -> [MPred s] -> PP
-ppGrd d ms p [mpr1,mpr2]
- = paren p precSqc
-     $ ppopen " & " [ mshowp d ms precGrd mpr1
-                    , mshowp d ms precGrd mpr2 ]
-ppGrd d ms p mprs = pps styleRed $ ppa "invalid-&"
-
---
-defGrd d [g,p] = ( "grd", mkAnd [ bEqv ardy g
-                                , bCond pB ag pW ] )
-defGrd d mprs = ( "INVALID", Comp ngrd mprs )
-
-pW = pvar "W" -- the mysterious 'W' !
---
-dGrd :: (Show s, Ord s) => (String,Entry s)
-dGrd = ( ngrd
-        , PredEntry False ppGrd defGrd (pNoChg nact))
-\end{code}
-
-\newpage
-\HDRc{Omega Loops}\label{hc:WWW-iterate}
-\RLEQNS{
-   PML_{Seq} &=& \dots \mid A^\omega
-\\ A^\omega &\defs& \lnot rdy' * A
-\\
-}
-
-\textbf{Unfortunately this does not work: the fixed points for $c'*P$
-are strange, at best. We need to use unique generators here
-to construct indices that are themselves static parameters
-but which point into part of a dynamic structure,
-that allows a form of signalling between sub-components.}
-\begin{code}
-omega p        =  comp nw [p]       ; nw = "omega"
-
-ppWhl :: (Show s, Ord s)
-       => Dict s -> MarkStyle -> Int -> [MPred s] -> PP
-ppWhl d ms p [mpr1]
- = pplist [ mshowp d ms precWhl mpr1
-          , ppa "^w" ]
-ppWhl d ms p mprs = pps styleRed $ ppa "invalid-Omega"
-
-defOmega _ [p] = ( "omega", mkIter (bNot ardy') p )
-defOmega d mprs = ( "INVALID", Comp nw mprs )
-
-dOmega :: (Show s, Ord s) => (String,Entry s)
-dOmega = ( nw
-         , PredEntry False ppWhl defOmega (pNoChg nw))
-\end{code}
-
-\newpage
-\HDRc{Selection}\label{hc:WWW-selection}
-\RLEQNS{
-   PML_{Seq} &=& \dots \mid A \wcond B
+    \A(A) &\defs& ls(in) \land A \land ls'=ls\ominus(in,out)
 }
 \begin{code}
-pcond p q      =  comp ncnd [p, q]  ; ncnd = "pcond"
+nPAtm = "PAtm" -- internal abstract name
+isPAtm (_,Comp n [_]) | n==nPAtm = True; isPAtm _ = False
 
-ppCnd d ms p [mprt,mpre]
- = paren p precCnd
-      $ pplist [ mshowp d ms precCnd mprt
-               , ppa " <|> "
-               , mshowp d ms precCnd mpre ]
-ppCnd d ms p mprs = pps styleRed $ ppa "invalid-<|>"
+patm atom = comp nPAtm [atom]
 
-dCnd :: (Show s, Ord s) => (String,Entry s)
-dCnd = ( ncnd
-        , PredEntry False ppCnd (pNoChg ncnd) (pNoChg ncnd))
+shPAtm = "A" -- show name
+ppPAtm d ms p [mpr]
+ = pplist [ ppa shPAtm
+          , ppbracket "(" (mshowp d ms 0 mpr) ")"]
+ppPAtm d ms p mprs = pps styleRed $ ppa ("invalid-"++shPAtm)
+
+defnAtomic d [a] = ldefn shPAtm $ mkAnd [lsin,a,ls'eqlsinout]
+
+lsin = atm $ App subsetn [inp,ls]
+lsinout = App sswapn [ls,inp,out]
+ls'eqlsinout = equal ls' lsinout
+
+patmEntry :: (Show s, Ord s) => (String, Entry s)
+patmEntry
+ = ( nPAtm
+   , PredEntry False ppPAtm defnAtomic (pNoChg nPAtm) )
 \end{code}
+
+
 
 \HDRc{The Predicate Dictionary}\label{hc:WWW-pred-dict}
 
 \begin{code}
-dictWP :: (Ord s, Show s) => Dict s
-dictWP = makeDict [dAct, dGrd, dOmega, dCnd]
+dictW3P :: (Ord s, Show s) => Dict s
+dictW3P = makeDict [wEntry,patmEntry]
 \end{code}
 
 
-\newpage
+
 \HDRb{Reductions for WWW}\label{hb:WWW-reduce}
 
 \begin{code}
-wReduce ::DictRWFun s
+w3Reduce ::DictRWFun s
 \end{code}
 
 Default case: no change.
 \begin{code}
-wReduce _ mpr = ( "", mpr )
+w3Reduce _ mpr = ( "", mpr )
 \end{code}
 
 \HDRc{The Reduction Entry}\label{hc:WWW-reduce-ent}
 
 \begin{code}
-wRedEntry :: (Ord s, Show s) => Dict s
-wRedEntry = entry laws $ LawEntry [wReduce] [] []
+w3RedEntry :: (Ord s, Show s) => Dict s
+w3RedEntry = entry laws $ LawEntry [w3Reduce] [] []
 \end{code}
 
-\newpage
+
 \HDRb{Conditional Reductions for WWW}\label{hb:WWW-creduce}
 
 \begin{code}
-wCReduce :: CDictRWFun s
+w3CReduce :: CDictRWFun s
 \end{code}
 
 Default case: no change.
 \begin{code}
-wCReduce _ mpr = ( "", [(T,mpr)] )
+w3CReduce _ mpr = ( "", [(T,mpr)] )
 \end{code}
 
 \HDRc{The Conditional Reduction Entry}\label{hc:WWW-reduce-ent}
 
 \begin{code}
-wCRedEntry :: (Ord s, Show s) => Dict s
-wCRedEntry = entry laws $ LawEntry [] [wCReduce] []
+w3CRedEntry :: (Ord s, Show s) => Dict s
+w3CRedEntry = entry laws $ LawEntry [] [w3CReduce] []
 \end{code}
 
 
-\newpage
+
 \HDRb{Loop Unrolling for WWW}\label{hb:WWW-unroll}
 
 Here we remove the requirement that the loop predicate
@@ -428,56 +396,56 @@ Iteration  satisfies the loop-unrolling law:
   C * P  \quad=\quad (P ; C * P ) \cond C \Skip
 \]
 \begin{code}
-wUnroll :: Ord s => DictRWFun s
-wUnroll d mw@(_,Comp nm  [mc, mpr])
+w3Unroll :: Ord s => DictRWFun s
+w3Unroll d mw@(_,Comp nm  [mc, mpr])
  | nm == nIter = ( "WWW unroll"
                  , bCond (bSeq mpr mw) mc bSkip )
-wUnroll _ mpr = ( "", mpr )
+w3Unroll _ mpr = ( "", mpr )
 \end{code}
 
 \HDRc{The Unroll Entry}\label{hc:WWW-reduce-ent}
 
 \begin{code}
-wLoopEntry :: (Ord s, Show s) => Dict s
-wLoopEntry = entry laws $ LawEntry [] [] [wUnroll]
+w3LoopEntry :: (Ord s, Show s) => Dict s
+w3LoopEntry = entry laws $ LawEntry [] [] [w3Unroll]
 \end{code}
 
-\newpage
+
 \HDRb{Dictionary for WWW}\label{hb:WWW-laws}
 
 \begin{code}
-wDict :: (Ord s, Show s) => Dict s
-wDict
+w3Dict :: (Ord s, Show s) => Dict s
+w3Dict
  =  dictVersion "WWW 0.1"
-    `dictMrg` dictWE
-    `dictMrg` dictWP
-    `dictMrg` wRedEntry
-    `dictMrg` wCRedEntry
-    `dictMrg` wLoopEntry
-    `dictMrg` wAlfDict
+    `dictMrg` w3AlfDict
+    `dictMrg` dictW3E
+    `dictMrg` dictW3P
+    `dictMrg` w3RedEntry
+    `dictMrg` w3CRedEntry
+    `dictMrg` w3LoopEntry
     `dictMrg` stdUTPDict
     `dictMrg` stdDict
 \end{code}
 
-\newpage
+
 \HDRb{WWW Calculator}\label{hb:WWW-CALC}
 
 \begin{code}
-wshow :: (Show s, Ord s) => MPred s -> String
-wshow = pmdshow 80 wDict noStyles
+w3show :: (Show s, Ord s) => MPred s -> String
+w3show = pmdshow 80 w3Dict noStyles
 
-wput :: (Show s, Ord s) => MPred s -> IO ()
-wput = putStrLn . wshow
+w3put :: (Show s, Ord s) => MPred s -> IO ()
+w3put = putStrLn . w3show
 
 
-wcalc mpr = calcREPL wDict mpr
-wputcalc :: (Ord s, Show s) => MPred s -> IO ()
-wputcalc mpr = printREPL wDict mpr
+w3calc mpr = calcREPL w3Dict mpr
+w3putcalc :: (Ord s, Show s) => MPred s -> IO ()
+w3putcalc mpr = printREPL w3Dict mpr
 
-wsimp :: (Show s, Ord s) => MPred s -> (String, MPred s)
-wsimp mpr
+w3simp :: (Show s, Ord s) => MPred s -> (String, MPred s)
+w3simp mpr
   = (what,mpr')
-  where (_,what,mpr') = simplify wDict 42 mpr
-wsimp2 :: (Show s, Ord s) => (String, MPred s) -> (String, MPred s)
-wsimp2 = wsimp . snd
+  where (_,what,mpr') = simplify w3Dict 42 mpr
+w3simp2 :: (Show s, Ord s) => (String, MPred s) -> (String, MPred s)
+w3simp2 = w3simp . snd
 \end{code}
