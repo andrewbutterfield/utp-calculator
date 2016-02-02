@@ -84,10 +84,12 @@ isAfterEqToConst d = fst . mtchAfterEqToConst d
 
 $x = k$, where $x$ is an nominated observable, and $k$ is ground.
 \begin{code}
-namedObsEqToConst :: Ord s => String -> Dict s -> Recogniser s
-namedObsEqToConst v d (_,Equal (Var x) k)
+mtchNmdObsEqToConst :: Ord s => String -> Dict s -> Recogniser s
+mtchNmdObsEqToConst v d (_,Equal (Var x) k)
                               =  noBind (v == x && isGround d k)
-namedObsEqToConst _ _ _       =  noMatch
+mtchNmdObsEqToConst _ _ _       =  noMatch
+
+isNmdObsEqToConst d = fst . mtchNmdObsEqToConst d
 \end{code}
 
 With the above, it can be useful to turn such

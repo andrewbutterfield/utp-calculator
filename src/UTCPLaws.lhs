@@ -246,7 +246,7 @@ reduceUTCP d pr@(_,Comp "Seq" [ (_,Comp "And" pAs)
    ls' = "ls'"
 
    isSafeLSDash d theLS unwanted prs
-    = case matchRecog (namedObsEqToConst theLS d) prs of
+    = case matchRecog (mtchNmdObsEqToConst theLS d) prs of
        Nothing -> Nothing
        Just (pre,eq@(_,Equal _ k),post) ->
         if notGround d k
