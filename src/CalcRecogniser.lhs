@@ -32,6 +32,7 @@ to a single pattern that finds $p$ where it occurs in a list
  \qquad
  i \in 1\ldots n
 \]
+
 Function \texttt{matchRecog} takes a recogniser and a list of predicates,
 and if a predicate $A_i$ matching $p$ is found,
 then returns a triple as follows:
@@ -49,28 +50,34 @@ matchRecog recog mprs
  where
    mR erofeb [] = Nothing  -- "erofeb" = reverse "before"
    mR erofeb (mpr:mprs)
-    | recog mpr   =  Just (reverse erofeb, mpr, mprs)
-    | otherwise  =  mR (mpr:erofeb) mprs
+    | fst $ recog mpr   =  Just (reverse erofeb, mpr, mprs)
+    | otherwise         =  mR (mpr:erofeb) mprs
 \end{code}
+
 
 
 \HDRb{Common Recognisers}
 
 \HDRc{Dashed Atomic Predicate}
 \begin{code}
-isDashedObsExpr :: Ord s => Dict s -> Recogniser s
-isDashedObsExpr d (_,Atm e') = isDashed e' && notGround d e'
-isDashedObsExpr _ _          = False
+mtchDashedObsExpr :: Ord s => Dict s -> Recogniser s
+mtchDashedObsExpr d (_,Atm e')
+                        = noBind (isDashed e' && notGround d e')
+mtchDashedObsExpr _ _     = noMatch
+
+isDashedObsExpr d = fst . mtchDashedObsExpr d
 \end{code}
 
 \HDRc{After-Obs. equated to Ground Value}
 
 $x' = k$, where $x'$ is an after-observable, and $k$ is ground.
 \begin{code}
-isAfterEqToConst :: Ord s => Dict s -> Recogniser s
-isAfterEqToConst d (_,Equal (Var x') k)
-                                   = isDyn' d x' && isGround d k
-isAfterEqToConst _ _               = False
+mtchAfterEqToConst :: Ord s => Dict s -> Recogniser s
+mtchAfterEqToConst d (_,Equal (Var x') k)
+                          = noBind (isDyn' d x' && isGround d k)
+mtchAfterEqToConst _ _      = noMatch
+
+isAfterEqToConst d = fst . mtchAfterEqToConst d
 \end{code}
 
 \HDRc{Named Obs. equated to Ground Value}
@@ -78,8 +85,9 @@ isAfterEqToConst _ _               = False
 $x = k$, where $x$ is an nominated observable, and $k$ is ground.
 \begin{code}
 namedObsEqToConst :: Ord s => String -> Dict s -> Recogniser s
-namedObsEqToConst v d (_,Equal (Var x) k) =  v == x && isGround d k
-namedObsEqToConst _ _ _                   =  False
+namedObsEqToConst v d (_,Equal (Var x) k)
+                              =  noBind (v == x && isGround d k)
+namedObsEqToConst _ _ _       =  noMatch
 \end{code}
 
 With the above, it can be useful to turn such

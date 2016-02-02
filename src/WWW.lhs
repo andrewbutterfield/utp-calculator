@@ -21,10 +21,12 @@ import StdLaws
 -- import CalcSteps
 import StdUTPPredicates
 import StdUTPLaws
+import UTCPCReduce
 \end{code}
 
 
-\textbf{\emph{This is SeqPML, renamed WWW, providing the section/subsection
+\textbf{\emph{This is SeqPML, renamed WWW,
+providing the section/subsection
 structured, with most syntactical, alphabet a predicate material
 to be harvested in the first instance from the UTCP files}}
 %%
@@ -52,7 +54,7 @@ pP = pvar "P" ; pQ = pvar "Q"  -- general programs
 
 \HDRd{Dynamic Observables}
 
-Program (variable) state 
+Program (variable) state
 ($s,s' : State = Var \pfun Val$),
 and the set of active labels
 ($ls,ls': \Set Label$).
@@ -63,11 +65,11 @@ ls = Var "ls" ; ls' = Var "ls'"
 
 \HDRd{Static Parameters}
 
-Label Generator 
+Label Generator
 ($g : Gen$),
 and the variables that record the start label
 ($in:Label$)
-and the finish label 
+and the finish label
 ($out:Label$).
 \begin{code}
 g   = Var "g"
@@ -201,8 +203,8 @@ Imagine that we have a mechanism for generating labels as follows:
 \\ split &:& G \fun G \times G & \text{split one generator into two}
 }
 
-Coding the function projections 
-$new_i = \pi_i \circ new$ 
+Coding the function projections
+$new_i = \pi_i \circ new$
 and $split_i = \pi_i \circ split$.
 \begin{code}
 new1n = "new1"
@@ -296,7 +298,7 @@ ppW d ms p [mpr]
           , ppbracket "(" (mshowp d ms 0 mpr) ")"]
 ppW d ms p mprs = pps styleRed $ ppa ("invalid-"++shW)
 
-defnW d [mpr] = ldefn shW $ mkIter (bNot lsout) mpr 
+defnW d [mpr] = ldefn shW $ mkIter (bNot lsout) mpr
 
 lsout = atm $ App subsetn [out,ls]
 
@@ -351,7 +353,23 @@ dictW3P = makeDict [wEntry,patmEntry]
 \HDRb{Reductions for WWW}\label{hb:WWW-reduce}
 
 \begin{code}
-w3Reduce ::DictRWFun s
+w3Reduce :: DictRWFun s
+         -- Dict s -> MPred s -> (String, MPred s)
+\end{code}
+
+The first case we consider is the following law:
+\RLEQNS{
+   P \land ls'=ls\ominus(S_1,S_2) \seq Q
+   &=&
+   P \land ls'=ls\ominus(S_1,S_2)
+   \seq
+   ls(S_1) \land \lnot ls(S_2) \land Q
+\\ && \elabel{$(+-)$-$;$-prop.}
+}
+\begin{code}
+w3Reduce d mpr@(_,Comp nm1 [(_,Comp nm2 mprs1),mpr2])
+ | nm1 == nSeq && nm2 == nAnd && stuff = (rUC,last mprs1)
+ where stuff = True
 \end{code}
 
 Default case: no change.
@@ -423,6 +441,7 @@ w3Dict
     `dictMrg` w3RedEntry
     `dictMrg` w3CRedEntry
     `dictMrg` w3LoopEntry
+    `dictMrg` lawsUTCPDict
     `dictMrg` stdUTPDict
     `dictMrg` stdDict
 \end{code}

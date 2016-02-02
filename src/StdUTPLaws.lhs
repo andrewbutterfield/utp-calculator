@@ -187,10 +187,10 @@ reduceStd d (_, Comp "Seq" [(_,Comp "And" mpAs), mpB])
                 $ bAnd [equal (Var x) k,psub mpB [(x,k)]]
  where
 
-   match1 = matchRecog (isDashedObsExpr d) mpAs
+   match1 = matchRecog (mtchDashedObsExpr d) mpAs
    Just (pre1,(_,Atm e'),post1) = match1
 
-   match2 = matchRecog (isAfterEqToConst d) mpAs
+   match2 = matchRecog (mtchAfterEqToConst d) mpAs
    Just (pre2,(_,Equal (Var x') k),post2) = match2
 \end{code}
 

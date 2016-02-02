@@ -8,6 +8,7 @@ import CalcSimplify
 import CalcSteps
 import CalcRecogniser
 import StdPredicates
+import StdUTPPredicates
 import UTCPSemantics
 import UTCPLaws
 \end{code}
@@ -167,7 +168,7 @@ creduceUTCP d mpr@(_,Comp "Seq" [ a@(_,Comp "And" prs)
 \\ (b \implies \lnot c) &\implies& A \land b' ; c * B = A \land b'
 }
 \begin{code}
-   = case matchRecog (isDashedObsExpr d) prs of
+   = case matchRecog (mtchDashedObsExpr d) prs of
      Just (pre,(_,Atm e'),post)
       -> let
           e = atm $ unDash e'
@@ -192,7 +193,7 @@ creduceUTCP d mpr@(_,Comp "Seq" [ a@(_,Comp "And" prs)
 }
 \begin{code}
      Nothing ->
-      case matchRecog (isAfterEqToConst d) prs of
+      case matchRecog (mtchAfterEqToConst d) prs of
        Just (pre,(_,Equal (Var x') k),post)
         -> let
             x = init x'

@@ -69,8 +69,9 @@ sLattice tag op zero unit mprs
 
 First, a composite recogniser:
 \begin{code}
-isComp :: String -> Recogniser s
-isComp cname (_, Comp nm _) = nm == cname ; isComp _ _ = False
+isComp :: String -> MPred s -> Bool
+isComp cname (_, Comp nm _)  =  nm == cname
+isComp _     _               =  False
 \end{code}
 
 \newpage
@@ -122,7 +123,7 @@ bNot mpr = noMark $ mkNot mpr
 \\ &|& \mAnd & \tAnd
 }
 \begin{code}
-nAnd = "And" ; isAnd  = isComp nAnd
+nAnd = "And" ; isAnd  =  isComp nAnd
 
 mkAnd [] = T
 mkAnd [(_,pr)] = pr

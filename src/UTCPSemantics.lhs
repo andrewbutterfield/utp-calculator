@@ -12,6 +12,7 @@ import CalcRecogniser
 import CalcSteps
 import StdPrecedences
 import StdPredicates
+import StdUTPPredicates
 \end{code}
 
 Version

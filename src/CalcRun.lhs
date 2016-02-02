@@ -316,8 +316,7 @@ stepPrint d s ((comment,mpr):rest)
 
 
 outcome :: CalcLog s -> MPred s
-outcome ( mpr0, [],          _ )  =  mpr0
-outcome ( _,    ((_,mpr'):_), _)  =  mpr'
+outcome (mpr, _, _)  =  mpr
 \end{code}
 
 Calculation and prettiness all in one go:

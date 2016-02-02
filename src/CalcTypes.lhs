@@ -567,6 +567,20 @@ viewcalc (currpr,steps,_)
 
 \HDRb{Recognisers}\label{hc:recog}
 
+A recogniser looks for a specific pattern within
+a predicate, and either return false if no such pattern exists
+or else returns true along with a selection of zero or more sub-components
+of interest.
 \begin{code}
-type Recogniser s = MPred s -> Bool
+type Recogniser s = MPred s -> (Bool, [MPred s])
+
+noMatch         =  (False, [])
+noBind b        =  (b, [])
+matchBind mprs  =  (True,  mprs)
+\end{code}
+
+When building up rules it can help to have
+a ``under construction'' law name:
+\begin{code}
+rUC = "RuleUnderConstruction!!!"
 \end{code}

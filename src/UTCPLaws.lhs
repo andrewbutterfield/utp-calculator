@@ -119,7 +119,7 @@ Iteration  satisfies the loop-unrolling law:
 \[
   c * P  \quad=\quad (P ; c * P ) \cond c \Skip
 \]
-Currently already implemented in \texttt{RWFuns} (\ref{hb:unroll}).
+Currently already implemented in \texttt{StdLaws} (\ref{hb:std-loop-unroll}).
 
 \HDRc{Conditions preceding Iteration}
 
@@ -161,7 +161,10 @@ we have
 (A \land x'=k ; B[k/x])
 \]
 
-An obvious corollary of the above is:
+When all members of $Dyn'$ are set equal to something evaluated
+over $Dyn \cup Stc$,
+we get a simpler outcome, with less restrictions.
+In our case, given that $Dyn' = \setof{s',ls'}$ we obtain:
 \RLEQNS{
    s' = e \land ls' = f ; A
    &=&
@@ -261,13 +264,13 @@ Assuming that $\fv{e'} \subseteq \setof{s',ls'}$, $x'\in\setof{s',ls'}$ and $\fv
 }
 \begin{code}
 reduceUTCP d pr@(_,Comp "Seq" [(_,Comp "And" pAs), pB])
- = case matchRecog (isDashedObsExpr d) pAs of
+ = case matchRecog (mtchDashedObsExpr d) pAs of
    Just (pre,(_,Atm e'),post)
     -> lred "bool-;-switch"
        $ comp "Seq" [ comp "And" (pre++post)
                     , comp "And" [atm $ unDash e', pB]]
    Nothing ->
-    case matchRecog (isAfterEqToConst d) pAs of
+    case matchRecog (mtchAfterEqToConst d) pAs of
      Just (pre,(_,Equal (Var x') k),post)
       -> let x = init x'
          in lred "const-;-prop"
