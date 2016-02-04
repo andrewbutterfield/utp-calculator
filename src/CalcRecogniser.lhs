@@ -38,20 +38,22 @@ and if a predicate $A_i$ matching $p$ is found,
 then returns a triple as follows:
 \[
    (~\seqof{A_1, \ldots, A_{i-1}},
-     A_i,
+     (A_i,bits),
      \seqof{A_{i+1}, \ldots, A_n}~)
 \]
+where $bits$ are any fragments of $A_i$ picked out by the recogniser.
 \begin{code}
 matchRecog :: (Ord s, Show s)
            => Recogniser s -> [MPred s]
-           -> Maybe ([MPred s],MPred s,[MPred s])
+           -> Maybe ([MPred s],(MPred s,[MPred s]),[MPred s])
 matchRecog recog mprs
  = mR [] mprs
  where
    mR erofeb [] = Nothing  -- "erofeb" = reverse "before"
    mR erofeb (mpr:mprs)
-    | fst $ recog mpr   =  Just (reverse erofeb, mpr, mprs)
-    | otherwise         =  mR (mpr:erofeb) mprs
+    | found      =  Just (reverse erofeb, (mpr,bits), mprs)
+    | otherwise  =  mR (mpr:erofeb) mprs
+    where (found,bits) = recog mpr
 \end{code}
 
 
@@ -59,23 +61,29 @@ matchRecog recog mprs
 \HDRb{Common Recognisers}
 
 \HDRc{Dashed Atomic Predicate}
+
+\RLEQNS{
+  e', \textrm{not ground} &\rightsquigarrow& \seqof{e'}
+}
 \begin{code}
 mtchDashedObsExpr :: Ord s => Dict s -> Recogniser s
-mtchDashedObsExpr d (_,Atm e')
-                        = noBind (isDashed e' && notGround d e')
-mtchDashedObsExpr _ _     = noMatch
+mtchDashedObsExpr d a'@(_,(Atm e'))
+                 = condBind (isDashed e' && notGround d e') [a']
+mtchDashedObsExpr _ _  = noMatch
 
 isDashedObsExpr d = fst . mtchDashedObsExpr d
 \end{code}
 
 \HDRc{After-Obs. equated to Ground Value}
 
-$x' = k$, where $x'$ is an after-observable, and $k$ is ground.
+\RLEQNS{
+  x'=k, x' \in Dyn', k \textrm{ ground} &\rightsquigarrow& \seqof{x',k}
+}
 \begin{code}
 mtchAfterEqToConst :: Ord s => Dict s -> Recogniser s
-mtchAfterEqToConst d (_,Equal (Var x') k)
-                          = noBind (isDyn' d x' && isGround d k)
-mtchAfterEqToConst _ _      = noMatch
+mtchAfterEqToConst d (_,Equal v@(Var x') k)
+         = condBind (isDyn' d x' && isGround d k) [atm v, atm k]
+mtchAfterEqToConst _ _  = noMatch
 
 isAfterEqToConst d = fst . mtchAfterEqToConst d
 \end{code}
@@ -83,13 +91,16 @@ isAfterEqToConst d = fst . mtchAfterEqToConst d
 \HDRc{Named Obs. equated to Ground Value}
 
 $x = k$, where $x$ is an nominated observable, and $k$ is ground.
+\RLEQNS{
+  x=k, x \textrm{ named}, k \textrm{ ground} &\rightsquigarrow& \seqof{x,k}
+}
 \begin{code}
 mtchNmdObsEqToConst :: Ord s => String -> Dict s -> Recogniser s
-mtchNmdObsEqToConst v d (_,Equal (Var x) k)
-                              =  noBind (v == x && isGround d k)
-mtchNmdObsEqToConst _ _ _       =  noMatch
+mtchNmdObsEqToConst v d (_,Equal u@(Var x) k)
+             =  condBind (v == x && isGround d k) [atm u, atm k]
+mtchNmdObsEqToConst _ _ _  =  noMatch
 
-isNmdObsEqToConst d = fst . mtchNmdObsEqToConst d
+isNmdObsEqToConst v d = fst . mtchNmdObsEqToConst v d
 \end{code}
 
 With the above, it can be useful to turn such

@@ -188,10 +188,10 @@ reduceStd d (_, Comp "Seq" [(_,Comp "And" mpAs), mpB])
  where
 
    match1 = matchRecog (mtchDashedObsExpr d) mpAs
-   Just (pre1,(_,Atm e'),post1) = match1
+   Just (pre1,(_,[(_,Atm e')]),post1) = match1
 
    match2 = matchRecog (mtchAfterEqToConst d) mpAs
-   Just (pre2,(_,Equal (Var x') k),post2) = match2
+   Just (pre2,((_,Equal (Var x') k),_),post2) = match2
 \end{code}
 
 \HDRc{Disjunction and Sequential Composition}

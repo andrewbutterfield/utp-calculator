@@ -5,7 +5,7 @@ import Utilities
 -- import qualified Data.Map as M
 import Data.List
 -- import Data.Char
--- import Data.Maybe
+import Data.Maybe
 -- import Debug.Trace
 import PrettyPrint
 import CalcTypes
@@ -352,8 +352,25 @@ dictW3P = makeDict [wEntry,patmEntry]
 
 \HDRb{Reductions for WWW}\label{hb:WWW-reduce}
 
+\HDRc{Recognisers for WWW}\label{hc:w3-recog}
+
+\RLEQNS{
+   ls'=ls\ominus(S_1,S_2)
+   &\rightsquigarrow&
+   \seqof{S_1,S_2}
+   & \ecite{sswap-$;$-prop.}
+}
 \begin{code}
-w3Reduce :: DictRWFun s
+mtchLabelSetSSwap :: Eq s => Recogniser s
+mtchLabelSetSSwap (_,Equal v' (App nm [v, s1, s2]))
+ | v == ls && v' == ls'  =  matchBind [atm s1, atm s2]
+mtchLabelSetSSwap _      =  noMatch
+\end{code}
+
+\HDRc{\texttt{w3Reduce}}\label{hc:w3Reduce}
+
+\begin{code}
+w3Reduce :: (Ord s, Show s) => DictRWFun s
          -- Dict s -> MPred s -> (String, MPred s)
 \end{code}
 
@@ -363,14 +380,25 @@ The first case we consider is the following law:
    &=&
    P \land ls'=ls\ominus(S_1,S_2)
    \seq
-   ls(S_1) \land \lnot ls(S_2) \land Q
-\\ && \elabel{$(+-)$-$;$-prop.}
+   \lnot ls(S_1) \land ls(S_2) \land Q
+\\ && \elabel{sswap-$;$-prop.}
 }
+\DRAFT{This law is not good because it's RHS matches its LHS.
 \begin{code}
-w3Reduce d mpr@(_,Comp nm1 [(_,Comp nm2 mprs1),mpr2])
- | nm1 == nSeq && nm2 == nAnd && stuff = (rUC,last mprs1)
- where stuff = True
+w3Reduce d mpr@(_,Comp nm1 [mpr1@(_,Comp nm2 mprs1),mpr2])
+ | nm1 == nSeq && nm2 == nAnd && isJust match
+     = ( "sswap-;-prop"
+       , bSeq mpr1
+              (bAnd [ bNot $ atm $ subset s1 ls
+                    , atm $ subset s2 ls
+                    , mpr2
+                    ]))
+ where
+   match = matchRecog mtchLabelSetSSwap mprs1
+   Just (_,(_,[(_,Atm s1),(_,Atm s2)]),_) = match
 \end{code}
+We need to fix this.
+}
 
 Default case: no change.
 \begin{code}

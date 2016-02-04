@@ -577,6 +577,7 @@ type Recogniser s = MPred s -> (Bool, [MPred s])
 noMatch         =  (False, [])
 noBind b        =  (b, [])
 matchBind mprs  =  (True,  mprs)
+condBind c mprs = if c then matchBind mprs else noMatch
 \end{code}
 
 When building up rules it can help to have

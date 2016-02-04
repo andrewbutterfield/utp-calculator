@@ -169,7 +169,7 @@ creduceUTCP d mpr@(_,Comp "Seq" [ a@(_,Comp "And" prs)
 }
 \begin{code}
    = case matchRecog (mtchDashedObsExpr d) prs of
-     Just (pre,(_,Atm e'),post)
+     Just (pre,((_,Atm e'),_),post)
       -> let
           e = atm $ unDash e'
           continue = ( psimp d $ bImp e c
@@ -194,7 +194,7 @@ creduceUTCP d mpr@(_,Comp "Seq" [ a@(_,Comp "And" prs)
 \begin{code}
      Nothing ->
       case matchRecog (mtchAfterEqToConst d) prs of
-       Just (pre,(_,Equal (Var x') k),post)
+       Just (pre,((_,(Equal (Var x') k)),_),post)
         -> let
             x = init x'
             e = equal (Var x) k

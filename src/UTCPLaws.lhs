@@ -248,7 +248,7 @@ reduceUTCP d pr@(_,Comp "Seq" [ (_,Comp "And" pAs)
    isSafeLSDash d theLS unwanted prs
     = case matchRecog (mtchNmdObsEqToConst theLS d) prs of
        Nothing -> Nothing
-       Just (pre,eq@(_,Equal _ k),post) ->
+       Just (pre,(eq@(_,Equal _ k),_),post) ->
         if notGround d k
          then Nothing
          else if all (dftlyNotInP d unwanted) rest
@@ -265,13 +265,13 @@ Assuming that $\fv{e'} \subseteq \setof{s',ls'}$, $x'\in\setof{s',ls'}$ and $\fv
 \begin{code}
 reduceUTCP d pr@(_,Comp "Seq" [(_,Comp "And" pAs), pB])
  = case matchRecog (mtchDashedObsExpr d) pAs of
-   Just (pre,(_,Atm e'),post)
+   Just (pre,((_,Atm e'),_),post)
     -> lred "bool-;-switch"
        $ comp "Seq" [ comp "And" (pre++post)
                     , comp "And" [atm $ unDash e', pB]]
    Nothing ->
     case matchRecog (mtchAfterEqToConst d) pAs of
-     Just (pre,(_,Equal (Var x') k),post)
+     Just (pre,((_,Equal (Var x') k),_),post)
       -> let x = init x'
          in lred "const-;-prop"
             $ comp "Seq"
