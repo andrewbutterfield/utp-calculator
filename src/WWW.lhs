@@ -24,11 +24,6 @@ import StdUTPLaws
 import UTCPCReduce
 \end{code}
 
-
-\textbf{\emph{This is SeqPML, renamed WWW,
-providing the section/subsection
-structured, with most syntactical, alphabet a predicate material
-to be harvested in the first instance from the UTCP files}}
 %%
 %% local macros
 %%
@@ -378,27 +373,27 @@ The first case we consider is the following law:
 \RLEQNS{
    P \land ls'=ls\ominus(S_1,S_2) \seq Q
    &=&
-   P \land ls'=ls\ominus(S_1,S_2)
+   P \land ls\ominus(S_1,S_2)=ls'
    \seq
    \lnot ls(S_1) \land ls(S_2) \land Q
 \\ && \elabel{sswap-$;$-prop.}
 }
-\DRAFT{This law is not good because it's RHS matches its LHS.
+By flipping the $ls'=ls\ominus(S_1,S_2)$ equality
+we prevent continual re-application of this reduction step.
 \begin{code}
 w3Reduce d mpr@(_,Comp nm1 [mpr1@(_,Comp nm2 mprs1),mpr2])
  | nm1 == nSeq && nm2 == nAnd && isJust match
      = ( "sswap-;-prop"
-       , bSeq mpr1
+       , bSeq (bAnd  ( before ++
+                        ( equal (sswap ls s1 s2) ls' : after )))
               (bAnd [ bNot $ atm $ subset s1 ls
                     , atm $ subset s2 ls
                     , mpr2
                     ]))
  where
    match = matchRecog mtchLabelSetSSwap mprs1
-   Just (_,(_,[(_,Atm s1),(_,Atm s2)]),_) = match
+   Just (before,(_,[(_,Atm s1),(_,Atm s2)]),after) = match
 \end{code}
-We need to fix this.
-}
 
 Default case: no change.
 \begin{code}
