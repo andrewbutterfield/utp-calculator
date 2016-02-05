@@ -177,9 +177,9 @@ Mostly, we want to know if $x \notin P$.
 dftlyNotInP :: Dict s -> String -> MPred s -> Bool
 
 dftlyNotInP d v (_,PVar p)
- = case vlookup p d of
-    Just (PVarEntry alf_p)  ->  not (v `elem` alf_p)
-    _                       ->  False
+ = case plookup p d of
+    Just (PredEntry _ _ alf_p _ _)  ->  not (v `elem` alf_p)
+    _                               ->  False
 
 dftlyNotInP d v (_,Equal e1 e2)
                       = dftlyNotInE d v e1 && dftlyNotInE d v e2

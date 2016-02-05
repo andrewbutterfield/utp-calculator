@@ -77,14 +77,12 @@ psub mpr subs  =  noMark $ mkPSub mpr subs
 
 \HDRc{Dictionary query}
 \begin{code}
-isPredEntry (PredEntry _ _ _ _) = True
+isPredEntry (PredEntry _ _ _ _ _) = True
 isPredEntry _ = False
 isExprEntry (ExprEntry _ _ _) = True
 isExprEntry _ = False
 isAlfEntry (AlfEntry _) = True
 isAlfEntry _ = False
-isPVarEntry (PVarEntry _) = True
-isPVarEntry _ = False
 
 nullDict :: Dict s
 nullDict = M.empty
@@ -92,8 +90,8 @@ nullDict = M.empty
 plookup :: String -> Dict s -> Maybe (Entry s)
 plookup nm d
  = case M.lookup nm d of
-     Just pd@(PredEntry _ _ _ _)  ->  Just pd
-     _                            ->  Nothing
+     Just pd@(PredEntry _ _ _ _ _)  ->  Just pd
+     _                              ->  Nothing
 
 elookup :: String -> Dict s -> Maybe (Entry s)
 elookup nm d
@@ -106,12 +104,6 @@ alookup nm d
  = case M.lookup nm d of
      Just ad@(AlfEntry _)  ->  Just ad
      _                     ->  Nothing
-
-vlookup :: String -> Dict s -> Maybe (Entry s)
-vlookup nm d
- = case M.lookup nm d of
-     Just ve@(PVarEntry _)  ->  Just ve
-     _                      ->  Nothing
 \end{code}
 
 \HDRc{Dictionary Construction}
@@ -256,7 +248,7 @@ showp d ms p (PSub mpr sub)
 
 showp d ms p (Comp cname pargs)
  = case plookup cname d of
-    Just (PredEntry _ showf _ _) -> showf d ms p pargs
+    Just (PredEntry _ showf _ _ _) -> showf d ms p pargs
     _  ->  stdCshow d ms cname pargs
 
 stdCshow :: (Ord s, Show s)

@@ -232,8 +232,8 @@ To do so risks an infinite loop.
 \begin{code}
    compsimp mprs'
     = case plookup name d of
-       Just (PredEntry _ _ _ psimp)  ->  psimp d mprs'
-       _                             ->  ("",Comp name mprs')
+       Just (PredEntry _ _ _ _ psimp)  ->  psimp d mprs'
+       _                               ->  ("",Comp name mprs')
 \end{code}
 Assembling the result:
 \begin{code}
@@ -268,8 +268,8 @@ which can be used to remove some elements from the substitution.
 }
 \begin{code}
   sbstsimp (subchgd,subs') spr@(mp,PVar p)
-   = case vlookup p d of
-      Just (PVarEntry alf)
+   = case plookup p d of
+      Just (PredEntry _ _ alf _ _)
        -> ( addMark m mpr
           , "pvar-substn"
           , addMark m
@@ -393,13 +393,13 @@ We sometimes need to know when we can substitute:
 canSub :: Dict s -> String -> Bool
 canSub d name
  = case plookup name d of
-     Just (PredEntry cansub _ _ _)  ->  cansub
-     _                              ->  False
+    Just (PredEntry cansub _ _ _ _)  ->  cansub
+    _                                ->  False
 
 substitutable :: Dict s -> MPred s -> Bool
 substitutable d (_,Comp name _)
  = case plookup name d of
-    Just pe@(PredEntry cansub _ _ _)  -> cansub
-    _ -> False
+    Just (PredEntry cansub _ _ _ _)  ->  cansub
+    _                                ->  False
 substitutable _ _ = True
 \end{code}

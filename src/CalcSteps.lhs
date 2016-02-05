@@ -229,7 +229,7 @@ expandDefn d m mpr
 expDefs :: DictRWFun s
 expDefs d mpr@(ms, Comp name mprs )
  = case plookup name d of
-    Just pd@(PredEntry _ _ pdef _)
+    Just pd@(PredEntry _ _ _ pdef _)
       -> let ( what, pr' ) = pdef d mprs
          in if null what
              then ( "", mpr )

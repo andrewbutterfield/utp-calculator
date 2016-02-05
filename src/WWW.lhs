@@ -269,10 +269,10 @@ dictW3E = w3SetDict `dictMrg` w3GenDict
 We assign the following precedences to W3 syntactical constructs,
 interleaving them among the standard predicates.
 \begin{code}
-precPCond = 5 + precSpacer  1
-precPPar  = 5 + precSpacer  2
-precPSeq  = 5 + precSpacer  3
-precPIter = 5 + precSpacer  6
+precWCond = 5 + precSpacer  1
+precWPar  = 5 + precSpacer  2
+precWSeq  = 5 + precSpacer  3
+precWIter = 5 + precSpacer  6
 \end{code}
 
 \HDRc{Healthiness Predicates}
@@ -396,11 +396,7 @@ ppPAtm d ms p [mpr]
           , ppbracket "(" (mshowp d ms 0 mpr) ")"]
 ppPAtm d ms p mprs = pps styleRed $ ppa ("invalid-"++shPAtm)
 
-defnAtomic 0 d [a]
- = ldefn (shPAtm++".0")
-    $ wp $ bAnd [lsin,a,ls'eqlsinout]
-
-defnAtomic _ d [a]
+defnAtomic d [a]
  = ldefn (shPAtm++".5")
     $ mkCond bSkip lsout $ bAnd [lsin,a,ls'eqlsinout]
 
@@ -412,7 +408,7 @@ ls'eqlsinout = equal ls' lsinout
 patmEntry :: (Show s, Ord s) => (String, Entry s)
 patmEntry
  = ( nPAtm
-   , PredEntry False ppPAtm (defnAtomic 5) (pNoChg nPAtm) )
+   , PredEntry False ppPAtm defnAtomic (pNoChg nPAtm) )
 \end{code}
 
 
@@ -425,13 +421,42 @@ patmEntry
        \lor
        Q[\g{:2},\ell_g/g,in])
 }
+\begin{code}
+nWSeq = "WSeq"
+isWSeq (_,Comp n [_,_]) | n==nWSeq = True; isWSeq _ = False
+
+wseq p q = comp nWSeq [p,q]
+
+shWSeq = ";;"
+ppWSeq d ms p [mpr1,mpr2]
+ = paren p precWSeq
+     $ ppopen  (pad shWSeq) [ mshowp d ms precWSeq mpr1
+                            , mshowp d ms precWSeq mpr2 ]
+ppWSeq d ms p mprs = pps styleRed $ ppa ("invalid-"++shWSeq)
+
+defnWSeq d [p,q]
+ = ldefn shWSeq $ wp $ bOr [psub p sub1, psub q sub2]
+ where
+   sub1 = [("g",g'1),("out",lg)]
+   sub2 = [("g",g'2),("in",lg)]
+
+lg = new1 g
+g' = new2 g
+g'1 = split1 g'
+g'2 = split2 g'
+
+wSeqEntry :: (Show s, Ord s) => (String, Entry s)
+wSeqEntry
+ = ( nWSeq
+   , PredEntry False ppWSeq defnWSeq (pNoChg nWSeq) )
+\end{code}
 
 
 \HDRc{The Predicate Dictionary}\label{hc:WWW-pred-dict}
 
 \begin{code}
 dictW3P :: (Ord s, Show s) => Dict s
-dictW3P = makeDict [wEntry,patmEntry]
+dictW3P = makeDict [wEntry,patmEntry,wSeqEntry]
 \end{code}
 
 

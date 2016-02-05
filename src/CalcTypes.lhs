@@ -226,26 +226,13 @@ data Entry s =
 \begin{code}
 -- data Entry s = ....
    AlfEntry {   -- about Alphabets
-    avars :: [String]  -- variables
+    avars   :: [String]  -- alphabet
    }
 \end{code}
 An entry
 \texttt{"A" |-> AlfEntry ["v1","v2",..,"vn"]}
 \\defines an alphabet:
 $A \defs \setof{v_1,v_2,\ldots,v_n}$.
-
-\HDRc{Predicate Variable Entry}\label{hc:pvar-entry}
-
-\begin{code}
--- data Entry s = ....
- | PVarEntry {  -- about Predicate Variables
-    alfa :: [String]  -- for now, just its alphabet
-   }
-\end{code}
-An entry \texttt{"P" |-> PVarEntry ["v1","v2",..,"vn"]}
-\\
-declares the alphabet associated with that predicate variable:
-$\alpha P \defs \setof{v_1,v_2,\ldots,v_n}$.
 
 \newpage
 \HDRc{Expression Entry}\label{hc:expr-entry}
@@ -278,18 +265,19 @@ of a proof step.
 \HDRc{Predicate Entry}\label{hc:pred-entry}
 
 \begin{code}
- | PredEntry {    -- about Predicates
+ | PredEntry {    -- about Predicates and PredVars
      pcansub :: Bool                           -- substitutable?
    , pprint  :: Dict s -> MarkStyle           -- pretty printer
              -> Int -> [MPred s]
              -> PP
+   , alfa :: [String]  -- predicate alphabet
    , pdefn   :: Rewrite s                    -- defn expansion
    , prsimp  :: Rewrite s                    -- simplifier
    }
 \end{code}
 We interpret a \texttt{Dict} entry like
 \begin{verbatim}
-"P" |->  PredEntry ss pp pd ps
+"P" |->  PredEntry ss pp af pd ps
 \end{verbatim}
 as defining a composite,
 where: $ss$ is a boolean that is true if the predicate application
@@ -299,6 +287,7 @@ The LHS of a predicate definition is substitutable iff
 $P(Q_1\sigma,\ldots,Q_n\sigma) = pr\sigma$ for any substitution $\sigma$.
 }%
 ;
+$af$ gives the alphabet, if non-empty;
  $pp_\delta(Q_1,Q_2,\ldots,Q_n)$ is a specialised print function
 that renders a predicate as required;
 $pd$ is a function that expands the definition of $P$;
@@ -350,9 +339,12 @@ or \m{cr_1} to \m{cr_n} or \m{u_1} to \m{u_p}, as appropriate.
 \begin{code}
 instance Show (Entry s) where
  show (AlfEntry vars) = "Alf {"++seplist ',' vars++"}"
- show (PVarEntry vars) = "PVar {"++seplist ',' vars++"}"
  show (ExprEntry csub _ _) = "Expr, subst? = "++show csub
- show (PredEntry csub _ _ _) = "Pred, subst? = "++show csub
+ show (PredEntry csub _ alf _ _)
+  = "Pred, subst? = "++show csub++ashow alf
+  where
+    ashow [] = ""
+    ashow xs = " {"++seplist ',' xs++"}"
  show (LawEntry r c u)
     = "Laws, #red="++show (length r)
       ++ ", #cred="++show (length c)

@@ -17,7 +17,16 @@ Here we provide dictionary entries for all our ``standard''
 
 \HDRb{Generic Definitions}\label{hb:gen-defs}
 
-First, some generic intelligent composite constructors:
+First, we deal with simple ways to provide PredEntry
+for simple predicate variables:
+\begin{code}
+pvarEntry :: String -> [String] -> (String, Entry s)
+pvarEntry nm alf
+ = (nm, PredEntry False ppPVar alf (pNoChg nm) (pNoChg nm))
+ where ppPVar _ _ _ _ = ppa nm
+\end{code}
+
+Now, some generic intelligent composite constructors:
 
 \HDRc{Associative Flattening }~
 
@@ -109,7 +118,7 @@ simpNot _ mprs = ("", Comp nNot mprs)
 notEntry :: (Show s, Ord s) => (String, Entry s)
 notEntry
  = ( nNot
-   , PredEntry True ppNot (pNoChg nNot) simpNot )
+   , PredEntry True ppNot [] (pNoChg nNot) simpNot )
 
 -- build a Not at the MPred level
 bNot mpr = noMark $ mkNot mpr
@@ -141,7 +150,7 @@ simpAnd d mprs  = sLattice "/\\-simplify" mkAnd F T mprs
 andEntry :: (Show s, Ord s) => (String, Entry s)
 andEntry
  = ( nAnd
-   , PredEntry True ppAnd (pNoChg nAnd) simpAnd )
+   , PredEntry True ppAnd [] (pNoChg nAnd) simpAnd )
 
 -- build an And at the MPred level
 bAnd mprs = noMark $ mkAnd mprs
@@ -173,7 +182,7 @@ simpOr d mprs  = sLattice "\\/-simplify" mkOr T F mprs
 orEntry :: (Show s, Ord s) => (String, Entry s)
 orEntry
  = ( nOr
-   , PredEntry True ppOr (pNoChg nOr) simpOr )
+   , PredEntry True ppOr [] (pNoChg nOr) simpOr )
 
 -- build an Or at the MPred level
 bOr mprs = noMark $ mkOr mprs
@@ -218,7 +227,7 @@ simpImp d [ mpr1, mpr2    ] = ( "",  mkImp mpr1 mpr2 )
 impEntry :: (Show s, Ord s) => (String, Entry s)
 impEntry
  = ( nImp
-   , PredEntry True ppImp (pNoChg nImp) simpImp )
+   , PredEntry True ppImp [] (pNoChg nImp) simpImp )
 
 -- build an Imp at the MPred level
 bImp mpr1 mpr2 = noMark $ mkImp mpr1 mpr2
@@ -262,7 +271,7 @@ simpEqv d [ mpr1, mpr2    ] = ( "",  mkEqv mpr1 mpr2 )
 eqvEntry :: (Show s, Ord s) => (String, Entry s)
 eqvEntry
  = ( nEqv
-   , PredEntry True ppEqv (pNoChg nEqv) simpEqv )
+   , PredEntry True ppEqv [] (pNoChg nEqv) simpEqv )
 
 -- build an Eqv at the MPred level
 bEqv mpr1 mpr2 = noMark $ mkEqv mpr1 mpr2

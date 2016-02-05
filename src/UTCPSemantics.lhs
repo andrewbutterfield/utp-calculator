@@ -114,8 +114,9 @@ alfUTCPDict
  = dictMrg dictAlpha dictAtomic
  where
    dictAlpha = stdAlfDictGen ["s"] ["ls"] ["g","in","out"]
-   dictAtomic = makeDict $ mapsnd PVarEntry
-                        [("A", ss'),("B", ss'),("C", ss')]
+   dictAtomic = makeDict [ pvarEntry "A" ss'
+                         , pvarEntry "B" ss'
+                         , pvarEntry "C" ss' ]
    ss' = ["s", "s'"]
 \end{code}
 
