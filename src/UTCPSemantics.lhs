@@ -338,7 +338,7 @@ ls'eqlsinout = equal ls' lsinout
 patmEntry :: (Show s, Ord s) => (String, Entry s)
 patmEntry
  = ( nPAtm
-   , PredEntry False ppPAtm defnAtomic (pNoChg nPAtm) )
+   , PredEntry False ppPAtm [] defnAtomic (pNoChg nPAtm) )
 \end{code}
 
 A special case of this is the $Idle$ construct:
@@ -361,7 +361,7 @@ defnIdle d [] = ldefn shPIdle $ Equal s' s
 pidleEntry :: (Show s, Ord s) => (String, Entry s)
 pidleEntry
  = ( nPIdle
-   , PredEntry False ppPIdle defnIdle (pNoChg nPIdle) )
+   , PredEntry False ppPIdle [] defnIdle (pNoChg nPIdle) )
 \end{code}
 
 Given that $\alpha A = \setof{s,s'}$, we have:
@@ -614,7 +614,7 @@ g'2 = split2 g'
 pseqEntry :: (Show s, Ord s) => (String, Entry s)
 pseqEntry
  = ( nPSeq
-   , PredEntry False ppPSeq defnSeq (pNoChg nPSeq) )
+   , PredEntry False ppPSeq [] defnSeq (pNoChg nPSeq) )
 \end{code}
 
 
@@ -717,7 +717,7 @@ defnPPar d [p,q]
 pparEntry :: (Show s, Ord s) => (String, Entry s)
 pparEntry
  = ( nPPar
-   , PredEntry False ppPPar defnPPar (pNoChg nPPar) )
+   , PredEntry False ppPPar [] defnPPar (pNoChg nPPar) )
 \end{code}
 
 \newpage
@@ -784,7 +784,7 @@ defnPCond d [c,p,q]
 pcondEntry :: (Show s, Ord s) => (String, Entry s)
 pcondEntry
  = ( nPCond
-   , PredEntry False ppPCond defnPCond (pNoChg nPCond) )
+   , PredEntry False ppPCond [] defnPCond (pNoChg nPCond) )
 \end{code}
 
 \newpage
@@ -833,7 +833,7 @@ defnIter d [c,p]
 piterEntry :: (Show s, Ord s) => (String, Entry s)
 piterEntry
  = ( nPIter
-   , PredEntry False ppPIter defnAtomic (pNoChg nPIter) )
+   , PredEntry False ppPIter [] defnAtomic (pNoChg nPIter) )
 \end{code}
 
 
@@ -911,7 +911,7 @@ g'' = new2 g'
 prunEntry :: (Show s, Ord s) => Int -> (String, Entry s)
 prunEntry n
  = ( nPRun
-   , PredEntry False ppPRun (defnRun n) (pNoChg nPRun) )
+   , PredEntry False ppPRun [] (defnRun n) (pNoChg nPRun) )
 \end{code}
 
 
@@ -940,7 +940,7 @@ defnDo d [p]
 pdoEntry :: (Show s, Ord s) => (String, Entry s)
 pdoEntry
  = ( nPDo
-   , PredEntry False ppPDo defnDo (pNoChg nPDo) )
+   , PredEntry False ppPDo [] defnDo (pNoChg nPDo) )
 \end{code}
 
 

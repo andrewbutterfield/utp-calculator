@@ -82,8 +82,9 @@ w3AlfDict
  = dictMrg dictAlpha dictAtomic
  where
    dictAlpha = stdAlfDictGen ["s"] ["ls"] ["g","in","out"]
-   dictAtomic = makeDict $ mapsnd PVarEntry
-                        [("A", ss'),("B", ss'),("C", ss')]
+   dictAtomic = makeDict [ pvarEntry "A" ss'
+                         , pvarEntry "B" ss'
+                         , pvarEntry "C" ss' ]
    ss' = ["s", "s'"]
 \end{code}
 
@@ -302,7 +303,7 @@ notlsout = bNot lsout
 wEntry :: (Show s, Ord s) => (String, Entry s)
 wEntry
  = ( nW
-   , PredEntry False ppW defnW (pNoChg nW) )
+   , PredEntry False ppW [] defnW (pNoChg nW) )
 \end{code}
 We need to show it is idempotent (monotonicty is immediate):
 \RLEQNS{
@@ -408,7 +409,7 @@ ls'eqlsinout = equal ls' lsinout
 patmEntry :: (Show s, Ord s) => (String, Entry s)
 patmEntry
  = ( nPAtm
-   , PredEntry False ppPAtm defnAtomic (pNoChg nPAtm) )
+   , PredEntry False ppPAtm [] defnAtomic (pNoChg nPAtm) )
 \end{code}
 
 
@@ -448,7 +449,7 @@ g'2 = split2 g'
 wSeqEntry :: (Show s, Ord s) => (String, Entry s)
 wSeqEntry
  = ( nWSeq
-   , PredEntry False ppWSeq defnWSeq (pNoChg nWSeq) )
+   , PredEntry False ppWSeq [] defnWSeq (pNoChg nWSeq) )
 \end{code}
 
 
