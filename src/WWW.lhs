@@ -277,7 +277,7 @@ precPIter = 5 + precSpacer  6
 
 \HDRc{Healthiness Predicates}
 
-We define our healthiness condition:
+We define our main healthiness condition:
 \RLEQNS{
 \W(P) &\defs& \lnot ls(out) * P
 }
@@ -286,6 +286,7 @@ nW = "W" -- internal abstract name
 isW (_,Comp n [_]) | n==nW = True; isW _ = False
 
 w atom = comp nW [atom]
+wp atom = Comp nW [atom]
 
 shW = "W" -- show name
 ppW d ms p [mpr]
@@ -293,22 +294,95 @@ ppW d ms p [mpr]
           , ppbracket "(" (mshowp d ms 0 mpr) ")"]
 ppW d ms p mprs = pps styleRed $ ppa ("invalid-"++shW)
 
-defnW d [mpr] = ldefn shW $ mkIter (bNot lsout) mpr
+defnW d [mpr] = ldefn shW $ mkIter notlsout mpr
 
 lsout = atm $ App subsetn [out,ls]
+notlsout = bNot lsout
 
 wEntry :: (Show s, Ord s) => (String, Entry s)
 wEntry
  = ( nW
    , PredEntry False ppW defnW (pNoChg nW) )
 \end{code}
+We need to show it is idempotent (monotonicty is immediate):
+\RLEQNS{
+   \W(\W(P)) &=& \W(P)
+}
+We assume the following laws of iteration:
+\RLEQNS{
+   c*P &=& P \seq c*P  \cond c \Skip
+\\ &=& c \land P \seq c*P \lor \lnot c \land \Skip
+\\ c \land c * P &=& c \land P \seq c * P
+\\ \lnot c \land c * P &=& \lnot c \land \Skip
+\\ && \lnot c \land \Skip \land \lnot c'
+\\ \multicolumn{4}{l}{\mbox{below we assume }c \neq \true}
+\\ c * P &=& c * P \land \lnot c'
+\\ &=& (c * P) \seq \lnot c
+\\ &=& (c * P) \seq \lnot c \land \Skip
+\\ c * P \seq c * Q &=& c * P
+\\ c * ( c * P ) &=& c * P
+\\ c * (\bigvee_i P_i) &=& (\bigvee_i c \land P_i) \lor \lnot c \land \Skip
+}
+Idempotency is now immediate.
+Of interest are healthified predicates in sequence
+and in disjunctions:
+\RLEQNS{
+   \W(X) \seq \W(Y) &=& \W(X)
+\\ \W(P \lor Q) &=& (P \lor Q) \seq \W(P \lor Q) \cond{\lnot ls(out)} \Skip
+\\ &=& ls(out) \land \Skip
+\\ &\lor& \lnot ls(out) \land P \seq \W(P \lor Q)
+\\ &\lor& \lnot ls(out) \land Q \seq \W(P \lor Q)
+\\ \multicolumn{4}{l}{\mbox{below we assume } P=\W(P) \land Q=\W(Q)}
+\\ &=& ls(out) \land \Skip
+\\ &\lor& \lnot ls(out) \land \W(P) \seq \W(P \lor Q)
+\\ &\lor& \lnot ls(out) \land \W(Q) \seq \W(P \lor Q)
+\\ &=& ls(out) \land \Skip
+\\ &\lor& \lnot ls(out) \land \W(P)
+\\ &\lor& \lnot ls(out) \land \W(Q)
+\\ &=& (\W(P) \lor \W(Q)) \cond{\lnot ls(out)} \Skip
+}
+A surprise---the following two healthiness conditions are equivalent,
+and the third looks equivalent also (not yet verified)
+\RLEQNS{
+   \W &:&  P = c * P
+\\ \mathbf{Z} &:&  P =  P \cond c \Skip
+\\ \mbox{?} &:& c \land P = c \land P \land \lnot c'
+}
+We are assuming here that $P$ is arbitrary, but that $c$ is fixed,
+and not  equivalent to $\true$.
+However, as healithifiers they are quite different:
+\RLEQNS{
+  \lambda P @ c * P &\neq& \lambda P @ P \cond c \Skip
+\\ \W(P) &\neq& \mathbf{Z}(P)
+}
+However, lovely as all those laws are,
+they don't help much because we shall use substitutions
+to replace $out$ by unique labels derived from generators.
 
 
 \HDRc{Coding Atomic Semantics}
 
 Formally, using our shorthand notations, we can define atomic behaviour as:
 \RLEQNS{
-    \A(A) &\defs& ls(in) \land A \land ls'=ls\ominus(in,out)
+   \A(A)
+    &\defs&
+   \W(ls(in) \land A \land ls'=ls\ominus(in,out))
+\\ &=& \lnot(ls(out))*(ls(in) \land A \land ls'=ls\ominus(in,out))
+\\ &=& ls(out) \land \Skip
+\\ &\lor& \lnot(ls(out)
+     \land ( ls(in) \land A \land ls'=ls\ominus(in,out)
+             \seq \W(\ldots) )
+\\ &=& ls(out) \land \Skip
+\\ &\lor& \lnot(ls(out)
+     \land ( ls(in) \land A \land ls'=ls\ominus(in,out)
+\\ && \qquad \seq ls(out)\land \lnot(ls(out)*(\ldots)))
+\\ &=& ls(out) \land \Skip
+\\ &\lor& \lnot(ls(out)
+     \land ls(in) \land A \land ls'=ls\ominus(in,out)
+\\ &=& \Skip
+       \cond{ls(out)}
+       ls(in) \land A \land ls'=ls\ominus(in,out)
+                                           & \elabel{Atomic-Def}
 }
 \begin{code}
 nPAtm = "PAtm" -- internal abstract name
@@ -322,7 +396,14 @@ ppPAtm d ms p [mpr]
           , ppbracket "(" (mshowp d ms 0 mpr) ")"]
 ppPAtm d ms p mprs = pps styleRed $ ppa ("invalid-"++shPAtm)
 
-defnAtomic d [a] = ldefn shPAtm $ mkAnd [lsin,a,ls'eqlsinout]
+defnAtomic 0 d [a]
+ = ldefn (shPAtm++".0")
+    $ wp $ bAnd [lsin,a,ls'eqlsinout]
+
+defnAtomic _ d [a]
+ = ldefn (shPAtm++".5")
+    $ mkCond bSkip lsout $ bAnd [lsin,a,ls'eqlsinout]
+
 
 lsin = atm $ App subsetn [inp,ls]
 lsinout = App sswapn [ls,inp,out]
@@ -331,9 +412,19 @@ ls'eqlsinout = equal ls' lsinout
 patmEntry :: (Show s, Ord s) => (String, Entry s)
 patmEntry
  = ( nPAtm
-   , PredEntry False ppPAtm defnAtomic (pNoChg nPAtm) )
+   , PredEntry False ppPAtm (defnAtomic 5) (pNoChg nPAtm) )
 \end{code}
 
+
+\HDRc{Coding Sequential Composition}
+
+\RLEQNS{
+   P \lseq Q
+   &\defs&
+   \W( P[\g{:1},\ell_g/g,out]
+       \lor
+       Q[\g{:2},\ell_g/g,in])
+}
 
 
 \HDRc{The Predicate Dictionary}\label{hc:WWW-pred-dict}

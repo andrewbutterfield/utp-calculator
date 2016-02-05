@@ -233,7 +233,7 @@ expDefs d mpr@(ms, Comp name mprs )
       -> let ( what, pr' ) = pdef d mprs
          in if null what
              then ( "", mpr )
-             else ( "Defn. "++what, ( ms, pr') )
+             else ( what, ( ms, pr') )
     _ -> ( "", mpr )
 expDefs d mpr = ( "", mpr )
 \end{code}
