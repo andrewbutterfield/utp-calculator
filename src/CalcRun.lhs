@@ -130,7 +130,7 @@ runREPL d m state@(currpr,steps)
   ln <- getLine
   case ln of
    ('?':_) -> calcHelp d m state
-   ('s':_) -> calcStep d m (simplify d $ nextm m) state
+   ('s':_) -> calcStep d m (simplify2 d $ nextm m) state
    ('u':_) -> calcUndo d m state
    ('d':_) -> calcStep d m (expandDefn d $ nextm m) state
    ('r':_) -> calcStep d m (doReduce   d $ nextm m) state
@@ -158,7 +158,7 @@ calcHelp d m st
  = do putStr $ unlines
        [ ""
        , "? - this help message"
-       , "s - simplify everywhere"
+       , "s - simplify everywhere (twice)"
        , "x - exit, returning proof script"
        , "u - undo"
        , "most subsequent commands affect the first applicable location"

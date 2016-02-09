@@ -56,7 +56,7 @@ isIdleSeqAtom d s1 s2 pA
  | isIdle s1 s2
     = case plookup pA d of
        Just (AlfEntry a_alf)  ->  sort a_alf == ["s","s'"]
-       Nothing  ->  False
+       _                      ->  False
  | otherwise  =  False
 \end{code}
 

@@ -15,8 +15,10 @@ import CalcSimplify
 import CalcRecogniser
 import CalcRun
 import StdPredicates
+import StdLaws
 import CalcZipper
 import CalcSteps
+import StdUTPPredicates
 import StdUTPLaws
 import UTCPSemantics
 import UTCPLaws
@@ -107,7 +109,7 @@ notImpFalse _ mprs = ( "", Comp "Not" mprs )
 notIFEntry :: (Show s, Ord s) => (String, Entry s)
 notIFEntry
  = ( "Not"
-   , PredEntry True ppNot notImpFalse simpNot )
+   , PredEntry True ppNot [] notImpFalse simpNot )
 \end{code}
 \RLEQNS{
     P \lor Q &\defs& \lnot P \implies Q
@@ -120,7 +122,7 @@ orImpFalse _ mprs     =  ( "", Comp "Or" mprs )
 orIFEntry :: (Show s, Ord s) => (String, Entry s)
 orIFEntry
  = ( "Or"
-   , PredEntry True ppOr orImpFalse simpOr )
+   , PredEntry True ppOr [] orImpFalse simpOr )
 \end{code}
 \RLEQNS{
    P \ndc Q &\defs& P \lor Q
@@ -133,7 +135,7 @@ ndcImpFalse _ mprs     =  ( "", Comp "NDC" mprs )
 ndcIFEntry :: (Show s, Ord s) => (String, Entry s)
 ndcIFEntry
  = ( "NDC"
-   , PredEntry True ppNDC ndcImpFalse simpNDC )
+   , PredEntry True ppNDC [] ndcImpFalse simpNDC )
 \end{code}
 \RLEQNS{
    P \land Q &\defs& \lnot(\lnot P \lor \lnot Q)
@@ -148,7 +150,7 @@ andImpFalse _ mprs     =  ( "", Comp "And" mprs )
 andIFEntry :: (Show s, Ord s) => (String, Entry s)
 andIFEntry
  = ( "And"
-   , PredEntry True ppAnd andImpFalse simpAnd )
+   , PredEntry True ppAnd [] andImpFalse simpAnd )
 \end{code}
 
 \begin{code}
@@ -265,6 +267,7 @@ Test dictionarys
 \begin{code}
 utcpDict :: (Ord s, Show s) => Dict s
 utcpDict = dictUTCP
+           `dictMrg` stdUTPDict
            `dictMrg` lawsDict
            `dictMrg` stdDict
 

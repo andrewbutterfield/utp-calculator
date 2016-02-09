@@ -17,7 +17,7 @@ import StdUTPPredicates
 
 Version
 \begin{code}
-versionUTCP = "UTCP-0.6"
+versionUTCP = "UTCP-0.7"
 \end{code}
 
 \HDRb{UTCP Syntax}
@@ -862,51 +862,32 @@ ppPRun d ms p [mpr]
 ppPRun d ms p mprs = pps styleRed $ ppa ("invalid-"++shPRun)
 \end{code}
 
-We produce $run(P)$ by using the generator $g$
-to create two labels $\ell_g$ and $\ell_{g:}$,
-and then pass the remaining generator $\g{::}$
-into the (static) program body $P$.
-We use $\ell_g$ to replace $in$,
-and $\ell_{g:}$ to replace $out$ in $P$.
-We put this into a loop which keeps running so long as $\ell_{g:}$
+We produce $run(P)$ by putting $P$ into a loop
+which keeps running so long as $out$
 is not in $ls$.
 
-At the very top level, we initialise $ls$ to be $\setof{\ell_g}$.
-Note that we cannot push this into the substitutions on $P$,
+At the very top level, we initialise $ls$ to be $\setof{in}$.
+Note that we cannot push this in as a substitution on $P$,
 otherwise all that happens is that the first enabled action keeps running.
 
 We capture this as the following definition of $run$,
-which we also expand a few times.
+which we also expand once:
 \RLEQNS{
 \lefteqn{run(P)}
 \\ &\defs&
-   (\lnot ls(\ell_{g:}) * P[\g{::},\ell_{g},\ell_{g:}/g,in,out])[\ell_g/ls]
-\EQ{unroll loop body once, because $\lnot ls(\ell_{g:}[\ell_g/ls]$ is true}
-\\&& P[\g{::},\ell_{g},\ell_{g:}/g,in,out][\ell_g/ls]
-     ;
-     (\lnot ls(\ell_{g:}) * P[\g{::},\ell_{g},\ell_{g:}/g,in,out])
-\EQ{substitution composition}
-\\&& P[\g{::},\ell_{g},\ell_{g:},\ell_g/g,in,out,ls]
-     ;
-     (\lnot ls(\ell_{g:}) * P[\g{::},\ell_{g},\ell_{g:}/g,in,out])
+   (\lnot ls(out) * P)[in/ls]
+\EQ{unroll loop body once, because $\lnot ls(out)[in/ls]$ is true}
+\\&& P[in/ls] ; (\lnot ls(out) * P)
 }
-Note that neither $in$, $out$ nor $ls$ are free in $run(P)$.
 \begin{code}
-defnRun 3 d [p]
- = idefn 3 shPRun $ mkSeq (runFirst p) (runLoop p)
 defnRun 2 d [p]
- = idefn 2 shPRun $ mkSeq (psub (runBody p) [("ls",lg)]) (runLoop p)
+ = idefn 2 shPRun $ mkSeq (psub p [("ls",inp)]) (runLoop p)
 defnRun _ d [p]
- = idefn 0 shPRun $ mkPSub (runLoop p) [("ls",lg)]
+ = idefn 1 shPRun $ mkPSub (runLoop p) [("ls",inp)]
 
 idefn i str = ldefn (str++'(':show i++")")
 
-runFirst p = psub p [("g",g''),("in",lg),("out",lg'),("ls",lg)]
-runBody p  = psub p [("g",g''),("in",lg),("out",lg')]
-runLoop p  = bIter (bNot $ atm $ subset (mkSet [lg']) ls) (runBody p)
-
-lg' = new1 g'
-g'' = new2 g'
+runLoop p  = bIter (bNot $ atm $ subset (mkSet [out]) ls) p
 
 prunEntry :: (Show s, Ord s) => Int -> (String, Entry s)
 prunEntry n
@@ -916,15 +897,15 @@ prunEntry n
 
 
 An extension to $run$, called $do$ explicitly mentions the fact
-that $in$, $out$ and $ls$ are initialised appropriately.
+that $ls$ is initialised appropriately.
 \RLEQNS{
-    do(P) &\defs& in=\ell_g \land out=\ell_{g:} \land ls=\ell_g \land run(P)
+    do(P) &\defs& ls=\setof{in} \land run(P)
 }
 \begin{code}
 nPDo = "PDo"
 isPDo (_,Comp n [_]) | n==nPDo = True; isPDo _ = False
 
-doprog p = comp "do" [p] -- "do" is a Haskell keyword
+doprog p = comp nPDo [p] 
 
 shPDo = "do"
 ppPDo d ms p [mpr]
@@ -934,8 +915,7 @@ ppPDo d ms p mprs = pps styleRed $ ppa ("invalid-"++shPDo)
 
 
 defnDo d [p]
- = ldefn shPDo
-     $ mkAnd [ equal inp lg, equal out lg', equal ls lg, run p ]
+ = ldefn shPDo $ mkAnd [ equal ls inp, run p ]
 
 pdoEntry :: (Show s, Ord s) => (String, Entry s)
 pdoEntry
@@ -995,7 +975,7 @@ semUTCPDict
     , pparEntry
     , pcondEntry
     , piterEntry
-    , prunEntry 3
+    , prunEntry 2
     , pdoEntry
     ]
 \end{code}

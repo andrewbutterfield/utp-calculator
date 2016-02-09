@@ -302,6 +302,20 @@ All other cases are as simple as can be, considering\ldots
 simplify d m mpr@(ms,pr) = ( mpr, "", mpr)
 \end{code}
 
+\HDRd{Simplify ``Double-Tap''}
+
+It is often worth running simplify twice!
+\begin{code}
+simplify2 :: (Ord s, Show s)
+          => Dict s -> Mark -> MPred s -> BeforeAfter s
+simplify2 d m mpr
+ = let simp1@(before,what1,middle) = simplify d m mpr
+       simp2@(_,     what2,after ) = simplify d m middle
+   in if null what1
+       then simp1
+       else (before,what1,after)
+\end{code}
+
 \newpage
 \HDRc{Equality Predicate Simplification}~
 \begin{code}

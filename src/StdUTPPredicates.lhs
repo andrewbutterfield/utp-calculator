@@ -217,8 +217,7 @@ simpSeq d [ mpr1, mpr2    ]
 seqEntry :: (Show s, Ord s) => (String, Entry s)
 seqEntry
  = ( nSeq
-   , PredEntry False ppSeq []
-               (pNoChg nSeq) simpSeq )
+   , PredEntry False ppSeq [] (pNoChg nSeq) simpSeq )
 
 -- build an Seq at the MPred level
 bSeq mpr1 mpr2 = noMark $ mkSeq mpr1 mpr2
