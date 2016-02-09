@@ -255,6 +255,36 @@ dictW3E :: (Ord s, Show s) => Dict s
 dictW3E = w3SetDict `dictMrg` w3GenDict
 \end{code}
 
+\HDRb{Updating Standard UTP}\label{hb:update-std-UTP}
+
+We need to update some definitions from standard UTP as follows:
+
+\HDRc{Updating UTP Skip ($\Skip$)}\label{hc:updating-UTP-II}
+
+We know have a concrete definition for $\Skip$,
+as well as a known alphabet.
+\RLEQNS{
+   \Skip &=& ls'=ls \land s'=s
+\\ \alpha \Skip &=& \setof{ls,ls',s,s'}
+}
+\begin{code}
+defnSkip d _ = ldefn shSkip $ mkAnd [equal ls' ls, equal s' s]
+
+w3SkipEntry -- in stdUTPDict
+  = ( nSkip
+     , (snd skipEntry){ alfa = ["ls","ls'","s","s'"]
+                      , pdefn = defnSkip } )
+\end{code}
+
+\HDRc{Updating the Standard UTP Dictionary}
+
+\begin{code}
+w3StdUTPDict :: (Show s, Ord s) => Dict s
+w3StdUTPDict
+  = makeDict [ w3SkipEntry
+             ] `dictMrg` stdUTPDict
+\end{code}
+
 \HDRb{Predicates for WWW}\label{hb:WWW-stmt}
 
 \RLEQNS{
@@ -582,12 +612,14 @@ w3Dict
     `dictMrg` w3CRedEntry
     `dictMrg` w3LoopEntry
     `dictMrg` lawsUTCPDict
-    `dictMrg` stdUTPDict
+    `dictMrg` w3StdUTPDict
     `dictMrg` stdDict
 \end{code}
 
 
 \HDRb{WWW Calculator}\label{hb:WWW-CALC}
+
+\HDRc{Display, Calculate, Simplify}
 
 \begin{code}
 w3show :: (Show s, Ord s) => MPred s -> String
@@ -595,7 +627,6 @@ w3show = pmdshow 80 w3Dict noStyles
 
 w3put :: (Show s, Ord s) => MPred s -> IO ()
 w3put = putStrLn . w3show
-
 
 w3calc mpr = calcREPL w3Dict mpr
 w3putcalc :: (Ord s, Show s) => MPred s -> IO ()
@@ -607,4 +638,15 @@ w3simp mpr
   where (_,what,mpr') = simplify w3Dict 42 mpr
 w3simp2 :: (Show s, Ord s) => (String, MPred s) -> (String, MPred s)
 w3simp2 = w3simp . snd
+\end{code}
+
+\HDRc{Test Constructs}
+
+\begin{code}
+atomA = patm pA
+atomB = patm pB
+athenb = atomA `wseq` atomB
+
+subII :: (Show s, Ord s) => MPred s
+subII = psub bSkip [("g",g'1),("out",lg)]
 \end{code}

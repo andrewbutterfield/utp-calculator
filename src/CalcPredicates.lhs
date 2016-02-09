@@ -19,6 +19,7 @@ Smart constructors and equality testing for substitutions.
 mkSub e []  = e
 mkSub e sub = Sub e $ sort sub
 
+mkPSub :: Ord s => MPred s -> [(String, Expr s)] -> Pred s
 mkPSub (_,pr) []  = pr
 mkPSub mpr sub = PSub mpr $ sort sub
 

@@ -171,7 +171,8 @@ nSkip = "Skip" ; isSkip  = isComp nSkip
 
 mkSkip = Comp nSkip []
 
-ppSkip d _ p _ = ppa "II"
+shSkip = "II"
+ppSkip d _ p _ = ppa shSkip
 
 simpSkip d _ = ("",mkSkip)
 

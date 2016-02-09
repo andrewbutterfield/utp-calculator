@@ -251,9 +251,10 @@ Assembling the result:
 
 For predicate substitutions,
 we first simplify the substitution part,
-and them
-make a distinction between predicate variables,
-and general predicates.
+and then
+make a distinction between predicate variables and nullary composites
+on the one hand,
+and composites of at least one component on the other.
 \begin{code}
 simplify d m mpr@(ms,(PSub spr subs))
  = sbstsimp (ssimp d subs) spr
@@ -273,12 +274,25 @@ which can be used to remove some elements from the substitution.
        -> ( addMark m mpr
           , "pvar-substn"
           , addMark m
+             -- should check that filter below makes a change!
+             (ms,mkPSub spr $ filter ((`elem` alf) . fst) subs'))
+      _ -> (mpr,"",mpr)
+\end{code}
+Nullary composites are treated the same:
+\begin{code}
+  sbstsimp (subchgd,subs') spr@(mp,Comp p [])
+   = case plookup p d of
+      Just (PredEntry _ _ alf _ _)
+       -> ( addMark m mpr
+          , "null-comp-substn"
+          , addMark m
+             -- should check that filter below makes a change!
              (ms,mkPSub spr $ filter ((`elem` alf) . fst) subs'))
       _ -> (mpr,"",mpr)
 \end{code}
 In the general case,
 we simplify both predicate and substitution parts,
-and combine.s
+and combine
 \begin{code}
   sbstsimp (subschgd,subs') spr
    = let
