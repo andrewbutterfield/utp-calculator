@@ -255,35 +255,6 @@ dictW3E :: (Ord s, Show s) => Dict s
 dictW3E = w3SetDict `dictMrg` w3GenDict
 \end{code}
 
-\HDRb{Updating Standard UTP}\label{hb:update-std-UTP}
-
-We need to update some definitions from standard UTP as follows:
-
-\HDRc{Updating UTP Skip ($\Skip$)}\label{hc:updating-UTP-II}
-
-We know have a concrete definition for $\Skip$,
-as well as a known alphabet.
-\RLEQNS{
-   \Skip &=& ls'=ls \land s'=s
-\\ \alpha \Skip &=& \setof{ls,ls',s,s'}
-}
-\begin{code}
-defnSkip d _ = ldefn shSkip $ mkAnd [equal ls' ls, equal s' s]
-
-w3SkipEntry -- in stdUTPDict
-  = ( nSkip
-     , (snd skipEntry){ alfa = ["ls","ls'","s","s'"]
-                      , pdefn = defnSkip } )
-\end{code}
-
-\HDRc{Updating the Standard UTP Dictionary}
-
-\begin{code}
-w3StdUTPDict :: (Show s, Ord s) => Dict s
-w3StdUTPDict
-  = makeDict [ w3SkipEntry
-             ] `dictMrg` stdUTPDict
-\end{code}
 
 \HDRb{Predicates for WWW}\label{hb:WWW-stmt}
 
@@ -304,6 +275,36 @@ precWCond = 5 + precSpacer  1
 precWPar  = 5 + precSpacer  2
 precWSeq  = 5 + precSpacer  3
 precWIter = 5 + precSpacer  6
+\end{code}
+
+\HDRc{Updating Standard UTP}\label{hc:update-std-UTP}
+
+We need to update some definitions from standard UTP as follows:
+
+\HDRd{Updating UTP Skip ($\Skip$)}\label{hd:updating-UTP-II}
+
+We know have a concrete definition for $\Skip$,
+as well as a known alphabet.
+\RLEQNS{
+   \Skip &=& ls'=ls \land s'=s
+\\ \alpha \Skip &=& \setof{ls,ls',s,s'}
+}
+\begin{code}
+defnSkip d _ = ldefn shSkip $ mkAnd [equal ls' ls, equal s' s]
+
+w3SkipEntry -- in stdUTPDict
+  = ( nSkip
+     , (snd skipEntry){ alfa = ["ls","ls'","s","s'"]
+                      , pdefn = defnSkip } )
+\end{code}
+
+\HDRd{Updating the Standard UTP Dictionary}
+
+\begin{code}
+w3StdUTPDict :: (Show s, Ord s) => Dict s
+w3StdUTPDict
+  = makeDict [ w3SkipEntry
+             ] `dictMrg` stdUTPDict
 \end{code}
 
 \HDRc{Healthiness Predicates}
@@ -619,7 +620,6 @@ w3Dict
 
 \HDRb{WWW Calculator}\label{hb:WWW-CALC}
 
-\HDRc{Display, Calculate, Simplify}
 
 \begin{code}
 w3show :: (Show s, Ord s) => MPred s -> String
@@ -640,7 +640,82 @@ w3simp2 :: (Show s, Ord s) => (String, MPred s) -> (String, MPred s)
 w3simp2 = w3simp . snd
 \end{code}
 
-\HDRc{Test Constructs}
+
+\HDRb{Building the Theory}\label{hb:building-WWW}
+
+We need to establish the laws we need for easy calculation
+in this theory.
+We start with the calculation of the expansion of $\A(B)$%
+\footnote{Noting that the full expansion may just become
+a single reduction step}%
+:
+\RLEQNS{
+  && \A(B)
+\EQ{\texttt{'d'},defn. $\A$}
+\\&& \W(ls(in) \land B \land ls'=ls\ominus(in|out))
+\EQ{\texttt{'d'}, defn. $\W$}
+\\&&\lnot ls(out) * (ls(in) \land B \land ls'=ls\ominus(in|out))
+\EQ{\texttt{'l'}, loop unroll, obvious fold as shorthand}
+\\&& (ls(in) \land B \land ls'=ls\ominus(in|out) ; \W(\_))
+     \cond{\lnot ls(out)} \Skip
+\EQ{\texttt{'d'}, defn. $\cond{}$}
+\\&& \lnot ls(out) \land ls(in) \land B \land ls'=ls\ominus(in|out) ; \W(\_)
+\\&\lor& ls(out) \land \Skip
+\EQ{\texttt{'r'}, \ref{hd:prop-new-labels}}
+\\&& \lnot ls(out) \land ls(in) \land B \land ls'=ls\ominus(in|out)
+     ; ls(out) \land \W(\_)
+\\&\lor& ls(out) \land \Skip
+\EQ{\texttt{'r'}, $ls(out)\land\W(\_) = ls(out)\land \Skip$, or $c\land(\lnot c * P) = c \land \Skip$}
+\\&& \lnot ls(out) \land ls(in) \land B \land ls'=ls\ominus(in|out)
+     ; ls(out) \land \Skip)
+\\&\lor& ls(out) \land \Skip
+\EQ{\texttt{'r'} doing \ref{hd:prop-new-labels} backwards}
+\\&& \lnot ls(out) \land ls(in) \land B \land ls'=ls\ominus(in|out)
+     ; \Skip
+\\&\lor& ls(out) \land \Skip
+\EQ{\texttt{'r'} $P;\Skip = P$}
+\\&& \lnot ls(out) \land ls(in) \land B \land ls'=ls\ominus(in|out)
+\\&\lor& ls(out) \land \Skip
+}
+
+
+\HDRd{Propagate New Labels}\label{hd:prop-new-labels}
+
+Reduction Law:
+\RLEQNS{
+   P \land ls'=ls\ominus(L_1|L_2) ; Q
+   &=&
+P \land ls'=ls\ominus(L_1|L_2) ; ls(L_2) \land Q,
+\\ &&\textbf{ provided } L_2 \textbf{ is ground}
+}
+
+\textbf{Motivation/Justification:}
+We want $P \land ls'=ls\ominus(in|out) ; Q$
+to propagate the fact that $ls$ has been updated to $Q$.
+
+Some known laws:
+\RLEQNS{
+   P \land x'=e ; Q &=& P \land x'=e ; Q[e/x]
+      ,\textbf{ given } e \textbf{ is ground }
+}
+We find the above law only works if $e = e[O_m/O]$ which can only happen
+if $e$ is ground, i.e., contains no dynamic (pre-)observations.
+What we really want is:
+\RLEQNS{
+   P \land ls'=ls\ominus(in|out) ; Q
+   &=&
+   P \land ls'=ls\ominus(in|out) ; ls(out) \land Q
+}
+We have a key property of $\ominus$ we can exploit:
+\RLEQNS{
+   S' = S \ominus (T|V) &\implies& S'(V)
+}
+so the remaining general law we need is
+$P \land S'(V) ; Q = P \land S'(V) ; S(V) \land Q$,
+provided $V$ is ground.
+This gives us the desired reduction law above.
+
+\HDRc{Test Constructs}\label{hc:test-constructs}
 
 \begin{code}
 atomA = patm pA
