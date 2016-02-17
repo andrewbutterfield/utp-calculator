@@ -75,7 +75,7 @@ evalSet _ _ = none
 \end{code}
 
 
-\HDRd{Set Membership}\label{hd:membership}~
+\HDRd{Set Membership/Subset}\label{hd:membership}~
 
 This is complicated by the fact we interpret
 non-set expressions as singleton sets,
@@ -98,6 +98,69 @@ dosubset d es1 es2 -- is es1 a subset of es2 ?
   where
     es1lesses2 = es1 \\ es2
 \end{code}
+
+Set binary operator precedence ordering,
+loosest to tightest:
+$\cup,\cap,\setminus$.
+\begin{code}
+-- expression precedences not supported yet!
+precUnion = precSpacer  11
+precIntsc = precSpacer  12
+precSDiff = precSpacer  13
+\end{code}
+
+\HDRd{Set Binary Operators}\label{hd:set-binops}~
+
+\begin{code}
+unionn = "U"
+u s1 s2 = App unionn [s1,s2]
+evalUnion d [App "set" es1,App "set" es2] = dounion d es1 es2
+evalUnion d [es1,App "set" es2] = dounion d [es1] es2
+evalUnion d [App "set" es1,es2] = dounion d es1 [es2]
+evalUnion d [es1,es2] = dounion d [es1] [es2]
+evalUnion _ _ = none
+dounion d es1 es2
+  | all (isGround d) es1es2  =  ( "union", mkSet es1es2 )
+  | otherwise        =  none
+  where
+    es1es2 = es1 ++ es2
+ppUnion d ss = "("  ++ dlshow d " U " ss ++ ")"
+\end{code}
+
+\begin{code}
+intn = "I"
+i s1 s2 = App intn [s1,s2]
+evalIntsct d [App "set" es1,App "set" es2] = dointsct d es1 es2
+evalIntsct d [es1,App "set" es2] = dointsct d [es1] es2
+evalIntsct d [App "set" es1,es2] = dointsct d es1 [es2]
+evalIntsct d [es1,es2] = dointsct d [es1] [es2]
+evalIntsct _ _ = none
+dointsct d es1 es2
+  | all (isGround d) es1es2  =  ( "intersect", mkSet es1es2 )
+  | otherwise        =  none
+  where
+    es1es2 = es1 `intersect` es2
+ppIntsct d ss = "("  ++ dlshow d " I " ss ++ ")"
+\end{code}
+
+
+\begin{code}
+sdiffn = "\\"
+sdiff s1 s2 = App sdiffn [s1,s2]
+evalSDiff d [App "set" es1,App "set" es2] = dosdiff d es1 es2
+evalSDiff d [es1,App "set" es2] = dosdiff d [es1] es2
+evalSDiff d [App "set" es1,es2] = dosdiff d es1 [es2]
+evalSDiff d [es1,es2] = dosdiff d [es1] [es2]
+evalSDiff _ _ = none
+dosdiff d es1 es2
+  | all (isGround d) es1es2  =  ( "setminus", mkSet es1es2 )
+  | otherwise        =  none
+  where
+    es1es2 = es1 \\ es2
+ppSDiff d ss = "("  ++ dlshow d " \\ " ss ++ ")"
+\end{code}
+
+ 
 
 \HDRb{Shorthands}
 
@@ -157,6 +220,9 @@ vSetDict :: (Eq s, Ord s, Show s) => Dict s
 vSetDict
  = makeDict
     [ (setn,(ExprEntry True showSet evalSet))
+    , (unionn,(ExprEntry True ppUnion evalUnion))
+    , (intn,(ExprEntry True ppIntsct evalIntsct))
+    , (sdiffn,(ExprEntry True ppSDiff evalSDiff))
     , (subsetn,(ExprEntry True showSubSet evalSubset))
     , (sswapn, (ExprEntry True showSSwap evalSSwap))
     ]
@@ -295,7 +361,7 @@ vSkipEntry -- in stdUTPDict
                       , pdefn = defnSkip } )
 \end{code}
 
-\HDRd{Updating the Standard UTP Dictionary}
+\HDRd{Updating the Standard UTP Dictionary}~
 
 \begin{code}
 vStdUTPDict :: (Show s, Ord s) => Dict s
@@ -322,7 +388,7 @@ coupled with expansion of the definition of conditionals:
    (c \land P)^n ; c * P
 \end{equation}
 From this we define the following shorthands,
-and suggest two important calcualtions:
+and suggest two important calculations:
 \begin{eqnarray*}
    W &\defs& c * P
 \\ D &\defs& \lnot c \land \Skip \EOLC{Done}
@@ -331,213 +397,6 @@ and suggest two important calcualtions:
 \\ T &\defs& D ; D \EOLC{Two-Step}
 \end{eqnarray*}
 
-We note some laws that apply to composition of $D$ with various
-things, given certain substitutions, and noting that for us,
-$D$ always has a specific instantiation:
-\begin{eqnarray*}
-   D &=& \LS{out} \land \Skip
-\\ D ; D &= & D
-\\ P \land \LSd{\ell} ; D[\ell/out] &=&  P \land \LSd{\ell}
-\\ P \land \LSd{\B\ell} ; D[\ell/out] &=&  false
-\\ D[\ell_1/out] ; D[\ell_2/out] &=& false,\textbf{ if }\ell_1/\neq\ell_2
-\end{eqnarray*}
-
-We now illustrate with the definition of $a$,
-using subscripts indicating that we are instantiating the above shorthands
-w.r.t. the semantics of $a$:
-
-\begin{eqnarray*}
-   a &\defs& \W( \LS{in} \land \ado a \land \LUPD{in}{out} )
-\\ &=& W_a
-\\ D &\defs& \D \EOLC{Independent of $a$.}
-\\ S_a &\defs& \LS{\B{out}}
-               \land \LS{in} \land \ado a \land \LUPD{in}{out}
-\\ L_a &\defs& S_a ; D
-\\ &=& \LS{\B{out}}
-               \land \LS{in} \land \ado a \land \LUPD{in}{out}
-\\ && {} ; \LS{out} \land \Skip
-\EQ{shorthand law, and $\Skip$ is $;$-identity}
-\\ && \LS{\B{out}}
-               \land \LS{in} \land \ado a \land \LUPD{in}{out}
-\\ T_a &\defs& S_a ; S_a
-\\ &=& \LS{\B{out}}
-               \land \LS{in} \land \ado a \land \LUPD{in}{out}
-\\ && {} ; \LS{\B{out}}
-               \land \LS{in} \land \ado a \land \LUPD{in}{out}
-\EQ{shorthand law}
-\\ && \LS{\B{out}}
-               \land \LS{in} \land \ado a \land \LUPD{in}{out}
-\\ && {} ; \LS{out} \land \LS{\B{out}}
-               \land \LS{in} \land \ado a \land \LUPD{in}{out}
-\\ &=& false
-\end{eqnarray*}
-We see that all terms $S_a^i$ for $i \geq 2$ just vanish, so
-\begin{eqnarray*}
-   a &=& D \lor L_a
-\\ &=& \D \;\lor\; \LS{\B{out}}
-               \land \LS{in} \land \ado a \land \LUPD{in}{out}
-\end{eqnarray*}
-
-
-We overload sequential composition as follows:
-\begin{eqnarray*}
-   \ado{a;b} &=& \ado a ; \ado b
-\end{eqnarray*}
-
-Now we look at $a \cseq b$:
-\begin{eqnarray*}
-   a \cseq b
-   &=& \W(a[g_{:1},\ell_g/g,out] \lor b[g_{:2},\ell_g/g,in])
-\\ &=& W_;
-\\ D &\defs& \D \EOLC{Independent of $a\cseq b$.}
-\\ S_; &=& a[g_{:1},\ell_g/g,out] \lor b[g_{:2},\ell_g/g,in]
-\EQ{calc. of $a$ above}
-\\ && (D \lor L_a)[g_{:1},\ell_g/g,out]
-      \lor
-      (D \lor L_b)[g_{:2},\ell_g/g,in]
-\\&=& \LS{\ell_g} \land \Skip
-      \lor \LS{\B{\ell_g}}
-           \land \LS{in} \land \ado a \land \LUPD{in}{\ell_g} \lor {}
-\\&& \LS{out} \land \Skip
-      \lor \LS{\B{out}}
-           \land \LS{\ell_g} \land \ado b \land \LUPD{\ell_g}{out}
-\\ L_; &=& S_; ; D
-\\ &=& (~\LS{\ell_g} \land \Skip
-      \lor \LS{\B{\ell_g}}
-           \land \LS{in} \land \ado a \land \LUPD{in}{\ell_g} \lor {}
-\\&& \LS{out} \land \Skip
-      \lor \LS{\B{out}}
-           \land \LS{\ell_g} \land \ado b \land \LUPD{\ell_g}{out}~)
-\\&& {} ; \LS{out} \land \Skip
-\\ &=& (\LS{\ell_g} \land \Skip ; \LS{out} \land \Skip) \lor{}
-\\ &&  (\LS{\B{\ell_g}}
-       \land \LS{in} \land \ado a \land \LUPD{in}{\ell_g}
-       ; \LS{out} \land \Skip) \lor {}
-\\ &&  (\LS{out} \land \Skip ; \LS{out} \land \Skip )\lor {}
-\\ &&  (\LS{\B{out}}
-           \land \LS{\ell_g} \land \ado b \land \LUPD{\ell_g}{out}
-           ; \LS{out} \land \Skip )
-\\ &=& \LS{out} \land \Skip \lor
-       \LS{\B{out}}
-       \land \LS{\ell_g} \land \ado b \land \LUPD{\ell_g}{out}
-\\ S_; ; L_; &=&
-     \LS{\ell_g} \land \Skip \lor{}
-\\&& \LS{\B{\ell_g}}
-           \land \LS{in} \land \ado a \land \LUPD{in}{\ell_g} \lor {}
-\\&& \LS{out} \land \Skip \lor {}
-\\&&\LS{\B{out}}
-           \land \LS{\ell_g} \land \ado b \land \LUPD{\ell_g}{out}
-\\&& ;
-\\&& \LS{out} \land \Skip \lor {}
-\\&& \LS{\B{out}}
-       \land \LS{\ell_g} \land \ado b \land \LUPD{\ell_g}{out}
-\end{eqnarray*}
-We pause here, to do a little methodological innovation.
-We introduce the notion of a ``label-type''
-which is a  list of labels (in $\ltype\dots$),
-which might be dashed,
-and might be prefixed with negation.
-We interpret these as follows:
-
-\begin{tabular}{|c|c|}
-  \hline
-  % after \\: \hline or \cline{col1-col2} \cline{col3-col4} ...
-  $\ell$ & we assert $ls(\ell)$ \\
-  $\B\ell$ & we assert $\lnot ls(\ell)$ \\
-  $\ell'$ & we assert $ls'(\ell)$ \\
-  $\B\ell'$ & we assert $\lnot ls'(\ell)$ \\
-  \hline
-\end{tabular}
-
-These lists are interpreted as conjunction.
-This helps us to quickly spot predicates that reduce to
-contradictions when sequentially composed.
-Here is $S_; ; L_;$ with label-types added
-\RLEQNS{
-   S_; ; L_; &=&
-     \LS{\ell_g} \land \Skip \lor{}
-      & \ltype{\ell_g,\ell'_g}
-\\&& \LS{\B{\ell_g}}
-           \land \LS{in} \land \ado a \land \LUPD{in}{\ell_g} \lor {}
-      & \ltype{\B{\ell_g},in,\B{in'}, \ell'_g}
-\\&& \LS{out} \land \Skip \lor {}
-     & \ltype{out,out'}
-\\&&\LS{\B{out}}
-           \land \LS{\ell_g} \land \ado b \land \LUPD{\ell_g}{out}
-           & \ltype{\B{out},\ell_g,\B{\ell'_g},out'}
-\\&& ;
-\\&& \LS{out} \land \Skip \lor {}  & \ltype{out,out'}
-\\&& \LS{\B{out}}
-       \land \LS{\ell_g} \land \ado b \land \LUPD{\ell_g}{out}
-       & \ltype{\B{out},\ell_g,\B{\ell'_g},out'}
-}
-We see that the last two disjuncts of $S_;$ contradict the last disjunct
-of $L_;$, so we get
-\begin{eqnarray*}
-  &&
-     \LS{\ell_g} \land \Skip ; \LS{out} \land \Skip \lor{}
-\\&& \LS{\B{\ell_g}}
-           \land \LS{in} \land \ado a \land \LUPD{in}{\ell_g}
-            ; \LS{out} \land \Skip\lor {}
-\\&& \LS{out} \land \Skip ;\LS{out} \land \Skip\lor {}
-\\&&\LS{\B{out}}
-           \land \LS{\ell_g} \land \ado b \land \LUPD{\ell_g}{out}
-           ; \LS{out} \land \Skip \lor {}
-\\&&
-     \LS{\ell_g} \land \Skip
-     ; \LS{\B{out}}
-       \land \LS{\ell_g} \land \ado b \land \LUPD{\ell_g}{out} \lor{}
-\\&& \LS{\B{\ell_g}}
-           \land \LS{in} \land \ado a \land \LUPD{in}{\ell_g}
-            ; \LS{\B{out}}
-       \land \LS{\ell_g} \land \ado b \land \LUPD{\ell_g}{out}
-\EQ{with care\dots}
-\\&&\LS{\ell_g} \land\LS{out} \land \Skip
-\\&& \LS{\B{\ell_g}}
-           \land \LS{in} \land \ado a \land \LUPD{in}{\ell_g}
-            \land \LSd{out} \lor {}
-\\&& \LS{out} \land \Skip  \lor {}
-\\&&\LS{\B{out}}
-           \land \LS{\ell_g} \land \ado b \land \LUPD{\ell_g}{out}
-           \lor {}
-\\&& \LS{\B{out}}
-       \land \LS{\ell_g} \land \ado b \land \LUPD{\ell_g}{out} \lor{}
-\\&& \LS{\B{\ell_g}} \land \LS{in} \land \LS{\B{out}}
-    \land \ado{a;b}\land \LUPD{in}{out}
-\EQ{\ldots tidy-up}
-\\&& \LS{out} \land \Skip \lor {}
-\\&& \LS{\B{\ell_g}}
-           \land \LS{in} \land \ado a \land \LUPD{in}{\ell_g}
-            \land \LSd{out} \lor {}
-\\&& \LS{\B{out}}
-       \land \LS{\ell_g} \land \ado b \land \LUPD{\ell_g}{out} \lor{}
-\\&& \LS{\B{\ell_g}} \land \LS{in} \land \LS{\B{out}}
-    \land \ado{a;b}\land \LUPD{in}{out}
-\end{eqnarray*} Hmmm\dots
-
-We look at $S_;^2 ; L_;$ now.
-\RLEQNS{
-   S^2_; ; L_; &=&
-     \LS{\ell_g} \land \Skip \lor{}
-      & \ltype{\ell_g,\ell'_g}
-\\&& \LS{\B{\ell_g}}
-           \land \LS{in} \land \ado a \land \LUPD{in}{\ell_g} \lor {}
-      & \ltype{\B{\ell_g},in,\B{in'}, \ell'_g}
-\\&& \LS{out} \land \Skip \lor {}
-     & \ltype{out,out'}
-\\&&\LS{\B{out}}
-           \land \LS{\ell_g} \land \ado b \land \LUPD{\ell_g}{out}
-           & \ltype{\B{out},\ell_g,\B{\ell'_g},out'}
-\\&& ;
-\\&& \LS{out} \land \Skip \lor {}
-\\&& \LS{\B{\ell_g}}
-           \land \LS{in} \land \ado a \land \LUPD{in}{\ell_g}
-            \land \LSd{out} \lor {}
-\\&& \LS{\B{out}}
-       \land \LS{\ell_g} \land \ado b \land \LUPD{\ell_g}{out} \lor{}
-\\&& \LS{\B{\ell_g}} \land \LS{in} \land \LS{\B{out}}
-    \land \ado{a;b}\land \LUPD{in}{out}
-}
 
 \HDRb{Atomic Shorthands}
 
@@ -545,32 +404,56 @@ We find essentially just two idioms here,
 where $L$, $I$, $O$, $R$ and $A$ are lists of labels,
 with $I \cap O = \emptyset$ and $R \cap A = \emptyset$:
 \begin{eqnarray*}
-   D(L) &\defs&  \LS{L} \land \Skip
-\\ &=& ls(L) \land s'=s \land ls'=ls
+   D(L) &\defs&  ls(L) \land s'=s \land ls'=ls
 \\ &=& ls(L) \land s'=s \land ls'=ls \land ls'(L)
-\\ &=& \LS{L} \land \Skip \land \LSd{L}
-\\ &:&  \ltype{L,L'}
-\\ A(I,O,as,R,A,L)
-   &\defs& \LS{I} \land \LS{\B O}
-           \land \ado{as}
-           \land \LUPD{R}{A} \land \LSd{L}
-\\ &=& ls(I) \land ls(\B O) \land \ado{as}
+\end{eqnarray*}
+\begin{code}
+nD = "D"
+isD (_,Comp n [_]) | n==nD = True; isD _ = False
+
+bD ell = comp nD [atm ell]
+
+shD = "D"
+ppD d ms p mprs@[(_,Atm _)] = stdCshow d ms shD mprs
+ppD d ms p mprs = pps styleRed $ ppa ("invalid-"++shD)
+
+-- we don't want to expand the definition of this
+vDEntry :: (Show s, Ord s) => (String, Entry s)
+vDEntry
+ = ( nD
+   , PredEntry False ppD [] (pNoChg nD) (pNoChg nD) )
+\end{code}
+\begin{eqnarray*}
+   A(I,O,as,R,A,L)
+   &\defs& ls(I) \land ls(\B O) \land \ado{as}
        \land ls'=ls\ominus(R|A) \land ls'(L)
-\\ &:& \ltype{I,\B O,\B{R'\setminus A'},L',A'}
 \\ &=& I \cap O = \emptyset \land ls(I) \land ls(\B O)
 \\ && {} \land \ado{as}
-\\ && {} \land ls'=ls\ominus(R|A) \land ls'(L)
+\\ && {} \land ls'=ls\ominus(R|A) \land ls'(A \cup L)
          \land (R\setminus A) \cap L = \emptyset
+\\ &=& A(I,O,as,R,A,A\cup L)
 \end{eqnarray*}
-The first and second lines above in each definition/expansion
-are the so-called ``implicit'' forms,
-in that we have a minimal complete description,
-but without any explicit identification of situations that force
-the predicate to evaluate to false.
-The last version of $A$ above is the so-called ``explicit-form'',
-which states the relationships on parameters $I$, $O$, $R$, $A$ and $L$
-that most hold in order for the predicate not to be false everywhere.
+\begin{code}
+nA = "A"
+isA (_,Comp n [_]) | n==nA = True; isA _ = False
 
+bA lI lO as lR lA lL
+ = comp nA [atm lI,atm lO,as,atm lR,atm lA,atm (lA `u` lL)]
+
+shA = "A"
+ppA d ms p mprs@[(_,Atm _),(_,Atm _),_,(_,Atm _),(_,Atm _),(_,Atm _)] 
+ = stdCshow d ms shD mprs
+ppA d ms p mprs = pps styleRed $ ppa ("invalid-"++shA)
+
+-- we don't want to expand the definition of this
+vAEntry :: (Show s, Ord s) => (String, Entry s)
+vAEntry
+ = ( nA
+   , PredEntry False ppA [] (pNoChg nA) (pNoChg nA) )
+\end{code}
+We have both an `implicit' form which is a minimalist
+definition of behaviour, along with an `explicit' form
+that expresses all the logical consequences.
 
 
 We get the following laws (implicit form):
@@ -602,13 +485,11 @@ We get the following laws (implicit form):
 Full forms
 \begin{eqnarray*}
    D(L)
-   &\defs& \LS{L} \land \Skip
-\\ &  =  & ls(L) \land s'=s \land ls'=ls
+   &\defs& ls(L) \land s'=s \land ls'=ls
 \\
 \\ A(I,O,as,R,A,L)
    &\defs&
-   \LS{I} \land \LS{\B O} \land \ado{as} \land \LUPD{R}{A} \land \LSd{L}
-\\ &  =  & ls(I) \land ls(\B O) \land \ado{as} \land \lupd R A \land ls'(L)
+   ls(I) \land ls(\B O) \land \ado{as} \land \lupd R A \land ls'(L)
 \end{eqnarray*}
 
 \begin{eqnarray*}
@@ -645,8 +526,12 @@ Full forms
 \EQ{$A \subseteq S \land B \subseteq S = (A \cup B) \subseteq S$}
 \\&& ls(L_1 \cup I) \land ls(\B O) \land \ado{as}
      \land ls'=ls \ominus (R|A) \land ls'(L_2)
+\EQ{add explicit condition}
+\\&& (L_1 \cup I) \cap O = \emptyset \land
+     ls(L_1 \cup I) \land ls(\B O) \land \ado{as}
+     \land ls'=ls \ominus (R|A) \land ls'(L_2)
 \EQ{Defn. $A$, fold}
-\\&& A(L_1 \cup I,O,as,R,A,L_2)
+\\&& (L_1 \cup I) \cap O = \emptyset \land A(L_1 \cup I,O,as,R,A,L_2)
 \end{eqnarray*}
 
 \begin{eqnarray*}
@@ -845,8 +730,8 @@ defnW d [mpr] = ldefn shW $ mkIter notlsout mpr
 lsout = atm $ App subsetn [out,ls]
 notlsout = bNot lsout
 
-vEntry :: (Show s, Ord s) => (String, Entry s)
-vEntry
+vWEntry :: (Show s, Ord s) => (String, Entry s)
+vWEntry
  = ( nW
    , PredEntry False ppW [] defnW (pNoChg nW) )
 \end{code}
@@ -1013,7 +898,7 @@ vSeqEntry
 
 \begin{code}
 dictVP :: (Ord s, Show s) => Dict s
-dictVP = makeDict [vEntry,patmEntry,vSeqEntry]
+dictVP = makeDict [vDEntry,vWEntry,patmEntry,vSeqEntry]
 \end{code}
 
 
@@ -1042,31 +927,83 @@ vReduce :: (Ord s, Show s) => DictRWFun s
          -- Dict s -> MPred s -> (String, MPred s)
 \end{code}
 
-The first case we consider is the following law:
-\RLEQNS{
-   P \land ls'=ls\ominus(S_1,S_2) \seq Q
-   &=&
-   P \land ls\ominus(S_1,S_2)=ls'
-   \seq
-   \lnot ls(S_1) \land ls(S_2) \land Q
-\\ && \elabel{sswap-$;$-prop.}
-}
-By flipping the $ls'=ls\ominus(S_1,S_2)$ equality
-we prevent continual re-application of this reduction step.
+We start with laws concerning $D$, $A$ and $\seq$.
+\begin{eqnarray*}
+   D(L_1) ; D(L_2) &=& D(L_1 \cup L_2)
+\end{eqnarray*}
 \begin{code}
-vReduce d mpr@(_,Comp nm1 [mpr1@(_,Comp nm2 mprs1),mpr2])
- | nm1 == nSeq && nm2 == nAnd && isJust match
-     = ( "sswap-;-prop"
-       , bSeq (bAnd  ( before ++
-                        ( equal (sswap ls s1 s2) ls' : after )))
-              (bAnd [ bNot $ atm $ subset s1 ls
-                    , atm $ subset s2 ls
-                    , mpr2
-                    ]))
- where
-   match = matchRecog mtchLabelSetSSwap mprs1
-   Just (before,(_,[(_,Atm s1),(_,Atm s2)]),after) = match
+vReduce d (_,Comp ns [ (_,Comp nd1 [(_,Atm ell1)])    -- D(L1) ;
+                     , (_,Comp nd2 [(_,Atm ell2)]) ]) -- D(L2)
+ | ns == nSeq && nd1 == nD && nd2 == nD
+   =  ( "D;D", bD $ snd $ esimp d (ell1 `u` ell2) )
 \end{code}
+
+\begin{eqnarray*}
+   D(L_1) ;  A(I,O,as,R,A,L_2)
+   &=&
+   (L_1 \cup I) \cap O = \emptyset \land A(L_1\cup I,O,as,R,A,L_2)
+\end{eqnarray*}
+\begin{code}
+vReduce d (_,Comp ns [ (_,Comp nd [(_,Atm ell1)]) -- D(L1) ;
+                     , (_,Comp na [ (_,Atm lI)    -- A(I
+                                  , (_,Atm lO)    --  ,O
+                                  , as            --  ,as 
+                                  , (_,Atm lR)    --  ,R
+                                  , (_,Atm lA)    --  ,A
+                                  , (_,Atm lL2)   --  ,L2)
+                                  ]) 
+                     ])
+ | ns == nSeq && nd == nD && na == nA
+   =  ( "D;A", bAnd [ equal (ell `i` lO) (set [])
+                    , bA ell lO as lR lA lL2 ])
+ where ell = snd $ esimp d (ell1 `u` lI)
+\end{code}
+
+\begin{eqnarray*}
+   A(I,O,as,R,A,L_1) ; D(L_2)
+   &=&
+   A(I,O,as,R,A,L_1\cup L_2) 
+   \land R \cap (A \cup L_1 \cup L_2) = \emptyset
+\end{eqnarray*}
+
+\begin{eqnarray*}
+   A(I_1,O_1,as,R_1,A_1,L_1) ; {}
+\\ A(I_2,O_2,bs,R_2,A_2,L_2)
+   &=&  (L_1 \cup I_2)\setminus A_1 \cap R_1 = \emptyset
+        \land O_2 \cap A_1 = \emptyset \land {}
+\\&& A(~   I_1 \cup I_2\setminus A_1
+      ,~   O_1 \cup O_2\setminus R_1
+\\&& ~~~,~ (as\!\seq\! bs)
+\\&& ~~~,~ R_1 \cup R_2
+      ,~   A_1\setminus R_2 \cup A_2
+      ,~   L_2 ~)
+\end{eqnarray*}
+
+%Consider the following law:
+%\RLEQNS{
+%   P \land ls'=ls\ominus(S_1,S_2) \seq Q
+%   &=&
+%   P \land ls\ominus(S_1,S_2)=ls'
+%   \seq
+%   \lnot ls(S_1) \land ls(S_2) \land Q
+%\\ && \elabel{sswap-$;$-prop.}
+%}
+%By flipping the $ls'=ls\ominus(S_1,S_2)$ equality
+%we prevent continual re-application of this reduction step.
+%\begin{code}
+%vReduce d mpr@(_,Comp nm1 [mpr1@(_,Comp nm2 mprs1),mpr2])
+% | nm1 == nSeq && nm2 == nAnd && isJust match
+%     = ( "sswap-;-prop"
+%       , bSeq (bAnd  ( before ++
+%                        ( equal (sswap ls s1 s2) ls' : after )))
+%              (bAnd [ bNot $ atm $ subset s1 ls
+%                    , atm $ subset s2 ls
+%                    , mpr2
+%                    ]))
+% where
+%   match = matchRecog mtchLabelSetSSwap mprs1
+%   Just (before,(_,[(_,Atm s1),(_,Atm s2)]),after) = match
+%\end{code}
 
 Default case: no change.
 \begin{code}

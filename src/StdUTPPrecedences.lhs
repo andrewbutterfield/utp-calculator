@@ -4,7 +4,7 @@ module StdUTPPrecedences where
 import StdPrecedences
 \end{code}
 
-\input{src/Precedences}
+%\input{src/Precedences}
 
 \newpage
 \HDRb{Standard UTP Predicates}\label{hb:standard-UTP-preds}

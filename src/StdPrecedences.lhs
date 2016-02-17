@@ -3,7 +3,7 @@
 module StdPrecedences where
 \end{code}
 
-\input{src/Precedences}
+%\input{src/Precedences} -- need to add/commit 
 
 \newpage
 \HDRb{Standard Predicates}\label{hb:standard-preds}
