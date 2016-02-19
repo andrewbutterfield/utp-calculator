@@ -139,15 +139,15 @@ allPV vp pr = False
 \end{code}
 
 We also want to know when an expression is ``ground'',
-i.e., has no (free) dynamic observation variables:
+i.e., any free variables are limited to being the static parameters:
 \begin{code}
 isDashed, notDashed :: Ord s => Expr s -> Bool
 isDashed = allEV isDash
 notDashed = allEV notDash
 
 isGround, notGround :: Ord s => Dict s -> Expr s -> Bool
-isGround d = allEV (notDynObs d)
-notGround d = allEV (isDynObs d)
+isGround d = allEV (isStc d)
+notGround d = not . isGround d
 
 unDash, dash :: Ord s => Expr s -> Expr s
 unDash = mapEV remDash
@@ -156,8 +156,6 @@ dash = mapEV addDash
 isCondition :: Ord s => MPred s -> Bool
 isCondition = allPV notDash . snd
 \end{code}
-
-
 
 \newpage
 \HDRc{Definite Predicates}

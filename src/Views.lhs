@@ -487,8 +487,6 @@ We get the following laws (implicit form):
       ,~   L_2 ~)
 \end{eqnarray*}
 
-\HDRc{Proofs}
-
 Full forms
 \begin{eqnarray*}
    D(L)
@@ -499,218 +497,6 @@ Full forms
    ls(I) \land ls(\B O) \land \ado{as} \land \lupd R A \land ls'(L)
 \end{eqnarray*}
 
-\begin{eqnarray*}
-  && D(L_1) \seq D(L_2)
-\EQ{Defn. $D$}
-\\&& ls(L_1) \land s'=s \land ls'=ls \seq ls(L_2) \land s'=s \land ls'=ls
-\EQ{Defn. $\seq$}
-\\&& \exists s_m,ls_m \bullet
-    ls(L_1) \land s_m=s \land ls_m=ls
-    \land ls_m(L_2) \land s'=s_m \land ls'=ls_m
-\EQ{One-point, $s_m,ls_m = s,ls$}
-\\&& ls(L_1) \land ls(L_2) \land s'=s \land ls'=ls
-\EQ{$A \subseteq S \land B \subseteq S = (A \cup B) \subseteq S$}
-\\&& ls(L_1 \cup L_2) \land s'=s \land ls'=ls
-\EQ{Defn. $D$, fold}
-\\&& D(L_1 \cup L_2)
-\end{eqnarray*}
-
-\begin{eqnarray*}
-  && D(L_1) \seq A(I,O,as,R,A,L_2)
-\EQ{Defn. of $D$ and $A$.}
-\\&& ls(L_1) \land s'=s \land ls'=ls
-     \seq
-     ls(I) \land ls(\B O) \land \ado{as} \land \lupd R A \land ls'(L_2)
-\EQ{Defn. of $\seq$.}
-\\&& \exists s_m,ls_m \bullet ls(L_1) \land s_m=s \land ls_m=ls
-\\&& \qquad {} \land
-     ls_m(I) \land ls_m(\B O) \land \ado{as}[s_m/s]
-     \land ls'=ls_m \ominus (R|A) \land ls'(L_2)
-\EQ{One-point, $s_m,ls_m = s,ls$}
-\\&& ls(L_1) \land
-     ls(I) \land ls(\B O) \land \ado{as}
-     \land ls'=ls \ominus (R|A) \land ls'(L_2)
-\EQ{$A \subseteq S \land B \subseteq S = (A \cup B) \subseteq S$}
-\\&& ls(L_1 \cup I) \land ls(\B O) \land \ado{as}
-     \land ls'=ls \ominus (R|A) \land ls'(L_2)
-\EQ{add explicit condition}
-\\&& (L_1 \cup I) \cap O = \emptyset \land
-     ls(L_1 \cup I) \land ls(\B O) \land \ado{as}
-     \land ls'=ls \ominus (R|A) \land ls'(L_2)
-\EQ{Defn. $A$, fold}
-\\&& (L_1 \cup I) \cap O = \emptyset \land A(L_1 \cup I,O,as,R,A,L_2)
-\end{eqnarray*}
-
-\begin{eqnarray*}
-  && A(I,O,as,R,A,L_1) \seq D(L_2)
-\EQ{Defn. of $A$ and $D$.}
-\\&& ls(I) \land ls(\B O) \land \ado{as} \land \lupd R A \land ls'(L_1)
-     \seq
-     ls(L_2) \land s'=s \land ls'=ls
-\EQ{Defn. $\seq$}
-\\&& \exists s_m,ls_m \bullet
-\\&& \quad
-     ls(I) \land ls(\B O) \land \ado{as}[s_m/s']
-     \land ls_m=ls \ominus (R|A) \land ls_m(L_1)
-\\&& {} \land
-     ls_m(L_2) \land s'=s_m \land ls'=ls_m
-\EQ{One-point, $s_m,ls_m = s',ls'$}
-\\&& ls(I) \land ls(\B O) \land \ado{as}
-\land ls'=ls \ominus (R|A) \land ls'(L_1)
-     \land ls'(L_2)
-\EQ{$A \subseteq S \land B \subseteq S = (A \cup B) \subseteq S$}
-\\&& ls(I) \land ls(\B O) \land \ado{as} \land ls'=ls \ominus (R|A)
-     \land ls'(L_1 \cup L_2)
-\EQ{Defn. $A$, fold}
-\\&& A(I,O,as,R,A,L_1 \cup L_2)
-\end{eqnarray*}
-
-\begin{eqnarray*}
-  && A(I_1,O_1,as,R_1,A_1,L_1) \seq A(I_2,O_2,bs,R_2,A_2,L_2)
-\EQ{Defn $A$, twice}
-\\&& ls(I_1) \land ls(\B{O_1}) \land \ado{as}
-     \land \lupd{R_1}{A_1} \land ls'(L_1)
-\\&& {} \seq
-     ls(I_2) \land ls(\B{O_2}) \land \ado{bs}
-     \land \lupd{R_2}{A_2} \land ls'(L_2)
-\EQ{Defn $\seq$.}
-\\&& \exists s_m,ls_m \bullet
-\\&& \qquad ls(I_1) \land ls(\B{O_1}) \land \ado{as}[s_m/s']
-     \land ls_m = ls\ominus(R_1|A_1) \land ls_m(L_1)
-\\&& \quad {} \land
-     ls_m(I_2) \land ls_m(\B{O_2}) \land \ado{bs}[s_m/s]
-     \land ls' = ls_m\ominus(R_2|A_2) \land ls'(L_2)
-\EQ{$A \subseteq S \land B \subseteq S = (A \cup B) \subseteq S$, re-arrange}
-\\&& \exists s_m,ls_m \bullet
-\\&& \qquad ls(I_1) \land ls(\B{O_1}) \land ls_m = ls\ominus(R_1|A_1)
-     \land ls_m(L_1 \cup I_2)
-\\&& \quad {}\land ls_m(\B{O_2}) \land ls' = ls_m\ominus(R_2|A_2) \land ls'(L_2)
-     \land \ado{as}[s_m/s'] \land \ado{bs}[s_m/s]
-\EQ{One-point, $ls_m = ls\ominus(R_1|A_1)$}
-\\&& \exists s_m \bullet ls(I_1) \land ls(\B{O_1})
-     \land (ls\ominus(R_1|A_1))(L_1 \cup I_2)
-\\&& \qquad {}\land (ls\ominus(R_1|A_1))(\B{O_2})
-      \land ls' = (ls\ominus(R_1|A_1))\ominus(R_2|A_2) \land ls'(L_2)
-\\&& \qquad {} \land \ado{as}[s_m/s'] \land \ado{bs}[s_m/s]
-\EQ{Push quantifier in}
-\\&& ls(I_1)  \land ls(\B{O_1})
-     \land (ls\ominus(R_1|A_1))(L_1 \cup I_2)
-\\&& {}\land (ls\ominus(R_1|A_1))(\B{O_2})
-      \land ls' = (ls\ominus(R_1|A_1))\ominus(R_2|A_2) \land ls'(L_2)
-\\&& {}\land \exists s_m \bullet \ado{as}[s_m/s'] \land \ado{bs}[s_m/s]
-\EQ{Defn. of $\seq$ for atomic $as$,$bs$.}
-\\&& ls(I_1)  \land ls(\B{O_1})
-     \land (ls\ominus(R_1|A_1))(L_1 \cup I_2)
-\\&& {}\land (ls\ominus(R_1|A_1))(\B{O_2})
-      \land ls' = (ls\ominus(R_1|A_1))\ominus(R_2|A_2) \land ls'(L_2)
-\\&& {}\land (\ado{as \seq bs})
-\end{eqnarray*}
-We now take stock, and seek to simplify some stuff.
-
-\begin{eqnarray*}
-  && (ls\ominus(R|A))(L)
-\\&=& L \subseteq (ls \setminus R) \cup A
-\\&=&  L \setminus ((ls \setminus R) \cup A) = \emptyset
-\\&=&  L \setminus (A \cup (ls \setminus R)) = \emptyset
-\\&=&  (L \setminus A) \setminus (ls \setminus R) = \emptyset
-\EQ{$A\setminus(B\setminus C) = A\setminus B \cup A\cap C$}
-\\&&  (L \setminus A) \setminus ls
-      \cup
-     (L \setminus A) \cap R = \emptyset
-\\&=&  (L \setminus A) \setminus ls = \emptyset
-      \land
-     (L \setminus A) \cap R = \emptyset
-\\&=&  (L \setminus A) \subseteq ls
-      \land
-     (L \setminus A) \cap R = \emptyset
-\end{eqnarray*}
-
-\begin{eqnarray*}
-  && (ls\ominus(R_1|A_1))(\B{O_2})
-\\&=& O_2 \cap ((ls \setminus R_1) \cup A_1) = \emptyset
-\\&=& O_2 \cap (ls \setminus R_1)  = \emptyset
-      \land
-      O_2 \cap A_1 = \emptyset
-\\&=& ls \cap (O_2 \setminus R_1)  = \emptyset
-      \land
-      O_2 \cap A_1 = \emptyset
-\\&=& ls(\B{O_2 \setminus R_1})
-      \land
-      O_2 \cap A_1 = \emptyset
-\end{eqnarray*}
-
-\begin{eqnarray*}
-  && (ls\ominus(R_1|A_1))\ominus(R_2|A_2)
-\EQ{defn. $\ominus$, twice}
-\\&& (((ls \setminus R_1) \cup A_1) \setminus R_2) \cup A_1
-\EQ{$(A \cup B) \setminus C = (A\setminus C) \cup (B \setminus C)$}
-\\&& (((ls \setminus R_1)\setminus R_2) \cup (A_1\setminus R_2) )\cup A_1
-\EQ{$(A \setminus B) \setminus C = A \setminus (B \cup C)$}
-\\&& (ls \setminus (R_1 \cup R_2)) \cup (A_1\setminus R_2) \cup A_1
-\EQ{Defn $\ominus$, fold}
-\\&& (ls \ominus  (R_1 \cup R_2|(A_1\setminus R_2) \cup A_1)
-\end{eqnarray*}
-
-Now, back into the fray\dots
-\begin{eqnarray*}
-  && ls(I_1)  \land ls(\B{O_1})
-\\&& {}\land (ls\ominus(R_1|A_1))(L_1 \cup I_2)
-\\&& {}\land (ls\ominus(R_1|A_1))(\B{O_2})
-\\&& {}\land ls' = (ls\ominus(R_1|A_1))\ominus(R_2|A_2) \land ls'(L_2)
-\\&& {}\land (\ado{as \seq bs})
-\EQ{three calculations above}
-\\&& ls(I_1)  \land ls(\B{O_1})
-\\&& {}\land ls((L_1 \cup I_2)\setminus A_1)
-       \land (L_1 \cup I_2)\setminus A_1 \cap R_1 = \emptyset
-\\&& {}\land ls(\B{O_2\setminus R_1})
-       \land O_2 \cap A_1 = \emptyset
-\\&& {}\land ls' = ls\ominus(R_1 \cup R_2| A_1\setminus R_2 \cup A_2)
-       \land ls'(L_2)
-\\&& {}\land (\ado{as \seq bs})
-\EQ{re-group}
-\\&& (L_1 \cup I_2)\setminus A_1 \cap R_1 = \emptyset
-     \land O_2 \cap A_1 = \emptyset
-\\&& {}\land ls(I_1)
-       \land ls((L_1 \cup I_2)\setminus A_1)
-\\&& {}\land ls(\B{O_1})
-       \land ls(\B{O_2\setminus R_1})
-\\&& {}\land (\ado{as \seq bs})
-\\&& {}\land ls' = ls\ominus(R_1 \cup R_2| A_1\setminus R_2 \cup A_2)
-       \land ls'(L_2)
-\EQ{merge  and simplify $ls$ assertions}
-\\&& (L_1 \cup I_2)\setminus A_1 \cap R_1 = \emptyset
-     \land O_2 \cap A_1 = \emptyset
-\\&& {}\land ls(I_1 \cup I_2\setminus A_1)
-\\&& {}\land ls(\B{O_1 \cup O_2\setminus R_1})
-\\&& {}\land (\ado{as \seq bs})
-\\&& {}\land ls' = ls\ominus(R_1 \cup R_2| A_1\setminus R_2 \cup A_2)
-       \land ls'(L_2)
-\EQ{Defn. of $A$, fold}
-\\&& (L_1 \cup I_2)\setminus A_1 \cap R_1 = \emptyset
-     \land O_2 \cap A_1 = \emptyset
-\\&& {}\land A( I_1 \cup I_2\setminus A_1
-              , O_1 \cup O_2\setminus R_1
-              , (as\!\seq\! bs)
-              , R_1 \cup R_2
-              , A_1\setminus R_2 \cup A_2
-              , L_2 )
-\end{eqnarray*}
-
-Hmmmm\dots
-We may need to assume explicit false-avoiding and minimalist conditions,
-e.g. for
-\[
-   A(I,O,as,R,A,L)
-\]
-the false avoiding conditions are
-$I \cap O = \emptyset$
-and $L \cap (R \setminus A) = \emptyset$,
-while the minimalist condition is $R \cap A = \emptyset$.
-
-The basic atomic action $a$ has semantics
-\[
-  D(out) \lor A(in,\emptyset,a,in,out,out)
-\]
 
 
 \HDRc{Healthiness Predicates}
@@ -933,10 +719,25 @@ mtchLabelSetSSwap _      =  noMatch
 vReduce :: (Ord s, Show s) => DictRWFun s
          -- Dict s -> MPred s -> (String, MPred s)
 \end{code}
-
 We start with laws concerning $D$, $A$ and $\seq$.
+
+\newpage
+\HDRd{Reduce $D(L_1)\seq D(L_2)$}
+
 \begin{eqnarray*}
-   D(L_1) ; D(L_2) &=& D(L_1 \cup L_2)
+  && D(L_1) \seq D(L_2)
+\EQ{Defn. $D$}
+\\&& ls(L_1) \land s'=s \land ls'=ls \seq ls(L_2) \land s'=s \land ls'=ls
+\EQ{Defn. $\seq$}
+\\&& \exists s_m,ls_m \bullet
+    ls(L_1) \land s_m=s \land ls_m=ls
+    \land ls_m(L_2) \land s'=s_m \land ls'=ls_m
+\EQ{One-point, $s_m,ls_m = s,ls$}
+\\&& ls(L_1) \land ls(L_2) \land s'=s \land ls'=ls
+\EQ{$A \subseteq S \land B \subseteq S = (A \cup B) \subseteq S$}
+\\&& ls(L_1 \cup L_2) \land s'=s \land ls'=ls
+\EQ{Defn. $D$, fold}
+\\&& D(L_1 \cup L_2)
 \end{eqnarray*}
 \begin{code}
 vReduce d (_,Comp ns [ (_,Comp nd1 [(_,Atm ell1)])    -- D(L1) ;
@@ -945,10 +746,33 @@ vReduce d (_,Comp ns [ (_,Comp nd1 [(_,Atm ell1)])    -- D(L1) ;
    =  ( "D;D", bD $ snd $ esimp d (ell1 `u` ell2) )
 \end{code}
 
+\newpage
+\HDRd{Reduce $D(L_1) ;  A(I,O,as,R,A,L_2)$}
+
 \begin{eqnarray*}
-   D(L_1) ;  A(I,O,as,R,A,L_2)
-   &=&
-   (L_1 \cup I) \cap O = \emptyset \land A(L_1\cup I,O,as,R,A,L_2)
+  && D(L_1) \seq A(I,O,as,R,A,L_2)
+\EQ{Defn. of $D$ and $A$.}
+\\&& ls(L_1) \land s'=s \land ls'=ls
+     \seq
+     ls(I) \land ls(\B O) \land \ado{as} \land \lupd R A \land ls'(L_2)
+\EQ{Defn. of $\seq$.}
+\\&& \exists s_m,ls_m \bullet ls(L_1) \land s_m=s \land ls_m=ls
+\\&& \qquad {} \land
+     ls_m(I) \land ls_m(\B O) \land \ado{as}[s_m/s]
+     \land ls'=ls_m \ominus (R|A) \land ls'(L_2)
+\EQ{One-point, $s_m,ls_m = s,ls$}
+\\&& ls(L_1) \land
+     ls(I) \land ls(\B O) \land \ado{as}
+     \land ls'=ls \ominus (R|A) \land ls'(L_2)
+\EQ{$A \subseteq S \land B \subseteq S = (A \cup B) \subseteq S$}
+\\&& ls(L_1 \cup I) \land ls(\B O) \land \ado{as}
+     \land ls'=ls \ominus (R|A) \land ls'(L_2)
+\EQ{add explicit condition}
+\\&& (L_1 \cup I) \cap O = \emptyset \land
+     ls(L_1 \cup I) \land ls(\B O) \land \ado{as}
+     \land ls'=ls \ominus (R|A) \land ls'(L_2)
+\EQ{Defn. $A$, fold}
+\\&& (L_1 \cup I) \cap O = \emptyset \land A(L_1 \cup I,O,as,R,A,L_2)
 \end{eqnarray*}
 \begin{code}
 vReduce d (_,Comp ns [ (_,Comp nd [(_,Atm ell1)]) -- D(L1) ;
@@ -966,25 +790,108 @@ vReduce d (_,Comp ns [ (_,Comp nd [(_,Atm ell1)]) -- D(L1) ;
  where ell = snd $ esimp d (ell1 `u` lI)
 \end{code}
 
-\begin{eqnarray*}
-   A(I,O,as,R,A,L_1) ; D(L_2)
-   &=&
-   A(I,O,as,R,A,L_1\cup L_2)
-   \land R \cap (A \cup L_1 \cup L_2) = \emptyset
-\end{eqnarray*}
+\newpage
+\HDRd{Reduce $A(I,O,as,R,A,L_1) \seq D(L_2)$}
 
 \begin{eqnarray*}
-   A(I_1,O_1,as,R_1,A_1,L_1) ; {}
-\\ A(I_2,O_2,bs,R_2,A_2,L_2)
-   &=&  (L_1 \cup I_2)\setminus A_1 \cap R_1 = \emptyset
-        \land O_2 \cap A_1 = \emptyset \land {}
-\\&& A(~   I_1 \cup I_2\setminus A_1
-      ,~   O_1 \cup O_2\setminus R_1
-\\&& ~~~,~ (as\!\seq\! bs)
-\\&& ~~~,~ R_1 \cup R_2
-      ,~   A_1\setminus R_2 \cup A_2
-      ,~   L_2 ~)
+  && A(I,O,as,R,A,L_1) \seq D(L_2)
+\EQ{Defn. of $A$ and $D$.}
+\\&& ls(I) \land ls(\B O) \land \ado{as} \land \lupd R A \land ls'(L_1)
+     \seq
+     ls(L_2) \land s'=s \land ls'=ls
+\EQ{Defn. $\seq$}
+\\&& \exists s_m,ls_m \bullet
+\\&& \quad
+     ls(I) \land ls(\B O) \land \ado{as}[s_m/s']
+     \land ls_m=ls \ominus (R|A) \land ls_m(L_1)
+\\&& {} \land
+     ls_m(L_2) \land s'=s_m \land ls'=ls_m
+\EQ{One-point, $s_m,ls_m = s',ls'$}
+\\&& ls(I) \land ls(\B O) \land \ado{as}
+\land ls'=ls \ominus (R|A) \land ls'(L_1)
+     \land ls'(L_2)
+\EQ{$A \subseteq S \land B \subseteq S = (A \cup B) \subseteq S$}
+\\&& ls(I) \land ls(\B O) \land \ado{as} \land ls'=ls \ominus (R|A)
+     \land ls'(L_1 \cup L_2)
+\EQ{add explicit conditions}
+\\&& ls(I) \land ls(\B O) \land \ado{as} \land ls'=ls \ominus (R|A)
+     \land ls'(L_1 \cup L_2)
+     \land (R \setminus A) \cap (L_1 \cup L_2) = \emptyset
+\EQ{Defn. $A$, fold}
+\\&& A(I,O,as,R,A,L_1 \cup L_2)
+     \land (R \setminus A) \cap (L_1 \cup L_2) = \emptyset
 \end{eqnarray*}
+\begin{code}
+vReduce d (_,Comp ns [ (_,Comp na [ (_,Atm lI)    -- A(I
+                                  , (_,Atm lO)    --  ,O
+                                  , as            --  ,as
+                                  , (_,Atm lR)    --  ,R
+                                  , (_,Atm lA)    --  ,A
+                                  , (_,Atm lL1)   --  ,L1) ;
+                                  ])
+                     , (_,Comp nd [(_,Atm ell2)]) -- D(L2)
+                     ])
+ | ns == nSeq && nd == nD && na == nA
+   =  ( "A;D", bAnd [ bA lI lO as lR lA ell
+                    , equal ((lR `sdiff` lA) `i` ell) (set [])
+                    ])
+ where ell = snd $ esimp d (lL1 `u` ell2)
+\end{code}
+
+\newpage
+\HDRd{Reduce $A(I_1,O_1,as,R_1,A_1,L_1) \seq A(I_2,O_2,bs,R_2,A_2,L_2)$}
+
+
+\begin{eqnarray*}
+  && A(I_1,O_1,as,R_1,A_1,L_1) \seq A(I_2,O_2,bs,R_2,A_2,L_2)
+\EQ{many, many steps}
+\\&& (L_1 \cup I_2)\setminus A_1 \cap R_1 = \emptyset
+     \land O_2 \cap A_1 = \emptyset
+\\&& {}\land ls(I_1 \cup I_2\setminus A_1)
+\\&& {}\land ls(\B{O_1 \cup O_2\setminus R_1})
+\\&& {}\land (\ado{as \seq bs})
+\\&& {}\land ls' = ls\ominus(R_1 \cup R_2| A_1\setminus R_2 \cup A_2)
+       \land ls'(L_2)
+\EQ{Defn. of $A$, fold}
+\\&& (L_1 \cup I_2)\setminus A_1 \cap R_1 = \emptyset
+     \land O_2 \cap A_1 = \emptyset
+\\&& {}\land A( I_1 \cup I_2\setminus A_1
+              , O_1 \cup O_2\setminus R_1
+              , (as\!\seq\! bs)
+              , R_1 \cup R_2
+              , A_1\setminus R_2 \cup A_2
+              , L_2 )
+\end{eqnarray*}
+\begin{code}
+vReduce d (_,Comp ns [ (_,Comp na1 [ (_,Atm lI1)  -- A(I1
+                                   , (_,Atm lO1)  --  ,O1
+                                   , as           --  ,as
+                                   , (_,Atm lR1)  --  ,R1
+                                   , (_,Atm lA1)  --  ,A1
+                                   , (_,Atm lL1)  --  ,L1) ;
+                                   ])
+                     , (_,Comp na2 [ (_,Atm lI2)  -- A(I2
+                                   , (_,Atm lO2)  --  ,O2
+                                   , bs           --  ,bs
+                                   , (_,Atm lR2)  --  ,R2
+                                   , (_,Atm lA2)  --  ,A2
+                                   , (_,Atm lL2)  --  ,L2) ;
+                                   ])
+                     ])
+ | ns == nSeq && na1 == nA && na2 == nA
+   =  ( "A;A", bAnd [ bA lI lO asbs lR lA lL
+                    , equal (((lL1 `u` lI2) `sdiff` lA1) `i` lR1)
+                            (set [])
+                    , equal (lA1 `i` lO2) (set [])
+                    ])
+ where
+   lI = snd $ esimp d (lI1 `u` (lI2 `sdiff` lA1))
+   lO = snd $ esimp d (lO1 `u` lO2)
+   asbs = bSeq as bs
+   lR = snd $ esimp d (lR1 `u` lR2)
+   lA = snd $ esimp d ((lA1 `sdiff` lR2) `u` lA2)
+   lL = lL2
+\end{code}
 
 %Consider the following law:
 %\RLEQNS{
@@ -1012,6 +919,7 @@ vReduce d (_,Comp ns [ (_,Comp nd [(_,Atm ell1)]) -- D(L1) ;
 %   Just (before,(_,[(_,Atm s1),(_,Atm s2)]),after) = match
 %\end{code}
 
+\newpage
 Default case: no change.
 \begin{code}
 vReduce _ mpr = ( "", mpr )
@@ -1195,3 +1103,158 @@ athenb = atomA `vseq` atomB
 subII :: (Show s, Ord s) => MPred s
 subII = psub bSkip [("g",g'1),("out",lg)]
 \end{code}
+
+
+\newpage
+
+\HDRb{Proofs}
+
+
+
+
+\begin{eqnarray*}
+  && A(I_1,O_1,as,R_1,A_1,L_1) \seq A(I_2,O_2,bs,R_2,A_2,L_2)
+\EQ{Defn $A$, twice}
+\\&& ls(I_1) \land ls(\B{O_1}) \land \ado{as}
+     \land \lupd{R_1}{A_1} \land ls'(L_1)
+\\&& {} \seq
+     ls(I_2) \land ls(\B{O_2}) \land \ado{bs}
+     \land \lupd{R_2}{A_2} \land ls'(L_2)
+\EQ{Defn $\seq$.}
+\\&& \exists s_m,ls_m \bullet
+\\&& \qquad ls(I_1) \land ls(\B{O_1}) \land \ado{as}[s_m/s']
+     \land ls_m = ls\ominus(R_1|A_1) \land ls_m(L_1)
+\\&& \quad {} \land
+     ls_m(I_2) \land ls_m(\B{O_2}) \land \ado{bs}[s_m/s]
+     \land ls' = ls_m\ominus(R_2|A_2) \land ls'(L_2)
+\EQ{$A \subseteq S \land B \subseteq S = (A \cup B) \subseteq S$, re-arrange}
+\\&& \exists s_m,ls_m \bullet
+\\&& \qquad ls(I_1) \land ls(\B{O_1}) \land ls_m = ls\ominus(R_1|A_1)
+     \land ls_m(L_1 \cup I_2)
+\\&& \quad {}\land ls_m(\B{O_2}) \land ls' = ls_m\ominus(R_2|A_2) \land ls'(L_2)
+     \land \ado{as}[s_m/s'] \land \ado{bs}[s_m/s]
+\EQ{One-point, $ls_m = ls\ominus(R_1|A_1)$}
+\\&& \exists s_m \bullet ls(I_1) \land ls(\B{O_1})
+     \land (ls\ominus(R_1|A_1))(L_1 \cup I_2)
+\\&& \qquad {}\land (ls\ominus(R_1|A_1))(\B{O_2})
+      \land ls' = (ls\ominus(R_1|A_1))\ominus(R_2|A_2) \land ls'(L_2)
+\\&& \qquad {} \land \ado{as}[s_m/s'] \land \ado{bs}[s_m/s]
+\EQ{Push quantifier in}
+\\&& ls(I_1)  \land ls(\B{O_1})
+     \land (ls\ominus(R_1|A_1))(L_1 \cup I_2)
+\\&& {}\land (ls\ominus(R_1|A_1))(\B{O_2})
+      \land ls' = (ls\ominus(R_1|A_1))\ominus(R_2|A_2) \land ls'(L_2)
+\\&& {}\land \exists s_m \bullet \ado{as}[s_m/s'] \land \ado{bs}[s_m/s]
+\EQ{Defn. of $\seq$ for atomic $as$,$bs$.}
+\\&& ls(I_1)  \land ls(\B{O_1})
+     \land (ls\ominus(R_1|A_1))(L_1 \cup I_2)
+\\&& {}\land (ls\ominus(R_1|A_1))(\B{O_2})
+      \land ls' = (ls\ominus(R_1|A_1))\ominus(R_2|A_2) \land ls'(L_2)
+\\&& {}\land (\ado{as \seq bs})
+\end{eqnarray*}
+We now take stock, and seek to simplify some stuff.
+
+\begin{eqnarray*}
+  && (ls\ominus(R|A))(L)
+\\&=& L \subseteq (ls \setminus R) \cup A
+\\&=&  L \setminus ((ls \setminus R) \cup A) = \emptyset
+\\&=&  L \setminus (A \cup (ls \setminus R)) = \emptyset
+\\&=&  (L \setminus A) \setminus (ls \setminus R) = \emptyset
+\EQ{$A\setminus(B\setminus C) = A\setminus B \cup A\cap C$}
+\\&&  (L \setminus A) \setminus ls
+      \cup
+     (L \setminus A) \cap R = \emptyset
+\\&=&  (L \setminus A) \setminus ls = \emptyset
+      \land
+     (L \setminus A) \cap R = \emptyset
+\\&=&  (L \setminus A) \subseteq ls
+      \land
+     (L \setminus A) \cap R = \emptyset
+\end{eqnarray*}
+
+\begin{eqnarray*}
+  && (ls\ominus(R_1|A_1))(\B{O_2})
+\\&=& O_2 \cap ((ls \setminus R_1) \cup A_1) = \emptyset
+\\&=& O_2 \cap (ls \setminus R_1)  = \emptyset
+      \land
+      O_2 \cap A_1 = \emptyset
+\\&=& ls \cap (O_2 \setminus R_1)  = \emptyset
+      \land
+      O_2 \cap A_1 = \emptyset
+\\&=& ls(\B{O_2 \setminus R_1})
+      \land
+      O_2 \cap A_1 = \emptyset
+\end{eqnarray*}
+
+\begin{eqnarray*}
+  && (ls\ominus(R_1|A_1))\ominus(R_2|A_2)
+\EQ{defn. $\ominus$, twice}
+\\&& (((ls \setminus R_1) \cup A_1) \setminus R_2) \cup A_1
+\EQ{$(A \cup B) \setminus C = (A\setminus C) \cup (B \setminus C)$}
+\\&& (((ls \setminus R_1)\setminus R_2) \cup (A_1\setminus R_2) )\cup A_1
+\EQ{$(A \setminus B) \setminus C = A \setminus (B \cup C)$}
+\\&& (ls \setminus (R_1 \cup R_2)) \cup (A_1\setminus R_2) \cup A_1
+\EQ{Defn $\ominus$, fold}
+\\&& (ls \ominus  (R_1 \cup R_2|(A_1\setminus R_2) \cup A_1)
+\end{eqnarray*}
+
+Now, back into the fray\dots
+\begin{eqnarray*}
+  && ls(I_1)  \land ls(\B{O_1})
+\\&& {}\land (ls\ominus(R_1|A_1))(L_1 \cup I_2)
+\\&& {}\land (ls\ominus(R_1|A_1))(\B{O_2})
+\\&& {}\land ls' = (ls\ominus(R_1|A_1))\ominus(R_2|A_2) \land ls'(L_2)
+\\&& {}\land (\ado{as \seq bs})
+\EQ{three calculations above}
+\\&& ls(I_1)  \land ls(\B{O_1})
+\\&& {}\land ls((L_1 \cup I_2)\setminus A_1)
+       \land (L_1 \cup I_2)\setminus A_1 \cap R_1 = \emptyset
+\\&& {}\land ls(\B{O_2\setminus R_1})
+       \land O_2 \cap A_1 = \emptyset
+\\&& {}\land ls' = ls\ominus(R_1 \cup R_2| A_1\setminus R_2 \cup A_2)
+       \land ls'(L_2)
+\\&& {}\land (\ado{as \seq bs})
+\EQ{re-group}
+\\&& (L_1 \cup I_2)\setminus A_1 \cap R_1 = \emptyset
+     \land O_2 \cap A_1 = \emptyset
+\\&& {}\land ls(I_1)
+       \land ls((L_1 \cup I_2)\setminus A_1)
+\\&& {}\land ls(\B{O_1})
+       \land ls(\B{O_2\setminus R_1})
+\\&& {}\land (\ado{as \seq bs})
+\\&& {}\land ls' = ls\ominus(R_1 \cup R_2| A_1\setminus R_2 \cup A_2)
+       \land ls'(L_2)
+\EQ{merge  and simplify $ls$ assertions}
+\\&& (L_1 \cup I_2)\setminus A_1 \cap R_1 = \emptyset
+     \land O_2 \cap A_1 = \emptyset
+\\&& {}\land ls(I_1 \cup I_2\setminus A_1)
+\\&& {}\land ls(\B{O_1 \cup O_2\setminus R_1})
+\\&& {}\land (\ado{as \seq bs})
+\\&& {}\land ls' = ls\ominus(R_1 \cup R_2| A_1\setminus R_2 \cup A_2)
+       \land ls'(L_2)
+\EQ{Defn. of $A$, fold}
+\\&& (L_1 \cup I_2)\setminus A_1 \cap R_1 = \emptyset
+     \land O_2 \cap A_1 = \emptyset
+\\&& {}\land A( I_1 \cup I_2\setminus A_1
+              , O_1 \cup O_2\setminus R_1
+              , (as\!\seq\! bs)
+              , R_1 \cup R_2
+              , A_1\setminus R_2 \cup A_2
+              , L_2 )
+\end{eqnarray*}
+
+Hmmmm\dots
+We may need to assume explicit false-avoiding and minimalist conditions,
+e.g. for
+\[
+   A(I,O,as,R,A,L)
+\]
+the false avoiding conditions are
+$I \cap O = \emptyset$
+and $L \cap (R \setminus A) = \emptyset$,
+while the minimalist condition is $R \cap A = \emptyset$.
+
+The basic atomic action $a$ has semantics
+\[
+  D(out) \lor A(in,\emptyset,a,in,out,out)
+\]

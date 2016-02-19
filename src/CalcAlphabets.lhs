@@ -146,7 +146,11 @@ getAlpha alfname d
 \HDRc{Dictionary-based variable properties}\label{hb:var-prop-lookup}
 
 \begin{code}
-isDyn, isDyn', isDynObs, notDynObs :: Dict s -> String -> Bool
+isStc, isDyn, isDyn', isDynObs, notDynObs :: Dict s -> String -> Bool
+isStc d v
+ = case alookup aStc d of
+    Just (AlfEntry alfpart)  ->  v `elem` alfpart
+    _                        ->  False
 isDyn d v
  = case alookup aDyn d of
     Just (AlfEntry alfpart)  ->  v `elem` alfpart
