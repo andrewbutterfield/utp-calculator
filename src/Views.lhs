@@ -72,6 +72,13 @@ mkSet = set . sort . nub
 showSet d elms = "{" ++ dlshow d "," elms ++ "}"
 
 evalSet _ _ = none
+
+eqSet d es1 es2
+ = let ns1 = nub $ sort $ es1
+       ns2 = nub $ sort $ es2
+   in if all (isGround d) (ns1++ns2)
+      then Just (ns1==ns2)
+      else Nothing
 \end{code}
 
 
@@ -219,12 +226,12 @@ The Set Dictionary:
 vSetDict :: (Eq s, Ord s, Show s) => Dict s
 vSetDict
  = makeDict
-    [ (setn,(ExprEntry True showSet evalSet))
-    , (unionn,(ExprEntry True ppUnion evalUnion))
-    , (intn,(ExprEntry True ppIntsct evalIntsct))
-    , (sdiffn,(ExprEntry True ppSDiff evalSDiff))
-    , (subsetn,(ExprEntry True showSubSet evalSubset))
-    , (sswapn, (ExprEntry True showSSwap evalSSwap))
+    [ (setn,(ExprEntry True showSet evalSet eqSet))
+    , (unionn,(ExprEntry True ppUnion evalUnion noEq))
+    , (intn,(ExprEntry True ppIntsct evalIntsct noEq))
+    , (sdiffn,(ExprEntry True ppSDiff evalSDiff noEq))
+    , (subsetn,(ExprEntry True showSubSet evalSubset noEq))
+    , (sswapn, (ExprEntry True showSSwap evalSSwap noEq))
     ]
 \end{code}
 
@@ -281,10 +288,10 @@ We can now define a generator dictionary:
 vGenDict :: (Eq s, Ord s, Show s) => Dict s
 vGenDict
  = makeDict
-    [ (new1n,(ExprEntry True showGNew1 $ justMakes gNew1))
-    , (new2n,(ExprEntry True showGNew2 $ justMakes gNew2))
-    , (split1n,(ExprEntry True showGSplit1 $ justMakes gSplit1))
-    , (split2n,(ExprEntry True showGSplit2 $ justMakes gSplit2))
+    [ (new1n,(ExprEntry True showGNew1 (justMakes gNew1) noEq))
+    , (new2n,(ExprEntry True showGNew2 (justMakes gNew2) noEq))
+    , (split1n,(ExprEntry True showGSplit1 (justMakes gSplit1) noEq))
+    , (split2n,(ExprEntry True showGSplit2 (justMakes gSplit2) noEq))
     ]
 \end{code}
 
@@ -441,7 +448,7 @@ bA lI lO as lR lA lL
  = comp nA [atm lI,atm lO,as,atm lR,atm lA,atm (lA `u` lL)]
 
 shA = "A"
-ppA d ms p mprs@[(_,Atm _),(_,Atm _),_,(_,Atm _),(_,Atm _),(_,Atm _)] 
+ppA d ms p mprs@[(_,Atm _),(_,Atm _),_,(_,Atm _),(_,Atm _),(_,Atm _)]
  = stdCshow d ms shD mprs
 ppA d ms p mprs = pps styleRed $ ppa ("invalid-"++shA)
 
@@ -947,11 +954,11 @@ vReduce d (_,Comp ns [ (_,Comp nd1 [(_,Atm ell1)])    -- D(L1) ;
 vReduce d (_,Comp ns [ (_,Comp nd [(_,Atm ell1)]) -- D(L1) ;
                      , (_,Comp na [ (_,Atm lI)    -- A(I
                                   , (_,Atm lO)    --  ,O
-                                  , as            --  ,as 
+                                  , as            --  ,as
                                   , (_,Atm lR)    --  ,R
                                   , (_,Atm lA)    --  ,A
                                   , (_,Atm lL2)   --  ,L2)
-                                  ]) 
+                                  ])
                      ])
  | ns == nSeq && nd == nD && na == nA
    =  ( "D;A", bAnd [ equal (ell `i` lO) (set [])
@@ -962,7 +969,7 @@ vReduce d (_,Comp ns [ (_,Comp nd [(_,Atm ell1)]) -- D(L1) ;
 \begin{eqnarray*}
    A(I,O,as,R,A,L_1) ; D(L_2)
    &=&
-   A(I,O,as,R,A,L_1\cup L_2) 
+   A(I,O,as,R,A,L_1\cup L_2)
    \land R \cap (A \cup L_1 \cup L_2) = \emptyset
 \end{eqnarray*}
 
@@ -1188,26 +1195,3 @@ athenb = atomA `vseq` atomB
 subII :: (Show s, Ord s) => MPred s
 subII = psub bSkip [("g",g'1),("out",lg)]
 \end{code}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

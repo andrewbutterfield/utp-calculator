@@ -80,7 +80,7 @@ psub mpr subs  =  noMark $ mkPSub mpr subs
 \begin{code}
 isPredEntry (PredEntry _ _ _ _ _) = True
 isPredEntry _ = False
-isExprEntry (ExprEntry _ _ _) = True
+isExprEntry (ExprEntry _ _ _ _) = True
 isExprEntry _ = False
 isAlfEntry (AlfEntry _) = True
 isAlfEntry _ = False
@@ -97,8 +97,8 @@ plookup nm d
 elookup :: String -> Dict s -> Maybe (Entry s)
 elookup nm d
  = case M.lookup nm d of
-     Just ed@(ExprEntry _ _ _)  ->  Just ed
-     _                          ->  Nothing
+     Just ed@(ExprEntry _ _ _ _)  ->  Just ed
+     _                            ->  Nothing
 
 alookup :: String -> Dict s -> Maybe (Entry s)
 alookup nm d
@@ -138,8 +138,11 @@ dictMrg = M.unionWith mergeEntry
 \end{code}
 
 
-Default predicate entry functions
+Default expression/predicate entry functions
 \begin{code}
+noEq :: Dict s -> [Expr s] -> [Expr s] -> Maybe Bool
+noEq _ _ _ = Nothing
+
 pnone :: ( String, Pred s)
 pnone = ( "", PUndef )
 nosimp :: [Pred s] -> ( String, Pred s)
@@ -188,8 +191,8 @@ edshow d (Var v)    =  v
 edshow d Undef      =  "Undefined"
 edshow d (App f es)
  = case elookup f d of
-    Nothing                    ->  stdFShow d f es
-    Just (ExprEntry _ showf _) -> showf d es
+    Nothing                      ->  stdFShow d f es
+    Just (ExprEntry _ showf _ _) -> showf d es
 edshow d (Sub e sub) = pshow d e ++ showSub d sub
 
 dlshow d sep xs = concat (intersperse sep $ map (edshow d) xs)

@@ -68,7 +68,7 @@ asimp :: (Eq s, Ord s, Show s)
 asimp d fn (chgd,es)
  = case elookup fn d of
      Nothing  ->  (chgd, App fn es)
-     Just (ExprEntry _ _ evalf)
+     Just (ExprEntry _ _ evalf _)
        -> case evalf d es of
             ( "", _ )  ->  (chgd, App fn es)
             ( _, e)    ->  (diff, e)
@@ -195,7 +195,7 @@ simplify d m mpr@(ms,(Equal e1 e2))
  = let
     (chgd1,e1') = esimp d e1
     (chgd2,e2') = esimp d e2
-    (chgd',pr') = sEqual e1' e2'
+    (chgd',pr') = sEqual d e1' e2'
     chgd = chgd1 || chgd2 || chgd'
    in if chgd then (addMark m mpr, simplified, addMark m (ms,pr'))
               else (mpr,"",mpr)
@@ -333,31 +333,41 @@ simplify2 d m mpr
 \newpage
 \HDRc{Equality Predicate Simplification}~
 \begin{code}
-sEqual :: Eq s => Expr s -> Expr s -> (Bool, Pred s)
+sEqual :: Eq s => Dict s -> Expr s -> Expr s -> (Bool, Pred s)
 
-sEqual (St s1) (St s2)
+sEqual d (St s1) (St s2)
  | s1 == s2     = (diff,T)
  | otherwise    = (diff,F)
 
-sEqual (B t1) (B t2)
+sEqual d (B t1) (B t2)
  | t1 == t2   =  (diff,T)
  | otherwise  =  (diff,F)
 
-sEqual (Z i1) (Z i2)
+sEqual d (Z i1) (Z i2)
  | i1 == i2   =  (diff,T)
  | otherwise  =  (diff,F)
 
-sEqual (Var v1) (Var v2)
+sEqual d (Var v1) (Var v2)
  | v1 == v2   = (diff,T)
 
-sEqual (St _) (B _) = (diff,F)
-sEqual (B _) (St _) = (diff,F)
-sEqual (Z _) (St _) = (diff,F)
-sEqual (St _) (Z _) = (diff,F)
-sEqual (Z _)  (B _) = (diff,F)
-sEqual (B _)  (Z _) = (diff,F)
+sEqual d (St _) (B _) = (diff,F)
+sEqual d (B _) (St _) = (diff,F)
+sEqual d (Z _) (St _) = (diff,F)
+sEqual d (St _) (Z _) = (diff,F)
+sEqual d (Z _)  (B _) = (diff,F)
+sEqual d (B _)  (Z _) = (diff,F)
 
-sEqual e1 e2
+sEqual d e1@(App nm1 args1) e2@(App nm2 args2)
+ | nm1 == nm2
+    = case elookup nm1 d of
+       Nothing  ->  (same,Equal e1 e2)
+       (Just ed)
+        -> case (isEqual ed) d args1 args2 of
+            Nothing     ->  (same,Equal e1 e2)
+            Just True   ->  (diff,T)
+            Just False  ->  (diff,F)
+
+sEqual d e1 e2
  | e1 == e2   =  (diff,T)
  | otherwise  =  (same,Equal e1 e2)
 \end{code}

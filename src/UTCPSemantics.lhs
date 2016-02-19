@@ -198,6 +198,13 @@ mkSet = set . sort . nub
 showSet d elms = "{" ++ dlshow d "," elms ++ "}"
 
 evalSet _ _ = none
+
+eqSet d es1 es2
+ = let ns1 = nub $ sort $ es1
+       ns2 = nub $ sort $ es2
+   in if all (isGround d) (ns1++ns2)
+      then Just (ns1==ns2)
+      else Nothing
 \end{code}
 
 
@@ -304,9 +311,9 @@ The Set Dictionary:
 setUTCPDict :: (Eq s, Ord s, Show s) => Dict s
 setUTCPDict
  = makeDict
-    [ (setn,(ExprEntry True showSet evalSet))
-    , (subsetn,(ExprEntry True showSubSet evalSubset))
-    , (sswapn, (ExprEntry True showSSwap evalSSwap))
+    [ (setn,(ExprEntry True showSet evalSet eqSet))
+    , (subsetn,(ExprEntry True showSubSet evalSubset noEq))
+    , (sswapn, (ExprEntry True showSSwap evalSSwap noEq))
     ]
 \end{code}
 
@@ -548,10 +555,10 @@ We can now define a generator dictionary:
 genUTCPDict :: (Eq s, Ord s, Show s) => Dict s
 genUTCPDict
  = makeDict
-    [ (new1n,(ExprEntry True showGNew1 $ justMakes gNew1))
-    , (new2n,(ExprEntry True showGNew2 $ justMakes gNew2))
-    , (split1n,(ExprEntry True showGSplit1 $ justMakes gSplit1))
-    , (split2n,(ExprEntry True showGSplit2 $ justMakes gSplit2))
+    [ (new1n,(ExprEntry True showGNew1 (justMakes gNew1) noEq))
+    , (new2n,(ExprEntry True showGNew2 (justMakes gNew2) noEq))
+    , (split1n,(ExprEntry True showGSplit1 (justMakes gSplit1) noEq))
+    , (split2n,(ExprEntry True showGSplit2 (justMakes gSplit2) noEq))
     ]
 \end{code}
 
@@ -905,7 +912,7 @@ that $ls$ is initialised appropriately.
 nPDo = "PDo"
 isPDo (_,Comp n [_]) | n==nPDo = True; isPDo _ = False
 
-doprog p = comp nPDo [p] 
+doprog p = comp nPDo [p]
 
 shPDo = "do"
 ppPDo d ms p [mpr]

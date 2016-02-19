@@ -244,6 +244,7 @@ $A \defs \setof{v_1,v_2,\ldots,v_n}$.
    , eprint  :: Dict s -> [Expr s] -> String -- pretty printer
    , eval    :: Dict s -> [Expr s]           -- evaluator
              -> ( String, Expr s )
+   , isEqual :: Dict s -> [Expr s] -> [Expr s] -> Maybe Bool
    }
 \end{code}
 We interpret a \texttt{Dict} entry like
@@ -339,7 +340,7 @@ or \m{cr_1} to \m{cr_n} or \m{u_1} to \m{u_p}, as appropriate.
 \begin{code}
 instance Show (Entry s) where
  show (AlfEntry vars) = "Alf {"++seplist ',' vars++"}"
- show (ExprEntry csub _ _) = "Expr, subst? = "++show csub
+ show (ExprEntry csub _ _ _) = "Expr, subst? = "++show csub
  show (PredEntry csub _ alf _ _)
   = "Pred, subst? = "++show csub++ashow alf
   where
