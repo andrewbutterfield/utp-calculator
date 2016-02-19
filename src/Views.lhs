@@ -430,6 +430,8 @@ vDEntry
  = ( nD
    , PredEntry False ppD [] (pNoChg nD) (pNoChg nD) )
 \end{code}
+
+\newpage
 \begin{eqnarray*}
    A(I,O,as,R,A,L)
    &\defs& ls(I) \land ls(\B O) \land \ado{as}
@@ -440,6 +442,9 @@ vDEntry
          \land (R\setminus A) \cap L = \emptyset
 \\ &=& A(I,O,as,R,A,A\cup L)
 \end{eqnarray*}
+\emph{\textbf{Note:} If $I \cap O \neq \emptyset$
+or $(R\setminus A) \cap L \neq \emptyset$
+then we should reduce this to $false$.}
 \begin{code}
 nA = "A"
 isA (_,Comp n [_]) | n==nA = True; isA _ = False
@@ -458,6 +463,10 @@ vAEntry
  = ( nA
    , PredEntry False ppA [] (pNoChg nA) (pNoChg nA) )
 \end{code}
+\emph{\textbf{TODO} - add a simplifier that checks the side-conditions,
+leaving it unchanged if it cannot refute any,
+otherwise boiling it down to false.}
+
 We have both an `implicit' form which is a minimalist
 definition of behaviour, along with an `explicit' form
 that expresses all the logical consequences.
