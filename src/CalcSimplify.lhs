@@ -5,6 +5,11 @@ import CalcTypes
 import CalcPredicates
 \end{code}
 
+%\begin{code}
+%import Debug.Trace
+%dbg str x = trace (str++show x) x
+%\end{code}
+
 
 \HDRb{Introduction}
 

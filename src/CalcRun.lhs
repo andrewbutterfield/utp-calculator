@@ -135,7 +135,7 @@ runREPL d m state@(currpr,steps)
    ('d':_) -> calcStep d m (expandDefn d $ nextm m) state
    ('r':_) -> calcStep d m (doReduce   d $ nextm m) state
    ('c':_) -> calcCStep d m (doCReduce d $ nextm m) state
-   ('l':_) -> calcStep  d m (doUnroll d $ nextm m) state
+   ('l':s) -> calcStep  d m (doUnroll s d $ nextm m) state
    ('x':_) -> return (currpr,steps,d)
    ('M':_) -> showMarks d m state
    ('B':_) -> viewBefore d m state
@@ -164,7 +164,7 @@ calcHelp d m st
        , "most subsequent commands affect the first applicable location"
        , "d - definition expansion"
        , "r - reduction law application"
-       , "l - loop unrolling"
+       , "l[n] - loop unrolling - n: optional depth"
        , "c - conditional reduction step"
        , "M - show marks (DEBUG)"
        , "B - view before (DEBUG)"

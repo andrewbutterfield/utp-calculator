@@ -314,7 +314,7 @@ To do so risks an infinite loop.
  | LawEntry {                   -- about useful laws
      reduce  :: [DictRWFun s]  -- list of reduction laws
    , creduce :: [CDictRWFun s] -- list of conditional reductions
-   , unroll  :: [DictRWFun s]  -- list of loop unrollers
+   , unroll  :: [String -> DictRWFun s]  -- list of loop unrollers
    }
 \end{code}
 We interpret a \texttt{Dict} entry like:

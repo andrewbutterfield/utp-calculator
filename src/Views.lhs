@@ -6,7 +6,6 @@ import Utilities
 import Data.List
 -- import Data.Char
 import Data.Maybe
--- import Debug.Trace
 import PrettyPrint
 import CalcTypes
 import StdPrecedences
@@ -24,6 +23,10 @@ import StdUTPLaws
 import UTCPCReduce
 \end{code}
 
+%\begin{code}
+%import Debug.Trace
+%vdbg str x = trace (str++show x) x
+%\end{code}
 
 We do a quick run-down of the Commands\cite{conf/popl/Dinsdale-YoungBGPY13}.
 
@@ -65,6 +68,8 @@ and updating by removing elements.
 \begin{code}
 setn = "set"
 set = App setn
+
+emp = set []
 
 mkSet :: Ord s => [Expr s] -> Expr s
 mkSet = set . sort . nub
@@ -167,7 +172,7 @@ dosdiff d es1 es2
 ppSDiff d ss = "("  ++ dlshow d " \\ " ss ++ ")"
 \end{code}
 
- 
+
 
 \HDRb{Shorthands}
 
@@ -408,8 +413,7 @@ and suggest two important calculations:
 \HDRb{Atomic Shorthands}
 
 We find essentially just two idioms here,
-where $L$, $I$, $O$, $R$ and $A$ are lists of labels,
-with $I \cap O = \emptyset$ and $R \cap A = \emptyset$:
+where $L$, $I$, $O$, $R$ and $A$ are lists of labels:
 \begin{eqnarray*}
    D(L) &\defs&  ls(L) \land s'=s \land ls'=ls
 \\ &=& ls(L) \land s'=s \land ls'=ls \land ls'(L)
@@ -442,9 +446,6 @@ vDEntry
          \land (R\setminus A) \cap L = \emptyset
 \\ &=& A(I,O,as,R,A,A\cup L)
 \end{eqnarray*}
-\emph{\textbf{Note:} If $I \cap O \neq \emptyset$
-or $(R\setminus A) \cap L \neq \emptyset$
-then we should reduce this to $false$.}
 \begin{code}
 nA = "A"
 isA (_,Comp n [_]) | n==nA = True; isA _ = False
@@ -458,15 +459,39 @@ ppA d ms p mprs@[(_,Atm _),(_,Atm _),_,(_,Atm _),(_,Atm _),(_,Atm _)]
 ppA d ms p mprs = pps styleRed $ ppa ("invalid-"++shA)
 
 -- we don't want to expand the definition of this
+defnA = pNoChg nA
+\end{code}
+\begin{eqnarray*}
+   A(I,O,as,R,A,L) &=&  A(I,O,as,R,A,A\cup L)
+\\ &\land& I \cap O = \emptyset  
+\\ &\land& (R\setminus A) \cap L = \emptyset
+\end{eqnarray*}
+\begin{code}
+simpA :: (Ord s, Show s) => Rewrite s
+simpA d mprs@[ (_,Atm lI)  -- I
+             , (_,Atm lO)  --  O
+             , as          --  as
+             , (_,Atm lR)  --  R
+             , (_,Atm lA)  --  A
+             , (_,Atm lL)  --  L
+             ]
+ | preFalse || postFalse  =  ( "A-disabled",  F )
+ | otherwise              =  ( "", Comp nA mprs )
+ where
+  iIO = snd $ esimp d (lI `i` lO)
+  preFalse = (sEqual d iIO emp) == (True,F)
+  dRAiL = snd $ esimp d ((lR `sdiff` lA) `i` lL)
+  postFalse = (sEqual d dRAiL emp) == (True,F)
+
+simpA d mprs = ( "", Comp nA mprs )
+
 vAEntry :: (Show s, Ord s) => (String, Entry s)
 vAEntry
  = ( nA
-   , PredEntry False ppA [] (pNoChg nA) (pNoChg nA) )
+   , PredEntry False ppA [] defnA simpA )
 \end{code}
-\emph{\textbf{TODO} - add a simplifier that checks the side-conditions,
-leaving it unchanged if it cannot refute any,
-otherwise boiling it down to false.}
-
+\begin{code}
+\end{code}
 We have both an `implicit' form which is a minimalist
 definition of behaviour, along with an `explicit' form
 that expresses all the logical consequences.
@@ -700,7 +725,7 @@ vSeqEntry
 
 \begin{code}
 dictVP :: (Ord s, Show s) => Dict s
-dictVP = makeDict [vDEntry,vWEntry,patmEntry,vSeqEntry]
+dictVP = makeDict [vDEntry,vAEntry,vWEntry,patmEntry,vSeqEntry]
 \end{code}
 
 
@@ -794,7 +819,7 @@ vReduce d (_,Comp ns [ (_,Comp nd [(_,Atm ell1)]) -- D(L1) ;
                                   ])
                      ])
  | ns == nSeq && nd == nD && na == nA
-   =  ( "D;A", bAnd [ equal (ell `i` lO) (set [])
+   =  ( "D;A", bAnd [ equal (ell `i` lO) emp
                     , bA ell lO as lR lA lL2 ])
  where ell = snd $ esimp d (ell1 `u` lI)
 \end{code}
@@ -842,7 +867,7 @@ vReduce d (_,Comp ns [ (_,Comp na [ (_,Atm lI)    -- A(I
                      ])
  | ns == nSeq && nd == nD && na == nA
    =  ( "A;D", bAnd [ bA lI lO as lR lA ell
-                    , equal ((lR `sdiff` lA) `i` ell) (set [])
+                    , equal ((lR `sdiff` lA) `i` ell) emp
                     ])
  where ell = snd $ esimp d (lL1 `u` ell2)
 \end{code}
@@ -890,8 +915,8 @@ vReduce d (_,Comp ns [ (_,Comp na1 [ (_,Atm lI1)  -- A(I1
  | ns == nSeq && na1 == nA && na2 == nA
    =  ( "A;A", bAnd [ bA lI lO asbs lR lA lL
                     , equal (((lL1 `u` lI2) `sdiff` lA1) `i` lR1)
-                            (set [])
-                    , equal (lA1 `i` lO2) (set [])
+                            emp
+                    , equal (lA1 `i` lO2) emp
                     ])
  where
    lI = snd $ esimp d (lI1 `u` (lI2 `sdiff` lA1))
@@ -962,20 +987,44 @@ vCRedEntry = entry laws $ LawEntry [] [vCReduce] []
 
 
 
-\HDRb{Loop Unrolling for WWW}\label{hb:WWW-unroll}
+\HDRb{Loop Unrolling for Views}\label{hb:WWW-unroll}
 
-Here we remove the requirement that the loop predicate
-be a condition.
 Iteration  satisfies the loop-unrolling law:
 \[
-  C * P  \quad=\quad (P ; C * P ) \cond C \Skip
+  c * P  \quad=\quad (P ; c * P ) \cond c \Skip
 \]
+But we also support several styles and degrees of unrolling:
+\begin{eqnarray*}
+   c*P 
+   &=_0& (P\seq c*P) \cond c \Skip 
+\\ &=_1& \lnot c \land \Skip 
+         \lor
+         c \land P ; c * P
+\\ &=_2& \lnot c \land \Skip
+         \lor
+         c \land P ; \lnot c \land \Skip
+         \lor
+         c \land P ; c \land P ; c * P
+\\ &=_3& \lnot c \land \Skip
+         \lor
+         c \land P ; \lnot c \land \Skip
+         \lor
+         c \land P ; c \land P ; \lnot c \land \Skip
+         \lor
+         c \land P ; c \land P ; c \land P ; c *P 
+\\ && \vdots
+\\ &=_n& \left(
+           \bigvee_{i=0}^{n-1}  (c \land P)^i \seq \lnot c \land \Skip
+         \right)
+         \lor
+         (c \land P)^n \seq c *P
+\end{eqnarray*}
 \begin{code}
-vUnroll :: Ord s => DictRWFun s
-vUnroll d mw@(_,Comp nm  [mc, mpr])
+vUnroll :: Ord s => String -> DictRWFun s
+vUnroll ns d mw@(_,Comp nm  [mc, mpr])
  | nm == nIter = ( "WWW unroll"
                  , bCond (bSeq mpr mw) mc bSkip )
-vUnroll _ mpr = ( "", mpr )
+vUnroll _ _ mpr = ( "", mpr )
 \end{code}
 
 \HDRc{The Unroll Entry}\label{hc:WWW-reduce-ent}

@@ -246,12 +246,12 @@ Iteration  satisfies the loop-unrolling law:
   c * P  \quad=\quad (P ; c * P ) \cond c \Skip
 \]
 \begin{code}
-unrollStd :: Ord s => DictRWFun s
-unrollStd d mw@(_,Comp nm  [mc, mpr])
+unrollStd :: Ord s => String -> DictRWFun s
+unrollStd ns d mw@(_,Comp nm  [mc, mpr])
  | nm== nIter && isCondition mc
            = ( "std-loop-unroll"
              , bCond (bSeq mpr mw) mc bSkip )
-unrollStd _ mpr = ("", mpr )
+unrollStd _ _ mpr = ("", mpr )
 \end{code}
 
 Now, the standard unroll dictionary entry:

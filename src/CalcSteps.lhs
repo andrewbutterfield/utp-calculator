@@ -280,17 +280,17 @@ doCRed d m mpr (rf:rfs)
 \HDRc{Loop Unrolling}
 
 \begin{code}
-doUnroll :: (Ord s, Show s) => Dict s -> Mark
+doUnroll :: (Ord s, Show s) => String -> Dict s -> Mark
            -> MPred s -> BeforeAfter s
-doUnroll d m mpr
+doUnroll ns d m mpr
  = case M.lookup "laws" d of
-    Just (LawEntry _ _ unr)   ->  doUnr d m mpr unr
+    Just (LawEntry _ _ unr)   ->  doUnr ns d m mpr unr
     _                         -> ( mpr, "", mpr )
 
-doUnr d m mpr [] = ( mpr, "", mpr )
-doUnr d m mpr (rf:rfs)
- = case doStepSearch m (rf d) mpr of
-     Nothing   ->  doUnr d m mpr rfs
+doUnr ns d m mpr [] = ( mpr, "", mpr )
+doUnr ns d m mpr (rf:rfs)
+ = case doStepSearch m (rf ns d) mpr of
+     Nothing   ->  doUnr ns d m mpr rfs
      Just red  ->  red
 \end{code}
 
