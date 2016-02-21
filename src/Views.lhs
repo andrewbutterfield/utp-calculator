@@ -32,9 +32,12 @@ We do a quick run-down of the Commands\cite{conf/popl/Dinsdale-YoungBGPY13}.
 
 \HDRb{Syntax}
 
+\def\atm#1{atm(#1)}
+
 \begin{eqnarray*}
    a &\in& \Atom
-\\ C &::=& a \mid \cskip \mid C \cseq C \mid C+C \mid C \parallel C \mid C^*
+\\ C &::=& 
+ \atm a \mid \cskip \mid C \cseq C \mid C+C \mid C \parallel C \mid C^*
 \\ g &:& Gen
 \\ \ell &:& Lbl
 \\ G &::=&  g \mid G_{:} \mid G_1 \mid G_2
@@ -455,7 +458,7 @@ bA lI lO as lR lA lL
 
 shA = "A"
 ppA d ms p mprs@[(_,Atm _),(_,Atm _),_,(_,Atm _),(_,Atm _),(_,Atm _)]
- = stdCshow d ms shD mprs
+ = stdCshow d ms shA mprs
 ppA d ms p mprs = pps styleRed $ ppa ("invalid-"++shA)
 
 -- we don't want to expand the definition of this
@@ -581,6 +584,51 @@ We assume the following laws of iteration:
 \\ c * ( c * P ) &=& c * P
 \\ c * (\bigvee_i P_i) &=& (\bigvee_i c \land P_i) \lor \lnot c \land \Skip
 }
+We can now defined expansions of $\W(P)$,
+using loop-unrolling,
+as:
+\RLEQNS{
+   \W(P) &\defs& \lnot ls(out) * P
+\\ &=& P ; \W(P) \cond{\lnot ls(out)} \Skip
+\\ &=& ls(out) \land Skip \lor \lnot ls(out) \land P ; \W(P)
+\\ &=& D(out) 
+       \lor \lnot ls(out) \land P ; \W(P)
+\\ &=& D(out) 
+\\ && {} \lor \lnot ls(out) \land P ; D(out)
+\\ && {} \lor \lnot ls(out) \land P ; \lnot ls(out) \land P ; \W(P)
+}
+We do this as a loop-unroll with iteration parameter:
+\begin{code}
+wUnroll :: Ord s => String -> DictRWFun s
+wUnroll ns d mw@(_,Comp nm [mpr])
+ | nm == nW = ( "W-unroll" ++ ntag ns, wunroll n )
+ where
+
+   ntag "" = ""
+   ntag ns = '.':ns
+
+   n | null ns = 0
+     | isDigit $ head ns = digitToInt $ head ns
+     | otherwise = 0
+
+   wunroll 0  =  bCond (bSeq mpr mw) (bNot lsout) bSkip
+   wunroll 1  =  bOr [ loopdone
+                     , bSeq (loopstep 1) mw]
+   wunroll 2  =  bOr [ loopdone
+                     , bSeq (loopstep 1) loopdone
+                     , bSeq (loopstep 2) mw]
+   wunroll 3  =  bOr [ loopdone
+                     , bSeq (loopstep 1) loopdone
+                     , bSeq (loopstep 2) loopdone
+                     , bSeq (loopstep 3) mw]
+   wunroll _  =  bCond (bSeq mpr mw) (bNot lsout) bSkip
+
+   loopdone = bD out
+   loopstep 1 = bAnd [bNot lsout, mpr]
+   loopstep n = bSeq (loopstep (n-1)) (loopstep 1)
+
+wUnroll _ _ mpr = ( "", mpr )
+\end{code}
 
 \HDRb{WwW Semantic Definitions}
 
@@ -589,7 +637,7 @@ The definitions, using the new shorthand:
    \W(C) &\defs& ls(\B{out}) * C)
 \\ ii &\defs& s'=s
 \\
-\\ a &\defs&\W(A(in,\emptyset,a,in,out,out))
+\\ \atm a &\defs&\W(A(in,\emptyset,a,in,out,out))
 \\ \cskip
    &\defs&
    \W(A(in,\emptyset,ii,in,out,out))
@@ -1021,8 +1069,8 @@ But we also support several styles and degrees of unrolling:
 \end{eqnarray*}
 \begin{code}
 vUnroll :: Ord s => String -> DictRWFun s
-vUnroll ns d mw@(_,Comp nm  [mc, mpr])
- | nm == nIter = ( "W-unroll" ++ ntag ns, vunroll n )
+vUnroll ns d miter@(_,Comp nm  [mc, mpr])
+ | nm == nIter = ( "loop-unroll" ++ ntag ns, vunroll n )
  where
 
    ntag "" = ""
@@ -1032,32 +1080,30 @@ vUnroll ns d mw@(_,Comp nm  [mc, mpr])
      | isDigit $ head ns = digitToInt $ head ns
      | otherwise = 0
 
-   vunroll 0  =  bCond (bSeq mpr mw) mc bSkip
+   vunroll 0  =  bCond (bSeq mpr miter) mc bSkip
    vunroll 1  =  bOr [ loopdone
-                     , bSeq (loopstep 1) mw]
+                     , bSeq (loopstep 1) miter]
    vunroll 2  =  bOr [ loopdone
                      , bSeq (loopstep 1) loopdone
-                     , bSeq (loopstep 2) mw]
+                     , bSeq (loopstep 2) miter]
    vunroll 3  =  bOr [ loopdone
                      , bSeq (loopstep 1) loopdone
                      , bSeq (loopstep 2) loopdone
-                     , bSeq (loopstep 3) mw]
-   vunroll _  =  bCond (bSeq mpr mw) mc bSkip
+                     , bSeq (loopstep 3) miter]
+   vunroll _  =  bCond (bSeq mpr miter) mc bSkip
    
    loopdone = bAnd [bNot mc, bSkip]
    loopstep 1 = bAnd [mc, mpr]
    loopstep n = bSeq (loopstep (n-1)) (loopstep 1)
 
 vUnroll _ _ mpr = ( "", mpr )
-
-
 \end{code}
 
 \HDRc{The Unroll Entry}\label{hc:WWW-reduce-ent}
 
 \begin{code}
 vLoopEntry :: (Ord s, Show s) => Dict s
-vLoopEntry = entry laws $ LawEntry [] [] [vUnroll]
+vLoopEntry = entry laws $ LawEntry [] [] [wUnroll,vUnroll]
 \end{code}
 
 
@@ -1188,6 +1234,17 @@ subII :: (Show s, Ord s) => MPred s
 subII = psub bSkip [("g",g'1),("out",lg)]
 \end{code}
 
+\newpage
+\HDRb{Required Laws}
+
+Need reductions of the form:
+\begin{eqnarray*}
+   \lnot ls(L_1) \land A(I,O,\dots) 
+   &=& 
+   L_1 \cap I = \emptyset \land A(I,O\cup L_1,\dots)
+\\ A(I,O,a,R,A,L) \seq A(I,O,a,R,A,L) &=& \false?
+\\ A(I,O,a,I,O,O) \seq A(I,O,a,I,O,O) &=& \false
+\end{eqnarray*}
 
 \newpage
 
