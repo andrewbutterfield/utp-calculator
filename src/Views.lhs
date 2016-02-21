@@ -4,7 +4,7 @@ module Views where
 import Utilities
 -- import qualified Data.Map as M
 import Data.List
--- import Data.Char
+import Data.Char
 import Data.Maybe
 import PrettyPrint
 import CalcTypes
@@ -1022,9 +1022,35 @@ But we also support several styles and degrees of unrolling:
 \begin{code}
 vUnroll :: Ord s => String -> DictRWFun s
 vUnroll ns d mw@(_,Comp nm  [mc, mpr])
- | nm == nIter = ( "WWW unroll"
-                 , bCond (bSeq mpr mw) mc bSkip )
+ | nm == nIter = ( "W-unroll" ++ ntag ns, vunroll n )
+ where
+
+   ntag "" = ""
+   ntag ns = '.':ns
+
+   n | null ns = 0
+     | isDigit $ head ns = digitToInt $ head ns
+     | otherwise = 0
+
+   vunroll 0  =  bCond (bSeq mpr mw) mc bSkip
+   vunroll 1  =  bOr [ loopdone
+                     , bSeq (loopstep 1) mw]
+   vunroll 2  =  bOr [ loopdone
+                     , bSeq (loopstep 1) loopdone
+                     , bSeq (loopstep 2) mw]
+   vunroll 3  =  bOr [ loopdone
+                     , bSeq (loopstep 1) loopdone
+                     , bSeq (loopstep 2) loopdone
+                     , bSeq (loopstep 3) mw]
+   vunroll _  =  bCond (bSeq mpr mw) mc bSkip
+   
+   loopdone = bAnd [bNot mc, bSkip]
+   loopstep 1 = bAnd [mc, mpr]
+   loopstep n = bSeq (loopstep (n-1)) (loopstep 1)
+
 vUnroll _ _ mpr = ( "", mpr )
+
+
 \end{code}
 
 \HDRc{The Unroll Entry}\label{hc:WWW-reduce-ent}
