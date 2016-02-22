@@ -203,6 +203,8 @@ ppSeq d ms p [mpr1,mpr2]
                     , mshowp d ms precSeq mpr2 ]
 ppSeq d ms p mprs = pps styleRed $ ppa "invalid-;"
 
+simpSeq d [ (_,F), mpr2 ] = ( "simp-;", F)
+simpSeq d [ mpr1, (_,F) ] = ( "simp-;", F)
 simpSeq d [ mpr1, mpr2    ]
 \end{code}
   $\Skip \seq p = p$

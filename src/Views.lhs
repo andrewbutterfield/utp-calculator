@@ -36,7 +36,7 @@ We do a quick run-down of the Commands\cite{conf/popl/Dinsdale-YoungBGPY13}.
 
 \begin{eqnarray*}
    a &\in& \Atom
-\\ C &::=& 
+\\ C &::=&
  \atm a \mid \cskip \mid C \cseq C \mid C+C \mid C \parallel C \mid C^*
 \\ g &:& Gen
 \\ \ell &:& Lbl
@@ -112,6 +112,11 @@ dosubset d es1 es2 -- is es1 a subset of es2 ?
   | otherwise        =  none
   where
     es1lesses2 = es1 \\ es2
+    
+-- the following should be re-located
+matchls (App ns [ ell, Var "ls" ])
+ | ns == subsetn  =  (True, ell)
+matchls _  =  (False, error "not an ls(..)")
 \end{code}
 
 Set binary operator precedence ordering,
@@ -448,13 +453,19 @@ vDEntry
 \\ && {} \land ls'=ls\ominus(R|A) \land ls'(A \cup L)
          \land (R\setminus A) \cap L = \emptyset
 \\ &=& A(I,O,as,R,A,A\cup L)
+\\ A(I,O,as,R,A,L') 
+   &=& 
+   A(I,O,as,R\setminus A,A,(I\setminus R) \cup A \cup L')
 \end{eqnarray*}
+
 \begin{code}
 nA = "A"
 isA (_,Comp n [_]) | n==nA = True; isA _ = False
 
 bA lI lO as lR lA lL
- = comp nA [atm lI,atm lO,as,atm lR,atm lA,atm (lA `u` lL)]
+ = comp nA [ atm lI, atm lO, as
+           , atm (lR `sdiff` lA)
+           , atm lA,atm ((lI `sdiff` lR) `u` lA `u` lL) ]
 
 shA = "A"
 ppA d ms p mprs@[(_,Atm _),(_,Atm _),_,(_,Atm _),(_,Atm _),(_,Atm _)]
@@ -466,7 +477,7 @@ defnA = pNoChg nA
 \end{code}
 \begin{eqnarray*}
    A(I,O,as,R,A,L) &=&  A(I,O,as,R,A,A\cup L)
-\\ &\land& I \cap O = \emptyset  
+\\ &\land& I \cap O = \emptyset
 \\ &\land& (R\setminus A) \cap L = \emptyset
 \end{eqnarray*}
 \begin{code}
@@ -591,9 +602,9 @@ as:
    \W(P) &\defs& \lnot ls(out) * P
 \\ &=& P ; \W(P) \cond{\lnot ls(out)} \Skip
 \\ &=& ls(out) \land Skip \lor \lnot ls(out) \land P ; \W(P)
-\\ &=& D(out) 
+\\ &=& D(out)
        \lor \lnot ls(out) \land P ; \W(P)
-\\ &=& D(out) 
+\\ &=& D(out)
 \\ && {} \lor \lnot ls(out) \land P ; D(out)
 \\ && {} \lor \lnot ls(out) \land P ; \lnot ls(out) \land P ; \W(P)
 }
@@ -975,6 +986,35 @@ vReduce d (_,Comp ns [ (_,Comp na1 [ (_,Atm lI1)  -- A(I1
    lL = lL2
 \end{code}
 
+
+\begin{eqnarray*}
+   \lnot ls(L_1) \land A(I,O,\dots)
+   &=&
+   L_1 \cap I = \emptyset \land A(I,O\cup L_1,\dots)
+\\ A(I,O,a,R,A,L') \seq A(I,O,a,R,A,L') &=& \false?
+\\ A(I,O,a,I,O,O) \seq A(I,O,a,I,O,O) &=& \false
+\end{eqnarray*}
+\begin{code}
+vReduce d (_,Comp ns [ (_,Comp nn [(_,Atm lsL1)]) -- ~ls(L1) ;
+                     , (_,Comp na [ (_,Atm lI)    -- A(I
+                                  , (_,Atm lO)    --  ,O
+                                  , as            --  ,as
+                                  , (_,Atm lR)    --  ,R
+                                  , (_,Atm lA)    --  ,A
+                                  , (_,Atm lL2)   --  ,L2)
+                                  ])
+                     ])
+ | ns == nAnd && nn == nNot && na == nA && isLS
+   =  ( "~-ls(L);A"
+      , if sEqual d (lI `i` lL1) emp == (True,F)
+        then bF
+        else bA lI (lO `u` lL1)  as lR lA lL2 )
+ where 
+   (isLS,lL1) = matchls lsL1
+   ell = snd $ esimp d (lsL1 `u` lI)
+\end{code}
+
+
 %Consider the following law:
 %\RLEQNS{
 %   P \land ls'=ls\ominus(S_1,S_2) \seq Q
@@ -1000,6 +1040,7 @@ vReduce d (_,Comp ns [ (_,Comp na1 [ (_,Atm lI1)  -- A(I1
 %   match = matchRecog mtchLabelSetSSwap mprs1
 %   Just (before,(_,[(_,Atm s1),(_,Atm s2)]),after) = match
 %\end{code}
+
 
 \newpage
 Default case: no change.
@@ -1043,9 +1084,9 @@ Iteration  satisfies the loop-unrolling law:
 \]
 But we also support several styles and degrees of unrolling:
 \begin{eqnarray*}
-   c*P 
-   &=_0& (P\seq c*P) \cond c \Skip 
-\\ &=_1& \lnot c \land \Skip 
+   c*P
+   &=_0& (P\seq c*P) \cond c \Skip
+\\ &=_1& \lnot c \land \Skip
          \lor
          c \land P ; c * P
 \\ &=_2& \lnot c \land \Skip
@@ -1059,7 +1100,7 @@ But we also support several styles and degrees of unrolling:
          \lor
          c \land P ; c \land P ; \lnot c \land \Skip
          \lor
-         c \land P ; c \land P ; c \land P ; c *P 
+         c \land P ; c \land P ; c \land P ; c *P
 \\ && \vdots
 \\ &=_n& \left(
            \bigvee_{i=0}^{n-1}  (c \land P)^i \seq \lnot c \land \Skip
@@ -1091,7 +1132,7 @@ vUnroll ns d miter@(_,Comp nm  [mc, mpr])
                      , bSeq (loopstep 2) loopdone
                      , bSeq (loopstep 3) miter]
    vunroll _  =  bCond (bSeq mpr miter) mc bSkip
-   
+
    loopdone = bAnd [bNot mc, bSkip]
    loopstep 1 = bAnd [mc, mpr]
    loopstep n = bSeq (loopstep (n-1)) (loopstep 1)
@@ -1239,12 +1280,32 @@ subII = psub bSkip [("g",g'1),("out",lg)]
 
 Need reductions of the form:
 \begin{eqnarray*}
-   \lnot ls(L_1) \land A(I,O,\dots) 
-   &=& 
+   \lnot ls(L_1) \land A(I,O,\dots)
+   &=&
    L_1 \cap I = \emptyset \land A(I,O\cup L_1,\dots)
-\\ A(I,O,a,R,A,L) \seq A(I,O,a,R,A,L) &=& \false?
+\\ A(I,O,a,R,A,L') \seq A(I,O,a,R,A,L') &=& \false?
 \\ A(I,O,a,I,O,O) \seq A(I,O,a,I,O,O) &=& \false
 \end{eqnarray*}
+
+We note the strongest inference we can make regarding $L'$
+\begin{eqnarray*}
+   A(I,O,a,R,A,L') &\implies& ls'(I\setminus R \cup A \cup L')
+\end{eqnarray*}
+
+Remembering:
+\begin{eqnarray*}
+  && A(I_1,O_1,as,R_1,A_1,L_1) \seq A(I_2,O_2,bs,R_2,A_2,L_2)
+\EQ{Defn. of $A$, lots of steps\dots}
+\\&& (L_1 \cup I_2)\setminus A_1 \cap R_1 = \emptyset
+     \land O_2 \cap A_1 = \emptyset
+\\&& {}\land A( I_1 \cup I_2\setminus A_1
+              , O_1 \cup O_2\setminus R_1
+              , (as\!\seq\! bs)
+              , R_1 \cup R_2
+              , A_1\setminus R_2 \cup A_2
+              , L_2 )
+\end{eqnarray*}
+
 
 \newpage
 
