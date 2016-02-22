@@ -1041,6 +1041,17 @@ vReduce d (_,Comp ns [ (_,Comp nn [(_,Atm lsL1)]) -- ~ls(L1) ;
 %   Just (before,(_,[(_,Atm s1),(_,Atm s2)]),after) = match
 %\end{code}
 
+Want a disjunctive form bias,
+so we distribute conjunction inside:
+\begin{eqnarray*}
+   A \land (B \lor C) &=& (A \land B) \lor (A \land C)
+\end{eqnarray*}
+\begin{code}
+vReduce d (_,Comp na [ mpr, (_,Comp no mprs) ])
+ | na == nAnd && no == nOr  =  ( "and-or-distr", bOr $ map f mprs )
+ where f mpr' = bAnd [mpr , mpr']
+\end{code}
+
 
 \newpage
 Default case: no change.
@@ -1269,10 +1280,14 @@ This gives us the desired reduction law above.
 pP = pvar "P" ; pQ = pvar "Q"  -- general programs
 atomA = pvar "a"
 atomB = pvar "b"
-athenb = atomA `vseq` atomB
 
 subII :: (Show s, Ord s) => MPred s
 subII = psub bSkip [("g",g'1),("out",lg)]
+
+actionA = bA inp out atomA inp out out
+actionB = bA inp out atomB inp out out
+
+athenb = actionA `vseq` actionB
 \end{code}
 
 \newpage
