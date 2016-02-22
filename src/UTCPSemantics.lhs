@@ -311,9 +311,9 @@ The Set Dictionary:
 setUTCPDict :: (Eq s, Ord s, Show s) => Dict s
 setUTCPDict
  = makeDict
-    [ (setn,(ExprEntry True showSet evalSet eqSet))
-    , (subsetn,(ExprEntry True showSubSet evalSubset noEq))
-    , (sswapn, (ExprEntry True showSSwap evalSSwap noEq))
+    [ (setn,(ExprEntry ["*"] showSet evalSet eqSet))
+    , (subsetn,(ExprEntry ["*"] showSubSet evalSubset noEq))
+    , (sswapn, (ExprEntry ["*"] showSSwap evalSSwap noEq))
     ]
 \end{code}
 
@@ -345,7 +345,7 @@ ls'eqlsinout = equal ls' lsinout
 patmEntry :: (Show s, Ord s) => (String, Entry s)
 patmEntry
  = ( nPAtm
-   , PredEntry False ppPAtm [] defnAtomic (pNoChg nPAtm) )
+   , PredEntry [] ppPAtm [] defnAtomic (pNoChg nPAtm) )
 \end{code}
 
 A special case of this is the $Idle$ construct:
@@ -368,7 +368,7 @@ defnIdle d [] = ldefn shPIdle $ Equal s' s
 pidleEntry :: (Show s, Ord s) => (String, Entry s)
 pidleEntry
  = ( nPIdle
-   , PredEntry False ppPIdle [] defnIdle (pNoChg nPIdle) )
+   , PredEntry [] ppPIdle [] defnIdle (pNoChg nPIdle) )
 \end{code}
 
 Given that $\alpha A = \setof{s,s'}$, we have:
@@ -555,10 +555,10 @@ We can now define a generator dictionary:
 genUTCPDict :: (Eq s, Ord s, Show s) => Dict s
 genUTCPDict
  = makeDict
-    [ (new1n,(ExprEntry True showGNew1 (justMakes gNew1) noEq))
-    , (new2n,(ExprEntry True showGNew2 (justMakes gNew2) noEq))
-    , (split1n,(ExprEntry True showGSplit1 (justMakes gSplit1) noEq))
-    , (split2n,(ExprEntry True showGSplit2 (justMakes gSplit2) noEq))
+    [ (new1n,(ExprEntry ["*"] showGNew1 (justMakes gNew1) noEq))
+    , (new2n,(ExprEntry ["*"] showGNew2 (justMakes gNew2) noEq))
+    , (split1n,(ExprEntry ["*"] showGSplit1 (justMakes gSplit1) noEq))
+    , (split2n,(ExprEntry ["*"] showGSplit2 (justMakes gSplit2) noEq))
     ]
 \end{code}
 
@@ -621,7 +621,7 @@ g'2 = split2 g'
 pseqEntry :: (Show s, Ord s) => (String, Entry s)
 pseqEntry
  = ( nPSeq
-   , PredEntry False ppPSeq [] defnSeq (pNoChg nPSeq) )
+   , PredEntry [] ppPSeq [] defnSeq (pNoChg nPSeq) )
 \end{code}
 
 
@@ -724,7 +724,7 @@ defnPPar d [p,q]
 pparEntry :: (Show s, Ord s) => (String, Entry s)
 pparEntry
  = ( nPPar
-   , PredEntry False ppPPar [] defnPPar (pNoChg nPPar) )
+   , PredEntry [] ppPPar [] defnPPar (pNoChg nPPar) )
 \end{code}
 
 \newpage
@@ -791,7 +791,7 @@ defnPCond d [c,p,q]
 pcondEntry :: (Show s, Ord s) => (String, Entry s)
 pcondEntry
  = ( nPCond
-   , PredEntry False ppPCond [] defnPCond (pNoChg nPCond) )
+   , PredEntry [] ppPCond [] defnPCond (pNoChg nPCond) )
 \end{code}
 
 \newpage
@@ -840,7 +840,7 @@ defnIter d [c,p]
 piterEntry :: (Show s, Ord s) => (String, Entry s)
 piterEntry
  = ( nPIter
-   , PredEntry False ppPIter [] defnAtomic (pNoChg nPIter) )
+   , PredEntry [] ppPIter [] defnAtomic (pNoChg nPIter) )
 \end{code}
 
 
@@ -899,7 +899,7 @@ runLoop p  = bIter (bNot $ atm $ subset (mkSet [out]) ls) p
 prunEntry :: (Show s, Ord s) => Int -> (String, Entry s)
 prunEntry n
  = ( nPRun
-   , PredEntry False ppPRun [] (defnRun n) (pNoChg nPRun) )
+   , PredEntry [] ppPRun [] (defnRun n) (pNoChg nPRun) )
 \end{code}
 
 
@@ -927,7 +927,7 @@ defnDo d [p]
 pdoEntry :: (Show s, Ord s) => (String, Entry s)
 pdoEntry
  = ( nPDo
-   , PredEntry False ppPDo [] defnDo (pNoChg nPDo) )
+   , PredEntry [] ppPDo [] defnDo (pNoChg nPDo) )
 \end{code}
 
 

@@ -112,7 +112,7 @@ dosubset d es1 es2 -- is es1 a subset of es2 ?
   | otherwise        =  none
   where
     es1lesses2 = es1 \\ es2
-    
+
 -- the following should be re-located
 matchls (App ns [ ell, Var "ls" ])
  | ns == subsetn  =  (True, ell)
@@ -239,12 +239,12 @@ The Set Dictionary:
 vSetDict :: (Eq s, Ord s, Show s) => Dict s
 vSetDict
  = makeDict
-    [ (setn,(ExprEntry True showSet evalSet eqSet))
-    , (unionn,(ExprEntry True ppUnion evalUnion noEq))
-    , (intn,(ExprEntry True ppIntsct evalIntsct noEq))
-    , (sdiffn,(ExprEntry True ppSDiff evalSDiff noEq))
-    , (subsetn,(ExprEntry True showSubSet evalSubset noEq))
-    , (sswapn, (ExprEntry True showSSwap evalSSwap noEq))
+    [ (setn,(ExprEntry ["*"] showSet evalSet eqSet))
+    , (unionn,(ExprEntry ["*"] ppUnion evalUnion noEq))
+    , (intn,(ExprEntry ["*"] ppIntsct evalIntsct noEq))
+    , (sdiffn,(ExprEntry ["*"] ppSDiff evalSDiff noEq))
+    , (subsetn,(ExprEntry ["*"] showSubSet evalSubset noEq))
+    , (sswapn, (ExprEntry ["*"] showSSwap evalSSwap noEq))
     ]
 \end{code}
 
@@ -301,10 +301,10 @@ We can now define a generator dictionary:
 vGenDict :: (Eq s, Ord s, Show s) => Dict s
 vGenDict
  = makeDict
-    [ (new1n,(ExprEntry True showGNew1 (justMakes gNew1) noEq))
-    , (new2n,(ExprEntry True showGNew2 (justMakes gNew2) noEq))
-    , (split1n,(ExprEntry True showGSplit1 (justMakes gSplit1) noEq))
-    , (split2n,(ExprEntry True showGSplit2 (justMakes gSplit2) noEq))
+    [ (new1n,(ExprEntry ["*"] showGNew1 (justMakes gNew1) noEq))
+    , (new2n,(ExprEntry ["*"] showGNew2 (justMakes gNew2) noEq))
+    , (split1n,(ExprEntry ["*"] showGSplit1 (justMakes gSplit1) noEq))
+    , (split2n,(ExprEntry ["*"] showGSplit2 (justMakes gSplit2) noEq))
     ]
 \end{code}
 
@@ -440,7 +440,7 @@ ppD d ms p mprs = pps styleRed $ ppa ("invalid-"++shD)
 vDEntry :: (Show s, Ord s) => (String, Entry s)
 vDEntry
  = ( nD
-   , PredEntry False ppD [] (pNoChg nD) (pNoChg nD) )
+   , PredEntry [] ppD [] (pNoChg nD) (pNoChg nD) )
 \end{code}
 
 \newpage
@@ -453,8 +453,8 @@ vDEntry
 \\ && {} \land ls'=ls\ominus(R|A) \land ls'(A \cup L)
          \land (R\setminus A) \cap L = \emptyset
 \\ &=& A(I,O,as,R,A,A\cup L)
-\\ A(I,O,as,R,A,L') 
-   &=& 
+\\ A(I,O,as,R,A,L')
+   &=&
    A(I,O,as,R\setminus A,A,(I\setminus R) \cup A \cup L')
 \end{eqnarray*}
 
@@ -502,7 +502,7 @@ simpA d mprs = ( "", Comp nA mprs )
 vAEntry :: (Show s, Ord s) => (String, Entry s)
 vAEntry
  = ( nA
-   , PredEntry False ppA [] defnA simpA )
+   , PredEntry [] ppA [] defnA simpA )
 \end{code}
 \begin{code}
 \end{code}
@@ -574,7 +574,7 @@ notlsout = bNot lsout
 vWEntry :: (Show s, Ord s) => (String, Entry s)
 vWEntry
  = ( nW
-   , PredEntry False ppW [] defnW (pNoChg nW) )
+   , PredEntry [] ppW [] defnW (pNoChg nW) )
 \end{code}
 We need to show it is idempotent (monotonicty is immediate):
 \RLEQNS{
@@ -736,7 +736,7 @@ ls'eqlsinout = equal ls' lsinout
 patmEntry :: (Show s, Ord s) => (String, Entry s)
 patmEntry
  = ( nPAtm
-   , PredEntry False ppPAtm [] defnAtomic (pNoChg nPAtm) )
+   , PredEntry [] ppPAtm [] defnAtomic (pNoChg nPAtm) )
 \end{code}
 
 
@@ -776,7 +776,7 @@ g'2 = split2 g'
 vSeqEntry :: (Show s, Ord s) => (String, Entry s)
 vSeqEntry
  = ( nVSeq
-   , PredEntry False ppVSeq [] defnVSeq (pNoChg nVSeq) )
+   , PredEntry [] ppVSeq [] defnVSeq (pNoChg nVSeq) )
 \end{code}
 
 
@@ -1009,7 +1009,7 @@ vReduce d (_,Comp ns [ (_,Comp nn [(_,Atm lsL1)]) -- ~ls(L1) ;
       , if sEqual d (lI `i` lL1) emp == (True,F)
         then bF
         else bA lI (lO `u` lL1)  as lR lA lL2 )
- where 
+ where
    (isLS,lL1) = matchls lsL1
    ell = snd $ esimp d (lsL1 `u` lI)
 \end{code}

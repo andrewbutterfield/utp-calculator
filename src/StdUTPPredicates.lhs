@@ -51,10 +51,10 @@ defnBot d _ = ("",T) -- assuming full predicate lattice
 
 topEntry
  = ( nTop
-   , PredEntry False ppTop [] defnTop (pNoChg nTop) )
+   , PredEntry [] ppTop [] defnTop (pNoChg nTop) )
 botEntry
  = ( nBot
-   , PredEntry False ppBot [] defnBot (pNoChg nBot) )
+   , PredEntry [] ppBot [] defnBot (pNoChg nBot) )
 
 -- build Top and Bot at the MPred level
 bTop, bBot :: MPred s
@@ -89,7 +89,7 @@ simpNDC d mprs  = sLattice "|~|-simplify" mkNDC mkBot mkTop mprs
 ndcEntry :: (Show s, Ord s) => (String, Entry s)
 ndcEntry
  = ( nNDC
-   , PredEntry True ppNDC [] (pNoChg nNDC) simpNDC )
+   , PredEntry ["*"] ppNDC [] (pNoChg nNDC) simpNDC )
 
 -- build an NDC at the MPred level
 bNDC mprs = noMark $ mkNDC mprs
@@ -120,7 +120,7 @@ simpRfdby d [mpr1, mpr2] = ( "",  mkImp mpr1 mpr2 )
 rfdbyEntry :: (Show s, Ord s) => (String, Entry s)
 rfdbyEntry
  = ( nRfdby
-   , PredEntry False ppRfdby []
+   , PredEntry [] ppRfdby []
                (pNoChg nRfdby) simpRfdby )
 
 -- build an Rfdby at the MPred level
@@ -153,7 +153,7 @@ simpCond d [mpr1, mpr2, mpr3] = ( "",  mkCond mpr1 mpr2 mpr3)
 condEntry :: (Show s, Ord s) => (String, Entry s)
 condEntry
  = ( nCond
-   , PredEntry True ppCond [] simpCond simpCond )
+   , PredEntry ["*"] ppCond [] simpCond simpCond )
 
 -- build an Cond at the MPred level
 bCond mpr1 mpr2 mpr3 = noMark $ mkCond mpr1 mpr2 mpr3
@@ -178,7 +178,7 @@ simpSkip d _ = ("",mkSkip)
 
 skipEntry
   = ( nSkip
-    , PredEntry False ppSkip [] simpSkip simpSkip )
+    , PredEntry [] ppSkip [] simpSkip simpSkip )
 
 -- build Skip at the MPred level
 bSkip :: MPred s
@@ -220,7 +220,7 @@ simpSeq d [ mpr1, mpr2    ]
 seqEntry :: (Show s, Ord s) => (String, Entry s)
 seqEntry
  = ( nSeq
-   , PredEntry False ppSeq [] (pNoChg nSeq) simpSeq )
+   , PredEntry [] ppSeq [] (pNoChg nSeq) simpSeq )
 
 -- build an Seq at the MPred level
 bSeq mpr1 mpr2 = noMark $ mkSeq mpr1 mpr2
@@ -249,7 +249,7 @@ simpIter d [mpr1, mpr2 ] = ( "", mkIter mpr1 mpr2 )
 iterEntry :: (Show s, Ord s) => (String, Entry s)
 iterEntry
  = ( nIter
-   , PredEntry False ppIter [] (pNoChg nIter) simpIter )
+   , PredEntry [] ppIter [] (pNoChg nIter) simpIter )
 
 -- build an Iter at the MPred level
 bIter mpr1 mpr2 = noMark $ mkIter mpr1 mpr2

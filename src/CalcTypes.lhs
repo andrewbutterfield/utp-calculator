@@ -240,7 +240,7 @@ $A \defs \setof{v_1,v_2,\ldots,v_n}$.
 \begin{code}
 -- data Entry s = ....
  | ExprEntry { -- about Expressions
-     ecansub :: Bool                           -- substitutable?
+     ecansub :: [String]                     -- substitutable vars
    , eprint  :: Dict s -> [Expr s] -> String -- pretty printer
    , eval    :: Dict s -> [Expr s]           -- evaluator
              -> ( String, Expr s )
@@ -267,7 +267,7 @@ of a proof step.
 
 \begin{code}
  | PredEntry {    -- about Predicates and PredVars
-     pcansub :: Bool                           -- substitutable?
+     pcansub :: [String]                      -- substitutable vars
    , pprint  :: Dict s -> MarkStyle           -- pretty printer
              -> Int -> [MPred s]
              -> PP

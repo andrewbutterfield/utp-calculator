@@ -436,13 +436,13 @@ We sometimes need to know when we can substitute:
 canSub :: Dict s -> String -> Bool
 canSub d name
  = case plookup name d of
-    Just (PredEntry cansub _ _ _ _)  ->  cansub
+    Just (PredEntry cansub _ _ _ _)  ->  not $ null cansub
     _                                ->  False
 
 substitutable :: Dict s -> MPred s -> Bool
 substitutable d (_,Comp name _)
  = case plookup name d of
-    Just (PredEntry cansub _ _ _ _)  ->  cansub
+    Just (PredEntry cansub _ _ _ _)  ->  not $ null cansub
     _                                ->  False
 substitutable _ _ = True
 \end{code}
