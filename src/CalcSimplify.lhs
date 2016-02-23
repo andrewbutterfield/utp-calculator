@@ -1,6 +1,7 @@
 \HDRa{Calculator Simplification}\label{ha:calc-simp}
 \begin{code}
 module CalcSimplify where
+import Data.List
 import CalcTypes
 import CalcPredicates
 \end{code}
@@ -403,7 +404,7 @@ psubst m d sub (_,Atm e)
    in  (ediff, Atm e')
 
 psubst m d sub (_,Comp name mprs)
- | canSub d name
+ | canSub sub d name
     = let (_, mprs') = pssubst m d sub mprs
       in  (diff, Comp name mprs')
 
@@ -433,10 +434,10 @@ pssubst m d sub (mp@(ms,p):mps)
 \newpage
 We sometimes need to know when we can substitute:
 \begin{code}
-canSub :: Dict s -> String -> Bool
-canSub d name
+canSub :: Substn s -> Dict s -> String -> Bool
+canSub subs d name
  = case plookup name d of
-    Just (PredEntry cansub _ _ _ _)  ->  not $ null cansub
+    Just (PredEntry cansub _ _ _ _)  ->  null (map fst subs \\ cansub)
     _                                ->  False
 
 substitutable :: Dict s -> MPred s -> Bool

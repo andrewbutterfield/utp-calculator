@@ -437,10 +437,14 @@ ppD d ms p mprs@[(_,Atm _)] = stdCshow d ms shD mprs
 ppD d ms p mprs = pps styleRed $ ppa ("invalid-"++shD)
 
 -- we don't want to expand the definition of this
+defnD = pNoChg nD
+
+staticOnly = ["g","in","out"]
+
 vDEntry :: (Show s, Ord s) => (String, Entry s)
 vDEntry
  = ( nD
-   , PredEntry [] ppD [] (pNoChg nD) (pNoChg nD) )
+   , PredEntry staticOnly ppD [] defnD (pNoChg nD) )
 \end{code}
 
 \newpage
@@ -502,7 +506,7 @@ simpA d mprs = ( "", Comp nA mprs )
 vAEntry :: (Show s, Ord s) => (String, Entry s)
 vAEntry
  = ( nA
-   , PredEntry [] ppA [] defnA simpA )
+   , PredEntry staticOnly ppA [] defnA simpA )
 \end{code}
 \begin{code}
 \end{code}
