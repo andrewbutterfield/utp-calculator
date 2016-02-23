@@ -421,6 +421,9 @@ and suggest two important calculations:
 \HDRb{Atomic Shorthands}
 
 We find essentially just two idioms here,
+\[
+  D(L) \qquad A(I,O,a,R,A,L)
+\]
 where $L$, $I$, $O$, $R$ and $A$ are lists of labels:
 \begin{eqnarray*}
    D(L) &\defs&  ls(L) \land s'=s \land ls'=ls
@@ -507,8 +510,6 @@ vAEntry :: (Show s, Ord s) => (String, Entry s)
 vAEntry
  = ( nA
    , PredEntry staticOnly ppA [] defnA simpA )
-\end{code}
-\begin{code}
 \end{code}
 We have both an `implicit' form which is a minimalist
 definition of behaviour, along with an `explicit' form
@@ -995,9 +996,14 @@ vReduce d (_,Comp ns [ (_,Comp na1 [ (_,Atm lI1)  -- A(I1
    \lnot ls(L_1) \land A(I,O,\dots)
    &=&
    L_1 \cap I = \emptyset \land A(I,O\cup L_1,\dots)
-\\ A(I,O,a,R,A,L') \seq A(I,O,a,R,A,L') &=& \false?
-\\ A(I,O,a,I,O,O) \seq A(I,O,a,I,O,O) &=& \false
+\\ A(I,O,a,R,A,L')^2
+   &=& I \cap R = \emptyset
+    \land (I \setminus R \cup A \cup L') \cap O = \emptyset
+    \land A(\dots)^2
+\\ A(I,O,a,I,O,O)^2 &=& \false
 \end{eqnarray*}
+The latter two results will ``come out on the wash'',
+so to speak, so don't need explicit reductions.
 \begin{code}
 vReduce d (_,Comp ns [ (_,Comp nn [(_,Atm lsL1)]) -- ~ls(L1) ;
                      , (_,Comp na [ (_,Atm lI)    -- A(I
@@ -1045,8 +1051,45 @@ vReduce d (_,Comp ns [ (_,Comp nn [(_,Atm lsL1)]) -- ~ls(L1) ;
 %   Just (before,(_,[(_,Atm s1),(_,Atm s2)]),after) = match
 %\end{code}
 
-Want a disjunctive form bias,
-so we distribute conjunction inside:
+We find that $\W()$ defnitions
+can be expressed a a disjunction
+of sequential compositions of $D$ and $A$ with substitutions
+for $g$, $in$ and $out$:
+\[
+  \W(C)
+  =
+  \left(
+    \bigvee_{i=0}^n
+      \left(
+        {\large\seq}_{j=0}^{m_i}
+           (D(L_{ij})|A(I_{ij},O_{ij},a_{ij},R_{ij},A_{ij},L'_{ij}))
+           [G_{ij},\ell_{aij},\ell_{bij}/g,in,out]
+      \right)
+  \right)
+\]
+where $L_{00} = \setof{out}$ and $m_0=0$.
+The above laws allow all of the above to collapse down to
+\[
+  \W(C)
+  =
+  D(out)
+  \lor
+  \left(
+    \bigvee_{i=1}^{m \leq n}  A(I_{ij},O_{ij},a_{ij},R_{ij},A_{ij},L'_{ij})
+                     [G_{ij},\ell_{ai},\ell_{bi}/g,in,out]
+  \right)
+\]
+Basically $A$ absorbs $D$ on both left and right of sequential composition,
+so the only $D$ that survives is the one capturing immediate termination.
+
+This leads to naturally require the following distributivity laws
+w.r.t to sequential composition:
+\begin{eqnarray*}
+   A \land (B \lor C) &=& (A \land B) \lor (A \land C)
+\\ A \seq (B \lor C) &=& (A \seq B) \lor (A \seq C)
+\\ (A \lor B) \seq C &=& (A \seq C) \lor (B \seq C)
+\end{eqnarray*}
+
 \begin{eqnarray*}
    A \land (B \lor C) &=& (A \land B) \lor (A \land C)
 \end{eqnarray*}
@@ -1055,6 +1098,35 @@ vReduce d (_,Comp na [ mpr, (_,Comp no mprs) ])
  | na == nAnd && no == nOr  =  ( "and-or-distr", bOr $ map f mprs )
  where f mpr' = bAnd [mpr , mpr']
 \end{code}
+
+\begin{eqnarray*}
+   A \seq (B \lor C) &=& (A \seq B) \lor (A \seq C)
+\end{eqnarray*}
+\begin{code}
+vReduce d (_,Comp ns [ mpr, (_,Comp no mprs) ])
+ | ns == nSeq && no == nOr  =  ( ";-or-distr", bOr $ map f mprs )
+ where f mpr' = bSeq mpr mpr'
+\end{code}
+
+\begin{eqnarray*}
+  (A \lor B) \seq C &=& (A \seq C) \lor (B \seq C)
+\end{eqnarray*}
+\begin{code}
+vReduce d (_,Comp ns [ (_,Comp no mprs), mpr ])
+ | ns == nSeq && no == nOr  =  ( "or-;-distr", bOr $ map f mprs )
+ where f mpr' = bSeq mpr' mpr
+\end{code}
+
+We prefer sequential chains to associate to the left:
+\begin{eqnarray*}
+   A \seq (B \seq C) &=& (A \seq B) \seq C
+\end{eqnarray*}
+\begin{code}
+vReduce d (_,Comp ns1 [ mprA, (_,Comp ns2 [mprB, mprC]) ])
+ | ns1 == nSeq && ns2 == nSeq
+     =  ( ";-left-assoc", bSeq (bSeq mprA mprB) mprC )
+\end{code}
+
 
 
 \newpage
