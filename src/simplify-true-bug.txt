@@ -109,7 +109,7 @@ This:
                        /\ ((({lg} U in) \ lg) I {in}) = {}
                        /\ (lg I (lg U out)) = {}
                     ; ~ls(out) /\ A(lg,out,b,{lg},out,{out}))
-simplifies to true!
+simplifies to true! Let's pull it out 
 
              ; W(A(in,lg,a,{in},lg,{lg}) \/ A(lg,out,b,{lg},out,{out})))
          \/ (        A(in,{out,lg},a,{in},lg,{lg})
@@ -130,8 +130,7 @@ simplifies to true!
     D(out)
  \/ A(in,{out,lg},a,{in},lg,{out,lg}) \/ A(lg,{out},b,{lg},out,{out})
  \/ A({in},{out,lg},a ; b,{in,lg},{out},{out})
- \/         (true ; W(A(in,lg,a,{in},lg,{lg}) \/ A(lg,out,b,{lg},out,{out})))
-         \/ (        A(in,{out,lg},a,{in},lg,{lg})
+ \/         ( true; A(in,{out,lg},a,{in},lg,{lg})
                    ; ~ls(out) /\ A(lg,out,b,{lg},out,{out})
                 ;     ~ls(out)
                    /\ (A(in,lg,a,{in},lg,{lg}) \/ A(lg,out,b,{lg},out,{out}))
@@ -142,3 +141,29 @@ simplifies to true!
             ;     ~ls(out)
                /\ (A(in,lg,a,{in},lg,{lg}) \/ A(lg,out,b,{lg},out,{out}))
          ; W(A(in,lg,a,{in},lg,{lg}) \/ A(lg,out,b,{lg},out,{out})))
+
+
+=============
+=============================================
+CHECKING
+
+                   (      A
+                          ({in}
+                          ,{out,lg} 
+                          ,a ; a
+                          ,{in}
+                          ,{lg}
+                          ,{lg})
+                       /\ FALSE
+                       /\ FALSE
+                    ; ~ls(out) /\ A(in,lg,a,{in},lg,{lg}))    = it all equals false!!!!!
+                \/ (      A
+                          ({in}
+                          ,{out,lg}
+                          ,a ; a
+                          ,{in}
+                          ,{lg}
+                          ,{lg})
+                       /\ FALSE
+                       /\ FALSE
+                    ; ~ls(out) /\ A(lg,out,b,{lg},out,{out}))

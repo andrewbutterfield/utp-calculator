@@ -166,11 +166,11 @@ bAnd mprs = noMark $ mkAnd mprs
 \begin{code}
 nOr = "Or" ; isOr  = isComp nOr
 
-mkOr [] = T
+mkOr [] = F
 mkOr [(_,pr)] = pr
 mkOr mprs = mkAssoc nOr isOr [] mprs
 
-ppOr d ms p [] = showp d ms p T
+ppOr d ms p [] = showp d ms p F
 ppOr d ms p [mpr] = mshowp d ms p mpr
 ppOr d ms p mprs
  = paren p precOr
