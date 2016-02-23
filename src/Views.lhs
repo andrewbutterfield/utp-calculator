@@ -1557,3 +1557,17 @@ we can assert the slightly stronger:
 \[
   D(out) \lor A(in,out,a,in,out,out)
 \]
+
+\newpage
+\HDRb{Results}
+
+\HDRc{$a \cseq b$}
+
+\begin{eqnarray*}
+  a \cseq b
+   & =  & D(out)
+\\ &\lor& A(in,\setof{\ell_g,out},a,in,\ell_g,\setof{out,\ell_g})
+\\ &\lor& A(\ell_g,out,b,\ell_g,out,out)
+\\ &\lor& A(in,\setof{out,\ell_g},a;b,\setof{in,\ell_g},out,out)
+\end{eqnarray*}
+
