@@ -580,7 +580,7 @@ vWEntry
  = ( nW
    , PredEntry [] ppW [] defnW (pNoChg nW) )
 \end{code}
-We need to show it is idempotent (monotonicty is immediate):
+We need to show it is idempotent (monotonicity is immediate):
 \RLEQNS{
    \W(\W(P)) &=& \W(P)
 }
@@ -1478,4 +1478,10 @@ while the minimalist condition is $R \cap A = \emptyset$.
 The basic atomic action $a$ has semantics
 \[
   D(out) \lor A(in,\emptyset,a,in,out,out)
+\]
+But since $in$ and $out$ are always local,
+thanks to the way label generators are used,
+we can assert the slightly stronger:
+\[
+  D(out) \lor A(in,out,a,in,out,out)
 \]
