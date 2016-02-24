@@ -47,7 +47,7 @@ We do a quick run-down of the Commands\cite{conf/popl/Dinsdale-YoungBGPY13}.
 We assign the following precedences to Views syntactical constructs,
 interleaving them among the standard predicates.
 \begin{code}
-precVCond = 5 + precSpacer  1
+precVChc  = 5 + precSpacer  1
 precVPar  = 5 + precSpacer  2
 precVSeq  = 5 + precSpacer  3
 precVIter = 5 + precSpacer  6
@@ -469,10 +469,12 @@ vDEntry
 nA = "A"
 isA (_,Comp n [_]) | n==nA = True; isA _ = False
 
-bA lI lO as lR lA lL
- = comp nA [ atm lI, atm lO, as
+mkA lI lO as lR lA lL
+ = Comp nA [ atm lI, atm lO, as
            , atm (lR `sdiff` lA)
            , atm lA,atm ((lI `sdiff` lR) `u` lA `u` lL) ]
+
+bA lI lO as lR lA lL = noMark $ mkA lI lO as lR lA lL
 
 shA = "A"
 ppA d ms p mprs@[(_,Atm _),(_,Atm _),_,(_,Atm _),(_,Atm _),(_,Atm _)]
@@ -571,7 +573,9 @@ ppW d ms p [mpr]
           , ppbracket "(" (mshowp d ms 0 mpr) ")"]
 ppW d ms p mprs = pps styleRed $ ppa ("invalid-"++shW)
 
-defnW d [mpr] = ldefn shW $ mkIter notlsout mpr
+-- don't want to use this definition, prefer to unroll (below)
+-- defnW d [mpr] = ldefn shW $ mkIter notlsout mpr
+defnW = pNoChg nW
 
 lsout = atm $ App subsetn [out,ls]
 notlsout = bNot lsout
@@ -695,7 +699,33 @@ The definitions, using the new shorthand:
 
 \HDRc{Coding Atomic Semantics}
 
-Formally, using our shorthand notations, we can define atomic behaviour as:
+
+\begin{code}
+nAtom = "Atom" -- internal abstract name
+isAtom (_,Comp n [_]) | n==nAtom = True; isAtom _ = False
+
+atom mpr = comp nAtom [mpr]
+
+ppAtom d ms p [mpr] = ppbracket "<" (mshowp d ms 0 mpr) ">"
+ppAtom d ms p mprs = pps styleRed $ ppa ("invalid-"++nAtom)
+
+defnAtom d [a]
+ = ldefn nAtom $ wp $ bA inp emp a inp out out
+
+atomEntry :: (Show s, Ord s) => (String, Entry s)
+atomEntry
+ = ( nAtom
+   , PredEntry ["s","s'"] ppAtom [] defnAtom (pNoChg nAtom) )
+
+-- atomic skip
+nii= "ii"
+ii = pvar nii
+\end{code}
+
+
+
+Formally, using our shorthand notations,
+we can define atomic behaviour longhand as as:
 \RLEQNS{
    \A(A)
     &\defs&
@@ -744,7 +774,7 @@ patmEntry
    , PredEntry [] ppPAtm [] defnAtomic (pNoChg nPAtm) )
 \end{code}
 
-
+\newpage
 \HDRc{Coding Sequential Composition}
 
 \RLEQNS{
@@ -785,11 +815,70 @@ vSeqEntry
 \end{code}
 
 
+\newpage
+\HDRc{Coding (Non-Det.) Choice}
+
+\RLEQNS{
+   P + Q
+   &\defs&
+   \W(\quad {}\phlor A(in,\emptyset,ii,\setof{in,\ell_{g2}},\ell_{g1},\ell_{g1})
+\\ && \qquad {} \lor
+   A(in,\emptyset,ii,\setof{in,\ell_{g1}},\ell_{g2},\ell_{g2})
+\\ && \qquad {} \lor
+   P[g_{1:},\ell_{g1}/g,in] \lor Q[g_{2:},\ell_{g2}/g,in]~)
+}
+
+\begin{code}
+nVChc = "VChc"
+isVChc (_,Comp n [_,_]) | n==nVChc = True; isVChc _ = False
+
+vchc p q = comp nVChc [p,q]
+
+shVChc = "+"
+ppVChc d ms p [mpr1,mpr2]
+ = paren p precVChc
+     $ ppopen  (pad shVChc) [ mshowp d ms precVChc mpr1
+                            , mshowp d ms precVChc mpr2 ]
+ppVChc d ms p mprs = pps styleRed $ ppa ("invalid-"++shVChc)
+
+defnVChc d [p,q]
+ = ldefn shVChc $ wp
+    $ bOr [ bA inp emp ii (set [inp,lg2]) lg1 lg1
+          , bA inp emp ii (set [inp,lg1]) lg2 lg2
+          , psub p sub1
+          , psub q sub2
+          ]
+ where
+   sub1 = [("g",g1'),("in",lg1)]
+   sub2 = [("g",g2'),("out",lg2)]
+
+g1 = split1 g
+g2 = split2 g
+lg1 = new1 g1
+lg2 = new1 g2
+g1' = new2 g1
+g2' = new2 g2
+
+vChcEntry :: (Show s, Ord s) => (String, Entry s)
+vChcEntry
+ = ( nVChc
+   , PredEntry [] ppVChc [] defnVChc (pNoChg nVChc) )
+\end{code}
+
+
+
 \HDRc{The Predicate Dictionary}\label{hc:WWW-pred-dict}
 
 \begin{code}
 dictVP :: (Ord s, Show s) => Dict s
-dictVP = makeDict [vDEntry,vAEntry,vWEntry,patmEntry,vSeqEntry]
+dictVP = makeDict [ vDEntry
+                  , vAEntry
+                  , vWEntry
+                  , atomEntry
+                  , vSeqEntry
+                  , vChcEntry
+                  , patmEntry
+                  ]
 \end{code}
 
 
@@ -1362,8 +1451,8 @@ subII = psub bSkip [("g",g'1),("out",lg)]
 
 --actionA = bA inp out atomA inp out out
 --actionB = bA inp out atomB inp out out
-actionA = bA inp emp atomA inp out out
-actionB = bA inp emp atomB inp out out
+actionA = atom atomA
+actionB = atom atomB
 
 athenb = actionA `vseq` actionB
 \end{code}
@@ -1562,6 +1651,14 @@ we can assert the slightly stronger:
 
 \newpage
 \HDRb{Results}
+
+\HDRc{$a$}
+
+\begin{eqnarray*}
+  a
+   & =  & D(out)
+\\ &\lor& A(in,out,a,in,out,out)
+\end{eqnarray*}
 
 \HDRc{$a \cseq b$}
 
