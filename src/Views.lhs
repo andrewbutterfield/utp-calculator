@@ -1360,8 +1360,10 @@ atomB = pvar "b"
 subII :: (Show s, Ord s) => MPred s
 subII = psub bSkip [("g",g'1),("out",lg)]
 
-actionA = bA inp out atomA inp out out
-actionB = bA inp out atomB inp out out
+--actionA = bA inp out atomA inp out out
+--actionB = bA inp out atomB inp out out
+actionA = bA inp emp atomA inp out out
+actionB = bA inp emp atomB inp out out
 
 athenb = actionA `vseq` actionB
 \end{code}
@@ -1566,8 +1568,7 @@ we can assert the slightly stronger:
 \begin{eqnarray*}
   a \cseq b
    & =  & D(out)
-\\ &\lor& A(in,\setof{\ell_g,out},a,in,\ell_g,\setof{out,\ell_g})
+\\ &\lor& A(in,out,a,in,\ell_g,\setof{out,\ell_g})
 \\ &\lor& A(\ell_g,out,b,\ell_g,out,out)
-\\ &\lor& A(in,\setof{out,\ell_g},a;b,\setof{in,\ell_g},out,out)
+\\ &\lor& A(in,out,a;b,\setof{in,\ell_g},out,out)
 \end{eqnarray*}
-
