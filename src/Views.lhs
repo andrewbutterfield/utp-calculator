@@ -586,7 +586,7 @@ notlsout = bNot lsout
 vWEntry :: (Show s, Ord s) => (String, Entry s)
 vWEntry
  = ( nW
-   , PredEntry staticOnly ppW [] defnW (pNoChg nW) )
+   , PredEntry [] ppW [] defnW (pNoChg nW) )
 \end{code}
 We need to show it is idempotent (monotonicity is immediate):
 \RLEQNS{
@@ -849,6 +849,8 @@ ppVChc d ms p mprs = pps styleRed $ ppa ("invalid-"++shVChc)
 
 defnVChc d [p,q]
  = ldefn shVChc $ wp
+--     $ bOr [ bA sinp slg1lg2out ii (set [inp,lg2]) slg1 slg1
+--           , bA sinp slg1lg2out ii (set [inp,lg1]) slg2 slg2
     $ bOr [ bA sinp emp ii (set [inp,lg2]) slg1 slg1
           , bA sinp emp ii (set [inp,lg1]) slg2 slg2
           , psub p sub1
@@ -856,7 +858,7 @@ defnVChc d [p,q]
           ]
  where
    sub1 = [("g",g1'),("in",lg1)]
-   sub2 = [("g",g2'),("out",lg2)]
+   sub2 = [("g",g2'),("in",lg2)]
 
 g1 = split1 g
 g2 = split2 g
@@ -866,6 +868,7 @@ g1' = new2 g1
 g2' = new2 g2
 slg1 = sngl lg1
 slg2 = sngl lg2
+slg1lg2out = set [lg1,lg2,out]
 
 vChcEntry :: (Show s, Ord s) => (String, Entry s)
 vChcEntry
@@ -1110,6 +1113,54 @@ vReduce d (_,Comp ns [ (_,Comp na1 [ (_,Atm lI1)  -- A(I1
 \end{code}
 
 
+Another key law:
+\begin{eqnarray*}
+   && \lnot ls(L) \land D(M) \seq D(N)
+\\&=& \lnot ls(L) \land ls(M) \land \Skip \seq ls(N) \land \Skip
+\\&=& \lnot ls(L) \land ls(M) \land \Skip \land ls'(M) \seq ls(N) \land \Skip
+\\&=& \lnot ls(L) \land ls(M) \land \Skip \seq  ls(M) \land ls(N) \land \Skip
+\\&=& \lnot ls(L) \land ls(M) \land \Skip \seq  ls(M \cup N) \land \Skip
+\\&=& \lnot ls(L) \land ls(M) \land \Skip \land  ls'(M \cup N) \seq \Skip
+\\&=& \lnot ls(L) \land ls(M) \land ls(M \cup N)
+      \land \Skip
+      \land  ls'(M \cup N)
+\\&=& \lnot ls(L) \land ls(M \cup N) \land \Skip
+\\&=& L \cap (M \cup N) = \emptyset
+      \land \lnot ls(L) \land D(M \cup N)
+\end{eqnarray*}
+\begin{code}
+vReduce d (_,Comp ns
+              [ (_,Comp na
+                    [ nlsL@(_,Comp nn
+                          [(_,Atm (App nss [ell,Var lsn]))]) -- L
+                    , (_,Comp nd1 [(_,Atm lM)])
+                    ])
+              , (_,Comp nd2[(_,Atm lN)])
+              ])
+ | ns == nSeq && na == nAnd && nn == nNot && nd1 == nD && nd2 == nD
+   && nss == subsetn && lsn == "ls"
+   =  ( "~ls-and-D;D",
+        bAnd [ equal (ell `i` lMN) emp, nlsL, bD lMN ] )
+ where lMN = snd $ esimp d (lM `u` lN)
+\end{code}
+and its little sister:
+\begin{eqnarray*}
+   && \lnot ls(L) \land D(M)
+\\&=& L \cap M  = \emptyset \land \lnot ls(L) \land D(M)
+\end{eqnarray*}
+\begin{code}
+vReduce d (_,Comp na
+                    [ nlsL@(_,Comp nn
+                          [(_,Atm (App nss [ell,Var lsn]))]) -- L
+                    , dM@(_,Comp nd [(_,Atm lM)])
+                    ])
+ | na == nAnd && nn == nNot && nd == nD
+   && nss == subsetn && lsn == "ls"
+   =  ( "~ls-and-D",
+        bAnd [ equal (ell `i` lM) emp, nlsL, dM ] )
+\end{code}
+
+
 \begin{eqnarray*}
    \lnot ls(L_1) \land A(I,O,\dots)
    &=&
@@ -1169,7 +1220,8 @@ vReduce d (_,Comp ns [ (_,Comp nn [(_,Atm lsL1)]) -- ~ls(L1) ;
 %   Just (before,(_,[(_,Atm s1),(_,Atm s2)]),after) = match
 %\end{code}
 
-We find that $\W()$ defnitions
+
+We find that $\W()$ definitions
 can be expressed a a disjunction
 of sequential compositions of $D$ and $A$ with substitutions
 for $g$, $in$ and $out$:
@@ -1695,4 +1747,17 @@ we can assert the slightly stronger:
 \\ &\lor& A(in,out,a,in,\ell_g,\setof{out,\ell_g})
 \\ &\lor& A(\ell_g,out,b,\ell_g,out,out)
 \\ &\lor& A(in,out,a;b,\setof{in,\ell_g},out,out)
+\end{eqnarray*}
+
+\HDRc{$a + b$}
+
+\begin{eqnarray*}
+  a + b
+   & =  & D(out)
+\\ &\lor& A(in,\setof{out,\ell_{g1},\ell_{g2}},ii,\setof{in,\ell_{g2}},\ell_{g1},\setof{out,\ell_{g1}})
+\\ &\lor& A(in,\setof{out,\ell_{g1},\ell_{g2}},ii,\setof{in,\ell_{g1}},\ell_{g2},\setof{out,\ell_{g2}})
+\\ &\lor& A(in,\setof{out,\ell_{g1},\ell_{g2}},ii ; a,\setof{in,\ell_{g1},\ell_{g2}},out,out)
+\\ &\lor& A(in,\setof{out,\ell_{g1},\ell_{g2}},ii ; b,\setof{in,\ell_{g1},\ell_{g2}},out,out)
+\\ &\lor& A(\ell_{g1},out,a,\ell_{g1},out,out)
+\\ &\lor& A(\ell_{g2},out,b,\ell_{g2},out,out)
 \end{eqnarray*}

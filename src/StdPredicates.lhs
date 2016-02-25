@@ -8,6 +8,7 @@ import Data.Char
 import Debug.Trace
 import PrettyPrint
 import CalcTypes
+import CalcAlphabets
 import StdPrecedences
 import CalcPredicates
 \end{code}
@@ -118,7 +119,7 @@ simpNot _ mprs = ("", Comp nNot mprs)
 notEntry :: (Show s, Ord s) => (String, Entry s)
 notEntry
  = ( nNot
-   , PredEntry ["*"] ppNot [] (pNoChg nNot) simpNot )
+   , PredEntry anyVars ppNot [] (pNoChg nNot) simpNot )
 
 -- build a Not at the MPred level
 bNot mpr = noMark $ mkNot mpr
@@ -150,7 +151,7 @@ simpAnd d mprs  = sLattice "/\\-simplify" mkAnd F T mprs
 andEntry :: (Show s, Ord s) => (String, Entry s)
 andEntry
  = ( nAnd
-   , PredEntry ["*"] ppAnd [] (pNoChg nAnd) simpAnd )
+   , PredEntry anyVars ppAnd [] (pNoChg nAnd) simpAnd )
 
 -- build an And at the MPred level
 bAnd mprs = noMark $ mkAnd mprs
@@ -182,7 +183,7 @@ simpOr d mprs  = sLattice "\\/-simplify" mkOr T F mprs
 orEntry :: (Show s, Ord s) => (String, Entry s)
 orEntry
  = ( nOr
-   , PredEntry ["*"] ppOr [] (pNoChg nOr) simpOr )
+   , PredEntry anyVars ppOr [] (pNoChg nOr) simpOr )
 
 -- build an Or at the MPred level
 bOr mprs = noMark $ mkOr mprs
@@ -227,7 +228,7 @@ simpImp d [ mpr1, mpr2    ] = ( "",  mkImp mpr1 mpr2 )
 impEntry :: (Show s, Ord s) => (String, Entry s)
 impEntry
  = ( nImp
-   , PredEntry ["*"] ppImp [] (pNoChg nImp) simpImp )
+   , PredEntry anyVars ppImp [] (pNoChg nImp) simpImp )
 
 -- build an Imp at the MPred level
 bImp mpr1 mpr2 = noMark $ mkImp mpr1 mpr2
@@ -271,7 +272,7 @@ simpEqv d [ mpr1, mpr2    ] = ( "",  mkEqv mpr1 mpr2 )
 eqvEntry :: (Show s, Ord s) => (String, Entry s)
 eqvEntry
  = ( nEqv
-   , PredEntry ["*"] ppEqv [] (pNoChg nEqv) simpEqv )
+   , PredEntry anyVars ppEqv [] (pNoChg nEqv) simpEqv )
 
 -- build an Eqv at the MPred level
 bEqv mpr1 mpr2 = noMark $ mkEqv mpr1 mpr2

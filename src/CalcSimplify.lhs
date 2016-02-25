@@ -3,6 +3,7 @@
 module CalcSimplify where
 import Data.List
 import CalcTypes
+import CalcAlphabets
 import CalcPredicates
 \end{code}
 
@@ -408,7 +409,8 @@ psubst m d sub (_,Comp name mprs)
     = let (_, mprs') = pssubst m d sub mprs
       in  (diff, Comp name mprs')
 
--- we need subcomp here, unlike in expression substitution,
+-- we need subcomp here, unlike in expression substitution
+
 -- because psubst m d can return a PSub
 psubst m d sub (_,PSub mpr sub')
                             = psubst m d (subcomp sub sub') mpr
@@ -437,8 +439,10 @@ We sometimes need to know when we can substitute:
 canSub :: Substn s -> Dict s -> String -> Bool
 canSub subs d name
  = case plookup name d of
-    Just (PredEntry cansub _ _ _ _)  ->  null (map fst subs \\ cansub)
-    _                                ->  False
+    Just (PredEntry cansub _ _ _ _)
+       ->  cansub == anyVars || null (map fst subs \\ cansub)
+    _  ->  False
+
 
 substitutable :: Dict s -> MPred s -> Bool
 substitutable d (_,Comp name _)

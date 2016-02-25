@@ -342,7 +342,7 @@ instance Show (Entry s) where
  show (AlfEntry vars) = "Alf {"++seplist ',' vars++"}"
  show (ExprEntry csub _ _ _) = "Expr, subst? = "++show csub
  show (PredEntry csub _ alf _ _)
-  = "Pred, subst? = "++show csub++ashow alf
+  = "Pred, subFor"++show csub++", alf="++ashow alf
   where
     ashow [] = ""
     ashow xs = " {"++seplist ',' xs++"}"

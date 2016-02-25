@@ -58,6 +58,13 @@ aDyn' = "Dyn'"  -- all dashed dynamic observables
 aStc  = "Stc"   -- all undashed static parameters
 \end{code}
 
+We also need a special way to indicate when substitutability
+applies to any variables:
+
+\begin{code}
+anyVars = ["*"]
+\end{code}
+
 \HDRc{Well-Formed Subsets}\label{hc:alpha-wf-subsets}
 
 A consistent set of the above alphabets should obey the following laws:
