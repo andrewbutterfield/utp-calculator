@@ -72,11 +72,14 @@ and updating by removing elements.
 setn = "set"
 set = App setn
 
+sngl e = set [e]
+
 emp = set []
 
 mkSet :: Ord s => [Expr s] -> Expr s
 mkSet = set . sort . nub
 
+showSet d [elm] = edshow d elm
 showSet d elms = "{" ++ dlshow d "," elms ++ "}"
 
 evalSet _ _ = none
@@ -583,7 +586,7 @@ notlsout = bNot lsout
 vWEntry :: (Show s, Ord s) => (String, Entry s)
 vWEntry
  = ( nW
-   , PredEntry [] ppW [] defnW (pNoChg nW) )
+   , PredEntry staticOnly ppW [] defnW (pNoChg nW) )
 \end{code}
 We need to show it is idempotent (monotonicity is immediate):
 \RLEQNS{
@@ -643,7 +646,7 @@ wUnroll ns d mw@(_,Comp nm [mpr])
                      , bSeq (loopstep 3) mw]
    wunroll _  =  bCond (bSeq mpr mw) (bNot lsout) bSkip
 
-   loopdone = bD out
+   loopdone = bD $ sngl out
    loopstep 1 = bAnd [bNot lsout, mpr]
    loopstep n = bSeq (loopstep (n-1)) (loopstep 1)
 
@@ -710,7 +713,10 @@ ppAtom d ms p [mpr] = ppbracket "<" (mshowp d ms 0 mpr) ">"
 ppAtom d ms p mprs = pps styleRed $ ppa ("invalid-"++nAtom)
 
 defnAtom d [a]
- = ldefn nAtom $ wp $ bA inp emp a inp out out
+ = ldefn nAtom $ wp $ bA sinp emp a sinp sout sout
+
+sinp = sngl inp
+sout = sngl out
 
 atomEntry :: (Show s, Ord s) => (String, Entry s)
 atomEntry
@@ -843,8 +849,8 @@ ppVChc d ms p mprs = pps styleRed $ ppa ("invalid-"++shVChc)
 
 defnVChc d [p,q]
  = ldefn shVChc $ wp
-    $ bOr [ bA inp emp ii (set [inp,lg2]) lg1 lg1
-          , bA inp emp ii (set [inp,lg1]) lg2 lg2
+    $ bOr [ bA sinp emp ii (set [inp,lg2]) slg1 slg1
+          , bA sinp emp ii (set [inp,lg1]) slg2 slg2
           , psub p sub1
           , psub q sub2
           ]
@@ -858,6 +864,8 @@ lg1 = new1 g1
 lg2 = new1 g2
 g1' = new2 g1
 g2' = new2 g2
+slg1 = sngl lg1
+slg2 = sngl lg2
 
 vChcEntry :: (Show s, Ord s) => (String, Entry s)
 vChcEntry
@@ -906,7 +914,28 @@ mtchLabelSetSSwap _      =  noMatch
 vReduce :: (Ord s, Show s) => DictRWFun s
          -- Dict s -> MPred s -> (String, MPred s)
 \end{code}
-We start with laws concerning $D$, $A$ and $\seq$.
+
+We start with high level calculation results
+we really, really want to re-use:
+\begin{eqnarray*}
+   a &=& \W(A(in,\emptyset,a,in,out,out))
+\\   &=& D(out) \lor A(in,out,a,in,out,out)
+\end{eqnarray*}
+\begin{code}
+vReduce d (_,Comp nw [(_,Comp na [ (_,Atm lI)  -- A(I
+                                 , (_,Atm lO)  --   ,O
+                                 , as          --   ,as
+                                 , (_,Atm lR)  --   ,R
+                                 , (_,Atm lA)  --   ,A
+                                 , (_,Atm lL)  --   ,L)
+                                 ])])
+ | nw == nW && na == nA && lO == emp && lI == lR && lA == lL
+   = ( "W of A", bOr [ bD sout, bA lI lA as lR lA lL ] )
+\end{code}
+
+
+
+We continue with laws concerning $D$, $A$ and $\seq$.
 
 \newpage
 \HDRd{Reduce $D(L_1)\seq D(L_2)$}
@@ -1443,16 +1472,14 @@ This gives us the desired reduction law above.
 
 \begin{code}
 pP = pvar "P" ; pQ = pvar "Q"  -- general programs
-atomA = pvar "a"
-atomB = pvar "b"
+a = pvar "a"
+b = pvar "b"
 
 subII :: (Show s, Ord s) => MPred s
 subII = psub bSkip [("g",g'1),("out",lg)]
 
---actionA = bA inp out atomA inp out out
---actionB = bA inp out atomB inp out out
-actionA = atom atomA
-actionB = atom atomB
+actionA = atom a
+actionB = atom b
 
 athenb = actionA `vseq` actionB
 \end{code}
