@@ -1,18 +1,69 @@
 \section{Introduction}\label{sec:Intro}
 
 
-\subsection*{Paper Plan}
+\subsection*{Paper Plan - 20 page limit}
 
 \begin{itemize}
   \item motivate by talking about
-  concurrency theory calculation travails
+  concurrency theory calculation travails (\S\ref{sec:Intro})
   \item explain decision to build a calculator
    (noting emerging tool work on PML as the seed)
-   explain why UTP2 was not suitable.
+   explain why UTP2 was not suitable.(\S\ref{sec:Intro})
+\end{itemize}
+
+
+\subsection{Research Context}
+
+We have recently started to explore using UTP
+to do the  formal modelling of a language,
+called ``Process Modelling Language'' (PML),
+designed to describe software development and similar business
+processes \cite{DBLP:journals/infsof/AtkinsonWN07}.
+The main objective is to give PML a formal semantics,
+as the basis for a number of analysis tools that could be made available
+to process designers and users---with one key application
+area being the modelling of clinical healthcare pathways.
+It quickly became apparent that PML and similar (business) process
+notations essentially involve concurrency with global shared mutable state.
+
+There has been work using UTP
+to model concurrent programs with shared mutable state,
+most notably
+with an encoding into actions systems having been done by
+Woodcock and Hughes\cite{DBLP:conf/icfem/WoodcockH02}.
+We have been looking at adapting this work to provide a UTP semantics
+for PML.
+In addition, we have started to take an interest in the ``Views'' paper
+by Dinsdale-Young and colleagues\cite{conf/popl/Dinsdale-YoungBGPY13},
+that provides a framework within which it is possible
+to construct instances of many different concurrency theories,
+ranging from
+type-theory \cite{tal-toplas,Smit00b,journals/fuin/AhmedFM07},
+Owicki-Gries\cite{Owicki76},
+separation logic\cite{conf/lics/CalcagnoOY07}
+and rely-guarantee\cite{Jones83}
+approaches,
+among others.
+
+
+\subsection{Theory Construction Difficulties}
+
+\subsection{A Plan}
+
+Haskell\cite{Haskell2010}
+
+A book by Bird \cite{Bird14}
+
+Fun \cite{conf/esop/Rudiak-GouldMJ06}.
+
+
+\subsection{Structure of this paper}
+
+\begin{itemize}
   \item
      explain the key design decisions,
      and how these were motivated by agile software development
-     principles (esp. YAGNI).
+     principles (esp. YAGNI). (\S\ref{sec:Design})
      Such decisions include
      \begin{itemize}
        \item dictionaries --- originally to support tailored rendering
@@ -25,17 +76,18 @@
      \end{itemize}
   \item
      Present a development of a theory using the calculator,
-     step by step.
+     step by step.(\S\ref{sec:Theorising})
   \item
     Talk about how an agile approach really is important,
-    not just in writing the calculator software and haskell models,
+    not just in writing the calculator software and Haskell models,
     but also when deciding what definitions and laws to focus on.
-    Discuss finding the ``sweet spot'' between the use definition
+    Discuss finding the ``sweet spot'' between the use of definition
     expansion, and hard-coded laws based on by-hand proofs.
     Note the key observation that the calculator approach
     leads almost inexorably towards a strong emphasis
-    on some kind of (combinator?) algebra.
+    on some kind of (combinator?) algebra. (\S\ref{sec:Conc})
   \item
     Discuss future plans: formal release as a Haskell library;
     REPL customization; rendering options: \LaTeX, UTP2, Isabelle/UTP.
+    (\S\ref{sec:Future})
 \end{itemize}
