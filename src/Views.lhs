@@ -1437,6 +1437,10 @@ vcalc mpr = calcREPL vDict mpr
 vputcalc :: (Ord s, Show s) => MPred s -> IO ()
 vputcalc mpr = printREPL vDict mpr
 
+vsavecalc fp mpr
+ = do calc <- vcalc mpr
+      saveCalc fp calc
+
 vsimp :: (Show s, Ord s) => MPred s -> (String, MPred s)
 vsimp mpr
   = (what,mpr')

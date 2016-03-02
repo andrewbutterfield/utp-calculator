@@ -326,3 +326,10 @@ printREPL d mpr
        putStrLn "\n\nTRANSCRIPT:"
        putStrLn $ calcPrint res
 \end{code}
+
+Rendering to a file (without highlighting!)
+\begin{code}
+saveCalc :: (Ord s, Show s) => FilePath -> CalcLog s -> IO ()
+saveCalc fp calc
+ = writeFile fp $ calcPrint $ cleanCalc calc
+\end{code}

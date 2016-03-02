@@ -61,6 +61,22 @@ stripMark' m (PSub mpr sub) = PSub (stripMark m mpr) sub
 stripMark' m pr             = pr
 \end{code}
 
+Or even more drastically, clean them all out:
+\begin{code}
+cleanMarks :: MPred s -> MPred s
+cleanMarks (_, pr) = ([], cleanMarks' pr)
+
+cleanMarks' (Comp n mprs)  = Comp n $ map cleanMarks mprs
+cleanMarks' (PSub mpr sub) = PSub (cleanMarks mpr) sub
+cleanMarks' pr             = pr
+
+cleanCalc :: CalcLog s -> CalcLog s
+cleanCalc (currpr, steps, d)
+ = ( cleanMarks currpr
+   , mapsnd cleanMarks steps
+   , d )
+\end{code}
+
 
 \begin{code}
 -- build a basic predicate at the MPred level
