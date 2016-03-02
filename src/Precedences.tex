@@ -1,0 +1,28 @@
+\HDRb{Precedences Introduction}\label{hb:pred}
+
+We see that most UTP theories can be envisaged as having three
+layers:
+\begin{enumerate}
+  \item a base layer of standard logic (see \S\ref{hb:standard-preds});
+  \item a middle layer of common programming/specification constructs
+     (see \S\ref{hb:standard-UTP-preds});
+  \item the top layer being the theory-specific language constructs.
+\end{enumerate}
+
+These are the current precedence levels for standard and UTP predicates,
+determined by the following \emph{choices}%
+\footnote{These are not laws,
+just conventions we feel are most useful
+for the kinds of things we usually write.}%
+\RLEQNS{
+   P \refinedby Q \implies R &=& P \refinedby (Q \implies R) & \refinedby_1
+\\ P \equiv Q \implies R  &=& P \equiv (Q \implies R) & \equiv_1
+\\ P \implies Q \cond R S &=& P \implies (Q \cond R S) & \implies_2
+\\ P \cond Q R \seq S     &=& P \cond Q (R \seq D)     & \cond\!_3
+\\ P \seq Q \lor R        &=& P \seq (Q \lor R)        & \seq_4
+\\ P \lor Q \land R       &=& P \lor (Q \land R)       & \lor_5, \ndc_5
+\\ P \land c * Q          &=& P \land (c * Q)          & \land_6
+\\ \lnot c * P            &=& (\lnot c) * P            & *_7
+\\ \lnot e = f            &=& \lnot(e=f)               & \lnot_8
+\\ e = f[e/x]             &=& e = (f[e/x])             & =_9, [/]_{10}
+}

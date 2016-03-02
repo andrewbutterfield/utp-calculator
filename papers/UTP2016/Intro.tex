@@ -1,0 +1,39 @@
+\section{Introduction}\label{sec:Intro}
+
+
+\subsection*{Paper Plan}
+
+\begin{itemize}
+  \item motivate by talking about
+  concurrency theory calculation travails
+  \item explain decision to build a calculator
+   (noting emerging tool work on PML as the seed)
+   explain why UTP2 was not suitable.
+  \item
+     explain the key design decisions,
+     and how these were motivated by agile software development
+     principles (esp. YAGNI).
+     Such decisions include
+     \begin{itemize}
+       \item dictionaries --- originally to support tailored rendering
+       \item taking pretty-printing seriously
+       \item relying on simple hand-proved (algebraic!) laws
+       \item the avoidance of quantifiers,
+        and how this forces us to deal with substitutability
+     \end{itemize}
+  \item
+     Present a development of a theory using the calculator,
+     step by step.
+  \item
+    Talk about how an agile approach really is important,
+    not just in writing the calculator software and haskell models,
+    but also when deciding what definitions and laws to focus on.
+    Discuss finding the ``sweet spot'' between the use definition
+    expansion, and hard-coded laws based on by-hand proofs.
+    Note the key observation that the calculator approach
+    leads almost inexorably towards a strong emphasis
+    on some kind of (combinator?) algebra.
+  \item
+    Discuss future plans: formal release as a Haskell library;
+    REPL customization; rendering options: \LaTeX, UTP2, Isabelle/UTP.
+\end{itemize}
