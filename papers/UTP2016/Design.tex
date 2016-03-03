@@ -24,6 +24,16 @@ because there was no need for it until this point.
 
 \subsection{Software Architecture}\label{ssec:architecture}
 
+All the code described here is available online as a git repo
+at
+\\\url{https://andrewbutterfield@bitbucket.org/andrewbutterfield/utp-calculator.git}
+as Literate Haskell Script%
+\footnote{
+Note, this paper is not itself a literate Haskell script
+(you'll be relieved to know).
+}
+(\texttt{.lhs}) files in the \texttt{src} sub-directory.
+
 Taking into account the repetitive nature of the calculations,
 as mentioned at the end of \S\ref{ssec:plan},
 and the need for shorthand notations we very rapidly converged
@@ -52,23 +62,125 @@ the following regarding the calculation steps that would be supported:
   \item
     The calculator use interface would be very simple,
     supporting a few high level commands such as ``simplify''
-    or ``reduce''. In particular,
+    or ``reduce''.
+    In particular,
     no facility would be provided for the user to identify
     the relevant sub-part of the current goal to which any operation
     should be applied.
 \end{itemize}
 
-
-We will now expand on each of the five points above,
+We will now expand on some of the points above,
 and in so doing expose some of the concrete architecture of the calculator code.
 
 \subsection{Expressions and Predicates}\label{ssec:expr-pred}
 
+In Fig. \ref{fig:expr-pred-types} we show the Haskell declarations
+of the datatypes to represent both expressions and predicates.
+Of course this means we are developing a deep embedding\cite{Gibbons:2014:FDS},
+which is required in order to be able to do the kind of calculations we require.
+\begin{figure}
+\begin{verbatim}
+data Expr s
+  = St s | B Bool | Z Int | Var String
+  | App String [Expr s] | Sub (Expr s) (Substn s) | Undef
+
+data Pred s
+  = T | F | PVar String | Equal (Expr s) (Expr s) | Atm (Expr s)
+  | Comp String [MPred s] | PSub (MPred s) (Substn s) | PUndef
+
+type MPred s = (Marks, Pred s)
+\end{verbatim}
+  \caption{Expression and Predicate Datatypes}
+  \label{fig:expr-pred-types}
+\end{figure}
+Both datatypes are parameterised on a generic state type \texttt{s},
+which allows us to be able to handle different concrete types
+of shared state with one piece of code.
+Both types have basic values (\texttt{St},\texttt{B},\texttt{Z},\texttt{T},\texttt{F}),
+variables (\texttt{Var},\texttt{PVar}),
+generic composites (\texttt{App},\texttt{Comp}),
+substitution (\texttt{Sub},\texttt{PSub})
+and undefined values (\texttt{Undef},\texttt{PUndef}).
+The predicate datatype has a way to embed a (boolean-valued)
+expression to form an atomic predicate (\texttt{Atm}),
+as well as an explicit form for atomic predicates that take
+the form of an equality (\texttt{Equal}).
+We give a specialised form for equality simply because
+its use is laws is widespread and worth optimising.
+
+Also important to point out is the fact that \texttt{Pred} is
+defined in terms of \texttt{MPred}, which in turn is defined
+in terms of \texttt{Pred}.
+This is done to facilitate the association of markings (lists of integers)
+with predicate constructs.
+
+The datatypes above, as well as others, are defined in the
+source file \texttt{CalcTypes.lhs}.
+
+
 \subsection{Pretty-Printing}\label{ssec:pp}
+
+For the calculator output,
+it is very important that it be readable,
+as many of the predicates get very large,
+particularly at intermediate points of the calculation.
+For this reason, a lot of effort was put into the development
+of both good pretty-printing,
+and ways to highlight old and new parts of predicates as changes are made.
+The key principle was to ensure that whenever a predicate
+had to split over multiple lines,
+that the breaks are always around the top-most operator or composition
+symbol, with sub-components indented in.
+An example of such pretty-printing in action is
+{\small
+\begin{verbatim}
+    D(out)
+ \/ (      ~ls(out)
+        /\ (D(lg) \/ A(in,lg,a,in,lg,lg) \/ D(out) \/ A(lg,out,b,lg,out,out))
+     ; W(D(lg) \/ A(in,lg,a,in,lg,lg) \/ D(out) \/ A(lg,out,b,lg,out,out)))
+\end{verbatim}
+}
+The top-level structure of this is
+\[D(out) \lor ( (\lnot ls(out) \land \dots) ; \W(\dots) )\]
+
+The pretty printing support can be found in \texttt{PrettyPrint.lhs}.
 
 \subsection{Dictionaries}\label{ssec:dict}
 
+\begin{verbatim}
+type Rewrite s = Dict s -> [MPred s] -> (String, Pred s)
+type RWResult s = (String, MPred s)
+type RWFun s = MPred s -> RWResult s
+type DictRWFun s = Dict s -> RWFun sdata Entry s
+  = AlfEntry  { avars :: [String]}
+  | ExprEntry { ecansub :: [String]
+              , eprint :: Dict s -> [Expr s] -> String
+              , eval :: Dict s -> [Expr s] -> (String, Expr s)
+              , isEqual :: Dict s -> [Expr s] -> [Expr s] -> Maybe Bool }
+  | PredEntry { pcansub :: [String]
+              , pprint :: Dict s -> MarkStyle -> Int -> [MPred s] -> PP
+              , alfa :: [String]
+              , pdefn :: Rewrite s
+              , prsimp :: Rewrite s }
+  | LawEntry  { reduce :: [DictRWFun s]
+              , creduce :: [CDictRWFun s]
+              , unroll :: [String -> DictRWFun s] }
+\end{verbatim}
+
+Indicate how, being functional, we can easily store functions
+in dictionaries.
+Also point out how this is a form of shallow-embedding.
+So we can get the best (?) of both worlds\cite{Gibbons:2014:FDS}.
+
+Show how the $ls(L)$ shorthand gets encoded,
+and a predicate definition.
+
+See also \texttt{CalcAlphabets.lhs}
+
 \subsection{Coding Laws}\label{ssec:coding-laws}
+
+Explain the \texttt{Rewrite}/\texttt{RWResult} distinction
+and give an example of a \texttt{DictRWFun}.
 
 \subsection{No Quantifiers}\label{ssec:no-quant}
 
@@ -84,3 +196,5 @@ and in so doing expose some of the concrete architecture of the calculator code.
     Substitutability
 
 \subsection{No Targetting}\label{ssec:no-target}
+
+First-come, first-served.

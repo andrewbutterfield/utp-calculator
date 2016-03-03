@@ -1,17 +1,5 @@
 \section{Introduction}\label{sec:Intro}
 
-
-\subsection*{Paper Plan - 20 page limit}
-
-\begin{itemize}
-  \item motivate by talking about
-  concurrency theory calculation travails (\S\ref{sec:Intro})
-  \item explain decision to build a calculator
-   (noting emerging tool work on PML as the seed)
-   explain why UTP2 was not suitable.(\S\ref{sec:Intro})
-\end{itemize}
-
-
 \subsection{Research Context}\label{ssec:context}
 
 We have recently started to explore using UTP
@@ -80,7 +68,7 @@ So our UTCP theory is a non-homogeneous relation with alphabet $s,s',ls,ls',g,in
 \subsection{Theory Construction Difficulties}\label{ssec:difficulties}
 
 The theory with its somewhat unusual arrangement of observation variables
-did emerge an an immediate and obvious solution.
+did \emph{not} emerge as an immediate and obvious solution.
 The theory design started with an homogeneous alphabet with $g'$, $in'$ and $out'$
 being present. Semantic definition were proposed for all constructs,
 and then a series of calculations were undertaken in order to check
@@ -110,7 +98,7 @@ when building semantic theories involving concurrency or parallelism,
 it is always sequential composition that causes the most difficulty
 }
 ,
-were either the definition of $\pseq$) was wrong, or, as proved crucial,
+were either the definition of $\pseq$ was wrong, or, as proved crucial,
 the behaviour of ``standard'' UTP sequential composition
 was at fault.
 The calculations for sequential and parallel composition
