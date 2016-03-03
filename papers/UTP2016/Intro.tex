@@ -45,49 +45,126 @@ and rely-guarantee\cite{Jones83}
 approaches,
 among others.
 
+So we started by taking the action-system UTP semantics for Unifying Theories
+of Parallel Programming (UTPP) \cite{DBLP:conf/icfem/WoodcockH02},
+and reworking it to use a system for generating unique labels,
+in order to give a slight improvement to the compositionality
+of the semantics. This we call a Unifying Theory of Concurrent Programming
+(UTCP) and details of this are,
+at the time of writing,
+currently under review\cite{conf/tase/BMN165}.
+We give a very brief overview here of this theory.
+The language assumes atomic actions ($A$) that modify a generic state,
+and four composition operators: sequential ($\lseq$), parallel ($\parallel$),
+non-deterministic choice ($\pcond$) and non-deterministic iterations ($\piter{}$)
+\[
+   P ::= A \mid P \pseq P \mid P \parallel P \mid P \pcond P \mid \piter P
+\]
+Note that this is essentially the same as the baseline ``Command'' language
+in the Views paper\cite{conf/popl/Dinsdale-YoungBGPY13}.
+In UTCP we have two distinct groups of observations:
+\begin{itemize}
+  \item
+    Variables that track changes during execution
+    (dynamic observations),
+    modelling the generic state ($s,s'$)
+    and the global label-set ($ls,ls'$) used to manage control-flow.
+  \item
+    Variables that record static parameters such the start ($in$)
+    and stop ($out$) labels for a construct,
+    as well as a label generator ($g$) associated with each construct.
+\end{itemize}
+So our UTCP theory is a non-homogeneous relation with alphabet $s,s',ls,ls',g,in,out$.
+
 
 \subsection{Theory Construction Difficulties}
 
+The theory with its somewhat unusual arrangement of observation variables
+did emerge an an immediate and obvious solution.
+The theory design started with an homogeneous alphabet with $g'$, $in'$ and $out'$
+being present. Semantic definition were proposed for all constructs,
+and then a series of calculations were undertaken in order to check
+the validity of those definitions.
+The first such calculation was that of the semantics of a single atomic
+action ($A$), and this always seemed to work out fine.
+The second calculation was of the sequential compositions of two atomic
+actions ($A\pseq B$), and this is were problems arose.
+
+The first problem was relatively minor
+---a lot of the semantics talks about the presence in or absence of
+various labels from the global label set, and of modifications to that set.
+This resulted in very wide expressions,
+so some shorthand notations were introduced:
+using $\ell$ to denote singleton set $\setof\ell$;
+or writing $ls(L)$ instead of $L \subseteq ls$, for example.
+
+The second problem was more serious.
+The calculation to take $A \pseq B$, expand using the semantics of $\pseq$
+and reduce it down to a simple predicate that described the fairly obvious
+correct behaviour was very lengthy. Often it would give the right result,
+but then checking $A \parallel B$ would give an incorrect answer.
+In every case the fault was traced back to sequential composition%
+\footnote{
+In the authors experience,
+when building semantic theories involving concurrency or parallelism,
+it is always sequential composition that causes the most difficulty
+}
+,
+were either the definition of $\pseq$) was wrong, or, as proved crucial,
+the behaviour of ``standard'' UTP sequential composition
+was at fault.
+The calculations for sequential and parallel composition
+required typically about 400 lines of \LaTeX\ and resulted
+in 7 full pages of output,
+an extract of which is shown in Fig. \ref{fig:attempt4}.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=6in]{Attempt4.eps}\\
+  \caption{Extract from 4th attempt to calculate $x:=x+y \parallel y:=y-x$}
+  \label{fig:attempt4}
+\end{figure}
+
+With choice and iteration to be covered
+it was becoming very clear that a better way to check semantic outcomes
+was required.
+
 \subsection{A Plan}
 
-Haskell\cite{Haskell2010}
+We briefly considered using the UTP2 theorem prover
+\cite{DBLP:conf/utp/Butterfield10,DBLP:conf/utp/Butterfield12},
+but it would have required a lot of setup effort,
+and it is currently not in an ideal state%
+\footnote{The issue has to do with difficulties installing
+the relevant software libraries
+on more recent versions of Haskell.}
+.
+However, as part of our work on the formal semantics of PML,
+we had developed a parser and some initial analysis tools
+in Haskell\cite{Haskell2010},
+and this software contained abstract syntax and support
+for general predicates.
+It became really obvious that this could be quickly adapted
+to mechanise the checking calculations that were being performed
+during each attempt.
+In particular,
+the key inspiration was the observation,
+over all of those calculation attempts (5 in all!)
+that the pattern of each calculation was very uniform and similar.
+So a decision was taken to construct the calculator described in this paper.
 
-A book by Bird \cite{Bird14}
-
-Fun \cite{conf/esop/Rudiak-GouldMJ06}.
 
 
 \subsection{Structure of this paper}
 
-\begin{itemize}
-  \item
-     explain the key design decisions,
-     and how these were motivated by agile software development
-     principles (esp. YAGNI). (\S\ref{sec:Design})
-     Such decisions include
-     \begin{itemize}
-       \item dictionaries --- originally to support tailored rendering
-       \item taking pretty-printing seriously
-       \item relying on simple hand-proved (algebraic!) laws
-       \item the avoidance of quantifiers,
-        and how this forces us to deal with substitutability
-       \item deciding to add a save-to-file option
-        just in time to produce material for this paper
-     \end{itemize}
-  \item
-     Present a development of a theory using the calculator,
-     step by step.(\S\ref{sec:Theorising})
-  \item
-    Talk about how an agile approach really is important,
-    not just in writing the calculator software and Haskell models,
-    but also when deciding what definitions and laws to focus on.
-    Discuss finding the ``sweet spot'' between the use of definition
-    expansion, and hard-coded laws based on by-hand proofs.
-    Note the key observation that the calculator approach
-    leads almost inexorably towards a strong emphasis
-    on some kind of (combinator?) algebra. (\S\ref{sec:Conc})
-  \item
-    Discuss future plans: formal release as a Haskell library;
-    REPL customization; rendering options: \LaTeX, UTP2, Isabelle/UTP.
-    (\S\ref{sec:Future})
-\end{itemize}
+In Section \ref{sec:Design}
+we describe key design decisions
+that underly the calculator's features,
+and which are responsible for its success.
+Then, in Section \ref{sec:Theorising}
+we present a development of a theory using the calculator,
+as a way of describing its features, from a users perspective.
+We then discuss this calculator, and related work
+and draw some conclusions in Section \ref{sec:Conc},
+before finishing up describing future plans for the calculator
+(Section\ref{sec:Future}).
