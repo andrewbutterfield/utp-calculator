@@ -1,20 +1,86 @@
 \section{Design \& Architecture}\label{sec:Design}
 
-\subsection*{Paper Plan - 20 page limit}
+\subsection{Development Process}\label{ssec:development}
 
+A very early decision was made to adhere to Agile Software development
+principles\cite{Fowl01a} in developing this calculator
+(to the extent possible given that the roles of Software Engineer, Scrum Manager
+and Customer were all rolled into one).
+In particular we stuck close to the YAGNI (``Ya Ain't Gonna Need It'') principle%
+\footnote{More formally, ``Simplicity---the art of maximizing the amount
+of work not done---is essential.''}
+which requires us to only write software for a function
+that is required at that time.
+This does not prevent advanced design planning but does keep
+the development focussed on immediate needs.
+So initially the focus was on being able to use the calculator
+to expand the UTP definition of an atomic action.
+Once that was working, then the focus shifted to additional code to
+support the calculation of the sequential composition of two atomic actions,
+and so on.
+For example, the feature to take a final calculation and output it to a file
+was only developed when this paper was being written,
+because there was no need for it until this point.
+
+\subsection{Software Architecture}\label{ssec:architecture}
+
+Taking into account the repetitive nature of the calculations,
+as mentioned at the end of \S\ref{ssec:plan},
+and the need for shorthand notations we very rapidly converged
+on four initial design decisions:
+\begin{enumerate}
+  \item No parsers! All calculation objects are written
+  directly in Haskell.
+  \item We would keep the expression and predicate datatype declarations
+   very simple, with only equality being singled out.
+  \item We would need to have a good way to pretty-print long predicates
+    that made it easy to see their overall structure
+  \item We would reply on a dictionary based system to enable default
+    calculator behaviours be overridden.
+\end{enumerate}
+From our experience with the \UTP2 theorem-prover we also decided
+the following regarding the calculation steps that would be supported:
 \begin{itemize}
   \item
-     explain the key design decisions,
-     and how these were motivated by agile software development
-     principles (esp. YAGNI). (\S\ref{sec:Design})
-     Such decisions include
-     \begin{itemize}
-       \item dictionaries --- originally to support tailored rendering
-       \item taking pretty-printing seriously
-       \item relying on simple hand-proved (algebraic!) laws
-       \item the avoidance of quantifiers,
-        and how this forces us to deal with substitutability
-       \item deciding to add a save-to-file option
-        just in time to produce material for this paper
-     \end{itemize}
+    We would not support full  propositional calculus
+    or theories of numbers or sets.
+    Instead we would support the use of hard-coded relevant laws,
+    typically derived from  a handwritten proof.
+  \item
+    We would avoid, at all costs,
+    any use of quantifiers or binding constructs.
+  \item
+    The calculator use interface would be very simple,
+    supporting a few high level commands such as ``simplify''
+    or ``reduce''. In particular,
+    no facility would be provided for the user to identify
+    the relevant sub-part of the current goal to which any operation
+    should be applied.
 \end{itemize}
+
+
+We will now expand on each of the five points above,
+and in so doing expose some of the concrete architecture of the calculator code.
+
+\subsection{Expressions and Predicates}\label{ssec:expr-pred}
+
+\subsection{Pretty-Printing}\label{ssec:pp}
+
+\subsection{Dictionaries}\label{ssec:dict}
+
+\subsection{Coding Laws}\label{ssec:coding-laws}
+
+\subsection{No Quantifiers}\label{ssec:no-quant}
+
+    They bring a world of pain with them,
+    and as it turns out, are not required
+    for the kinds of calculations we wish to do.
+    Handwritten proofs of laws involving concepts
+    defined using quantifier and binders
+    are required to validate the laws,
+    but these are easy to do---the pain is automating these proofs,
+    not doing them by hand.
+
+    Substitutability
+
+\subsection{No Targetting}\label{ssec:no-target}
