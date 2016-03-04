@@ -344,11 +344,13 @@ will refer to atomic state-changes, and so only have alphabet $\setof{s,s'}$.
 vAlfDict
  = dictMrg dictAlpha dictAtomic
  where
-   dictAlpha = stdAlfDictGen ["s"] ["ls"] ["g","in","out"]
+   dictAlpha = stdAlfDictGen ["s"] ["ls"] vStatic
    dictAtomic = makeDict [ pvarEntry "a" ss'
                          , pvarEntry "b" ss'
                          , pvarEntry "c" ss' ]
    ss' = ["s", "s'"]
+
+vStatic = ["g","in","out"]
 \end{code}
 
 \HDRb{``Standard'' UTP Constructs}
@@ -423,11 +425,63 @@ and suggest two important calculations:
 
 \HDRb{Atomic Shorthands}
 
-We find essentially just two idioms here,
+We find essentially just three basic idioms here,
 \[
-  D(L) \qquad A(I,O,a,R,A,L)
+  A(E,a,R,A) \qquad D(T) \qquad M(T)
 \]
-where $L$, $I$, $O$, $R$ and $A$ are lists of labels:
+where $E$, $R$, $A$ and $T$ are label-set expressions over alphabet $g,in,out$.
+\begin{description}
+  \item[Atomic Action]~
+    \\$A(E,a,R,A) \defs ls(E) \land [a] \land ls'=(ls\setminus R)\cup A$
+    \\The Enabling labels are present, so we perform the action,
+     Remove some labels and Add others.
+  \item[Done]~
+    \\$D(T) \defs ls(T) \land \Skip$
+    \\The Termination labels are not present so we simply stutter.
+  \item[Missing]~
+    \\$M(T) \defs ls(\B T)$
+    \\Assert that the (Termination, usually) labels not present
+\end{description}
+The motivation for $D$ and $M$ comes from the following expansion:
+\begin{eqnarray*}
+   \W(P) &\defs \lnot ls(out) * P
+\\ &=& ls(\B{out}) * P
+\\ &=& P ; ls(\B{out}) * P \cond{ls(\B{out})} \Skip
+\\ &=& \lnot ls(\B{out}) \land \Skip
+\\ && {} \lor ls(\B{out}) \land P ; ls(\B{out}) * P
+\\ &=& ls(out) \land \Skip
+\\ && {} \lor ls(\B{out}) \land P ; ls(\B{out}) * P
+\\ &=& D(out) \lor (~M(out) \land P ; M(T) * P~)
+\end{eqnarray*}
+Careful calculation exposes the following laws:
+\RLEQNS{
+   M(T_1) \land M(T_2) &=& M(T_1\cup T_2)
+\\ M(T_1) \seq  M(T_2) &=& M(T_1)
+\\ D(T_1) \land D(T_2) &=& D(T_1\cup T_2)
+\\ D(T_1) \seq D(T_2)  &=& D(T_1\cup T_2)
+\\ M(T_1) \seq D(T_2)  &=& M(T_1)  & {} \land T_2 \subseteq ls'
+\\ D(T_1) \land M(T_2) &=& D(T_1) \land M(T_2) & {} \land T_1 \cap T_2 = \emptyset
+\\ D(T_1) \seq  M(T_2) &=& D(T_1) \land M(T_2) & {} \land T_1 \cap T_2 = \emptyset
+\\\multicolumn{3}{l}{A(E_1,a,R_1,A_1)\seq A(E_2,b,R_2,A_2)}
+\\\multicolumn{3}{l}{ {}= A(E_1\cup E_2\setminus A_1,a;b
+         ,(R_1\setminus A_1 \cup R_2)
+         ,(A_2 \cup A_1\setminus R_2))}
+  & {} \land E_2 \cap R_1 \setminus A_1 = \emptyset
+}
+The conjuction of two $A$s shouldn't arise,
+which is good because it's an awful mess:
+\RLEQNS{
+  \multicolumn{3}{l}{A(E_1,a,R_1,A_1) \land A(E_2,b,R_2,A_2)}
+\\ &=& ls(E_1 \cup E_2) \land s' \in \sem a s \cap \sem b s
+     & {} \land \sem a s \cap \sem b s \neq \emptyset
+\\ && {} \land ls' = (ls \setminus R_1) \cup A_1
+     & {} \land (R_1\setminus A_1)\cap ls = (R_2 \setminus A_2)\cap ls
+\\ && & {} \land A_1\setminus ls = A_2 \setminus ls
+}
+Keep in mind that $P \implies Q$ is the same as $P = P \land Q$.
+
+The extended version of $A$ ($A(I,O,a,R,A,L)$)
+is now deprecated.
 \begin{eqnarray*}
    D(L) &\defs&  ls(L) \land s'=s \land ls'=ls
 \\ &=& ls(L) \land s'=s \land ls'=ls \land ls'(L)
@@ -445,12 +499,12 @@ ppD d ms p mprs = pps styleRed $ ppa ("invalid-"++shD)
 -- we don't want to expand the definition of this
 defnD = pNoChg nD
 
-staticOnly = ["g","in","out"]
+vStatic = ["g","in","out"]
 
 vDEntry :: (Show s, Ord s) => (String, Entry s)
 vDEntry
  = ( nD
-   , PredEntry staticOnly ppD [] defnD (pNoChg nD) )
+   , PredEntry vStatic ppD [] defnD (pNoChg nD) )
 \end{code}
 
 \newpage
@@ -514,7 +568,7 @@ simpA d mprs = ( "", Comp nA mprs )
 vAEntry :: (Show s, Ord s) => (String, Entry s)
 vAEntry
  = ( nA
-   , PredEntry staticOnly ppA [] defnA simpA )
+   , PredEntry vStatic ppA [] defnA simpA )
 \end{code}
 We have both an `implicit' form which is a minimalist
 definition of behaviour, along with an `explicit' form
