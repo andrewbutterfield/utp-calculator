@@ -154,7 +154,7 @@ So for example logical operators $\land$ and $\lor$
 might be represented as \texttt{Comp "And"} and \texttt{Comp "Or"}
 respectively.
 We have a default way to pretty-print composites,
-to that the predicate $\true \land \false$,
+so that the predicate $\true \land \false$,
 represented in Haskell by \texttt{Comp "And" [bT,bF]},
 would render as \texttt{And(true,false)}.
 However it would be nice to be able to render it as the usual
@@ -170,11 +170,32 @@ All of the main calculator functions are driven by this
 dictionary,
 and the correct definition of dictionary entries
 is the primary way for users to set up calculations.
+
+The standard approach is that the calculator
+will seek information regarding some name that is
+currently of interest.
+It will perform a dictionary lookup which can result
+in either failure, for which a suitable default action will be used,
+or success, in which case the dictionary entry will supply
+information to guide the required name-specific behaviour.
+
+
+Also point out how this is a form of shallow-embedding.
+So we can get the best (?) of both worlds\cite{Gibbons:2014:FDS}.
+
 There are four kinds of dictionary entries,
 one each for expressions and predicates,
 one for laws of various kinds,
 and one for alphabet handling.
-We will discuss each kind in turn.
+We will discuss each kind in turn,
+but leave examples of their use until Sect.\ref{sec:Theorising}.
+
+One big win in using a functional language like Haskell,
+in which functions are first class data values,
+is that we can easily define datatypes that
+contain function-valued components.
+We make full use of this in three of the entry kinds discussed below.
+
 
 \subsubsection{Expression Entries}
 
@@ -186,6 +207,68 @@ Entry s
               , isEqual :: Dict s -> [Expr s] -> [Expr s] -> Maybe Bool }
   | ...
 \end{verbatim}
+Imagine that \texttt{App name args }is being processed
+and that a dictionary lookup with key \texttt{name}
+has returned an expression entry.
+The entry contains four pieces of information:
+\begin{description}
+  \item[\texttt{ecansub}]
+     is a list of variable names,
+      over which it is safe to perform substitutions.
+  \item[\texttt{eprint}]
+    is a function that takes a dictionary as first argument,
+    the argument-list \texttt{args} as its second argument
+    and returns a string rendering of the expression.
+    Currently we view expressions as atomic one-line texts
+    for output purposes.
+  \item[\texttt{eval}]
+    takes similar arguments to \texttt{eprint},
+    but returns a string/expression pair,
+    that denotes a possible evaluation or simplification
+    of the original expression.
+    The string is empty if no change occurred,
+    otherwise it is a short description of/name for the eval/simplify step.
+  \item[\texttt{isEqual}]
+    has a dictionary argument, followed by two sub-expression lists.
+    it tests for (in)equality, returning \texttt{Just True} or \texttt{Just False}
+    if it can establish (in)equality,
+    and \texttt{Nothing} if unable to give a definitive answer.
+\end{description}
+The dictionary argument supplied to the three functions
+is always the same as the dictionary in which the entry was found.
+
+To understand the need for \texttt{ecansub},
+consider the following shorthand definition for an expression:
+\[
+  D(L) \defs L \subseteq ls
+\]
+in a context where we know that $L$ is a set expression defined
+only over variables $g$, $in$ and $out$.
+Now, consider the following instance, with a substitution,
+and two attempts to calculate a full expansion:
+\begin{eqnarray*}
+   & D(\setof{out})[\setof{\ell_1},\ell_2/ls,out] &
+\\ (\setof{out \subseteq ls})[\setof{\ell_1},\ell_2/ls,out]=
+ && = D(\setof{\ell_2})
+\\ \setof{\ell_2} \subseteq \setof{\ell_1}=
+ && = \setof{\ell_2} \subseteq ls
+\end{eqnarray*}
+The lefthand calculation is correct, the righthand is not.
+The substitution refers to variables (e.g. $ls$)
+that are hidden when the $D$ shorthand is used.
+The \texttt{ecansub} entry lists the variables for which substitution
+is safe with the expression as-is.
+With the definition above, the value of this entry
+ should be \texttt{["g","in","out"]}.
+Given that entry, the calculator would simplify (correctly) as follows:
+\[
+  D(\setof{\ell_2})[\setof{\ell_1}/ls]
+\]
+The righthand side of the definition is what should be returned
+by the \texttt{eval} component.
+If we want to state that any substitution is safe,
+then we use the ``wildcard'' form: \texttt{["*"]}.
+
 
 \subsubsection{Predicate Entries}
 
@@ -199,7 +282,29 @@ Entry s
               , prsimp :: Rewrite s }
 type Rewrite s = Dict s -> [MPred s] -> (String, Pred s)
 \end{verbatim}
-
+The predicate entry associated with Comp name pargs
+has five fields:
+\begin{description}
+  \item[\texttt{pcansub}]
+    does for predicates what \texttt{ecansub} does for expressions.
+  \item[\texttt{pprint}]
+    is similar to \texttt{eprint} except it has two extra arguments,
+    used to help with special renderings for predicates marked as changed,
+    and precedence levels for managing bracketing.
+    We do pretty-printing tricks such as indenting and adding line-breaks
+    at the predicate level.
+  \item[\texttt{alfa}]
+    is used to identify the alphabet of the predicate.
+  \item[\texttt{pdefn}]
+    is a function invoked when \texttt{name} has a definition,
+    and we want to expand it.
+  \item[\texttt{prsimp}]
+    is called by the simplifier when processing \texttt{name}.
+\end{description}
+Both \texttt{pdefn} and \texttt{prsimp} take a dictionary argument
+and list of sub-component (marked)predicates,
+returning a string/predicate pair,
+interpreted in a manner similar to \texttt{eval} above.
 
 \subsubsection{Law Entries}
 
@@ -209,10 +314,45 @@ Entry s
   | LawEntry  { reduce :: [DictRWFun s]
               , creduce :: [CDictRWFun s]
               , unroll :: [String -> DictRWFun s] }
+\end{verbatim}
+Law entries are currently only associated with one key,
+namely the string \texttt{"laws"},
+which is what the calculator uses to find such entries.
+There are three parts,
+each consisting of lists of functions.
+These lists are intended to be be applied in order to the
+``current predicate'', until either one succeeds,
+or none do.
+All the functions take a dictionary
+and (marked) predicate as arguments,
+and return either
+an single-outcome indicator (\texttt{reduce},\texttt{unroll}):
+\begin{verbatim}
 type DictRWFun s = Dict s -> RWFun sdata
 type RWFun s = MPred s -> RWResult s
 type RWResult s = (String, MPred s)
 \end{verbatim}
+or a conditional  multiple-outcome result (\texttt{creduce}).
+\begin{verbatim}
+type CDictRWFun s = Dict s -> CRWFun s
+type CRWFun s = MPred s -> CRWResult s
+type CRWResult s = (String, [(Pred s, MPred s)])
+\end{verbatim}
+\begin{description}
+  \item[\texttt{reduce}]
+     is a list of reduction laws,
+     to be tried out when a reduction step is invoked by the user.
+  \item[\texttt{creduce}]
+    is a list of conditional reduction laws,
+    which have multiple outcomes dependent on a side-condition.
+    Rather than try to resolve conditions automatically,
+    we prefer to let the user choose the appropriate outcome.
+  \item[\texttt{loop}]
+    is a list of loop-unrolling functions.
+    The extra string argument is to give the user finer control
+    of how much unrolling is done, and how it is presented
+    (see later).
+\end{description}
 
 
 \subsubsection{Alphabet Entries}
@@ -222,44 +362,82 @@ Entry s
   = ...
   | AlfEntry  { avars :: [String]}
 \end{verbatim}
+Most simply put, an alphabet is simply a set of variables.
+In any UTP theory we typically have well-defined alphabets,
+often with particular subsets of interest,
+such as all the ``before'' observations (undashed variables),
+or ``after'' observations (dashed variables).
+We give these subsets standardised names,
+and use the dictionary to list the relevant variables.
 
 
-One big win in using a functional language like Haskell,
-in which functions are first class data values,
-is that we can easily define datatypes that
-contain function-valued components.
+\subsection{The Calculator REPL}
 
-Also point out how this is a form of shallow-embedding.
-So we can get the best (?) of both worlds\cite{Gibbons:2014:FDS}.
+The way the calculator is designed to be used is
+that a function implementing a calculator Read-Execute-Print-Loop (REPL)
+is given a dictionary and starting predicate as inputs.
+It then offers the user the opportunity to invoke various
+commands to perform calculation steps.
+The user can then indicate when they are finished,
+at which point the calculator function returns
+a data-structure that logs the complete calculation outcome.
+This is a triple consisting of the final predicate,
+a list of the steps, each with a justification string,
+and the dictionary that was used.
+\begin{verbatim}
+type CalcLog s = (MPred s, [RWResult s], Dict s)
+\end{verbatim}
 
-Show how the $ls(L)$ shorthand gets encoded,
-and a predicate definition.
+Calculator commands include an ability to undo previous steps ('\texttt{u}'),
+request help ('\texttt{?}'),
+and to signal an exit from the calculator ('\texttt{x}').
+However,
+of most interest are the five calculation commands.
+The first is a global simplify command ('s'),
+that scans the entire predicate from the bottom-up
+looking for simplifiers for each composite and applying them.
+Simplifiers are captured as \texttt{eval} or \texttt{prsimp} components
+in dictionary entries.
 
-See also \texttt{CalcAlphabets.lhs}
-
-\subsection{Coding Laws}\label{ssec:coding-laws}
-
-Explain the \texttt{Rewrite}/\texttt{RWResult} distinction
-and give an example of a \texttt{DictRWFun}.
-
-\subsection{No Quantifiers}\label{ssec:no-quant}
-
-    They bring a world of pain with them,
-    and as it turns out, are not required
-    for the kinds of calculations we wish to do.
-    Handwritten proofs of laws involving concepts
-    defined using quantifier and binders
-    are required to validate the laws,
-    but these are easy to do---the pain is automating these proofs,
-    not doing them by hand.
-
-    Substitutability
-
-\subsection{No Targetting}\label{ssec:no-target}
-
-First-come, first-served.
-
-\subsection{Dictionary Libraries}
-
-explain how dictionaries are managed and constructed,
-and describe the ``builtin'' dictionaries (a.k.a. \texttt{StdXXX})
+The other four commands work by searching top-down, depth-first for
+the first sub-component for which the relevant dictionary calculator
+function returns a changed result.
+Here is where we have a reduced degree of control,
+which simplifies the REPL dramatically,
+but turns out to be strikingly effective in practise.
+This is because these kinds of semantic ``smoke-test'' calculations
+tend to go in phases: expand all definition;, simplify; reduce; simplify;
+perhaps unroll a loop a bit, etc...
+\begin{description}
+  \item[Defn. Expand ('\texttt{d}')]
+    Find the first predicate changed by applying its
+     \texttt{pdefn} dictionary entry, which should unfold its definition.
+  \item[Law Reduce ('\texttt{r}')]
+    Find the first predicate transformed by a function
+    in the \texttt{reduce} list of the \texttt{LawEntry} indexed
+     by the string \texttt{"laws"}.
+     This function captures an equational law,
+     that is only applied in a left to right direction.
+  \item[Loop Unroll ('\texttt{l}')]
+    Find the first predicate transformed by a function
+    in the \texttt{unroll} list of the \texttt{LawEntry} indexed
+     by the string \texttt{"laws"}.
+    The remainder of the command string after the initial 'l'
+    is passed to the function to control the nature and degree
+    of unrolling. How this string is interpreted is entirely
+    up to the user---see Sect. \ref{sec:Theorising} for an example.
+  \item[Conditional Reduce ('\texttt{c}')]
+    Find the first predicate transformed by a function
+    in the \texttt{creduce} list of the \texttt{LawEntry} indexed
+     by the string \texttt{"laws"}.
+     This function captures an equational law with a side condition,
+    which returns a list of alternatives,
+    each alternative being a side-condition predicate
+    paired with a result.
+    These are presented to the user,
+    who then selects which outcome is appropriate.
+    In effect the user has to look at each condition
+    and select the one (if any) that evaluates to true.
+    This is done to prevent the calculator from having
+    to embody predicate simplifiers ``modulo various expression theories''.
+\end{description}
