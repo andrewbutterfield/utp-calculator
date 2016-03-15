@@ -433,14 +433,14 @@ where $E$, $R$, $A$ and $T$ are label-set expressions over alphabet $g,in,out$.
 \begin{description}
   \item[Atomic Action]~
     \\$A(E,a,R,A) \defs ls(E) \land [a] \land ls'=(ls\setminus R)\cup A$
-    \\The Enabling labels are present, so we perform the action,
-     Remove some labels and Add others.
+    \\The Enabling labels are present, so we perform the \emph{a}ction;
+     Remove some labels; and Add others.
   \item[Done]~
     \\$D(T) \defs ls(T) \land \Skip$
-    \\The Termination labels are not present so we simply stutter.
+    \\The Termination labels are present so we simply stutter.
   \item[Missing]~
     \\$M(T) \defs ls(\B T)$
-    \\Assert that the (Termination, usually) labels not present
+    \\Asserts that none of the Termination (usually) labels are present
 \end{description}
 The motivation for $D$ and $M$ comes from the following expansion:
 \begin{eqnarray*}
@@ -451,7 +451,7 @@ The motivation for $D$ and $M$ comes from the following expansion:
 \\ && {} \lor ls(\B{out}) \land P ; ls(\B{out}) * P
 \\ &=& ls(out) \land \Skip
 \\ && {} \lor ls(\B{out}) \land P ; ls(\B{out}) * P
-\\ &=& D(out) \lor (~M(out) \land P ; M(T) * P~)
+\\ &=& D(out) \lor (~M(out) \land P ; M(out) * P~)
 \end{eqnarray*}
 Careful calculation exposes the following laws:
 \RLEQNS{
@@ -462,14 +462,16 @@ Careful calculation exposes the following laws:
 \\ M(T_1) \seq D(T_2)  &=& M(T_1)  & {} \land T_2 \subseteq ls'
 \\ D(T_1) \land M(T_2) &=& D(T_1) \land M(T_2) & {} \land T_1 \cap T_2 = \emptyset
 \\ D(T_1) \seq  M(T_2) &=& D(T_1) \land M(T_2) & {} \land T_1 \cap T_2 = \emptyset
+\\ M(T) \land A(E,a,R,A) &=& M(T) \land A(E,a,R,A) & {} \land T \cap E = \emptyset
+\\ D(T) \seq A(E,a,R,A) &=& A(E\cup T,a,R,A)
 \\\multicolumn{3}{l}{A(E_1,a,R_1,A_1)\seq A(E_2,b,R_2,A_2)}
 \\\multicolumn{3}{l}{ {}= A(E_1\cup E_2\setminus A_1,a;b
          ,(R_1\setminus A_1 \cup R_2)
          ,(A_2 \cup A_1\setminus R_2))}
   & {} \land E_2 \cap R_1 \setminus A_1 = \emptyset
 }
-The conjuction of two $A$s shouldn't arise,
-which is good because it's an awful mess:
+The following cases shouldn't arise,
+which is good because they are an awful mess:
 \RLEQNS{
   \multicolumn{3}{l}{A(E_1,a,R_1,A_1) \land A(E_2,b,R_2,A_2)}
 \\ &=& ls(E_1 \cup E_2) \land s' \in \sem a s \cap \sem b s
@@ -477,6 +479,8 @@ which is good because it's an awful mess:
 \\ && {} \land ls' = (ls \setminus R_1) \cup A_1
      & {} \land (R_1\setminus A_1)\cap ls = (R_2 \setminus A_2)\cap ls
 \\ && & {} \land A_1\setminus ls = A_2 \setminus ls
+\\ M(T) \seq A(E,a,R,A) &=& M(T) \land \exists ls,s @ A(E,a,R,A)
+\\ A(E,a,R,A) \seq M(T) &=& M(T)[ls'/ls] \land \exists ls',s' @ A(E,a,R,A)
 }
 Keep in mind that $P \implies Q$ is the same as $P = P \land Q$.
 
