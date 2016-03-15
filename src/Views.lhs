@@ -503,8 +503,6 @@ ppD d ms p mprs = pps styleRed $ ppa ("invalid-"++shD)
 -- we don't want to expand the definition of this
 defnD = pNoChg nD
 
-vStatic = ["g","in","out"]
-
 vDEntry :: (Show s, Ord s) => (String, Entry s)
 vDEntry
  = ( nD

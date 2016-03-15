@@ -1,5 +1,4 @@
-\documentclass[12pt,fleqn]{article}
-\usepackage[a4paper, margin=1.1in]{geometry}
+\documentclass{llncs}
 \usepackage{amssymb}
 \usepackage{amsmath}
 \usepackage{views}
@@ -11,16 +10,10 @@
 \usepackage{PML}
 \usepackage{mathpartir}
 \usepackage{epstopdf}
-\usepackage{doclevels}
 \usepackage{hyperref}
 \allowdisplaybreaks[2]
 % ----------------------------------------------------------------
 
-\parindent=0pt % I hate first line indentation
-\parskip=3pt   % I like a visual white gap between paragraphs
-
-\setcounter{tocdepth}{4}
-\setcounter{secnumdepth}{4}
 
 \newif\ifDraft
 \Drafttrue  % comment out to turn off note/draft-mode
@@ -32,24 +25,23 @@
   \def\DRAFT#1{}
 \fi
 
-\bibliographystyle{alpha}
-
 \title{UTPCalc --- A calculator for UTP Predicates}%
 \author{
-   Andrew Butterfield
-      \thanks{\noindent This work was supported, in part, by Science Foundation Ireland grant 10/CE/I1855
-      \newline \hspace*{1.8em} to Lero - the Irish Software Engineering Research Centre (www.lero.ie)}%
-}%
+Andrew Butterfield
+\thanks{%
+This work was supported, in part,
+by Science Foundation Ireland grant 10/CE/I1855
+to Lero - the Irish Software Engineering Research Centre (www.lero.ie)}%
+}
+\institute{
+Trinity College Dublin
+}
 \date{\today}%
-
-\parindent=0pt % I hate first line indentation
-\parskip=3pt   % I like a visual white gap between paragraphs
 
 \mathchardef\spot="320F
 \mathcode`\@=\spot
 \mathcode`\|=\mid
 
-%\setcounter{tocdepth}{4}
 
 \begin{document}
 
@@ -63,6 +55,7 @@
 \input{Conclusions}
 \input{Future}
 
+\bibliographystyle{splncs03}
 \bibliography{UTPCalc-UTP2016-MAIN}
 
 \end{document}

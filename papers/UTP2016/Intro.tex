@@ -62,7 +62,8 @@ In UTCP we have two distinct groups of observations:
     and stop ($out$) labels for a construct,
     as well as a label generator ($g$) associated with each construct.
 \end{itemize}
-So our UTCP theory is a non-homogeneous relation with alphabet $s,s',ls,ls',g,in,out$.
+So our UTCP theory is a non-homogeneous relation
+with alphabet $s$, $s'$, $ls$, $ls'$, $g$, $in$, and $out$.
 
 
 \subsection{Theory Construction Difficulties}\label{ssec:difficulties}
@@ -70,13 +71,14 @@ So our UTCP theory is a non-homogeneous relation with alphabet $s,s',ls,ls',g,in
 The theory with its somewhat unusual arrangement of observation variables
 did \emph{not} emerge as an immediate and obvious solution.
 The theory design started with an homogeneous alphabet with $g'$, $in'$ and $out'$
-being present. Semantic definition were proposed for all constructs,
+being present.
+Semantic definitions were proposed for all constructs,
 and then a series of calculations were undertaken in order to check
 the validity of those definitions.
 The first such calculation was that of the semantics of a single atomic
 action ($A$), and this always seemed to work out fine.
 The second calculation was of the sequential compositions of two atomic
-actions ($A\pseq B$), and this is were problems arose.
+actions ($A\pseq B$), and this is where problems arose.
 
 The first problem was relatively minor
 ---a lot of the semantics talks about the presence in or absence of
@@ -87,10 +89,14 @@ using $\ell$ to denote singleton set $\setof\ell$;
 or writing $ls(L)$ instead of $L \subseteq ls$, for example.
 
 The second problem was more serious.
-The calculation to take $A \pseq B$, expand using the semantics of $\pseq$
+The calculation to take $A \pseq B$,
+expand it using the semantics of $\pseq$,
 and reduce it down to a simple predicate that described the fairly obvious
-correct behaviour was very lengthy. Often it would give the right result,
-but then checking $A \parallel B$ would give an incorrect answer.
+correct behaviour,
+was very lengthy.
+Often it would give the right result,
+but then checking $A \parallel B$ (an even longer calculation)
+would give an incorrect answer.
 In every case the fault was traced back to sequential composition%
 \footnote{
 In the authors experience,
@@ -98,7 +104,8 @@ when building semantic theories involving concurrency or parallelism,
 it is always sequential composition that causes the most difficulty
 }
 ,
-were either the definition of $\pseq$ was wrong, or, as proved crucial,
+where either the definition of $\pseq$ was wrong,
+or, as proved crucial,
 the behaviour of ``standard'' UTP sequential composition
 was at fault.
 The calculations for sequential and parallel composition
@@ -108,14 +115,14 @@ an extract of which is shown in Fig. \ref{fig:attempt4}.
 
 \begin{figure}
   \centering
-  \includegraphics[width=6in]{Attempt4.eps}\\
+  \includegraphics[width=4.5in]{Attempt4.eps}\\
   \caption{Extract from 4th attempt to calculate $x:=x+y \parallel y:=y-x$}
   \label{fig:attempt4}
 \end{figure}
 
 With choice and iteration to be covered
-it was becoming very clear that a better way to check semantic outcomes
-was required.
+it was becoming very clear that a better way was required
+for checking semantic outcomes.
 
 \subsection{A Plan}\label{ssec:plan}
 
@@ -145,14 +152,14 @@ So a decision was taken to construct the calculator described in this paper.
 
 \subsection{Structure of this paper}
 
-In Section \ref{sec:Design}
+In Sect. \ref{sec:Design}
 we describe key design decisions
 that underly the calculator's features,
 and which are responsible for its success.
-Then, in Section \ref{sec:Theorising}
+Then, in Sect. \ref{sec:Theorising}
 we present a development of a theory using the calculator,
 as a way of describing its features, from a users perspective.
 We then discuss this calculator, and related work
-and draw some conclusions in Section \ref{sec:Conc},
+and draw some conclusions in Sect. \ref{sec:Conc},
 before finishing up describing future plans for the calculator
-(Section\ref{sec:Future}).
+(Section \ref{sec:Future}).

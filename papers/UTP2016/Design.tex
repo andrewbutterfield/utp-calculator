@@ -3,7 +3,8 @@
 \subsection{Development Process}\label{ssec:development}
 
 A very early decision was made to adhere to Agile Software development
-principles\cite{Fowl01a} in developing this calculator
+principles \cite{Fowl01a}
+in developing this calculator
 (to the extent possible given that the roles of Software Engineer, Scrum Manager
 and Customer were all rolled into one).
 In particular we stuck close to the YAGNI (``Ya Ain't Gonna Need It'') principle%
@@ -46,7 +47,7 @@ on four initial design decisions:
   \item We would need to have a good way to pretty-print long predicates
     that made it easy to see their overall structure
   \item We would reply on a dictionary based system to enable default
-    calculator behaviours be overridden.
+
 \end{enumerate}
 From our experience with the \UTP2 theorem-prover we also decided
 the following regarding the calculation steps that would be supported:
@@ -78,7 +79,7 @@ In Fig. \ref{fig:expr-pred-types} we show the Haskell declarations
 of the datatypes to represent both expressions and predicates.
 Of course this means we are developing a deep embedding\cite{Gibbons:2014:FDS},
 which is required in order to be able to do the kind of calculations we require.
-\begin{figure}
+\begin{figure}[tb]
 \begin{verbatim}
 data Expr s
   = St s | B Bool | Z Int | Var String
@@ -90,7 +91,7 @@ data Pred s
 
 type MPred s = (Marks, Pred s)
 \end{verbatim}
-  \caption{Expression and Predicate Datatypes}
+  \caption{Expression and Predicate Datatypes (\texttt{CalcTypes.lhs})}
   \label{fig:expr-pred-types}
 \end{figure}
 Both datatypes are parameterised on a generic state type \texttt{s},
@@ -106,16 +107,15 @@ expression to form an atomic predicate (\texttt{Atm}),
 as well as an explicit form for atomic predicates that take
 the form of an equality (\texttt{Equal}).
 We give a specialised form for equality simply because
-its use is laws is widespread and worth optimising.
+its use in laws is widespread and worth optimising.
 
 Also important to point out is the fact that \texttt{Pred} is
 defined in terms of \texttt{MPred}, which in turn is defined
 in terms of \texttt{Pred}.
 This is done to facilitate the association of markings (lists of integers)
 with predicate constructs.
-
-The datatypes above, as well as others, are defined in the
-source file \texttt{CalcTypes.lhs}.
+These markings are used to indicate which parts of a predicate
+were changed at each calculation step.
 
 
 \subsection{Pretty-Printing}\label{ssec:pp}
@@ -147,28 +147,88 @@ The pretty printing support can be found in \texttt{PrettyPrint.lhs}.
 
 \subsection{Dictionaries}\label{ssec:dict}
 
+The abstract syntax is very simple,
+and uses names as Haskell Strings to distinguish between
+different composites.
+So for example logical operators $\land$ and $\lor$
+might be represented as \texttt{Comp "And"} and \texttt{Comp "Or"}
+respectively.
+We have a default way to pretty-print composites,
+to that the predicate $\true \land \false$,
+represented in Haskell by \texttt{Comp "And" [bT,bF]},
+would render as \texttt{And(true,false)}.
+However it would be nice to be able to render it as the usual
+infix operator, giving \texttt{true /\BS\ false}.
+In addition, we need some way to associate laws and definitions,
+as appropriate, with composites.
+
+The approach taken is to implement a dictionary that maps names
+to entries that supply extra information.
+The names can be those of expression or predicate composites,
+or correspond to variables, and a few other features of note.
+All of the main calculator functions are driven by this
+dictionary,
+and the correct definition of dictionary entries
+is the primary way for users to set up calculations.
+There are four kinds of dictionary entries,
+one each for expressions and predicates,
+one for laws of various kinds,
+and one for alphabet handling.
+We will discuss each kind in turn.
+
+\subsubsection{Expression Entries}
+
 \begin{verbatim}
-type Rewrite s = Dict s -> [MPred s] -> (String, Pred s)
-type RWResult s = (String, MPred s)
-type RWFun s = MPred s -> RWResult s
-type DictRWFun s = Dict s -> RWFun sdata Entry s
-  = AlfEntry  { avars :: [String]}
-  | ExprEntry { ecansub :: [String]
+Entry s
+  = ExprEntry { ecansub :: [String]
               , eprint :: Dict s -> [Expr s] -> String
               , eval :: Dict s -> [Expr s] -> (String, Expr s)
               , isEqual :: Dict s -> [Expr s] -> [Expr s] -> Maybe Bool }
+  | ...
+\end{verbatim}
+
+\subsubsection{Predicate Entries}
+
+\begin{verbatim}
+Entry s
+  = ...
   | PredEntry { pcansub :: [String]
               , pprint :: Dict s -> MarkStyle -> Int -> [MPred s] -> PP
               , alfa :: [String]
               , pdefn :: Rewrite s
               , prsimp :: Rewrite s }
+type Rewrite s = Dict s -> [MPred s] -> (String, Pred s)
+\end{verbatim}
+
+
+\subsubsection{Law Entries}
+
+\begin{verbatim}
+Entry s
+  = ...
   | LawEntry  { reduce :: [DictRWFun s]
               , creduce :: [CDictRWFun s]
               , unroll :: [String -> DictRWFun s] }
+type DictRWFun s = Dict s -> RWFun sdata
+type RWFun s = MPred s -> RWResult s
+type RWResult s = (String, MPred s)
 \end{verbatim}
 
-Indicate how, being functional, we can easily store functions
-in dictionaries.
+
+\subsubsection{Alphabet Entries}
+
+\begin{verbatim}
+Entry s
+  = ...
+  | AlfEntry  { avars :: [String]}
+\end{verbatim}
+
+
+One big win in using a functional language like Haskell,
+in which functions are first class data values,
+is that we can easily define datatypes that
+contain function-valued components.
+
 Also point out how this is a form of shallow-embedding.
 So we can get the best (?) of both worlds\cite{Gibbons:2014:FDS}.
 
@@ -198,3 +258,8 @@ and give an example of a \texttt{DictRWFun}.
 \subsection{No Targetting}\label{ssec:no-target}
 
 First-come, first-served.
+
+\subsection{Dictionary Libraries}
+
+explain how dictionaries are managed and constructed,
+and describe the ``builtin'' dictionaries (a.k.a. \texttt{StdXXX})
