@@ -1,0 +1,487 @@
+\subsection{Before we dive in \dots}
+
+The UTP Calculator is implemented as a series
+of Haskell modules,
+which are broken into two groups:
+\begin{description}
+  \item[Infrastructure]
+    are modules that implement the calculator mechanics,
+    pretty-printing, etc.
+    These include \texttt{PrettyPrint},
+    and all modules with names starting with \texttt{Calc}.
+  \item[Builtin Theories]
+    are pre-defined theory modules that cover standard logic,
+    whose names start with \texttt{Std}, and modules that cover ``standard''
+    UTP, whose names start with \texttt{StdUTP}.
+    These theory modules typically come in three, covering
+    \texttt{Predicates}, \texttt{Precedences} and \texttt{Laws}.
+\end{description}
+All the Haskell modules are found in the \texttt{src} directory
+of the repository, with a \texttt{.lhs} file extension
+(e.g., \texttt{CalcTypes.lhs}).
+
+\subsection{UTCP Syntax}
+
+We start by defining the syntax of our language
+\RLEQNS{
+   p,q \in UTCP
+   &::=& Idle
+  \mid  \A(A)
+  \mid  p \lseq q
+  \mid  p \lcond c q
+  \mid  p \parallel q
+  \mid  c \wdo p
+}
+\noindent
+and assign them pretty printing precedences,
+so they work well with the definitions in modules
+\texttt{StdPrecedences} and \texttt{StdUTPPrecedences}.
+\begin{code}
+precPCond = 5 + precSpacer  1
+precPPar  = 5 + precSpacer  2
+precPSeq  = 5 + precSpacer  3
+precPIter = 5 + precSpacer  6
+\end{code}
+
+
+\subsection{UTCP Alphabet}
+
+As already stated, the theory alphabet is $s,s',ls,ls',g,in,out$.
+We declare each as a variable in our expression notation,
+noting that Haskell allows identifiers to contain dashes,
+which proves very convenient:
+\begin{code}
+s' = Var "s'"
+\end{code}
+Note, here \texttt{s'} is a Haskell variable of type \texttt{Expr},
+while \texttt{"s'"} is a Haskell literal value of type \texttt{String}.
+
+We have two ways to classify UTP observation variables.
+Along one axis we distinguish observations of program variable
+values (``script'' variables, e.g. $s$, $s'$) from those that record other
+observations such as termination/stability,
+or traces/refusals (``model'' variables, e.g. $ls$, $ls'$).
+On the other axis we distinguish observations
+that are dynamic, whose values change as the program runs
+(e.g. $s$, $ls$ with $s'$ and $ls'$)
+from those that are static,
+unchanged during program execution (e.g. $g$, $in$ and $out$).
+We have pre-defined names for these categories,
+and an function \texttt{stdAlfDictGen} that
+builds all the appropriate entries
+given three lists of script, dynamic model and static variable strings.
+We also declare that the predicate variables $A$, $B$ and $C$
+will refer to atomic state-changes,
+and so only have alphabet $\setof{s,s'}$.
+\begin{code}
+alfUTCPDict
+ = dictMrg dictAlpha dictAtomic
+ where
+   dictAlpha = stdAlfDictGen ["s"] ["ls"] ["g","in","out"]
+   dictAtomic = makeDict [ pvarEntry "A" ss'
+                         , pvarEntry "B" ss'
+                         , pvarEntry "C" ss' ]
+   ss' = ["s", "s'"]
+\end{code}
+(See modules
+\texttt{CalcAlphabets}
+, \texttt{CalcPredicates}
+, \texttt{StdPredicates}.)
+
+\subsection{UTPC Expressions}
+
+We have sets of labels
+so we need a way to implement set-expressions.
+To avoid long set expressions a number of shorthands are desirable,
+so that a singleton set $\setof x$ is rendered as $x$
+and the very common idiom $S \subseteq ls$
+is rendered as $ls(S)$,
+so that for example, $ls(in)$ is short for $\setof{in} \subseteq ls$.
+So we might encode a set construct as follows
+\begin{code}
+set = App "set"                             -- set constructor
+showSet d [elm] = edshow d elm      -- drop {,} from singleton
+showSet d elms = "{" ++ dlshow d "," elms ++ "}"
+\end{code}
+We also define an equality tester for sets,
+that gets the two element-lists
+\begin{code}
+eqSet d es1 es2
+ = let ns1 = nub $ sort $ es1                -- normalise sets
+       ns2 = nub $ sort $ es2
+   in if all (isGround d) (ns1++ns2)
+      then Just (ns1==ns2)
+      else Nothing
+\end{code}
+The predicate \texttt{isGround} checks to see if an expression has no
+dynamic variables.
+For the purposes of this theory at least,
+we know we can treat these expressions as values.
+This is a common feature of encoding theories for this calculator%
+---%
+knowing when a particular simplification makes sense.
+The dictionary entry for the set construct then looks like
+\begin{code}
+ExprEntry ["*"] showSet none eqSet
+\end{code}
+where we permit any substitutions directly on the elements,
+and we use the special builtin function \texttt{none}
+as an evaluator that does not make any changes,
+since we regard these sets as evaluated, in this theory.
+
+Similar tricks are used to code a very compact rendering
+of a mechanism that involves unique label generators
+that can also be split, so that an expression like
+\[
+ \pi_2(new(\pi_1(new(\pi_1(split(\pi_1(new(g))))))))
+\]
+can be displayed as $\ell_{g:1:}$, or,
+within the calculator, as \texttt{lg:1:} .
+
+
+\subsection{Coding Atomic Semantics}
+
+Formally, using our shorthand notations, define atomic behaviour as:
+\RLEQNS{
+    \A(A) &\defs& ls(in) \land A \land ls'=ls\ominus(in,out)
+}
+where $A$ is a predicate whose alphabet is restricted to $s$ and $s'$.
+We code this up as follows:
+\begin{code}
+patm mpr = comp "A" [mpr] -- we assume mpr has only s, s' free
+
+defnAtomic d [a] = ldefn shPAtm $ mkAnd [lsin,a,ls'eqlsinout]
+
+inp = Var "in" -- 'in' is a Haskell keyword
+out = Var "out"
+lsin = atm $ App "subset" [inp,ls]
+lsinout = App "sswap" [ls,inp,out]
+ls'eqlsinout = equal ls' lsinout
+
+patmEntry
+ = ( nPAtm
+   , PredEntry [] ppPAtm [] defnAtomic (pNoChg nPAtm) )
+\end{code}
+Here \texttt{atm} lifts an expression to a marked predicate,
+while \texttt{"sswap"} names the ternary operation $\_\ominus(\_,\_)$,
+and \texttt{equal} is the marked form of \texttt{Equal}.
+
+
+We won't show the encoding of the composite constructs,
+or a predicate transformer called $run$ that actually
+enables us to symbolically `execute' our semantics.
+We will show how the \texttt{pprint} entry for
+sequential composition in UTCP is defined,
+just to show how easy support for infix notation is.
+\begin{code}
+ppPSeq d ms p [mpr1,mpr2]
+ = paren p precPSeq -- parenthesise if precedence requires it
+     $ ppopen  (pad ";;") [ mshowp d ms precPSeq mpr1
+                          , mshowp d ms precPSeq mpr2 ]
+\end{code}
+Here \texttt{pad} puts spaces around its argument,
+while \texttt{ppopen} uses its first argument as a
+separator between all the elements of its second list argument.
+The function \texttt{mshowp} is the top-level predicate printer.
+
+
+\subsection{Coding UTCP Laws}
+
+The definition of the semantics of the UTCP language
+constructs, and of $run$,
+make use of the (almost) standard notions of skip,
+sequential composition
+and iteration in UTP.
+The versions used here are slightly non-standard because we have
+non-homogeneous relations,
+where the static parameters have no dashed counterparts.
+In essence we ignore the parameters as far as flow-of-control is concerned:
+\RLEQNS{
+   \Skip &\defs& s'=s \land ls'=ls
+\\ P ; Q
+   &\defs&
+   \exists s_m,ls_m @
+     P[s_m,ls_m/s',ls']
+     \land
+     Q[s_m,ls_m/s,ls]
+\\ c * P &\defs& \mu L @ (P ; L) \cond c \Skip
+\\ P \cond c Q &\defs& c \land P \lor \lnot c \land Q
+}
+Here, the definition of $\cond\_$ is entirely standard, of course.
+
+What is key here though,
+is realising that we do not want to define the constructs
+as above and use them directly, as it involves
+quantifiers and explicit recursion,
+both of which would introduce considerable complexity to the calculator.
+Instead, we encode useful laws that they satisfy,
+that do not require their definitions to be expanded.
+Such laws might include the following:
+\RLEQNS{
+  \Skip \seq\ P & {} = P = {} & P \seq \Skip
+\\ c * P &=& (P \seq c* P ) \cond c \Skip
+\\ (c * P)[e/x] &=& P[e/x] \seq c * P, \qquad if c[e/x]
+\\ (c * P)[e/x] &=& \Skip[e/x] , \qquad if \lnot c[e/x]
+}
+These laws need to be proven by hand (carefully),
+by the theory developer, and then encoded into Haskell
+(equally carefully), as we are about to describe.
+
+We can easily give a definition of $\Skip$,
+which is worth expanding.
+\RLEQNS{
+   \Skip &\defs& s'=s \land ls'=ls
+}
+\begin{code}
+defnUTCPII = mkAnd[ equal s' s, equal ls' ls ]
+\end{code}
+
+For more complex laws,
+the idea is that we pattern-match on predicate syntax
+to see if a law is applicable (we have its lefthands-side),
+and if so,
+we then build an appropriate instance of the righthand-side.
+The plan is that we gather all these pattern/outcome pairs
+in one function definition,
+which will try them in order.
+This is a direct match for how Haskell pattern-matching works.
+So for UTCP we have a function called reduceUTCP,
+structured as follows:
+\begin{code}
+reduceUTCP :: (Show s, Ord s) => DictRWFun s
+reduceUTCP (...1st law pattern...) = 1st outcome
+reduceUTCP (...2nd law pattern...) = 2nd outcome
+...
+reduceUTCP d mpr = lred "" mpr -- catch-all at end, no change
+\end{code}
+The last clause matches any predicate
+and simply returns it with a null string,
+indicating no change took place.
+The main idea is find a suitable collection of patterns,
+in the right order,
+to be most effective in performing calculations.
+The best way to determine this is start with none,
+run the calculator and when it stalls
+(no change is happening for any command),
+see what law would help make progress, and encode it.
+
+A simple example of such a pattern is the following encoding
+of $\Skip;P = P$ :
+\begin{code}
+reduceUTCP d   -- the dictionary is 'd'
+  (_, Comp "Seq" [(_,Comp "Skip" []), mpr]) = lred ";-lunit" mpr
+\end{code}
+The second argument has type marked-predicate (\texttt{MPred})
+which is a marking/predicate pair.
+We are not interested in the markings
+so we use the wildcard pattern '\verb"_"'
+for the first pair component.
+The sub-pattern in the second pair component,
+\verb'Comp "Seq" [(_,Comp "Skip" []), mpr])',
+matches a composite called ``Seq'',
+with a argument list containing two (marked) predicates.
+The first argument predicate pattern \verb'(_,Comp "Skip" [])'
+matches a ``Skip'' composite with no further subarguments.
+The second argument pattern \verb'mpr' matches an arbitrary predicate
+($P$ in the law above).
+The righthand-side returns the application \verb'lred ";-lunit" mpr'
+which simply constructs a string/predicate pair,
+with the strign being a justification note that says a reduction-step
+usimng a laws called ``;-lunit'' was applied.
+
+
+
+\subsubsection{UTCP Recognisers}
+
+Some laws require matching that is a bit more sophisticated,
+often with side-conditions.
+
+$s'=s$, or $s=s'$
+\begin{code}
+isIdle s1 s2 = s1=="s" && s2=="s'" || s1=="s'" && s2=="s"
+\end{code}
+$s'=s$ conjoined with $A$ whose alphabet is $\setof{s,s'}$.
+\begin{code}
+isIdleSeqAtom d s1 s2 pA
+ | isIdle s1 s2
+    = case plookup pA d of
+       Just (PredEntry _ _ a_alf _ _)  ->  sort a_alf == ["s","s'"]
+       _                               ->  False
+ | otherwise  =  False
+\end{code}
+
+
+
+
+\subsubsection{Skip and Sequential Composition}
+
+
+A law that tidies up a common situation towards
+the end of calculations.
+\RLEQNS{
+   s' = e \land ls' = f ; A
+   &=&
+   A[e,f/s,ls]
+   & \elabel{$s'$-$ls'$-$;$-prop}
+}
+\begin{code}
+reduceUTCP d (_,Comp "Seq"
+                [ (_,Comp "And" [ (_,Equal (Var "s'") e)
+                                , (_,Equal (Var "ls'") f) ])
+                , mpA ])
+ = lred "s'ls'-;-prop" $ psub mpA [("s",e),("ls",f)]
+reduceUTCP d (_,Comp "Seq"
+                [ (_,Comp "And" [ (_,Equal (Var ls'@"ls'") f)
+                                , (_,Equal (Var s'@"s'") e) ])
+                , mpA])
+ = lred "s'ls'-;-prop" $ psub mpA [("s",e),("ls",f)]
+\end{code}
+
+A useful reduction for tidying up at the end,
+assuming that $ls' \notin A$ and $ls \notin B$, and both $k$ and $h$
+are ground:
+\RLEQNS{
+   A \land ls'=k ; B \land ls'= h
+   &\equiv&
+   (A;B) \land ls'=h
+   & \elabel{$ls'$-cleanup}
+}
+\begin{code}
+reduceUTCP d pr@(_,Comp "Seq" [ (_,Comp "And" pAs)
+                              , (_,Comp "And" pBs)])
+ = case isSafeLSDash d ls' ls' pAs of
+    Nothing -> lred "" pr
+    Just (_,restA) ->
+     case isSafeLSDash d ls' ls pBs of
+      Nothing -> lred "" pr
+      Just (eqB,restB)
+       -> lred "ls'-cleanup" $
+             comp "And" [ comp "Seq" [ bAnd restA
+                                     , bAnd restB ]
+                        , eqB ]
+ where
+   ls = "ls"
+   ls' = "ls'"
+
+   isSafeLSDash d theLS unwanted prs
+    = case matchRecog (mtchNmdObsEqToConst theLS d) prs of
+       Nothing -> Nothing
+       Just (pre,(eq@(_,Equal _ k),_),post) ->
+        if notGround d k
+         then Nothing
+         else if all (dftlyNotInP d unwanted) rest
+          then Just (eq,rest)
+          else Nothing
+        where rest = pre++post
+\end{code}
+
+
+That's all folks!
+
+
+%%%%  CREDUCE
+
+
+To avoid having to support a wide range of expression-related theories,
+we provide a conditional reducer, that computes
+a number of alternative outcomes, each guarded by some predicate
+that is hard to evaluate.
+The user elects which one to use by checking the conditions manually.
+
+\begin{code}
+creduceUTCP :: (Show s, Ord s) => CDictRWFun s
+\end{code}
+
+\paragraph{pre- and before-substitutions}
+A pre-substitution is one that replaces undashed variables with
+undashed expressions, while a before-substitution is further restricted
+to replacing undashed observables only.
+\begin{code}
+preSublet :: Ord s => ( String, Expr s ) -> Bool
+preSublet (v,e) = notDash v && notDashed e
+
+preSub :: Ord s => Substn s -> Bool
+preSub = all preSublet
+
+beforeSublet :: Ord s => Dict s -> ( String, Expr s ) -> Bool
+beforeSublet d (v,e) = isDyn d v && notDashed e
+
+beforeSub :: Ord s => Dict s -> Substn s -> Bool
+beforeSub d = all (beforeSublet d)
+\end{code}
+
+\paragraph{Predicate Simplifier}
+ Sometimes we want to simplify a predicate without fuss
+(marking or comment):
+\begin{code}
+psimp :: (Ord s, Show s)
+      => Dict s -> MPred s -> Pred s
+psimp d = snd . thd . simplify d startm
+
+thd (_,_,z) = z
+\end{code}
+
+
+\paragraph{Atomic Enablement}
+
+\RLEQNS{
+   ns(\ell_0)
+   &\implies&
+   \A(A)[\ell_0,\ell_1,ns/in,out,ls]
+    = A \land ls'=ns\ominus(\ell_0,\ell_1)
+\\ \lnot ns(\ell_0)
+   &\implies&
+   \A(A)[\ell_0,\ell_1,ns/in,out,ls]
+    = \false
+}
+\begin{code}
+creduceUTCP d (_,PSub (_,Comp "PAtm" [pA])
+                      [("in",l0),("out",l1),("ls",ns)] )
+ = lcred "atm-substn" [doA,nowt]
+ where
+   nsl0 = atm $ subset l0 ns
+   doA  = ( psimp d nsl0
+          , bAnd [pA, equal ls' $ sswap ns l0 l1 ] )
+   nowt = ( psimp d $ bNot nsl0
+          , false )
+\end{code}
+
+
+Other cases, do nothing:
+\begin{code}
+creduceUTCP d mpr = lcred "" [(T,mpr)]
+
+lcred nm cmprs = ( nm, cmprs )
+\end{code}
+
+
+\begin{code}
+lawsUTCPDict :: (Ord s, Show s) => Dict s
+lawsUTCPDict
+ = makeDict
+    [ ( "laws"
+      , LawEntry [reduceUTCP] [creduceUTCP] [])
+    ]
+\end{code}
+
+
+%%%% UTCP MAIN
+
+
+
+
+\subsubsection{The UTCP Theory}
+Our theory:
+\begin{code}
+dictUTCP :: (Eq s, Ord s, Show s) => Dict s
+dictUTCP
+ = foldl1 dictMrg [ makeDict [(version,AlfEntry [versionUTCP])]
+                  , alfUTCPDict
+                  , setUTCPDict
+                  , genUTCPDict
+                  , semUTCPDict
+                  , lawsUTCPDict
+                  ]
+
+showUTCP (_,pr)  = pdshow 80 dictUTCP pr
+\end{code}

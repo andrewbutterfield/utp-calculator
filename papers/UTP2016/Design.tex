@@ -406,8 +406,8 @@ Here is where we have a reduced degree of control,
 which simplifies the REPL dramatically,
 but turns out to be strikingly effective in practise.
 This is because these kinds of semantic ``smoke-test'' calculations
-tend to go in phases: expand all definition;, simplify; reduce; simplify;
-perhaps unroll a loop a bit, etc...
+tend to go in phases: expand all definitions; simplify; reduce; simplify;
+perhaps unroll a loop a bit; etc...
 \begin{description}
   \item[Defn. Expand ('\texttt{d}')]
     Find the first predicate changed by applying its
@@ -422,7 +422,7 @@ perhaps unroll a loop a bit, etc...
     Find the first predicate transformed by a function
     in the \texttt{unroll} list of the \texttt{LawEntry} indexed
      by the string \texttt{"laws"}.
-    The remainder of the command string after the initial 'l'
+    The remainder of the command string after the initial '\texttt{l}'
     is passed to the function to control the nature and degree
     of unrolling. How this string is interpreted is entirely
     up to the user---see Sect. \ref{sec:Theorising} for an example.
