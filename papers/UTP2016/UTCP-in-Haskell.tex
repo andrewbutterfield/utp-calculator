@@ -252,7 +252,7 @@ reduceUTCP :: (Show s, Ord s) => DictRWFun s
 reduceUTCP (...1st law pattern...) = 1st outcome
 reduceUTCP (...2nd law pattern...) = 2nd outcome
 ...
-reduceUTCP d mpr = lred "" mpr -- catch-all at end, no change
+reduceUTCP d mpr = lred "" mpr  -- catch-all at end, no change
 \end{code}
 The last clause matches any predicate
 and simply returns it with a null string,
@@ -268,8 +268,8 @@ see what law would help make progress, and encode it.
 A simple example of such a pattern is the following encoding
 of $\Skip;P = P$ :
 \begin{code}
-reduceUTCP d   -- the dictionary is 'd'
-  (_, Comp "Seq" [(_,Comp "Skip" []), mpr]) = lred ";-lunit" mpr
+reduceUTCP d
+ (_,Comp "Seq" [(_,Comp "Skip" []), mpr]) = lred ";-lunit" mpr
 \end{code}
 The second argument has type marked-predicate (\texttt{MPred})
 which is a marking/predicate pair.
@@ -318,10 +318,10 @@ the occurrence, or otherwise of $ls$ or $ls'$:
 \begin{code}
 reduceUTCP d pr@(_,Comp "Seq" [ (_,Comp "And" pAs)
                               , (_,Comp "And" pBs)])
- = case isSafeLSDash d ls' ls' pAs of   -- no ls' in rest of pAs
+ = case isSafeLSDash d ls' ls' pAs of -- no ls' in rest of pAs
     Nothing -> lred "" pr
     Just (_,restA) ->
-     case isSafeLSDash d ls' ls pBs of   -- no ls in rest of pBs
+     case isSafeLSDash d ls' ls pBs of -- no ls in rest of pBs
       Nothing -> lred "" pr
       Just (eqB,restB) 
        -> lred "ls'-cleanup" $   -- build RHS
@@ -406,7 +406,7 @@ creduceUTCP d (_,PSub w@(_,Comp "Iter" [c,p]) sub)
  = lcred "loop-substn" [ctrue,cfalse]
  where
    csub = psub c sub            --  psub builds a substitution
-   ctrue  = ( psimp d csub  -- psimp runs a simplifier
+   ctrue  = ( psimp d csub          -- psimp runs a simplifier
             , bSeq (psub p sub) w )
    cfalse = ( psimp d $ bNot csub
             , psub bSkip sub )

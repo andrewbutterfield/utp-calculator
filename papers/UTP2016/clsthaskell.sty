@@ -1,17 +1,20 @@
-% lsthaskell.sty
+% clsthaskell.sty
 %
 % (c) Andrew Butterfield 2014
 %
 \lstdefinelanguage{haskell2010}%
-  {basicstyle=\ttfamily\small,
+  {basicstyle=\ttfamily\small\color{blue},
+   identifierstyle=\color{red!40!blue},
    morecomment=[l]--,%
    morecomment=[n]{\{-}{-\}},%
+   commentstyle={\color{red}},
    otherkeywords={[],:,(),=},%
    morekeywords={
       abstype,if,then,else,case,class,data,default,deriving,%
       hiding,if,in,infix,infixl,infixr,import,instance,let,module,
       newtype,of,qualified,type,where,do
    },
+   keywordstyle=\color{black},
    morekeywords=[2]{
      Bool,False,True,
      Maybe,Nothing,Just,
@@ -61,6 +64,7 @@
      getChar, getLine, getContents, interact,
      readFile, writeFile, appendFile, readIO, readLn
    },%
+   keywordstyle=[2]{\color{green!30!black}},
    classoffset=1,
    sensitive,%
    morestring=[b]",

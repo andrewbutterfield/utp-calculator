@@ -4,14 +4,20 @@
 \usepackage{views}
 \usepackage{graphicx}
 \usepackage{xcolor}
-\usepackage{listings}
-\usepackage{lstlhs}
 \usepackage{UTPCalc}
+\usepackage{listings}
 \usepackage{PML}
 \usepackage{mathpartir}
 \usepackage{epstopdf}
 \usepackage{hyperref}
 \allowdisplaybreaks[2]
+\newif\ifColour
+%\Colourtrue
+\ifColour
+\usepackage{clstlhs}
+\else
+\usepackage{lstlhs}
+\fi
 % ----------------------------------------------------------------
 
 
