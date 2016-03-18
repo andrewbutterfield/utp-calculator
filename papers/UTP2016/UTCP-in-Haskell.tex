@@ -291,53 +291,11 @@ usimng a laws called ``;-lunit'' was applied.
 
 
 
-\subsubsection{UTCP Recognisers}
+\subsection{UTCP Recognisers}
 
-Some laws require matching that is a bit more sophisticated,
-often with side-conditions.
-
-$s'=s$, or $s=s'$
-\begin{code}
-isIdle s1 s2 = s1=="s" && s2=="s'" || s1=="s'" && s2=="s"
-\end{code}
-$s'=s$ conjoined with $A$ whose alphabet is $\setof{s,s'}$.
-\begin{code}
-isIdleSeqAtom d s1 s2 pA
- | isIdle s1 s2
-    = case plookup pA d of
-       Just (PredEntry _ _ a_alf _ _)  ->  sort a_alf == ["s","s'"]
-       _                               ->  False
- | otherwise  =  False
-\end{code}
-
-
-
-
-\subsubsection{Skip and Sequential Composition}
-
-
-A law that tidies up a common situation towards
-the end of calculations.
-\RLEQNS{
-   s' = e \land ls' = f ; A
-   &=&
-   A[e,f/s,ls]
-   & \elabel{$s'$-$ls'$-$;$-prop}
-}
-\begin{code}
-reduceUTCP d (_,Comp "Seq"
-                [ (_,Comp "And" [ (_,Equal (Var "s'") e)
-                                , (_,Equal (Var "ls'") f) ])
-                , mpA ])
- = lred "s'ls'-;-prop" $ psub mpA [("s",e),("ls",f)]
-reduceUTCP d (_,Comp "Seq"
-                [ (_,Comp "And" [ (_,Equal (Var ls'@"ls'") f)
-                                , (_,Equal (Var s'@"s'") e) ])
-                , mpA])
- = lred "s'ls'-;-prop" $ psub mpA [("s",e),("ls",f)]
-\end{code}
-
-A useful reduction for tidying up at the end,
+Some laws require matching that is a bit more sophisticated.
+For example,
+consider a useful reduction for tidying up at the end,
 assuming that $ls' \notin A$ and $ls \notin B$, and both $k$ and $h$
 are ground:
 \RLEQNS{
@@ -346,142 +304,127 @@ are ground:
    (A;B) \land ls'=h
    & \elabel{$ls'$-cleanup}
 }
+However, we want this law to work when both $A$ 
+and $B$ are themselves conjunctions, with the $ls'=\dots$
+as part of the same conjunction, located at some arbitrary position.
+We can break the problem into two parts.
+First we do a top-level pattern match 
+to see that we have a top-level sequential composition
+of two conjunctions,
+then we use a function that will check both conjunction predicate-lists
+for the existence of a $ls'=\dots$ component,
+and that everythiong else also satisfies the requirements regarding
+the occurrence, or otherwise of $ls$ or $ls'$:
 \begin{code}
 reduceUTCP d pr@(_,Comp "Seq" [ (_,Comp "And" pAs)
                               , (_,Comp "And" pBs)])
- = case isSafeLSDash d ls' ls' pAs of
+ = case isSafeLSDash d ls' ls' pAs of   -- no ls' in rest of pAs
     Nothing -> lred "" pr
     Just (_,restA) ->
-     case isSafeLSDash d ls' ls pBs of
+     case isSafeLSDash d ls' ls pBs of   -- no ls in rest of pBs
       Nothing -> lred "" pr
-      Just (eqB,restB)
-       -> lred "ls'-cleanup" $
+      Just (eqB,restB) 
+       -> lred "ls'-cleanup" $   -- build RHS
              comp "And" [ comp "Seq" [ bAnd restA
                                      , bAnd restB ]
                         , eqB ]
- where
-   ls = "ls"
-   ls' = "ls'"
-
-   isSafeLSDash d theLS unwanted prs
-    = case matchRecog (mtchNmdObsEqToConst theLS d) prs of
-       Nothing -> Nothing
-       Just (pre,(eq@(_,Equal _ k),_),post) ->
-        if notGround d k
-         then Nothing
-         else if all (dftlyNotInP d unwanted) rest
-          then Just (eq,rest)
-          else Nothing
-        where rest = pre++post
+\end{code}
+The function \texttt{isSafeLSDash}
+is designed to 
+(i) locate the $ls'=e$ conjunct and check its rhs is a ground expression;
+(ii) check that none of the remaining conjuncts make use of the
+`unwanted' version of the label-set variable ($ls$ or $ls'$);
+and (iii), if all ok, return a pair
+whose first component is the ($ls'=\dots$) equality,
+and whose second is the list of other conjuncts.
+To achieve (i) above,
+we make use of two functions provided by the CalcRecogniser module:
+\begin{code}
+mtchNmdObsEqToConst :: Ord s => String -> Dict s -> Recogniser s
+matchRecog :: (Ord s, Show s)
+           => Recogniser s -> [MPred s]
+           -> Maybe ([MPred s],(MPred s,[MPred s]),[MPred s])
+\end{code}
+where
+\begin{code}
+type Recogniser s = MPred s -> (Bool, [MPred s])
+\end{code}
+A recogniser is a function that takes a predicate
+and if it ``recognises'' it, returns \texttt{(True, parts)},
+where parts are the subcomponents of the predicate in some order.
+The recogniser \texttt{mtchNmdObsEqtoConst v d} matches a predicate of the form
+\texttt{Equal (Var v) k}, returning a list with both parts.
+The function \texttt{matchRecog} takes a recogniser and list of predicates
+and looks in the list for the first predicate to satisfy
+the recogniser, returning a triple of the form
+(before,satisyingPred,after).
+If the recogniser suceeds,
+we then check the validity of the expression,
+and the absence of the unwanted variable from the
+rest of the conjuncts --- using boolean function
+ dftlyNotInP (``definitely not in $P$),
+ so handling task (ii) above.
+\begin{code}
+isSafeLSDash d theLS unwanted prs
+ = case matchRecog (mtchNmdObsEqToConst theLS d) prs of
+    Nothing -> Nothing
+    Just (pre,(eq@(_,Equal _ k),_),post) ->
+     if notGround d k
+      then Nothing
+      else if all (dftlyNotInP d unwanted) rest
+       then Just (eq,rest)
+       else Nothing
+     where rest = pre++post
 \end{code}
 
-
-That's all folks!
-
-
-%%%%  CREDUCE
-
+\subsection{Conditional Reductions}
 
 To avoid having to support a wide range of expression-related theories,
 we provide a conditional reducer, that computes
 a number of alternative outcomes, each guarded by some predicate
 that is hard to evaluate.
 The user elects which one to use by checking the conditions manually.
-
+We define a function, similar to reduceUTCP,
+that contains a series of patterns fro each conditional reduction law.
 \begin{code}
 creduceUTCP :: (Show s, Ord s) => CDictRWFun s
 \end{code}
-
-\paragraph{pre- and before-substitutions}
-A pre-substitution is one that replaces undashed variables with
-undashed expressions, while a before-substitution is further restricted
-to replacing undashed observables only.
-\begin{code}
-preSublet :: Ord s => ( String, Expr s ) -> Bool
-preSublet (v,e) = notDash v && notDashed e
-
-preSub :: Ord s => Substn s -> Bool
-preSub = all preSublet
-
-beforeSublet :: Ord s => Dict s -> ( String, Expr s ) -> Bool
-beforeSublet d (v,e) = isDyn d v && notDashed e
-
-beforeSub :: Ord s => Dict s -> Substn s -> Bool
-beforeSub d = all (beforeSublet d)
-\end{code}
-
-\paragraph{Predicate Simplifier}
- Sometimes we want to simplify a predicate without fuss
-(marking or comment):
-\begin{code}
-psimp :: (Ord s, Show s)
-      => Dict s -> MPred s -> Pred s
-psimp d = snd . thd . simplify d startm
-
-thd (_,_,z) = z
-\end{code}
-
-
-\paragraph{Atomic Enablement}
-
+Provided that $\vec x \subseteq in\alpha P$
+ (which in this case is $\setof{s,ls}$):
 \RLEQNS{
-   ns(\ell_0)
+   c[\vec e/\vec x]
    &\implies&
-   \A(A)[\ell_0,\ell_1,ns/in,out,ls]
-    = A \land ls'=ns\ominus(\ell_0,\ell_1)
-\\ \lnot ns(\ell_0)
+   (c * P)[\vec e/\vec x] = P[\vec e/\vec x] ; c * P
+\\ \lnot c[\vec e/\vec x]
    &\implies&
-   \A(A)[\ell_0,\ell_1,ns/in,out,ls]
-    = \false
+   (c * P)[\vec e/\vec x] = \Skip[\vec e/\vec x]
 }
 \begin{code}
-creduceUTCP d (_,PSub (_,Comp "PAtm" [pA])
-                      [("in",l0),("out",l1),("ls",ns)] )
- = lcred "atm-substn" [doA,nowt]
+creduceUTCP d (_,PSub w@(_,Comp "Iter" [c,p]) sub)
+ | isCondition c        -- true if expr c is a UTP 'condition'
+   && beforeSub d sub   -- true if subst-vars are all undashed
+ = lcred "loop-substn" [ctrue,cfalse]
  where
-   nsl0 = atm $ subset l0 ns
-   doA  = ( psimp d nsl0
-          , bAnd [pA, equal ls' $ sswap ns l0 l1 ] )
-   nowt = ( psimp d $ bNot nsl0
-          , false )
+   csub = psub c sub            --  psub builds a substitution
+   ctrue  = ( psimp d csub  -- psimp runs a simplifier
+            , bSeq (psub p sub) w )
+   cfalse = ( psimp d $ bNot csub
+            , psub bSkip sub )
 \end{code}
+If this succeeds, the user is presented with two options,
+each of the form (side-condition, outcome)
+The user can then identify which of those side-conditions is true,
+resulting in the appropriate outcome.
 
-
-Other cases, do nothing:
+We make these two reduction functions ``known'' to the calculator
+by adding them into a dictionary.
 \begin{code}
-creduceUTCP d mpr = lcred "" [(T,mpr)]
-
-lcred nm cmprs = ( nm, cmprs )
-\end{code}
-
-
-\begin{code}
-lawsUTCPDict :: (Ord s, Show s) => Dict s
 lawsUTCPDict
- = makeDict
-    [ ( "laws"
-      , LawEntry [reduceUTCP] [creduceUTCP] [])
-    ]
+ = makeDict [("laws", LawEntry [reduceUTCP] [creduceUTCP] [])]
 \end{code}
-
-
-%%%% UTCP MAIN
-
-
-
-
-\subsubsection{The UTCP Theory}
-Our theory:
+We then can take a number of partial dictionaries and use various
+dictionary functions,
+defined in \texttt{CalcPredicates}, to merge them together.
 \begin{code}
-dictUTCP :: (Eq s, Ord s, Show s) => Dict s
-dictUTCP
- = foldl1 dictMrg [ makeDict [(version,AlfEntry [versionUTCP])]
-                  , alfUTCPDict
-                  , setUTCPDict
-                  , genUTCPDict
-                  , semUTCPDict
-                  , lawsUTCPDict
-                  ]
-
-showUTCP (_,pr)  = pdshow 80 dictUTCP pr
+dictUTCP = foldl1 dictMrg [ alfUTCPDict, ..., lawsUTCPDict]
 \end{code}
