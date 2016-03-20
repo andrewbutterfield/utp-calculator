@@ -37,7 +37,12 @@ run(A(A) ;; A(B))
 (A ; B) /\ ls' = {lg:}
 \end{verbatim}
 The user simply indicates the broad class of command required,
-and the calculator works on the
+and the calculator works on the current goal predicate.
 A text transcript is produced,
 which is essentially the above
 without the prompts.
+The marking facility, requiring the \texttt{Pred}/\texttt{MPred} complication,
+is currently used when displaying the transcript in a terminal
+window to highlight old and new parts of predicates as chages are made.
+Currently this only works well on the Mac OS X terminal,
+because it seems to be the only one that properly supports ANSI secpae sequences.

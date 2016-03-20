@@ -184,10 +184,6 @@ in either failure, for which a suitable default action will be used,
 or success, in which case the dictionary entry will supply
 information to guide the required name-specific behaviour.
 
-
-Also point out how this is a form of shallow-embedding.
-So we can get the best (?) of both worlds\cite{Gibbons:2014:FDS}.
-
 There are four kinds of dictionary entries,
 one each for expressions and predicates,
 one for laws of various kinds,
@@ -357,8 +353,7 @@ type CRWResult s = (String, [(Pred s, MPred s)])
   \item[\texttt{loop}]
     is a list of loop-unrolling functions.
     The extra string argument is to give the user finer control
-    of how much unrolling is done, and how it is presented
-    (see later).
+    of how much unrolling is done, and how it is presented.
 \end{description}
 
 
@@ -411,7 +406,7 @@ the first sub-component for which the relevant dictionary calculator
 function returns a changed result.
 Here is where we have a reduced degree of control,
 which simplifies the REPL dramatically,
-but turns out to be strikingly effective in practise.
+but turns out to be strikingly effective in practice.
 This is because these kinds of semantic ``smoke-test'' calculations
 tend to go in phases: expand all definitions; simplify; reduce; simplify;
 perhaps unroll a loop a bit; etc...
@@ -432,7 +427,7 @@ perhaps unroll a loop a bit; etc...
     The remainder of the command string after the initial '\texttt{l}'
     is passed to the function to control the nature and degree
     of unrolling. How this string is interpreted is entirely
-    up to the user---see Sect. \ref{sec:Theorising} for an example.
+    up to the user.
   \item[Conditional Reduce ('\texttt{c}')]
     Find the first predicate transformed by a function
     in the \texttt{creduce} list of the \texttt{LawEntry} indexed

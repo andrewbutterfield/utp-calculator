@@ -42,6 +42,9 @@ precPPar  = 5 + precSpacer  2
 precPSeq  = 5 + precSpacer  3
 precPIter = 5 + precSpacer  6
 \end{code}
+The \texttt{precSpacer} function is used to leave space between precedence
+values so that new constructs can be given an in-between spacing,
+if required. Currently it returns its argument times 1.
 
 
 \subsection{UTCP Alphabet}
@@ -141,7 +144,7 @@ within the calculator, as \texttt{lg:1:} .
 
 \subsection{Coding Atomic Semantics}
 
-Formally, using our shorthand notations, define atomic behaviour as:
+Formally, using our shorthand notations, we define atomic behaviour as:
 \RLEQNS{
     \A(A) &\defs& ls(in) \land A \land ls'=ls\ominus(in,out)
 }
@@ -238,7 +241,7 @@ defnUTCPII = mkAnd[ equal s' s, equal ls' ls ]
 
 For more complex laws,
 the idea is that we pattern-match on predicate syntax
-to see if a law is applicable (we have its lefthands-side),
+to see if a law is applicable (we have its lefthand-side),
 and if so,
 we then build an appropriate instance of the righthand-side.
 The plan is that we gather all these pattern/outcome pairs
@@ -264,6 +267,7 @@ The best way to determine this is start with none,
 run the calculator and when it stalls
 (no change is happening for any command),
 see what law would help make progress, and encode it.
+This is the essence of the agile approach to theory calculator development.
 
 A simple example of such a pattern is the following encoding
 of $\Skip;P = P$ :
@@ -286,8 +290,8 @@ The second argument pattern \verb'mpr' matches an arbitrary predicate
 ($P$ in the law above).
 The righthand-side returns the application \verb'lred ";-lunit" mpr'
 which simply constructs a string/predicate pair,
-with the strign being a justification note that says a reduction-step
-usimng a laws called ``;-lunit'' was applied.
+with the string being a justification note that says a reduction-step
+using a law called ``$;$-lunit'' was applied.
 
 
 
@@ -331,14 +335,14 @@ reduceUTCP d pr@(_,Comp "Seq" [ (_,Comp "And" pAs)
 \end{code}
 The function \texttt{isSafeLSDash}
 is designed to 
-(i) locate the $ls'=e$ conjunct and check its rhs is a ground expression;
+(i) locate the $ls'=e$ conjunct and check that its rhs is a ground expression;
 (ii) check that none of the remaining conjuncts make use of the
 `unwanted' version of the label-set variable ($ls$ or $ls'$);
 and (iii), if all ok, return a pair
 whose first component is the ($ls'=\dots$) equality,
 and whose second is the list of other conjuncts.
 To achieve (i) above,
-we make use of two functions provided by the CalcRecogniser module:
+we make use of two functions provided by the \texttt{CalcRecogniser} module:
 \begin{code}
 mtchNmdObsEqToConst :: Ord s => String -> Dict s -> Recogniser s
 matchRecog :: (Ord s, Show s)
@@ -362,7 +366,7 @@ If the recogniser suceeds,
 we then check the validity of the expression,
 and the absence of the unwanted variable from the
 rest of the conjuncts --- using boolean function
- dftlyNotInP (``definitely not in $P$),
+ \texttt{dftlyNotInP} (``definitely not in $P$),
  so handling task (ii) above.
 \begin{code}
 isSafeLSDash d theLS unwanted prs
