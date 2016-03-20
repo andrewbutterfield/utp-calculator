@@ -1,5 +1,48 @@
 \section{Conclusions}\label{sec:Conc}
 
+\subsubsection{Using the Calculator}
+
+The first property of interest for this calculator
+was calculating the effect of $run(A \pseq B)$,
+where $A$ and $B$ where atomic action predicates with alphabet $\setof{s,s'}$.
+For convenience we predefined the predicate $A \pseq B$, as
+\begin{code}
+athenb = pseq [patm (pvar "A"),patm (pvar "B")]
+\end{code}
+We then invoke the calculator as follows, 
+\begin{code}
+calcREPL dictUTCP (run athenb)
+\end{code}
+and proceed to interact 
+(here the prompt  ``\texttt{ ?,d,r,l,s,c,u,x :-}'' 
+shows the available commands)
+\begin{verbatim}
+UTCP-0.7, UTP-Calc v0.0.1
+run(A(A) ;; A(B))
+ ?,d,r,l,s,c,u,x :- d
+ = "defn. of run.3"
+   (A(A) ;; A(B))[g::,lg,lg,lg:/g,in,ls,out]
+ ; ~ls(lg:) * (A(A) ;; A(B))[g::,lg,lg:/g,in,out]
+ ?,d,r,l,s,c,u,x :- d
+ = "defn. of ;;"
+   (A(A)[g:1,lg/g,out] \/
+   A(B)[g:2,lg/g,in])[g::,lg,lg,lg:/g,in,ls,out]
+ ; ~ls(lg:) * (A(A) ;; A(B))[g::,lg,lg:/g,in,out]
+ ?,d,r,l,s,c,u,x :- s
+ = "simplify"
+   A(A)[g:::1,lg,lg,lg::/g,in,ls,out] \/
+   A(B)[g:::2,lg::,lg,lg:/g,in,ls,out]
+ ; ~ls(lg:) * (A(A) ;; A(B))[g::,lg,lg:/g,in,out]
+.... 10 more steps
+ ?,d,r,l,s,c,u,x :- r
+ = "ls'-cleanup"
+(A ; B) /\ ls' = {lg:}
+\end{verbatim}
+A text transcript is produced,
+which is essentially the above
+without the prompts.
+
+
 \subsection{Soundness, and other nice stuff}
 
 No such guarantees---quite possible to have a broken dictionary

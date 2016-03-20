@@ -1,0 +1,89 @@
+
+UTCP-0.6, PP-0.6, CP-0.6, CS-0.6, CR-0.6
+
+run(A(A) ;; A(B))
+
+ = "defn. of run.3"
+
+   (A(A) ;; A(B))[g::,lg,lg,lg:/g,in,ls,out]
+ ; ~ls(lg:) * (A(A) ;; A(B))[g::,lg,lg:/g,in,out]
+
+ = "defn. of ;;"
+
+   (A(A)[g:1,lg/g,out] \/
+   A(B)[g:2,lg/g,in])[g::,lg,lg,lg:/g,in,ls,out]
+ ; ~ls(lg:) * (A(A) ;; A(B))[g::,lg,lg:/g,in,out]
+
+ = "simplify"
+
+   A(A)[g:::1,lg,lg,lg::/g,in,ls,out] \/
+   A(B)[g:::2,lg::,lg,lg:/g,in,ls,out]
+ ; ~ls(lg:) * (A(A) ;; A(B))[g::,lg,lg:/g,in,out]
+
+ = "sub-atomic"
+
+       A /\ lg(lg) /\ ls' = lg (-/+) (lg,lg::)
+    \/ A(B)[g:::2,lg::,lg,lg:/g,in,ls,out]
+ ; ~ls(lg:) * (A(A) ;; A(B))[g::,lg,lg:/g,in,out]
+
+ = "sub-atomic"
+
+       A /\ lg(lg) /\ ls' = lg (-/+) (lg,lg::)
+    \/ B /\ lg(lg::) /\ ls' = lg (-/+) (lg::,lg:)
+ ; ~ls(lg:) * (A(A) ;; A(B))[g::,lg,lg:/g,in,out]
+
+ = "simplify"
+
+A /\ ls' = {lg::} ; ~ls(lg:) * (A(A) ;; A(B))[g::,lg,lg:/g,in,out]
+
+ = "obs'-;-*-prop, given ls = {lg::} => ~ls(lg:)"
+
+   A /\ ls' = {lg::}
+ ;    (A(A) ;; A(B))[g::,lg,lg:/g,in,out][{lg::}/ls]
+    ; ~ls(lg:) * (A(A) ;; A(B))[g::,lg,lg:/g,in,out]
+
+ = "defn. of ;;"
+
+   A /\ ls' = {lg::}
+ ;    (A(A)[g:1,lg/g,out] \/
+ A(B)[g:2,lg/g,in])[g::,lg,lg:/g,in,out][{lg::}/ls]
+    ; ~ls(lg:) * (A(A) ;; A(B))[g::,lg,lg:/g,in,out]
+
+ = "sub-atomic"
+
+   A /\ ls' = {lg::}
+ ;    (A /\ ls(in) /\ ls' = ls (-/+) (in,lg) \/ A(B)[g:2,lg/g,in])
+      [g::,lg,lg:/g,in,out]
+      [{lg::}/ls]
+    ; ~ls(lg:) * (A(A) ;; A(B))[g::,lg,lg:/g,in,out]
+
+ = "simplify"
+
+   A /\ ls' = {lg::}
+ ;            A[g::,lg,lg:,{lg::}/g,in,out,ls]
+           /\ {lg::}(lg)
+           /\ ls' = {lg::} (-/+) (lg,lg::)
+       \/ A(B)[g:::2,lg::,{lg::},lg:/g,in,ls,out]
+    ; ~ls(lg:) * (A(A) ;; A(B))[g::,lg,lg:/g,in,out]
+
+ = "sub-atomic"
+
+   A /\ ls' = {lg::}
+ ;            A[g::,lg,lg:,{lg::}/g,in,out,ls]
+           /\ {lg::}(lg)
+           /\ ls' = {lg::} (-/+) (lg,lg::)
+       \/ B /\ {lg::}(lg::) /\ ls' = {lg::} (-/+) (lg::,lg:)
+    ; ~ls(lg:) * (A(A) ;; A(B))[g::,lg,lg:/g,in,out]
+
+ = "simplify"
+
+   A /\ ls' = {lg::}
+ ; B /\ ls' = {lg:} ; ~ls(lg:) * (A(A) ;; A(B))[g::,lg,lg:/g,in,out]
+
+ = "obs'-;-*-prop, given ls = {lg:} => ls(lg:)"
+
+A /\ ls' = {lg::} ; B /\ ls' = {lg:}
+
+ = "ls'-cleanup"
+
+(A ; B) /\ ls' = {lg:}
