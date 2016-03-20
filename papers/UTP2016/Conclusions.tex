@@ -1,84 +1,79 @@
 \section{Conclusions}\label{sec:Conc}
 
-\subsubsection{Using the Calculator}
+The calculator was used to develop the semantic definitions
+for our UTP theory of concurrent programming (UTCP),
+and has proved to be invaluable in checking that all
+the definitions led to the correct outcomes.
+It continues to be in active use with work in this area
+that is extending and improving the theory.
 
-The first property of interest for this calculator
-was calculating the effect of $run(A \pseq B)$,
-where $A$ and $B$ where atomic action predicates with alphabet $\setof{s,s'}$.
-For convenience we predefined the predicate $A \pseq B$, as
-\begin{code}
-athenb = pseq [patm (pvar "A"),patm (pvar "B")]
-\end{code}
-We then invoke the calculator as follows, 
-\begin{code}
-calcREPL dictUTCP (run athenb)
-\end{code}
-and proceed to interact 
-(here the prompt  ``\texttt{ ?,d,r,l,s,c,u,x :-}'' 
-shows the available commands)
-\begin{verbatim}
-UTCP-0.7, UTP-Calc v0.0.1
-run(A(A) ;; A(B))
- ?,d,r,l,s,c,u,x :- d
- = "defn. of run.3"
-   (A(A) ;; A(B))[g::,lg,lg,lg:/g,in,ls,out]
- ; ~ls(lg:) * (A(A) ;; A(B))[g::,lg,lg:/g,in,out]
- ?,d,r,l,s,c,u,x :- d
- = "defn. of ;;"
-   (A(A)[g:1,lg/g,out] \/
-   A(B)[g:2,lg/g,in])[g::,lg,lg,lg:/g,in,ls,out]
- ; ~ls(lg:) * (A(A) ;; A(B))[g::,lg,lg:/g,in,out]
- ?,d,r,l,s,c,u,x :- s
- = "simplify"
-   A(A)[g:::1,lg,lg,lg::/g,in,ls,out] \/
-   A(B)[g:::2,lg::,lg,lg:/g,in,ls,out]
- ; ~ls(lg:) * (A(A) ;; A(B))[g::,lg,lg:/g,in,out]
-.... 10 more steps
- ?,d,r,l,s,c,u,x :- r
- = "ls'-cleanup"
-(A ; B) /\ ls' = {lg:}
-\end{verbatim}
-A text transcript is produced,
-which is essentially the above
-without the prompts.
+However, there are no guarantees of soundness.
+Great care has been taken to ensure that the pre-packaged
+dictionaries are correct,
+and similar care is needed to ensure that theory-specific
+definitions are correct.
+But working on a theory by hand faces exactly the same issues
+--- a proof or calculation by hand always raises the issue
+of the correctness of a law, or the validity of a ``proof-step''
+that is really a number of simpler steps all rolled into one.
+In either case, by hand or by calculator,
+the theory developer has a responsibility to carefully check every line.
+This is one reason why so much effort was put into pretty-printing
+and marking. 
+The calculator's real benefit is the ease with which
+it can produce a calculation and transcript.
+
+In effect, this UTP Calculator is a tool that assists
+with the validation of UTP semantic definitions,
+and is designed for use by someone with expertise
+in UTP theory building,
+and a good working knowledge of Haskell.
+
+A key lesson learnt during the development
+of both the calculator, and the UTCP theory,
+is the value of the agile approach.
+By focussing development of both on what
+was the immediate need at any given moment,
+we found that the calculator, and its dictionaries,
+were prevented from excessive bloat
+e.g., coding up a common, useful, obvious law,
+that actually wasn't needed.
+What was important was 
+finding the ``sweet spot'' between the use of definition
+expansion, and hard-coded laws based on by-hand proofs.
+
+A very interesting observation was that most effective use
+of the calculator seems to involve defining shorthand 
+combinator like notations, and hand-proving key laws
+about how they interact with key operators used
+in semantics definitions, such as standard UTP sequential composition.
+This drives the development of what is a bespoke semantics algebra.
 
 
-\subsection{Soundness, and other nice stuff}
-
-No such guarantees---quite possible to have a broken dictionary
-or a duff law.
-
-\subsection{Related Work}
-
+There is very little work similar to this in the literature.
 In \cite{Bird14} we find a calculator
 for point-free equational proofs as a final case-study.
+Also of interest is the discussion of deep/shallow embedding
+in \cite{Gibbons:2014:FDS},
+which suggests, that although our calculator is based on deep embedding,
+the way it uses hand-coded laws from dictionaries
+it more like shallow-embedding in character.
 
-Already cited several times but \cite{Gibbons:2014:FDS}
-seems to be quite relevant.
 
-Shared  vars and probability \cite{DBLP:conf/utp/ZhuSHQ12}.
-This has a p-tree model with tags, with notions of probability and time.
+\subsection{Future Work}\label{ssec:Future}
 
-Interference in Aspect Orientation \cite{DBLP:conf/utp/ChenYD10}.
-Here we have a particular form of shared-state concurrency
-that emerges because of the way that aspect-oriented languages
-end up ``weaving together'' the various pieces of aspect code.
-It is hard to relate this to a general concurrency view,
-but it does have a rely-guarantee feel (c.f. their reference [8]).
+We plan a formal release of this calculator as a Haskell package.
+A key part of this would be comprehensive
+user documentation of the key parts of the calculator API,
+the standard built-in dictionaries,
+as well as a complete worked example of a theory encoding.
+There are many enhancements that are also being considered,
+that include better transcript rendering options
+(e.g. \LaTeX) or ways to customise the REPL
+(e.g. always do a simplify step after any other REPL command).
+Also of interest would be finding 
+a way of connecting the calculator 
+to either the \UTP2 theorem-prover\cite{DBLP:conf/utp/Butterfield10}
+or the Isabelle/UPT encoding\cite{DBLP:conf/utp/FosterZW14}
+in order to be able to validate the dictionary entries.
 
-Pomset semantics for shared-var parallel language\cite{DBLP:conf/utp/ZhaoWZ10}.
-The focus here is on non-interleaving (or ``true'') concurrency.
-
-\subsection*{Paper Plan - 20 page limit}
-
-\begin{itemize}
-  \item
-    Talk about how an agile approach really is important,
-    not just in writing the calculator software and Haskell models,
-    but also when deciding what definitions and laws to focus on.
-    Discuss finding the ``sweet spot'' between the use of definition
-    expansion, and hard-coded laws based on by-hand proofs.
-    Note the key observation that the calculator approach
-    leads almost inexorably towards a strong emphasis
-    on some kind of (combinator?) algebra. (\S\ref{sec:Conc})
-\end{itemize}
