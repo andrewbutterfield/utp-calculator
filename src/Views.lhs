@@ -25,7 +25,7 @@ import UTCPCReduce
 
 %\begin{code}
 %import Debug.Trace
-%vdbg str x = trace (str++show x) x
+%dbg str x = trace (str++show x) x
 %\end{code}
 
 We do a quick run-down of the Commands\cite{conf/popl/Dinsdale-YoungBGPY13}.
@@ -81,6 +81,10 @@ mkSet = set . sort . nub
 
 showSet d [elm] = edshow d elm
 showSet d elms = "{" ++ dlshow d "," elms ++ "}"
+
+-- an alternate way to show a set
+flatSet d [] = "."
+flatSet d elms = dlshow d "," elms
 
 evalSet _ _ = none
 
@@ -399,6 +403,7 @@ vStdUTPDict
 
 \HDRc{WwW Calculations/Results}
 
+
 We will start by explaining a calculation method
 that should help structure our reasoning about loops.
 We consider a generic iteration $c*P$,
@@ -453,42 +458,100 @@ The motivation for $D$ and $M$ comes from the following expansion:
 \\ && {} \lor ls(\B{out}) \land P ; ls(\B{out}) * P
 \\ &=& D(out) \lor (~M(out) \land P ; M(out) * P~)
 \end{eqnarray*}
-Careful calculation exposes the following laws:
-\RLEQNS{
-   M(T_1) \land M(T_2) &=& M(T_1\cup T_2)
-\\ M(T_1) \seq  M(T_2) &=& M(T_1)
-\\ D(T_1) \land D(T_2) &=& D(T_1\cup T_2)
-\\ D(T_1) \seq D(T_2)  &=& D(T_1\cup T_2)
-\\ M(T_1) \seq D(T_2)  &=& M(T_1)  & {} \land T_2 \subseteq ls'
-\\ D(T_1) \land M(T_2) &=& D(T_1) \land M(T_2) & {} \land T_1 \cap T_2 = \emptyset
-\\ D(T_1) \seq  M(T_2) &=& D(T_1) \land M(T_2) & {} \land T_1 \cap T_2 = \emptyset
-\\ M(T) \land A(E,a,R,A) &=& M(T) \land A(E,a,R,A) & {} \land T \cap E = \emptyset
-\\ D(T) \seq A(E,a,R,A) &=& A(E\cup T,a,R,A)
-\\\multicolumn{3}{l}{A(E_1,a,R_1,A_1)\seq A(E_2,b,R_2,A_2)}
-\\\multicolumn{3}{l}{ {}= A(E_1\cup E_2\setminus A_1,a;b
-         ,(R_1\setminus A_1 \cup R_2)
-         ,(A_2 \cup A_1\setminus R_2))}
-  & {} \land E_2 \cap R_1 \setminus A_1 = \emptyset
-}
-The following cases shouldn't arise,
-which is good because they are an awful mess:
-\RLEQNS{
-  \multicolumn{3}{l}{A(E_1,a,R_1,A_1) \land A(E_2,b,R_2,A_2)}
-\\ &=& ls(E_1 \cup E_2) \land s' \in \sem a s \cap \sem b s
-     & {} \land \sem a s \cap \sem b s \neq \emptyset
-\\ && {} \land ls' = (ls \setminus R_1) \cup A_1
-     & {} \land (R_1\setminus A_1)\cap ls = (R_2 \setminus A_2)\cap ls
-\\ && & {} \land A_1\setminus ls = A_2 \setminus ls
-\\ M(T) \seq A(E,a,R,A) &=& M(T) \land \exists ls,s @ A(E,a,R,A)
-\\ A(E,a,R,A) \seq M(T) &=& M(T)[ls'/ls] \land \exists ls',s' @ A(E,a,R,A)
-}
-Keep in mind that $P \implies Q$ is the same as $P = P \land Q$.
 
-The extended version of $A$ ($A(I,O,a,R,A,L)$)
-is now deprecated.
+
+We focus on a generic atomic component
+that covers most of the above.
 \begin{eqnarray*}
-   D(L) &\defs&  ls(L) \land s'=s \land ls'=ls
-\\ &=& ls(L) \land s'=s \land ls'=ls \land ls'(L)
+   X(E|D|ss'|R|A)
+   &\defs&
+   ls(I) \land ls(\bar D) \land ls'=(ls\setminus R)\cup A
+\\ A(E,a,R,A) &=& X(E|\emptyset|a|R|A)
+\\ D(T) &=& X(T|\emptyset|ii|\emptyset|\emptyset)
+\\ ~[ii] &=& s'=s
+\end{eqnarray*}
+where $E$ is the ``enable'' label-set,
+$D$ is the ``disable'' set,
+$ss'$ is a state-change predicate,
+while $R$ and $A$ are the labels respectively
+removed from, and added to, the label-set.
+We can't represent $M(T)$ using $X$ because it does not make any
+assertions about dynamic state, whereas $X$ always says something about $ls$
+and $ls'$.
+
+
+\HDRc{Generic Atomic Behaviour}
+
+\begin{eqnarray*}
+   X(E|D|ss'|R|A)
+   &\defs&
+   ls(I) \land ls(\bar D) \land ls'=(ls\setminus R)\cup A
+\end{eqnarray*}
+
+\begin{code}
+nX = "X"
+isX (_,Comp n [_]) | n==nX = True; isX _ = False
+
+mkX e d ss' r a  = Comp nX [atm e, atm d, ss', atm r, atm a]
+bX  e d ss' r a  = comp nX [atm e, atm d, ss', atm r, atm a]
+
+pFlatShow d (_,Atm (App ns es))
+ | ns == setn  = flatSet d es
+pFlatShow d (_,Atm e) = flatSet d [e]
+pFlatShow_  _ = "?"
+
+ppX vd ms p mprs@[e,d,ss',r,a]
+ = ppclosed "X(" ")" "|"
+    [ ppa $ pFlatShow vd e
+    , ppa $ pFlatShow vd d
+    , mshowp vd ms 0 ss'
+    , ppa $ pFlatShow vd r
+    , ppa $ pFlatShow vd a ]
+ppX vd ms p mprs = pps styleRed $ ppa ("invalid-"++nX)
+
+-- we don't want to expand the definition of this
+defnX = pNoChg nX
+\end{code}
+We can normalise a call to $X$ as follows:
+\begin{eqnarray*}
+   X(E|D|ss'|R|A)
+   &=&  E \cap D = \emptyset
+        \land
+         X(E|D|ss'|R\setminus A|A)
+\end{eqnarray*}
+\begin{code}
+simpX :: (Ord s, Show s) => Rewrite s
+simpX vd mprs@[ e@(_,Atm lE)  -- E
+              , d@(_,Atm lD)  -- D
+              , ss'         -- ss'
+              , r@(_,Atm lR)  --  R
+              , a@(_,Atm lA)  --  A
+              ]
+ | preFalse   =  ( "X-disabled",  F )
+ | dRA /= lR  =  ( "X-normalise", Comp nX [e,d,ss',atm dRA,a] )
+ | otherwise  =  ( "", Comp nX mprs )
+ where
+  iED = snd $ esimp vd (lE `i` lD)
+  preFalse = (sEqual vd iED emp) == (True,F)
+  dRA = snd $ esimp vd (lR `sdiff` lA)
+  postFalse = (sEqual vd dRA emp) == (True,F)
+
+simpX vd mprs = ( "", Comp nX mprs )
+
+vXEntry :: (Show s, Ord s) => (String, Entry s)
+vXEntry
+ = ( nX
+   , PredEntry vStatic ppX [] defnX simpX )
+\end{code}
+We have both an `implicit' form which is a minimalist
+definition of behaviour, along with an `explicit' form
+that expresses all the logical consequences.
+
+\HDRc{Loop Continuation Assertion}
+
+\begin{eqnarray*}
+   D(T) &\defs& ls(T) \land \Skip
+\\ &=& X(T|\emptyset|ii|\emptyset|\emptyset)
 \end{eqnarray*}
 \begin{code}
 nD = "D"
@@ -500,8 +563,9 @@ shD = "D"
 ppD d ms p mprs@[(_,Atm _)] = stdCshow d ms shD mprs
 ppD d ms p mprs = pps styleRed $ ppa ("invalid-"++shD)
 
--- we don't want to expand the definition of this
-defnD = pNoChg nD
+--defnD d [(_,(Atm ell))]
+-- = ldefn nD $ mkX ell (set []) ii (set []) (set [])
+defnD d mprs = ("",Comp nD mprs)
 
 vDEntry :: (Show s, Ord s) => (String, Entry s)
 vDEntry
@@ -509,108 +573,183 @@ vDEntry
    , PredEntry vStatic ppD [] defnD (pNoChg nD) )
 \end{code}
 
-\newpage
+
+\HDRc{Missing Labels Assertion}
+
 \begin{eqnarray*}
-   A(I,O,as,R,A,L)
-   &\defs& ls(I) \land ls(\B O) \land \ado{as}
-       \land ls'=ls\ominus(R|A) \land ls'(L)
-\\ &=& I \cap O = \emptyset \land ls(I) \land ls(\B O)
-\\ && {} \land \ado{as}
-\\ && {} \land ls'=ls\ominus(R|A) \land ls'(A \cup L)
-         \land (R\setminus A) \cap L = \emptyset
-\\ &=& A(I,O,as,R,A,A\cup L)
-\\ A(I,O,as,R,A,L')
-   &=&
-   A(I,O,as,R\setminus A,A,(I\setminus R) \cup A \cup L')
+   M(T) &\defs& ls(\B T)
 \end{eqnarray*}
-
 \begin{code}
-nA = "A"
-isA (_,Comp n [_]) | n==nA = True; isA _ = False
+nM = "M"
+isM (_,Comp n [_]) | n==nM = True; isM _ = False
 
-mkA lI lO as lR lA lL
- = Comp nA [ atm lI, atm lO, as
-           , atm (lR `sdiff` lA)
-           , atm lA,atm ((lI `sdiff` lR) `u` lA `u` lL) ]
+bM ell = comp nM [atm ell]
 
-bA lI lO as lR lA lL = noMark $ mkA lI lO as lR lA lL
-
-shA = "A"
-ppA d ms p mprs@[(_,Atm _),(_,Atm _),_,(_,Atm _),(_,Atm _),(_,Atm _)]
- = stdCshow d ms shA mprs
-ppA d ms p mprs = pps styleRed $ ppa ("invalid-"++shA)
+shM = "M"
+ppM d ms p mprs@[(_,Atm _)] = stdCshow d ms shM mprs
+ppM d ms p mprs = pps styleRed $ ppa ("invalid-"++shM)
 
 -- we don't want to expand the definition of this
-defnA = pNoChg nA
+defnM = pNoChg nM
+
+vMEntry :: (Show s, Ord s) => (String, Entry s)
+vMEntry
+ = ( nM
+   , PredEntry vStatic ppM [] defnM (pNoChg nM) )
 \end{code}
-\begin{eqnarray*}
-   A(I,O,as,R,A,L) &=&  A(I,O,as,R,A,A\cup L)
-\\ &\land& I \cap O = \emptyset
-\\ &\land& (R\setminus A) \cap L = \emptyset
-\end{eqnarray*}
-\begin{code}
-simpA :: (Ord s, Show s) => Rewrite s
-simpA d mprs@[ (_,Atm lI)  -- I
-             , (_,Atm lO)  --  O
-             , as          --  as
-             , (_,Atm lR)  --  R
-             , (_,Atm lA)  --  A
-             , (_,Atm lL)  --  L
-             ]
- | preFalse || postFalse  =  ( "A-disabled",  F )
- | otherwise              =  ( "", Comp nA mprs )
- where
-  iIO = snd $ esimp d (lI `i` lO)
-  preFalse = (sEqual d iIO emp) == (True,F)
-  dRAiL = snd $ esimp d ((lR `sdiff` lA) `i` lL)
-  postFalse = (sEqual d dRAiL emp) == (True,F)
 
-simpA d mprs = ( "", Comp nA mprs )
-
-vAEntry :: (Show s, Ord s) => (String, Entry s)
-vAEntry
- = ( nA
-   , PredEntry vStatic ppA [] defnA simpA )
-\end{code}
-We have both an `implicit' form which is a minimalist
-definition of behaviour, along with an `explicit' form
-that expresses all the logical consequences.
+We expect the following combinations to arise in calculations:
+\RLEQNS{
+   M(T_1) & \land & M(T_2)
+\\ M(T) & \land & X(E|D|a|R|A)
+\\ X(E|D|a|R|A) & \seq & D(T)
+\\ X(E_1|D_1|a|R_1|A_1) & \seq & X(E_2|D_2|b|R_2|A_2)
+}
 
 
-We get the following laws (implicit form):
-\begin{eqnarray*}
-   D(L_1) ; D(L_2) &=& D(L_1 \cup L_2)
+
+
+%\newpage
+%NOW JUNK
 %
-\\ D(L_1) ;  A(I,O,as,R,A,L_2)
-   &=&
-   A(L_1\cup I,O,as,R,A,L_2)
+%Careful calculation exposes the following laws:
+%\RLEQNS{
+%   M(T_1) \land M(T_2) &=& M(T_1\cup T_2)
+%\\ M(T_1) \seq D(T_2)  &=& M(T_1)  & {} \land T_2 \subseteq ls'
+%\\ M(T_1) \seq  M(T_2) &=& M(T_1)
+%\\ D(T_1) \land D(T_2) &=& D(T_1\cup T_2)
+%\\ D(T_1) \seq D(T_2)  &=& D(T_1\cup T_2)
+%\\ D(T_1) \land M(T_2) &=& D(T_1) \land M(T_2) & {} \land T_1 \cap T_2 = \emptyset
+%\\ D(T_1) \seq  M(T_2) &=& D(T_1) \land M(T_2) & {} \land T_1 \cap T_2 = \emptyset
+%\\ M(T) \land A(E,a,R,A) &=& M(T) \land A(E,a,R,A) & {} \land T \cap E = \emptyset
+%\\ D(T) \seq A(E,a,R,A) &=& A(E\cup T,a,R,A)
+%\\\multicolumn{3}{l}{A(E_1,a,R_1,A_1)\seq A(E_2,b,R_2,A_2)}
+%\\\multicolumn{3}{l}{ {}= A(E_1\cup E_2\setminus A_1,a;b
+%         ,(R_1\setminus A_1 \cup R_2)
+%         ,(A_2 \cup A_1\setminus R_2))}
+%  & {} \land E_2 \cap R_1 \setminus A_1 = \emptyset
+%}
+%The following cases shouldn't arise,
+%which is good because they are an awful mess:
+%\RLEQNS{
+%  \multicolumn{3}{l}{A(E_1,a,R_1,A_1) \land A(E_2,b,R_2,A_2)}
+%\\ &=& ls(E_1 \cup E_2) \land s' \in \sem a s \cap \sem b s
+%     & {} \land \sem a s \cap \sem b s \neq \emptyset
+%\\ && {} \land ls' = (ls \setminus R_1) \cup A_1
+%     & {} \land (R_1\setminus A_1)\cap ls = (R_2 \setminus A_2)\cap ls
+%\\ && & {} \land A_1\setminus ls = A_2 \setminus ls
+%\\ M(T) \seq A(E,a,R,A) &=& M(T) \land \exists ls,s @ A(E,a,R,A)
+%\\ A(E,a,R,A) \seq M(T) &=& M(T)[ls'/ls] \land \exists ls',s' @ A(E,a,R,A)
+%}
+%Keep in mind that $P \implies Q$ is the same as $P = P \land Q$.
 %
-\\  A(I,O,as,R,A,L_1) ; D(L_2)
-   &=&
-   A(I,O,as,R,A,L_1\cup L_2)
 %
-\\ A(I_1,O_1,as,R_1,A_1,L_1) ; {}
-\\ A(I_2,O_2,bs,R_2,A_2,L_2)
-   &=&  (L_1 \cup I_2)\setminus A_1 \cap R_1 = \emptyset
-        \land O_2 \cap A_1 = \emptyset \land {}
-\\&& A(~   I_1 \cup I_2\setminus A_1
-      ,~   O_1 \cup O_2\setminus R_1
-\\&& ~~~,~ (as\!\seq\! bs)
-\\&& ~~~,~ R_1 \cup R_2
-      ,~   A_1\setminus R_2 \cup A_2
-      ,~   L_2 ~)
-\end{eqnarray*}
-
-Full forms
-\begin{eqnarray*}
-   D(L)
-   &\defs& ls(L) \land s'=s \land ls'=ls
-\\
-\\ A(I,O,as,R,A,L)
-   &\defs&
-   ls(I) \land ls(\B O) \land \ado{as} \land \lupd R A \land ls'(L)
-\end{eqnarray*}
-
+%
+%\newpage
+%\begin{eqnarray*}
+%   A(I,O,as,R,A,L)
+%   &\defs& ls(I) \land ls(\B O) \land \ado{as}
+%       \land ls'=ls\ominus(R|A) \land ls'(L)
+%\\ &=& I \cap O = \emptyset \land ls(I) \land ls(\B O)
+%\\ && {} \land \ado{as}
+%\\ && {} \land ls'=ls\ominus(R|A) \land ls'(A \cup L)
+%         \land (R\setminus A) \cap L = \emptyset
+%\\ &=& A(I,O,as,R,A,A\cup L)
+%\\ A(I,O,as,R,A,L')
+%   &=&
+%   A(I,O,as,R\setminus A,A,(I\setminus R) \cup A \cup L')
+%\end{eqnarray*}
+%
+%END OF JUNK
+%\newpage
+%
+%\begin{code}
+%nA = "A"
+%isA (_,Comp n [_]) | n==nA = True; isA _ = False
+%
+%mkA lI lO as lR lA lL
+% = Comp nA [ atm lI, atm lO, as
+%           , atm (lR `sdiff` lA)
+%           , atm lA,atm ((lI `sdiff` lR) `u` lA `u` lL) ]
+%
+%bA lI lO as lR lA lL = noMark $ mkA lI lO as lR lA lL
+%
+%shA = "A"
+%ppA d ms p mprs@[(_,Atm _),(_,Atm _),_,(_,Atm _),(_,Atm _),(_,Atm _)]
+% = stdCshow d ms shA mprs
+%ppA d ms p mprs = pps styleRed $ ppa ("invalid-"++shA)
+%
+%-- we don't want to expand the definition of this
+%defnA = pNoChg nA
+%\end{code}
+%\begin{eqnarray*}
+%   A(I,O,as,R,A,L) &=&  A(I,O,as,R,A,A\cup L)
+%\\ &\land& I \cap O = \emptyset
+%\\ &\land& (R\setminus A) \cap L = \emptyset
+%\end{eqnarray*}
+%\begin{code}
+%simpA :: (Ord s, Show s) => Rewrite s
+%simpA d mprs@[ (_,Atm lI)  -- I
+%             , (_,Atm lO)  --  O
+%             , as          --  as
+%             , (_,Atm lR)  --  R
+%             , (_,Atm lA)  --  A
+%             , (_,Atm lL)  --  L
+%             ]
+% | preFalse || postFalse  =  ( "A-disabled",  F )
+% | otherwise              =  ( "", Comp nA mprs )
+% where
+%  iIO = snd $ esimp d (lI `i` lO)
+%  preFalse = (sEqual d iIO emp) == (True,F)
+%  dRAiL = snd $ esimp d ((lR `sdiff` lA) `i` lL)
+%  postFalse = (sEqual d dRAiL emp) == (True,F)
+%
+%simpA d mprs = ( "", Comp nA mprs )
+%
+%vAEntry :: (Show s, Ord s) => (String, Entry s)
+%vAEntry
+% = ( nA
+%   , PredEntry vStatic ppA [] defnA simpA )
+%\end{code}
+%We have both an `implicit' form which is a minimalist
+%definition of behaviour, along with an `explicit' form
+%that expresses all the logical consequences.
+%
+%
+%We get the following laws (implicit form):
+%\begin{eqnarray*}
+%   D(L_1) ; D(L_2) &=& D(L_1 \cup L_2)
+%%
+%\\ D(L_1) ;  A(I,O,as,R,A,L_2)
+%   &=&
+%   A(L_1\cup I,O,as,R,A,L_2)
+%%
+%\\  A(I,O,as,R,A,L_1) ; D(L_2)
+%   &=&
+%   A(I,O,as,R,A,L_1\cup L_2)
+%%
+%\\ A(I_1,O_1,as,R_1,A_1,L_1) ; {}
+%\\ A(I_2,O_2,bs,R_2,A_2,L_2)
+%   &=&  (L_1 \cup I_2)\setminus A_1 \cap R_1 = \emptyset
+%        \land O_2 \cap A_1 = \emptyset \land {}
+%\\&& A(~   I_1 \cup I_2\setminus A_1
+%      ,~   O_1 \cup O_2\setminus R_1
+%\\&& ~~~,~ (as\!\seq\! bs)
+%\\&& ~~~,~ R_1 \cup R_2
+%      ,~   A_1\setminus R_2 \cup A_2
+%      ,~   L_2 ~)
+%\end{eqnarray*}
+%
+%Full forms
+%\begin{eqnarray*}
+%   D(L)
+%   &\defs& ls(L) \land s'=s \land ls'=ls
+%\\
+%\\ A(I,O,as,R,A,L)
+%   &\defs&
+%   ls(I) \land ls(\B O) \land \ado{as} \land \lupd R A \land ls'(L)
+%\end{eqnarray*}
+%
 
 
 \HDRc{Healthiness Predicates}
@@ -642,7 +781,7 @@ notlsout = bNot lsout
 vWEntry :: (Show s, Ord s) => (String, Entry s)
 vWEntry
  = ( nW
-   , PredEntry [] ppW [] defnW (pNoChg nW) )
+   , PredEntry vStatic ppW [] defnW (pNoChg nW) )
 \end{code}
 We need to show it is idempotent (monotonicity is immediate):
 \RLEQNS{
@@ -702,8 +841,8 @@ wUnroll ns d mw@(_,Comp nm [mpr])
                      , bSeq (loopstep 3) mw]
    wunroll _  =  bCond (bSeq mpr mw) (bNot lsout) bSkip
 
-   loopdone = bD $ sngl out
-   loopstep 1 = bAnd [bNot lsout, mpr]
+   loopdone = bD out
+   loopstep 1 = bAnd [bM out, mpr]
    loopstep n = bSeq (loopstep (n-1)) (loopstep 1)
 
 wUnroll _ _ mpr = ( "", mpr )
@@ -713,10 +852,10 @@ wUnroll _ _ mpr = ( "", mpr )
 
 The definitions, using the new shorthand:
 \begin{eqnarray*}
-   \W(C) &\defs& ls(\B{out}) * C)
+   \W(C) &\defs& ls(\B{out}) * C
 \\ ii &\defs& s'=s
 \\
-\\ \atm a &\defs&\W(A(in,\emptyset,a,in,out,out))
+\\ \atm a &\defs&\W(X(in|\emptyset|a|in|out))
 \\ \cskip
    &\defs&
    \W(A(in,\emptyset,ii,in,out,out))
@@ -769,7 +908,7 @@ ppAtom d ms p [mpr] = ppbracket "<" (mshowp d ms 0 mpr) ">"
 ppAtom d ms p mprs = pps styleRed $ ppa ("invalid-"++nAtom)
 
 defnAtom d [a]
- = ldefn nAtom $ wp $ bA sinp emp a sinp sout sout
+ = ldefn nAtom $ wp $ bX inp emp a inp out
 
 sinp = sngl inp
 sout = sngl out
@@ -938,8 +1077,9 @@ vChcEntry
 
 \begin{code}
 dictVP :: (Ord s, Show s) => Dict s
-dictVP = makeDict [ vDEntry
-                  , vAEntry
+dictVP = makeDict [ vXEntry
+                  , vDEntry
+                  , vMEntry
                   , vWEntry
                   , atomEntry
                   , vSeqEntry
