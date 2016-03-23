@@ -384,7 +384,7 @@ as well as a known alphabet.
 \begin{code}
 defnSkip d _ = ldefn shSkip $ mkAnd [equal ls' ls, equal s' s]
 
-vSkipEntry -- in stdUTPDict
+skipEntry' -- in stdUTPDict
   = ( nSkip
      , (snd skipEntry){ alfa = ["ls","ls'","s","s'"]
                       , pdefn = defnSkip } )
@@ -395,7 +395,7 @@ vSkipEntry -- in stdUTPDict
 \begin{code}
 vStdUTPDict :: (Show s, Ord s) => Dict s
 vStdUTPDict
-  = makeDict [ vSkipEntry
+  = makeDict [ skipEntry'
              ] `dictMrg` stdUTPDict
 \end{code}
 
@@ -762,8 +762,8 @@ We define our main healthiness condition:
 nW = "W" -- internal abstract name
 isW (_,Comp n [_]) | n==nW = True; isW _ = False
 
-w atom = comp nW [atom]
-wp atom = Comp nW [atom]
+w mpr = comp nW [mpr]
+wp mpr = Comp nW [mpr]
 
 shW = "W" -- show name
 ppW d ms p [mpr]
@@ -781,7 +781,7 @@ notlsout = bNot lsout
 vWEntry :: (Show s, Ord s) => (String, Entry s)
 vWEntry
  = ( nW
-   , PredEntry vStatic ppW [] defnW (pNoChg nW) )
+   , PredEntry ["g","in"] ppW [] defnW (pNoChg nW) )
 \end{code}
 We need to show it is idempotent (monotonicity is immediate):
 \RLEQNS{
@@ -880,9 +880,7 @@ The definitions, using the new shorthands:
    C[g_{1::},\ell_{g1},\ell_{g1:}/g,in,out]
    \lor D[g_{2::},\ell_{g2},\ell_{g2:}/g,in,out]
 \\ && \qquad {}\lor
-   A(\setof{\ell_{g1:},\ell_{g2:}},\emptyset
-      ,ii
-      ,\setof{\ell_{g1:},\ell_{g2:}},out,out)~)
+   X(\ell_{g1:},\ell_{g2:}|\emptyset|ii|\ell_{g1:},\ell_{g2:}|out)~)
 \\
 \\ C^*
    &\defs&
@@ -898,6 +896,9 @@ The definitions, using the new shorthands:
 
 \HDRc{Coding Atomic Semantics}
 
+\RLEQNS{
+ \atm a &\defs&\W(X(in|\emptyset|a|in|out))
+}
 
 \begin{code}
 nAtom = "Atom" -- internal abstract name
@@ -914,10 +915,35 @@ defnAtom d [a]
 sinp = sngl inp
 sout = sngl out
 
-atomEntry :: (Show s, Ord s) => (String, Entry s)
-atomEntry
+vAtmEntry :: (Show s, Ord s) => (String, Entry s)
+vAtmEntry
  = ( nAtom
    , PredEntry ["s","s'"] ppAtom [] defnAtom (pNoChg nAtom) )
+\end{code}
+
+\HDRc{Coding Skip}
+
+\RLEQNS{
+   \cskip
+   &\defs&
+   \W(X(in|\emptyset|ii|in|out))
+}
+\begin{code}
+nVSkip = "VSkip" -- internal abstract name
+isVSkip (_,Comp n [_]) | n==nVSkip = True; isVSkip _ = False
+
+vskip mpr = comp nVSkip [mpr]
+
+ppVSkip d ms p [mpr] = ppa "<skip>"
+ppVSkip d ms p mprs = pps styleRed $ ppa ("invalid-"++nSkip)
+
+defnVSkip d [a]
+ = ldefn nVSkip $ wp $ bX inp emp ii inp out
+
+vSkipEntry :: (Show s, Ord s) => (String, Entry s)
+vSkipEntry
+ = ( nVSkip
+   , PredEntry ["s","s'"] ppVSkip [] defnVSkip (pNoChg nSkip) )
 
 -- atomic skip
 nii= "ii"
@@ -926,65 +952,14 @@ ii = pvar nii
 
 
 
-Formally, using our shorthand notations,
-we can define atomic behaviour longhand as as:
-\RLEQNS{
-   \A(A)
-    &\defs&
-   \W(ls(in) \land A \land ls'=ls\ominus(in,out))
-\\ &=& \lnot(ls(out))*(ls(in) \land A \land ls'=ls\ominus(in,out))
-\\ &=& ls(out) \land \Skip
-\\ &\lor& \lnot(ls(out)
-     \land ( ls(in) \land A \land ls'=ls\ominus(in,out)
-             \seq \W(\ldots) )
-\\ &=& ls(out) \land \Skip
-\\ &\lor& \lnot(ls(out)
-     \land ( ls(in) \land A \land ls'=ls\ominus(in,out)
-\\ && \qquad \seq ls(out)\land \lnot(ls(out)*(\ldots)))
-\\ &=& ls(out) \land \Skip
-\\ &\lor& \lnot(ls(out)
-     \land ls(in) \land A \land ls'=ls\ominus(in,out)
-\\ &=& \Skip
-       \cond{ls(out)}
-       ls(in) \land A \land ls'=ls\ominus(in,out)
-                                           & \elabel{Atomic-Def}
-}
-\begin{code}
-nPAtm = "PAtm" -- internal abstract name
-isPAtm (_,Comp n [_]) | n==nPAtm = True; isPAtm _ = False
-
-patm atom = comp nPAtm [atom]
-
-shPAtm = "A" -- show name
-ppPAtm d ms p [mpr]
- = pplist [ ppa shPAtm
-          , ppbracket "(" (mshowp d ms 0 mpr) ")"]
-ppPAtm d ms p mprs = pps styleRed $ ppa ("invalid-"++shPAtm)
-
-defnAtomic d [a]
- = ldefn (shPAtm++".5")
-    $ mkCond bSkip lsout $ bAnd [lsin,a,ls'eqlsinout]
-
-
-lsin = atm $ App subsetn [inp,ls]
-lsinout = App sswapn [ls,inp,out]
-ls'eqlsinout = equal ls' lsinout
-
-patmEntry :: (Show s, Ord s) => (String, Entry s)
-patmEntry
- = ( nPAtm
-   , PredEntry [] ppPAtm [] defnAtomic (pNoChg nPAtm) )
-\end{code}
 
 \newpage
 \HDRc{Coding Sequential Composition}
 
 \RLEQNS{
-   P \lseq Q
+   C \cseq D
    &\defs&
-   \W( P[\g{:1},\ell_g/g,out]
-       \lor
-       Q[\g{:2},\ell_g/g,in])
+   \W(C[g_{:1},\ell_g/g,out] \lor D[g_{:2},\ell_g/g,in])
 }
 \begin{code}
 nVSeq = "VSeq"
@@ -1021,15 +996,14 @@ vSeqEntry
 \HDRc{Coding (Non-Det.) Choice}
 
 \RLEQNS{
-   P + Q
+   C + D
    &\defs&
-   \W(\quad {}\phlor A(in,\emptyset,ii,\setof{in,\ell_{g2}},\ell_{g1},\ell_{g1})
+   \W(\quad {}\phlor X(in|\emptyset|ii|in|\ell_{g1})
 \\ && \qquad {} \lor
-   A(in,\emptyset,ii,\setof{in,\ell_{g1}},\ell_{g2},\ell_{g2})
+                     X(in|\emptyset|ii|in|\ell_{g2})
 \\ && \qquad {} \lor
-   P[g_{1:},\ell_{g1}/g,in] \lor Q[g_{2:},\ell_{g2}/g,in]~)
+   C[g_{1:},\ell_{g1}/g,in] \lor D[g_{2:},\ell_{g2}/g,in]~)
 }
-
 \begin{code}
 nVChc = "VChc"
 isVChc (_,Comp n [_,_]) | n==nVChc = True; isVChc _ = False
@@ -1045,10 +1019,8 @@ ppVChc d ms p mprs = pps styleRed $ ppa ("invalid-"++shVChc)
 
 defnVChc d [p,q]
  = ldefn shVChc $ wp
---     $ bOr [ bA sinp slg1lg2out ii (set [inp,lg2]) slg1 slg1
---           , bA sinp slg1lg2out ii (set [inp,lg1]) slg2 slg2
-    $ bOr [ bA sinp emp ii (set [inp,lg2]) slg1 slg1
-          , bA sinp emp ii (set [inp,lg1]) slg2 slg2
+    $ bOr [ bX inp emp ii inp lg1
+          , bX inp emp ii inp lg2
           , psub p sub1
           , psub q sub2
           ]
@@ -1062,9 +1034,6 @@ lg1 = new1 g1
 lg2 = new1 g2
 g1' = new2 g1
 g2' = new2 g2
-slg1 = sngl lg1
-slg2 = sngl lg2
-slg1lg2out = set [lg1,lg2,out]
 
 vChcEntry :: (Show s, Ord s) => (String, Entry s)
 vChcEntry
@@ -1072,6 +1041,66 @@ vChcEntry
    , PredEntry [] ppVChc [] defnVChc (pNoChg nVChc) )
 \end{code}
 
+
+\newpage
+\HDRc{Coding Parallel Composition}
+
+\RLEQNS{
+   C \parallel D
+   &\defs&
+   \W(\quad\phlor X(in|\emptyset|ii|in|\ell_{g1},\ell_{g2})
+\\ && \qquad {}\lor
+   C[g_{1::},\ell_{g1},\ell_{g1:}/g,in,out]
+   \lor D[g_{2::},\ell_{g2},\ell_{g2:}/g,in,out]
+\\ && \qquad {}\lor
+   X(\ell_{g1:},\ell_{g2:}|\emptyset|ii|\ell_{g1:},\ell_{g2:}|out)~)
+}
+\begin{code}
+nVPar = "VPar"
+isVPar (_,Comp n [_,_]) | n==nVPar = True; isVPar _ = False
+--
+vpar p q = comp nVPar [p,q]
+--
+shVPar = "||"
+ppVPar d ms p [mpr1,mpr2]
+ = paren p precVPar
+     $ ppopen  (pad shVPar) [ mshowp d ms precVPar mpr1
+                            , mshowp d ms precVPar mpr2 ]
+ppVPar d ms p mprs = pps styleRed $ ppa ("invalid-"++shVPar)
+--
+defnVPar d [p,q]
+ = ldefn shVPar $ wp
+    $ bOr [ bX inp emp ii inp (set [lg1,lg2])
+          , psub p sub1
+          , psub q sub2
+          , bX s12' emp ii s12' out
+          ]
+ where
+   sub1 = [("g",g1''),("in",lg1),("out",lg1')]
+   sub2 = [("g",g2''),("in",lg2),("out",lg2')]
+
+lg1' = new1 g1'
+lg2' = new1 g2'
+g1'' = new2 g1'
+g2'' = new2 g2'
+s12' = set [lg1',lg2']
+
+vParEntry :: (Show s, Ord s) => (String, Entry s)
+vParEntry
+ = ( nVPar
+   , PredEntry [] ppVPar [] defnVPar (pNoChg nVPar) )
+\end{code}
+
+\newpage
+\HDRc{Coding Iteration}
+
+\RLEQNS{
+   C^*
+   &\defs&
+   \W(\quad  \phlor X(in|\emptyset|ii|in|out)
+\\ && \qquad {}\lor X(in|\emptyset|ii|in|\ell_g)
+\\ && \qquad {}\lor C[g_{:},\ell_g,in/g,in,out]~)
+}
 
 
 \HDRc{The Predicate Dictionary}\label{hc:WWW-pred-dict}
@@ -1082,10 +1111,11 @@ dictVP = makeDict [ vXEntry
                   , vDEntry
                   , vMEntry
                   , vWEntry
-                  , atomEntry
+                  , vAtmEntry
+                  , vSkipEntry
                   , vSeqEntry
                   , vChcEntry
-                  , patmEntry
+                  , vParEntry
                   ]
 \end{code}
 
