@@ -1145,8 +1145,57 @@ vReduce :: (Ord s, Show s) => DictRWFun s
          -- Dict s -> MPred s -> (String, MPred s)
 \end{code}
 
+We expect these to matter
+We expect the following combinations to arise in calculations:
+\RLEQNS{
+   M(T_1) & \land & M(T_2)
+\\ M(T) & \land & X(E|D|a|R|A)
+\\ X(E|D|a|R|A) & \seq & D(T)
+\\ X(E_1|D_1|a|R_1|A_1) & \seq & X(E_2|D_2|b|R_2|A_2)
+}
+
+
 We start with high level calculation results
-we really, really want to re-use:
+we really, really want to re-use.
+
+We expect the following combinations to arise in calculations:
+\RLEQNS{
+  && M(T) \land X(E|D|a|R|A)
+\EQ{defn. $M$ and $X$}
+\\&& ls(\B T)
+     \land
+     ls(E) \land ls(\B D) \land [a]
+     \land ls' = (ls \setminus R) \cup A
+\EQ{re-arrange}
+\\&& ls(E) 
+     \land ls(\B D) \land ls(\B T)
+     \land
+     [a] \land ls' = (ls \setminus R) \cup A
+\EQ{$ls(\B S) \land ls(\B T) = ls(\B{S\cup T})$}
+\\&& ls(E)
+     \land ls(\B{D\cup T})
+     \land
+     [a] \land ls' = (ls \setminus R) \cup A
+\EQ{Defn. $X$}
+\\&& X(E|D\cup T|a|R|A)
+}
+\begin{code}
+vReduce vd (_,Comp na [ (_,Comp nm [ (_,Atm t)]) -- M(T) /\
+                      , (_,Comp nx [ (_,Atm e)   -- X(E
+                                   , (_,Atm d)   --  |D
+                                   , as          --  |a
+                                   , (_,Atm r)   --  |R
+                                   , (_,Atm a)   --  |A)
+                                   ])
+                     ])
+ | na == nAnd && nm == nM && na == nX -- fails !!!!
+   =  ( "M/\\X", bX e dut as r a )
+ where dut = snd $ esimp vd (d `u` t)
+\end{code}
+
+
+\HDRc{OLD STUFF}
+
 \begin{eqnarray*}
    a &=& \W(A(in,\emptyset,a,in,out,out))
 \\   &=& D(out) \lor A(in,out,a,in,out,out)
