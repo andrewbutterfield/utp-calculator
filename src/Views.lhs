@@ -609,147 +609,147 @@ We expect the following combinations to arise in calculations:
 
 
 
-%\newpage
-%NOW JUNK
+\newpage
+NOW JUNK
+
+Careful calculation exposes the following laws:
+\RLEQNS{
+   M(T_1) \land M(T_2) &=& M(T_1\cup T_2)
+\\ M(T_1) \seq D(T_2)  &=& M(T_1)  & {} \land T_2 \subseteq ls'
+\\ M(T_1) \seq  M(T_2) &=& M(T_1)
+\\ D(T_1) \land D(T_2) &=& D(T_1\cup T_2)
+\\ D(T_1) \seq D(T_2)  &=& D(T_1\cup T_2)
+\\ D(T_1) \land M(T_2) &=& D(T_1) \land M(T_2) & {} \land T_1 \cap T_2 = \emptyset
+\\ D(T_1) \seq  M(T_2) &=& D(T_1) \land M(T_2) & {} \land T_1 \cap T_2 = \emptyset
+\\ M(T) \land A(E,a,R,A) &=& M(T) \land A(E,a,R,A) & {} \land T \cap E = \emptyset
+\\ D(T) \seq A(E,a,R,A) &=& A(E\cup T,a,R,A)
+\\\multicolumn{3}{l}{A(E_1,a,R_1,A_1)\seq A(E_2,b,R_2,A_2)}
+\\\multicolumn{3}{l}{ {}= A(E_1\cup E_2\setminus A_1,a;b
+         ,(R_1\setminus A_1 \cup R_2)
+         ,(A_2 \cup A_1\setminus R_2))}
+  & {} \land E_2 \cap R_1 \setminus A_1 = \emptyset
+}
+The following cases shouldn't arise,
+which is good because they are an awful mess:
+\RLEQNS{
+  \multicolumn{3}{l}{A(E_1,a,R_1,A_1) \land A(E_2,b,R_2,A_2)}
+\\ &=& ls(E_1 \cup E_2) \land s' \in \sem a s \cap \sem b s
+     & {} \land \sem a s \cap \sem b s \neq \emptyset
+\\ && {} \land ls' = (ls \setminus R_1) \cup A_1
+     & {} \land (R_1\setminus A_1)\cap ls = (R_2 \setminus A_2)\cap ls
+\\ && & {} \land A_1\setminus ls = A_2 \setminus ls
+\\ M(T) \seq A(E,a,R,A) &=& M(T) \land \exists ls,s @ A(E,a,R,A)
+\\ A(E,a,R,A) \seq M(T) &=& M(T)[ls'/ls] \land \exists ls',s' @ A(E,a,R,A)
+}
+Keep in mind that $P \implies Q$ is the same as $P = P \land Q$.
+
+
+
+\newpage
+\begin{eqnarray*}
+   A(I,O,as,R,A,L)
+   &\defs& ls(I) \land ls(\B O) \land \ado{as}
+       \land ls'=ls\ominus(R|A) \land ls'(L)
+\\ &=& I \cap O = \emptyset \land ls(I) \land ls(\B O)
+\\ && {} \land \ado{as}
+\\ && {} \land ls'=ls\ominus(R|A) \land ls'(A \cup L)
+         \land (R\setminus A) \cap L = \emptyset
+\\ &=& A(I,O,as,R,A,A\cup L)
+\\ A(I,O,as,R,A,L')
+   &=&
+   A(I,O,as,R\setminus A,A,(I\setminus R) \cup A \cup L')
+\end{eqnarray*}
+
+END OF JUNK
+\newpage
+
+\begin{code}
+nA = "A"
+isA (_,Comp n [_]) | n==nA = True; isA _ = False
+
+mkA lI lO as lR lA lL
+ = Comp nA [ atm lI, atm lO, as
+           , atm (lR `sdiff` lA)
+           , atm lA,atm ((lI `sdiff` lR) `u` lA `u` lL) ]
+
+bA lI lO as lR lA lL = noMark $ mkA lI lO as lR lA lL
+
+shA = "A"
+ppA d ms p mprs@[(_,Atm _),(_,Atm _),_,(_,Atm _),(_,Atm _),(_,Atm _)]
+ = stdCshow d ms shA mprs
+ppA d ms p mprs = pps styleRed $ ppa ("invalid-"++shA)
+
+-- we don't want to expand the definition of this
+defnA = pNoChg nA
+\end{code}
+\begin{eqnarray*}
+   A(I,O,as,R,A,L) &=&  A(I,O,as,R,A,A\cup L)
+\\ &\land& I \cap O = \emptyset
+\\ &\land& (R\setminus A) \cap L = \emptyset
+\end{eqnarray*}
+\begin{code}
+simpA :: (Ord s, Show s) => Rewrite s
+simpA d mprs@[ (_,Atm lI)  -- I
+             , (_,Atm lO)  --  O
+             , as          --  as
+             , (_,Atm lR)  --  R
+             , (_,Atm lA)  --  A
+             , (_,Atm lL)  --  L
+             ]
+ | preFalse || postFalse  =  ( "A-disabled",  F )
+ | otherwise              =  ( "", Comp nA mprs )
+ where
+  iIO = snd $ esimp d (lI `i` lO)
+  preFalse = (sEqual d iIO emp) == (True,F)
+  dRAiL = snd $ esimp d ((lR `sdiff` lA) `i` lL)
+  postFalse = (sEqual d dRAiL emp) == (True,F)
+
+simpA d mprs = ( "", Comp nA mprs )
+
+vAEntry :: (Show s, Ord s) => (String, Entry s)
+vAEntry
+ = ( nA
+   , PredEntry vStatic ppA [] defnA simpA )
+\end{code}
+We have both an `implicit' form which is a minimalist
+definition of behaviour, along with an `explicit' form
+that expresses all the logical consequences.
+
+
+We get the following laws (implicit form):
+\begin{eqnarray*}
+   D(L_1) ; D(L_2) &=& D(L_1 \cup L_2)
 %
-%Careful calculation exposes the following laws:
-%\RLEQNS{
-%   M(T_1) \land M(T_2) &=& M(T_1\cup T_2)
-%\\ M(T_1) \seq D(T_2)  &=& M(T_1)  & {} \land T_2 \subseteq ls'
-%\\ M(T_1) \seq  M(T_2) &=& M(T_1)
-%\\ D(T_1) \land D(T_2) &=& D(T_1\cup T_2)
-%\\ D(T_1) \seq D(T_2)  &=& D(T_1\cup T_2)
-%\\ D(T_1) \land M(T_2) &=& D(T_1) \land M(T_2) & {} \land T_1 \cap T_2 = \emptyset
-%\\ D(T_1) \seq  M(T_2) &=& D(T_1) \land M(T_2) & {} \land T_1 \cap T_2 = \emptyset
-%\\ M(T) \land A(E,a,R,A) &=& M(T) \land A(E,a,R,A) & {} \land T \cap E = \emptyset
-%\\ D(T) \seq A(E,a,R,A) &=& A(E\cup T,a,R,A)
-%\\\multicolumn{3}{l}{A(E_1,a,R_1,A_1)\seq A(E_2,b,R_2,A_2)}
-%\\\multicolumn{3}{l}{ {}= A(E_1\cup E_2\setminus A_1,a;b
-%         ,(R_1\setminus A_1 \cup R_2)
-%         ,(A_2 \cup A_1\setminus R_2))}
-%  & {} \land E_2 \cap R_1 \setminus A_1 = \emptyset
-%}
-%The following cases shouldn't arise,
-%which is good because they are an awful mess:
-%\RLEQNS{
-%  \multicolumn{3}{l}{A(E_1,a,R_1,A_1) \land A(E_2,b,R_2,A_2)}
-%\\ &=& ls(E_1 \cup E_2) \land s' \in \sem a s \cap \sem b s
-%     & {} \land \sem a s \cap \sem b s \neq \emptyset
-%\\ && {} \land ls' = (ls \setminus R_1) \cup A_1
-%     & {} \land (R_1\setminus A_1)\cap ls = (R_2 \setminus A_2)\cap ls
-%\\ && & {} \land A_1\setminus ls = A_2 \setminus ls
-%\\ M(T) \seq A(E,a,R,A) &=& M(T) \land \exists ls,s @ A(E,a,R,A)
-%\\ A(E,a,R,A) \seq M(T) &=& M(T)[ls'/ls] \land \exists ls',s' @ A(E,a,R,A)
-%}
-%Keep in mind that $P \implies Q$ is the same as $P = P \land Q$.
+\\ D(L_1) ;  A(I,O,as,R,A,L_2)
+   &=&
+   A(L_1\cup I,O,as,R,A,L_2)
 %
+\\  A(I,O,as,R,A,L_1) ; D(L_2)
+   &=&
+   A(I,O,as,R,A,L_1\cup L_2)
 %
-%
-%\newpage
-%\begin{eqnarray*}
-%   A(I,O,as,R,A,L)
-%   &\defs& ls(I) \land ls(\B O) \land \ado{as}
-%       \land ls'=ls\ominus(R|A) \land ls'(L)
-%\\ &=& I \cap O = \emptyset \land ls(I) \land ls(\B O)
-%\\ && {} \land \ado{as}
-%\\ && {} \land ls'=ls\ominus(R|A) \land ls'(A \cup L)
-%         \land (R\setminus A) \cap L = \emptyset
-%\\ &=& A(I,O,as,R,A,A\cup L)
-%\\ A(I,O,as,R,A,L')
-%   &=&
-%   A(I,O,as,R\setminus A,A,(I\setminus R) \cup A \cup L')
-%\end{eqnarray*}
-%
-%END OF JUNK
-%\newpage
-%
-%\begin{code}
-%nA = "A"
-%isA (_,Comp n [_]) | n==nA = True; isA _ = False
-%
-%mkA lI lO as lR lA lL
-% = Comp nA [ atm lI, atm lO, as
-%           , atm (lR `sdiff` lA)
-%           , atm lA,atm ((lI `sdiff` lR) `u` lA `u` lL) ]
-%
-%bA lI lO as lR lA lL = noMark $ mkA lI lO as lR lA lL
-%
-%shA = "A"
-%ppA d ms p mprs@[(_,Atm _),(_,Atm _),_,(_,Atm _),(_,Atm _),(_,Atm _)]
-% = stdCshow d ms shA mprs
-%ppA d ms p mprs = pps styleRed $ ppa ("invalid-"++shA)
-%
-%-- we don't want to expand the definition of this
-%defnA = pNoChg nA
-%\end{code}
-%\begin{eqnarray*}
-%   A(I,O,as,R,A,L) &=&  A(I,O,as,R,A,A\cup L)
-%\\ &\land& I \cap O = \emptyset
-%\\ &\land& (R\setminus A) \cap L = \emptyset
-%\end{eqnarray*}
-%\begin{code}
-%simpA :: (Ord s, Show s) => Rewrite s
-%simpA d mprs@[ (_,Atm lI)  -- I
-%             , (_,Atm lO)  --  O
-%             , as          --  as
-%             , (_,Atm lR)  --  R
-%             , (_,Atm lA)  --  A
-%             , (_,Atm lL)  --  L
-%             ]
-% | preFalse || postFalse  =  ( "A-disabled",  F )
-% | otherwise              =  ( "", Comp nA mprs )
-% where
-%  iIO = snd $ esimp d (lI `i` lO)
-%  preFalse = (sEqual d iIO emp) == (True,F)
-%  dRAiL = snd $ esimp d ((lR `sdiff` lA) `i` lL)
-%  postFalse = (sEqual d dRAiL emp) == (True,F)
-%
-%simpA d mprs = ( "", Comp nA mprs )
-%
-%vAEntry :: (Show s, Ord s) => (String, Entry s)
-%vAEntry
-% = ( nA
-%   , PredEntry vStatic ppA [] defnA simpA )
-%\end{code}
-%We have both an `implicit' form which is a minimalist
-%definition of behaviour, along with an `explicit' form
-%that expresses all the logical consequences.
-%
-%
-%We get the following laws (implicit form):
-%\begin{eqnarray*}
-%   D(L_1) ; D(L_2) &=& D(L_1 \cup L_2)
-%%
-%\\ D(L_1) ;  A(I,O,as,R,A,L_2)
-%   &=&
-%   A(L_1\cup I,O,as,R,A,L_2)
-%%
-%\\  A(I,O,as,R,A,L_1) ; D(L_2)
-%   &=&
-%   A(I,O,as,R,A,L_1\cup L_2)
-%%
-%\\ A(I_1,O_1,as,R_1,A_1,L_1) ; {}
-%\\ A(I_2,O_2,bs,R_2,A_2,L_2)
-%   &=&  (L_1 \cup I_2)\setminus A_1 \cap R_1 = \emptyset
-%        \land O_2 \cap A_1 = \emptyset \land {}
-%\\&& A(~   I_1 \cup I_2\setminus A_1
-%      ,~   O_1 \cup O_2\setminus R_1
-%\\&& ~~~,~ (as\!\seq\! bs)
-%\\&& ~~~,~ R_1 \cup R_2
-%      ,~   A_1\setminus R_2 \cup A_2
-%      ,~   L_2 ~)
-%\end{eqnarray*}
-%
-%Full forms
-%\begin{eqnarray*}
-%   D(L)
-%   &\defs& ls(L) \land s'=s \land ls'=ls
-%\\
-%\\ A(I,O,as,R,A,L)
-%   &\defs&
-%   ls(I) \land ls(\B O) \land \ado{as} \land \lupd R A \land ls'(L)
-%\end{eqnarray*}
-%
+\\ A(I_1,O_1,as,R_1,A_1,L_1) ; {}
+\\ A(I_2,O_2,bs,R_2,A_2,L_2)
+   &=&  (L_1 \cup I_2)\setminus A_1 \cap R_1 = \emptyset
+        \land O_2 \cap A_1 = \emptyset \land {}
+\\&& A(~   I_1 \cup I_2\setminus A_1
+      ,~   O_1 \cup O_2\setminus R_1
+\\&& ~~~,~ (as\!\seq\! bs)
+\\&& ~~~,~ R_1 \cup R_2
+      ,~   A_1\setminus R_2 \cup A_2
+      ,~   L_2 ~)
+\end{eqnarray*}
+
+Full forms
+\begin{eqnarray*}
+   D(L)
+   &\defs& ls(L) \land s'=s \land ls'=ls
+\\
+\\ A(I,O,as,R,A,L)
+   &\defs&
+   ls(I) \land ls(\B O) \land \ado{as} \land \lupd R A \land ls'(L)
+\end{eqnarray*}
+
 
 
 \HDRc{Healthiness Predicates}
@@ -850,15 +850,16 @@ wUnroll _ _ mpr = ( "", mpr )
 
 \HDRb{WwW Semantic Definitions}
 
-The definitions, using the new shorthand:
+The definitions, using the new shorthands:
 \begin{eqnarray*}
-   \W(C) &\defs& ls(\B{out}) * C
+   \W(C) &\defs& M(out) * C
+\\       &=& D(out) \lor (M(out)\land C \seq M(out)*C)
 \\ ii &\defs& s'=s
 \\
 \\ \atm a &\defs&\W(X(in|\emptyset|a|in|out))
 \\ \cskip
    &\defs&
-   \W(A(in,\emptyset,ii,in,out,out))
+   \W(X(in|\emptyset|ii|in|out))
 \\
 \\ C \cseq D
    &\defs&
@@ -866,15 +867,15 @@ The definitions, using the new shorthand:
 \\
 \\ C + D
    &\defs&
-   \W(\quad {}\phlor A(in,\emptyset,ii,\setof{in,\ell_{g2}},\ell_{g1},\ell_{g1})
+   \W(\quad {}\phlor X(in|\emptyset|ii|in|\ell_{g1})
 \\ && \qquad {} \lor
-   A(in,\emptyset,ii,\setof{in,\ell_{g1}},\ell_{g2},\ell_{g2})
+                     X(in|\emptyset|ii|in|\ell_{g2})
 \\ && \qquad {} \lor
    C[g_{1:},\ell_{g1}/g,in] \lor D[g_{2:},\ell_{g2}/g,in]~)
 \\
 \\ C \parallel D
    &\defs&
-   \W(\quad\phlor A(in,\emptyset,ii,in,\setof{\ell_{g1},\ell_{g2}},\setof{\ell_{g1},\ell_{g2}})
+   \W(\quad\phlor X(in|\emptyset|ii|in|\ell_{g1},\ell_{g2})
 \\ && \qquad {}\lor
    C[g_{1::},\ell_{g1},\ell_{g1:}/g,in,out]
    \lor D[g_{2::},\ell_{g2},\ell_{g2:}/g,in,out]
@@ -885,8 +886,8 @@ The definitions, using the new shorthand:
 \\
 \\ C^*
    &\defs&
-   \W(\quad\phlor A(in,\emptyset,ii,\setof{in,\ell_g},out,out)
-\\ && \qquad {}\lor A(in,\emptyset,ii,\setof{in,out},\ell_g,\ell_g)
+   \W(\quad  \phlor X(in|\emptyset|ii|in|out)
+\\ && \qquad {}\lor X(in|\emptyset|ii|in|\ell_g)
 \\ && \qquad {}\lor C[g_{:},\ell_g,in/g,in,out]~)
 \end{eqnarray*}
 
