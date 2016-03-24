@@ -23,10 +23,10 @@ import StdUTPLaws
 import UTCPCReduce
 \end{code}
 
-%\begin{code}
-%import Debug.Trace
-%dbg str x = trace (str++show x) x
-%\end{code}
+\begin{code}
+import Debug.Trace
+dbg str x = trace (str++show x) x
+\end{code}
 
 We do a quick run-down of the Commands\cite{conf/popl/Dinsdale-YoungBGPY13}.
 
@@ -560,7 +560,8 @@ isD (_,Comp n [_]) | n==nD = True; isD _ = False
 bD ell = comp nD [atm ell]
 
 shD = "D"
-ppD d ms p mprs@[(_,Atm _)] = stdCshow d ms shD mprs
+ppD d ms p [mpr@(_,Atm _)] = ppa $ "D(" ++ pFlatShow d mpr ++ ")"
+-- = stdCshow d ms shD mprs
 ppD d ms p mprs = pps styleRed $ ppa ("invalid-"++shD)
 
 --defnD d [(_,(Atm ell))]
@@ -586,7 +587,8 @@ isM (_,Comp n [_]) | n==nM = True; isM _ = False
 bM ell = comp nM [atm ell]
 
 shM = "M"
-ppM d ms p mprs@[(_,Atm _)] = stdCshow d ms shM mprs
+ppM d ms p [mpr@(_,Atm _)] = ppa $ "M(" ++ pFlatShow d mpr ++ ")"
+
 ppM d ms p mprs = pps styleRed $ ppa ("invalid-"++shM)
 
 -- we don't want to expand the definition of this
@@ -1148,17 +1150,19 @@ vReduce :: (Ord s, Show s) => DictRWFun s
 We expect these to matter
 We expect the following combinations to arise in calculations:
 \RLEQNS{
-   M(T_1) & \land & M(T_2)
-\\ M(T) & \land & X(E|D|a|R|A)
+   M(T) & \land & X(E|D|a|R|A)
 \\ X(E|D|a|R|A) & \seq & D(T)
 \\ X(E_1|D_1|a|R_1|A_1) & \seq & X(E_2|D_2|b|R_2|A_2)
+\\ M(T_1) & \land & M(T_2)
 }
-
+where $T$, $E$, $D$, $R$, and $A$ do not mention the dynamic variables,
+and $a$ only refers to $s$ and $s'$.
 
 We start with high level calculation results
 we really, really want to re-use.
 
-We expect the following combinations to arise in calculations:
+\HDRd{$M$ and $X$}
+
 \RLEQNS{
   && M(T) \land X(E|D|a|R|A)
 \EQ{defn. $M$ and $X$}
@@ -1167,7 +1171,7 @@ We expect the following combinations to arise in calculations:
      ls(E) \land ls(\B D) \land [a]
      \land ls' = (ls \setminus R) \cup A
 \EQ{re-arrange}
-\\&& ls(E) 
+\\&& ls(E)
      \land ls(\B D) \land ls(\B T)
      \land
      [a] \land ls' = (ls \setminus R) \cup A
@@ -1188,12 +1192,143 @@ vReduce vd (_,Comp na [ (_,Comp nm [ (_,Atm t)]) -- M(T) /\
                                    , (_,Atm a)   --  |A)
                                    ])
                      ])
- | na == nAnd && nm == nM && na == nX -- fails !!!!
-   =  ( "M/\\X", bX e dut as r a )
+ | na == nAnd && nm == nM && nx == nX
+   =  ( "M-and-X", bX e dut as r a )
  where dut = snd $ esimp vd (d `u` t)
 \end{code}
 
+\HDRd{$X$ then $D$}
 
+\RLEQNS{
+  && X(E|D|a|R|A) \seq D(T)
+\EQ{defns. $X$ and $D$}
+\\&& ls(E) \land ls(\B D) \land [a]
+     \land ls' = (ls \setminus R) \cup A
+     \seq ls(T) \land \Skip
+\EQ{pull $ls(T)$ back}
+\\&& ls(E) \land ls(\B D) \land [a]
+     \land ls' = (ls \setminus R) \cup A
+     \land ls'(T) \seq \Skip
+\EQ{$\seq$-runit}
+\\&& ls(E) \land ls(\B D) \land [a]
+     \land ls' = (ls \setminus R) \cup A
+     \land ls'(T)
+\EQ{propagate identity}
+\\&& ls(E) \land ls(\B D) \land [a]
+     \land ls' = (ls \setminus R) \cup A
+     \land ((ls \setminus R) \cup A)(T)
+\EQ{Lemma Still-Inside}
+\\&& ls(E) \land ls(\B D) \land [a]
+     \land ls' = (ls \setminus R) \cup A
+     \land ls(T\setminus A) \land (T\setminus A)\cap R = \emptyset
+\EQ{re-arrange}
+\\&& ls(E) \land ls(T\setminus A)\land ls(\B D) \land [a]
+     \land ls' = (ls \setminus R) \cup A
+      \land (T\setminus A)\cap R = \emptyset
+\EQ{$L(A)\land L(B) = L(A \cup B)$}
+\\&& ls(E \cup (T\setminus A))\land ls(\B D) \land [a]
+     \land ls' = (ls \setminus R) \cup A
+      \land (T\setminus A)\cap R = \emptyset
+\EQ{Defn. $X$}
+\\&& X(E \cup (T\setminus A)|D|a|R|A)
+      \land (T\setminus A)\cap R = \emptyset
+}
+
+For Lemma Still-Inside, we first note the following laws,
+whose proofs are not given here:
+\RLEQNS{
+   L' = L \cup A
+   &\implies& X \subseteq L' = X\setminus A \subseteq L
+   &\mbox{preUnion}
+\\ L' = L \setminus R
+   &\implies& X \subseteq L' = X \subseteq L \land X \cap R = \emptyset
+   &\mbox{preRemove}
+\\ L' = L \cap M
+   &\implies& X \subseteq L' = X \subseteq L \land X \subseteq M
+   &\mbox{preRestrict}
+}
+These laws look very like precondition laws.
+Rewritten in shorthand:
+\RLEQNS{
+   L' = L \cup A
+   &\implies& L'(X) = L(X\setminus A)
+   &\mbox{preUnion}
+\\ L' = L \setminus R
+   &\implies& L'(X) = L(X) \land R(\B X)
+   &\mbox{preRemove}
+\\ L' = L \cap M
+   &\implies& L'(X) = L(X) \land M(X)
+   &\mbox{preRestrict}
+}
+So, to our lemma (Still-Inside):
+\RLEQNS{
+  && ((ls \setminus R) \cup A)(T)
+\EQ{preUnion, with $L=ls\setminus R$}
+\\&& (ls \setminus R)(T\setminus A)
+\EQ{preRemove, with $L=ls$}
+\\&& ls(T\setminus A) \land (T\setminus A)\cap R = \emptyset
+}
+
+\RLEQNS{
+  && X(E|D|a|R|A) \seq D(T)
+\EQ{$X$ then $D$}
+\\&& X(E \cup (T\setminus A)|D|a|R|A)
+      \land (T\setminus A)\cap R = \emptyset
+}
+\begin{code}
+vReduce vd (_,Comp ns [ (_,Comp nx [ (_,Atm e)     -- X(E
+                                   , (_,Atm d)     --  |D
+                                   , as            --  |a
+                                   , (_,Atm r)     --  |R
+                                   , (_,Atm a)  ]) --  |A)
+                      , (_,Comp nd [ (_,Atm t) ]) -- ; D(T)
+                      ])
+ | ns == nSeq && nx == nX && nd == nD
+   =  ( "X-then-D"
+      , bAnd [bX e' d as r a, equal (t' `i` r) emp])
+ where
+   t' = t `sdiff` a
+   e' = snd $ esimp vd (e `u` t')
+\end{code}
+
+\newpage
+\HDRd{$X$ then $X$}
+
+\RLEQNS{
+  && X(E_1|D_1|a|R_1|A_1) \seq X(E_2|D_2|b|R_2|A_2)
+\EQ{defns. $X$ }
+\\&& ls(E_1) \land ls(\B{D_1}) \land [a]
+      \land ls' = (ls \!\setminus\! R_1) \cup A_1
+\\&& \seq
+     ls(E_2) \land ls(\B{D_2}) \land [b]
+     \land ls' = (ls \!\setminus\! R_2) \cup A_2
+\EQ{defn $\seq$}
+\\&& \exists ls_m,s_m @
+\\&& \qquad ls(E_1) \land ls(\B{D_1}) \land [a][s_m/s']
+     \land ls_m = (ls \!\setminus\! R_1) \cup A_1
+\\&& \quad {} \land
+     ls_m(E_2) \land ls_m(\B{D_2}) \land [b][s_m/s]
+     \land ls' = (ls_m \!\setminus\! R_2) \cup A_2
+\EQ{1pt ($ls_m = \dots$)}
+\\&& \exists s_m @
+\\&& \qquad ls(E_1) \land ls(\B{D_1}) \land [a][s_m/s']
+\\&& \quad {} \land
+     ((ls \!\setminus\! R_1) \cup A_1)(E_2)
+     \land ((ls \!\setminus\! R_1) \cup A_1)(\B{D_2})
+\\&& \quad {} \land [b][s_m/s]
+     \land ls' = (((ls \!\setminus\! R_1) \cup A_1) \!\setminus\! R_2) \cup A_2
+\EQ{re-arrange, shrink $\exists$ scope}
+\\&& ls(E_1) \land ls(\B{D_1})
+\\&& {} \land ((ls \!\setminus\! R_1) \cup A_1)(E_2)
+\\&& {} \land ((ls \!\setminus\! R_1) \cup A_1)(\B{D_2})
+\\&& {} \land (\exists s_m @ [a][s_m/s']\land[b][s_m/s])
+\\&& {} \land ls' = (((ls \!\setminus\! R_1) \cup A_1) \!\setminus\! R_2) \cup A_2
+}
+
+We need a lemma Still-Outside:
+\[
+  ((L \setminus R) \cup A)(\B T) = ?
+\]
 \HDRc{OLD STUFF}
 
 \begin{eqnarray*}
@@ -1201,15 +1336,15 @@ vReduce vd (_,Comp na [ (_,Comp nm [ (_,Atm t)]) -- M(T) /\
 \\   &=& D(out) \lor A(in,out,a,in,out,out)
 \end{eqnarray*}
 \begin{code}
-vReduce d (_,Comp nw [(_,Comp na [ (_,Atm lI)  -- A(I
-                                 , (_,Atm lO)  --   ,O
-                                 , as          --   ,as
-                                 , (_,Atm lR)  --   ,R
-                                 , (_,Atm lA)  --   ,A
-                                 , (_,Atm lL)  --   ,L)
-                                 ])])
- | nw == nW && na == nA && lO == emp && lI == lR && lA == lL
-   = ( "W of A", bOr [ bD sout, bA lI lA as lR lA lL ] )
+-- vReduce d (_,Comp nw [(_,Comp na [ (_,Atm lI)  -- A(I
+--                                  , (_,Atm lO)  --   ,O
+--                                  , as          --   ,as
+--                                  , (_,Atm lR)  --   ,R
+--                                  , (_,Atm lA)  --   ,A
+--                                  , (_,Atm lL)  --   ,L)
+--                                  ])])
+--  | nw == nW && na == nA && lO == emp && lI == lR && lA == lL
+--    = ( "W of A", bOr [ bD sout, bA lI lA as lR lA lL ] )
 \end{code}
 
 
