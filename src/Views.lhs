@@ -1147,19 +1147,33 @@ vReduce :: (Ord s, Show s) => DictRWFun s
          -- Dict s -> MPred s -> (String, MPred s)
 \end{code}
 
+We start with high level calculation results
+we really, really want to re-use.
+
+\HDRd{$atm(a)$}
+
+By calculation using $X$,
+\RLEQNS{
+   atm(a) &=& D(out) \lor X(in|out|a|in|out)
+}
+\begin{code}
+vReduce vd (_,Comp n [a])
+ | n == nAtom  =  ( "expand-atom"
+                  , bOr [ bD  out, bX inp out a inp out ] )
+\end{code}
+
+
 We expect these to matter
 We expect the following combinations to arise in calculations:
 \RLEQNS{
    M(T) & \land & X(E|D|a|R|A)
 \\ X(E|D|a|R|A) & \seq & D(T)
 \\ X(E_1|D_1|a|R_1|A_1) & \seq & X(E_2|D_2|b|R_2|A_2)
-\\ M(T_1) & \land & M(T_2)
+\\ M(T_1) & \land & D(T_1)
 }
 where $T$, $E$, $D$, $R$, and $A$ do not mention the dynamic variables,
 and $a$ only refers to $s$ and $s'$.
 
-We start with high level calculation results
-we really, really want to re-use.
 
 \HDRd{$M$ and $X$}
 
@@ -1323,12 +1337,121 @@ vReduce vd (_,Comp ns [ (_,Comp nx [ (_,Atm e)     -- X(E
 \\&& {} \land ((ls \!\setminus\! R_1) \cup A_1)(\B{D_2})
 \\&& {} \land (\exists s_m @ [a][s_m/s']\land[b][s_m/s])
 \\&& {} \land ls' = (((ls \!\setminus\! R_1) \cup A_1) \!\setminus\! R_2) \cup A_2
+\EQ{Lemmas Still-(Inside,Outside), Two-Step, defn $\seq$}
+\\&& ls(E_1) \land ls(\B{D_1})
+\\&& {} \land ls(E_2\setminus A_1) \land (E_2\setminus A_1) \cap R_1 = \emptyset
+\\&& {} \land ls(\B{D_2\!\setminus\! R_1}) \land  A_1 \cap D_2 = \emptyset
+\\&& {} \land [a\seq b]
+\\&& {} \land ls' = (ls\setminus(R_1 \cup R_2)) \cup (A_1\setminus R_2) \cup A_2
+\EQ{re-arrange}
+\\&& ls(E_1) \land ls(E_2\setminus A_1)
+\\&& {} \land ls(\B{D_1}) \land ls(\B{D_2\!\setminus\! R_1})
+\\&& {} \land [a\seq b]
+\\&& {} \land ls' = (ls\setminus(R_1 \cup R_2)) \cup (A_1\setminus R_2) \cup A_2
+\\&& {}  \land (E_2\setminus A_1) \cap R_1 = \emptyset
+         \land  A_1 \cap D_2 = \emptyset
+\EQ{merge}
+\\&& ls(E_1 \cup E_2\setminus A_1)
+\\&& {} \land ls(\B{D_1 \cup D_2\!\setminus\! R_1})
+\\&& {} \land [a\seq b]
+\\&& {} \land ls' = (ls\setminus(R_1 \cup R_2)) \cup (A_1\setminus R_2) \cup A_2
+\\&& {}  \land (E_2\setminus A_1) \cap R_1 = \emptyset
+         \land  A_1 \cap D_2 = \emptyset
+\EQ{defn $X$}
+\\&& X(E_1 \cup E_2\setminus A_1
+      |D_1 \cup D_2\!\setminus\! R_1
+      |a\seq b
+      |R_1 \cup R_2
+      |A_1\setminus R_2 \cup A_2)
+\\&& {}  \land (E_2\setminus A_1) \cap R_1 = \emptyset
+         \land  A_1 \cap D_2 = \emptyset
 }
 
+\newpage
 We need a lemma Still-Outside:
 \[
-  ((L \setminus R) \cup A)(\B T) = ?
+  ((L \setminus R) \cup A)(\B T) = ls(\B{T\setminus R}) \land A \cap T = \emptyset
 \]
+and lemma Two-Step:
+\[
+ (((L \setminus R_1)\cup A_1)\setminus R_2) \cup A_2
+ =
+ L\setminus(R_1 \cup R_2) \cup (A_1\setminus R_2) \cup A_2
+\]
+These can be easily proven carefully by hand, noting the
+following laws:
+\RLEQNS{
+   (L \cup A) \cap T = \emptyset
+    &=&
+    L \cap T =\emptyset \land A \cap T = \emptyset
+\\ (L\setminus R) \cap T =\emptyset
+   &=&
+   L \cap (T \setminus R) = \emptyset
+\\ (S \setminus R) \cup A
+   &=&
+   (S \setminus (R \setminus A)) \cup A
+}
+
+\RLEQNS{
+  && X(E_1|D_1|a|R_1|A_1) \seq X(E_2|D_2|b|R_2|A_2)
+\EQ{$X$-then-$X$}
+\\&& X(E_1 \cup E_2\setminus A_1
+      |D_1 \cup D_2\!\setminus\! R_1
+      |a\seq b
+      |R_1 \cup R_2
+      |A_1\setminus R_2 \cup A_2)
+\\&& {}  \land (E_2\setminus A_1) \cap R_1 = \emptyset
+         \land  A_1 \cap D_2 = \emptyset
+}
+\begin{code}
+vReduce vd (_,Comp ns [ (_,Comp nx1 [ (_,Atm e1)     -- X(E1
+                                    , (_,Atm d1)     --  |D1
+                                    , as             --  |a
+                                    , (_,Atm r1)     --  |R1
+                                    , (_,Atm a1)  ]) --  |A1)
+                      , (_,Comp nx2 [ (_,Atm e2)     -- X(E2
+                                    , (_,Atm d2)     --  |D2
+                                    , bs             --  |b
+                                    , (_,Atm r2)     --  |R2
+                                    , (_,Atm a2)  ]) --  |A2)
+                      ])
+ | ns == nSeq && nx1 == nX && nx2 == nX
+   =  ( "X-then-X"
+      , bAnd [ bX e' d' abs r' a'
+             , equal (ela `i` r1) emp
+             , equal (a1 `i` d2)  emp])
+ where
+   ela = snd$ esimp vd (e2 `sdiff` a1)
+   e'  = snd $ esimp vd (e1 `u` ela)
+   d'  = snd $ esimp vd (d1 `u` (d2 `sdiff` r1))
+   abs = bSeq as bs
+   r'  = snd $ esimp vd (r1 `u` r2)
+   a'  = snd $ esimp vd ((a1 `sdiff` r2) `u` a2)
+\end{code}
+
+\HDRd{$M$ and $D$}
+
+\RLEQNS{
+  && M(S) \land D(T)
+\EQ{Defns. $M$ and $D$}
+\\&& ls(\B S) \land ls(T) \land \Skip
+\EQ{Defn. $\Skip$, re-arrange}
+\\&& ls(T) \land ls(\B S) \land s'=s \land ls' = ls
+\EQ{Defn. $X$}
+\\&& X(T|S|ii|\emptyset|\emptyset) \land S \cap T = \emptyset
+}
+\begin{code}
+vReduce vd (_,Comp na [ (_,Comp nm [ (_,Atm s)]) -- M(S) /\
+                      , (_,Comp nd [ (_,Atm t)]) -- D(T)
+                     ])
+ | na == nAnd && nm == nM && nd == nD
+   =  ( "M-and-D"
+      , bAnd [ bX t s ii emp emp
+             , equal sit emp ] )
+ where sit = snd $ esimp vd (s `i` t)
+\end{code}
+
+
 \HDRc{OLD STUFF}
 
 \begin{eqnarray*}
@@ -2176,3 +2299,11 @@ we can assert the slightly stronger:
 \\ &\lor& A(\ell_{g1},out,a,\ell_{g1},out,out)
 \\ &\lor& A(\ell_{g2},out,b,\ell_{g2},out,out)
 \end{eqnarray*}
+
+\HDRb{Calculations with Views}
+
+\HDRc{$atm(a)$}
+
+\RLEQNS{
+   atm(a) &=& D(out) \lor X(in|out|a|in|out)
+}
