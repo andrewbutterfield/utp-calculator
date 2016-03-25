@@ -1142,6 +1142,7 @@ mtchLabelSetSSwap _      =  noMatch
 
 \HDRc{\texttt{vReduce}}\label{hc:vReduce}
 
+\textbf{No bug - we have a calculator loop!}
 \begin{code}
 vReduce :: (Ord s, Show s) => DictRWFun s
          -- Dict s -> MPred s -> (String, MPred s)
