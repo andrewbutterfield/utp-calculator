@@ -606,6 +606,7 @@ We expect the following combinations to arise in calculations:
 \\ M(T) & \land & X(E|D|a|R|A)
 \\ X(E|D|a|R|A) & \seq & D(T)
 \\ X(E_1|D_1|a|R_1|A_1) & \seq & X(E_2|D_2|b|R_2|A_2)
+\\ D(T) &\seq& X(E|D|a|R|A)
 }
 
 
@@ -1140,9 +1141,9 @@ mtchLabelSetSSwap (_,Equal v' (App nm [v, s1, s2]))
 mtchLabelSetSSwap _      =  noMatch
 \end{code}
 
+\newpage
 \HDRc{\texttt{vReduce}}\label{hc:vReduce}
 
-\textbf{No bug - we have a calculator loop!}
 \begin{code}
 vReduce :: (Ord s, Show s) => DictRWFun s
          -- Dict s -> MPred s -> (String, MPred s)
@@ -1164,19 +1165,59 @@ vReduce vd (_,Comp n [a])
 \end{code}
 
 
-We expect these to matter
 We expect the following combinations to arise in calculations:
 \RLEQNS{
    M(T) & \land & X(E|D|a|R|A)
 \\ X(E|D|a|R|A) & \seq & D(T)
 \\ X(E_1|D_1|a|R_1|A_1) & \seq & X(E_2|D_2|b|R_2|A_2)
 \\ M(T_1) & \land & D(T_1)
+\\ D(T) &\seq& X(E|D|a|R|A)
 }
 where $T$, $E$, $D$, $R$, and $A$ do not mention the dynamic variables,
 and $a$ only refers to $s$ and $s'$.
 
+We also find the following special cases, which handle before the above.
+\RLEQNS{
+   X(E|D|ii|\emptyset|\emptyset) \seq X(E|D|ii|\emptyset|\emptyset)
+   &=& X(E|D|ii|\emptyset|\emptyset)
+}
 
+\newpage
+\HDRd{$X(E|D|ii|.|.)^2$}
+
+\RLEQNS{
+  && X(E|D|ii|\emptyset|\emptyset) \seq X(E|D|ii|\emptyset|\emptyset)
+\EQ{by $X$ and $X$ law below}
+\\&& X(E|D|ii\seq ii|\emptyset|\emptyset)
+\EQ{property of $ii$}
+\\&& X(E|D|ii|\emptyset|\emptyset)
+}
+\begin{code}
+vReduce vd (_,Comp ns [ xi1@(_,Comp nx1 [ (_,Atm e1) -- X(E1
+                                        , (_,Atm d1)     --  |D1
+                                        , (_,PVar ii1)   --  |ii
+                                        , (_,Atm r1)     --  |R1
+                                        , (_,Atm a1)  ]) --  |A1)
+                      ,     (_,Comp nx2 [ (_,Atm e2)     -- X(E2
+                                        , (_,Atm d2)     --  |D2
+                                        , (_,PVar ii2)   --  |ii
+                                        , (_,Atm r2)     --  |R2
+                                        , (_,Atm a2)  ]) --  |A2)
+                      ])
+ | ns == nSeq && nx1 == nX && nx2 == nX
+   && ii1 == "ii" && ii2 == "ii"
+   && e1 `eqs` e2 && d1 `eqs` d2 && r1 `eqs` r2 && a1 `eqs` a2
+   =  ( "X-ii-twice", xi1 )
+ where
+  s1 `eqs` s2
+    = let (simplified,outcome) = sEqual vd s1 s2
+      in simplified && outcome == T
+\end{code}
+
+
+\newpage
 \HDRd{$M$ and $X$}
+
 
 \RLEQNS{
   && M(T) \land X(E|D|a|R|A)
@@ -1304,6 +1345,46 @@ vReduce vd (_,Comp ns [ (_,Comp nx [ (_,Atm e)     -- X(E
  where
    t' = t `sdiff` a
    e' = snd $ esimp vd (e `u` t')
+\end{code}
+
+\newpage
+\HDRd{$D$ then $X$}
+
+\RLEQNS{
+  && D(T) \seq X(E|D|a|R|A)
+\EQ{defns $D$ and $X$}
+\\&& ls(T) \land \Skip
+     \seq
+     ls(E) \land ls(\B D) \land [a]
+     \land ls' = (ls \setminus R) \cup A
+\EQ{$e \land P \seq Q = e \land (P \seq Q)$, if $e$ has no dashed vars}
+\\&& ls(T) \land (\Skip
+     \seq
+     ls(E) \land ls(\B D) \land [a]
+     \land ls' = (ls \setminus R) \cup A)
+\EQ{$\seq$-l-unit}
+\\&& ls(T) \land ls(E) \land ls(\B D) \land [a]
+     \land ls' = (ls \setminus R) \cup A
+\EQ{merge}
+\\&& ls(T \cup E) \land ls(\B D) \land [a]
+     \land ls' = (ls \setminus R) \cup A
+\EQ{defn $X$ and non-false condition}
+\\&& X(T \cup E|D|a|R|A)
+     \land T \cap D = \emptyset
+}
+\begin{code}
+vReduce vd (_,Comp ns [ (_,Comp nd [ (_,Atm t) ]) -- ; D(T)
+                      , (_,Comp nx [ (_,Atm e)     -- X(E
+                                   , (_,Atm d)     --  |D
+                                   , as            --  |a
+                                   , (_,Atm r)     --  |R
+                                   , (_,Atm a)  ]) --  |A)
+                      ])
+ | ns == nSeq && nx == nX && nd == nD
+   =  ( "D-then-X"
+      , bAnd [bX e' d as r a, equal (t `i` d) emp])
+ where
+   e' = snd $ esimp vd (e `u` t)
 \end{code}
 
 \newpage
@@ -2074,6 +2155,66 @@ actionB = atom b
 
 athenb = actionA `vseq` actionB
 \end{code}
+
+\HDRd{Loops---alternative approach}
+
+We note the following result:
+\RLEQNS{
+   c*P &=& \lim_{n \rightarrow \infty}\bigvee_0^n S^n \seq D
+\\ && \textbf{where}
+\\ S &=& c \land P
+\\ D &=& \lnot c \land \Skip
+}
+Of interest are the following calculations:
+\RLEQNS{
+   &&  S^n \seq D
+\\ && S \seq S
+\\ && S \seq D
+}
+\begin{code}
+defvseq :: (Ord s, Show s) => [MPred s] -> Pred s
+defvseq = snd . defnVSeq (vDict :: Dict ())
+athenbBody :: (Ord s, Show s) => MPred s
+athenbBody = body
+  where (Comp _ [body]) = defvseq [actionA,actionB]
+\end{code}
+We get
+\begin{verbatim}
+<a>[g:1,lg/g,out] \/ <b>[g:2,lg/g,in]
+ = "...."
+D(lg) \/ X(in|lg|a|in|lg) \/ D(out) \/ X(lg|out|b|lg|out)
+\end{verbatim}
+\begin{code}
+athenbD = bD out
+athenbS = bOr [ bD lg
+              , bX inp lg a inp lg
+              , bD out
+              , bX lg out b lg out
+              ]
+\end{code}
+\begin{verbatim}
+D(lg) \/ X(in|lg|a|in|lg) \/ D(out) \/ X(lg|out|b|lg|out) ; D(out)
+ = "..."
+D(out,lg) \/ X(in,out|lg|a|in|lg) \/ D(out) \/ X(lg|out|b|lg|out)
+\end{verbatim}
+
+\begin{verbatim}
+   D(lg) \/ X(in|lg|a|in|lg) \/ D(out) \/ X(lg|out|b|lg|out)
+ ; D(lg) \/ X(in|lg|a|in|lg) \/ D(out) \/ X(lg|out|b|lg|out)
+ = "..."
+    D(lg) \/ X(in|lg|a|in|lg) \/ D(out,lg)
+ \/ X(in,out|lg|a|in|lg) \/ X(in,lg|out|b ; a|in|out,lg)
+ \/ D(out,lg) \/ X(in,out|lg|a|in|lg) \/ D(out) \/ X(lg|out|b|lg|out)
+ \/ X(lg|out|b|lg|out) \/ X(in|out,lg|a ; b|in,lg|out)
+ = "by hand, rearrange"
+    D(out) \/ D(lg) \/ D(out,lg)
+ \/ X(in|lg|a|in|lg) \/ X(in,out|lg|a|in|lg)
+ \/ X(lg|out|b|lg|out)
+ \/ X(in|out,lg|a ; b|in,lg|out)
+ \/ X(in,lg|out|b ; a|in|out,lg)
+\end{verbatim}
+\textbf{I think we need some absortption laws for $X$}
+
 
 \newpage
 \HDRb{Required Laws}
