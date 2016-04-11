@@ -2212,8 +2212,21 @@ D(out,lg) \/ X(in,out|lg|a|in|lg) \/ D(out) \/ X(lg|out|b|lg|out)
  \/ X(lg|out|b|lg|out)
  \/ X(in|out,lg|a ; b|in,lg|out)
  \/ X(in,lg|out|b ; a|in|out,lg)
+ = "absorption --- see below, also X-norm"
+    D(out) \/ D(lg)
+ \/ X(in|lg|a|in|lg)
+ \/ X(lg|out|b|lg|out)
+ \/ X(in|out,lg|a ; b|in|out)
+ \/ X(in,lg|out|b ; a|in|out,lg) -- shouldn't arise
 \end{verbatim}
-\textbf{I think we need some absortption laws for $X$}
+\RLEQNS{
+   X(E|D|a|R|A) \lor X(E\cup F|D|a|R|A)&=& X(E|D|a|R|A)
+\\ D(E) \lor D(E \cup F) &=& D(E)
+}
+
+The  $X(in,\ell_g|out|b \seq a|in|out,\ell_g)$ case should not arise
+because there is no path from $ls(in)$ and $ls(\B{\ell_g})$
+that leads to $ls(in,\ell_g)$.
 
 
 \newpage
