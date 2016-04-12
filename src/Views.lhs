@@ -534,7 +534,6 @@ simpX vd mprs@[ e@(_,Atm lE)  -- E
   iED = snd $ esimp vd (lE `i` lD)
   preFalse = (sEqual vd iED emp) == (True,F)
   dRA = snd $ esimp vd (lR `sdiff` lA)
-  postFalse = (sEqual vd dRA emp) == (True,F)
 
 simpX vd mprs = ( "", Comp nX mprs )
 
@@ -757,9 +756,21 @@ Full forms
 
 \HDRc{Healthiness Predicates}
 
+It now looks like we really need the following healthiness condition:
+\RLEQNS{
+ \DL(P)
+ &\defs&
+   P & \mbox{Disjoint Labels}
+\\ && {} \land (ls(in) \implies ls(\B{out,labs(g)})
+\\ && {} \land (ls(out) \implies ls(\B{in,labs(g)}))
+\\ && {} \land (\lnot ls(\B{labs(g)}) \implies ls(\B{in,out}))
+\\
+\\ \KS(P) &\defs& ls(\B{out}) * P & \mbox{Keep Spinning}
+}
+
 We define our main healthiness condition:
 \RLEQNS{
-\W(P) &\defs& \lnot ls(out) * P
+\W &\defs& \KS \circ \DL
 }
 \begin{code}
 nW = "W" -- internal abstract name
@@ -851,6 +862,7 @@ wUnroll ns d mw@(_,Comp nm [mpr])
 wUnroll _ _ mpr = ( "", mpr )
 \end{code}
 
+\newpage
 \HDRb{WwW Semantic Definitions}
 
 The definitions, using the new shorthands:
@@ -892,15 +904,12 @@ The definitions, using the new shorthands:
 \\ && \qquad {}\lor C[g_{:},\ell_g,in/g,in,out]~)
 \end{eqnarray*}
 
-
-
-
-
-
+\newpage
 \HDRc{Coding Atomic Semantics}
 
+We really must insist that $out$ is not present here.
 \RLEQNS{
- \atm a &\defs&\W(X(in|\emptyset|a|in|out))
+ \atm a &\defs&\W(X(in|out|a|in|out))
 }
 
 \begin{code}
@@ -913,7 +922,7 @@ ppAtom d ms p [mpr] = ppbracket "<" (mshowp d ms 0 mpr) ">"
 ppAtom d ms p mprs = pps styleRed $ ppa ("invalid-"++nAtom)
 
 defnAtom d [a]
- = ldefn nAtom $ wp $ bX inp emp a inp out
+ = ldefn nAtom $ wp $ bX inp out a inp out
 
 sinp = sngl inp
 sout = sngl out
@@ -924,12 +933,15 @@ vAtmEntry
    , PredEntry ["s","s'"] ppAtom [] defnAtom (pNoChg nAtom) )
 \end{code}
 
+
+\newpage
 \HDRc{Coding Skip}
 
+Again, no $out$ allowed at start
 \RLEQNS{
    \cskip
    &\defs&
-   \W(X(in|\emptyset|ii|in|out))
+   \W(X(in|out|ii|in|out))
 }
 \begin{code}
 nVSkip = "VSkip" -- internal abstract name
@@ -941,7 +953,7 @@ ppVSkip d ms p [mpr] = ppa "<skip>"
 ppVSkip d ms p mprs = pps styleRed $ ppa ("invalid-"++nSkip)
 
 defnVSkip d [a]
- = ldefn nVSkip $ wp $ bX inp emp ii inp out
+ = ldefn nVSkip $ wp $ bX inp out ii inp out
 
 vSkipEntry :: (Show s, Ord s) => (String, Entry s)
 vSkipEntry
@@ -1253,6 +1265,7 @@ vReduce vd (_,Comp na [ (_,Comp nm [ (_,Atm t)]) -- M(T) /\
  where dut = snd $ esimp vd (d `u` t)
 \end{code}
 
+\newpage
 \HDRd{$X$ then $D$}
 
 \RLEQNS{
@@ -1325,6 +1338,8 @@ So, to our lemma (Still-Inside):
 \\&& ls(T\setminus A) \land (T\setminus A)\cap R = \emptyset
 }
 
+\newpage
+
 \RLEQNS{
   && X(E|D|a|R|A) \seq D(T)
 \EQ{$X$ then $D$}
@@ -1343,7 +1358,7 @@ vReduce vd (_,Comp ns [ (_,Comp nx [ (_,Atm e)     -- X(E
    =  ( "X-then-D"
       , bAnd [bX e' d as r a, equal (t' `i` r) emp])
  where
-   t' = t `sdiff` a
+   t' = snd $ esimp vd (t `sdiff` a)
    e' = snd $ esimp vd (e `u` t')
 \end{code}
 
@@ -1500,11 +1515,11 @@ vReduce vd (_,Comp ns [ (_,Comp nx1 [ (_,Atm e1)     -- X(E1
  | ns == nSeq && nx1 == nX && nx2 == nX
    =  ( "X-then-X"
       , bAnd [ bX e' d' abs r' a'
-             , equal (ela `i` r1) emp
+             , equal (e2la1 `i` r1) emp
              , equal (a1 `i` d2)  emp])
  where
-   ela = snd$ esimp vd (e2 `sdiff` a1)
-   e'  = snd $ esimp vd (e1 `u` ela)
+   e2la1 = snd $ esimp vd (e2 `sdiff` a1)
+   e'  = snd $ esimp vd (e1 `u` e2la1)
    d'  = snd $ esimp vd (d1 `u` (d2 `sdiff` r1))
    abs = bSeq as bs
    r'  = snd $ esimp vd (r1 `u` r2)
@@ -1533,6 +1548,31 @@ vReduce vd (_,Comp na [ (_,Comp nm [ (_,Atm s)]) -- M(S) /\
  where sit = snd $ esimp vd (s `i` t)
 \end{code}
 
+\newpage
+\HDRd{$D$ then $D$}
+
+\begin{eqnarray*}
+  && D(L_1) \seq D(L_2)
+\EQ{Defn. $D$}
+\\&& ls(L_1) \land s'=s \land ls'=ls \seq ls(L_2) \land s'=s \land ls'=ls
+\EQ{Defn. $\seq$}
+\\&& \exists s_m,ls_m \bullet
+    ls(L_1) \land s_m=s \land ls_m=ls
+    \land ls_m(L_2) \land s'=s_m \land ls'=ls_m
+\EQ{One-point, $s_m,ls_m = s,ls$}
+\\&& ls(L_1) \land ls(L_2) \land s'=s \land ls'=ls
+\EQ{$A \subseteq S \land B \subseteq S = (A \cup B) \subseteq S$}
+\\&& ls(L_1 \cup L_2) \land s'=s \land ls'=ls
+\EQ{Defn. $D$, fold}
+\\&& D(L_1 \cup L_2)
+\end{eqnarray*}
+\begin{code}
+vReduce d (_,Comp ns [ (_,Comp nd1 [(_,Atm ell1)])    -- D(L1) ;
+                     , (_,Comp nd2 [(_,Atm ell2)]) ]) -- D(L2)
+ | ns == nSeq && nd1 == nD && nd2 == nD
+   =  ( "D;D", bD $ snd $ esimp d (ell1 `u` ell2) )
+\end{code}
+
 
 \HDRc{OLD STUFF}
 
@@ -1556,30 +1596,6 @@ vReduce vd (_,Comp na [ (_,Comp nm [ (_,Atm s)]) -- M(S) /\
 
 We continue with laws concerning $D$, $A$ and $\seq$.
 
-\newpage
-\HDRd{Reduce $D(L_1)\seq D(L_2)$}
-
-\begin{eqnarray*}
-  && D(L_1) \seq D(L_2)
-\EQ{Defn. $D$}
-\\&& ls(L_1) \land s'=s \land ls'=ls \seq ls(L_2) \land s'=s \land ls'=ls
-\EQ{Defn. $\seq$}
-\\&& \exists s_m,ls_m \bullet
-    ls(L_1) \land s_m=s \land ls_m=ls
-    \land ls_m(L_2) \land s'=s_m \land ls'=ls_m
-\EQ{One-point, $s_m,ls_m = s,ls$}
-\\&& ls(L_1) \land ls(L_2) \land s'=s \land ls'=ls
-\EQ{$A \subseteq S \land B \subseteq S = (A \cup B) \subseteq S$}
-\\&& ls(L_1 \cup L_2) \land s'=s \land ls'=ls
-\EQ{Defn. $D$, fold}
-\\&& D(L_1 \cup L_2)
-\end{eqnarray*}
-\begin{code}
-vReduce d (_,Comp ns [ (_,Comp nd1 [(_,Atm ell1)])    -- D(L1) ;
-                     , (_,Comp nd2 [(_,Atm ell2)]) ]) -- D(L2)
- | ns == nSeq && nd1 == nD && nd2 == nD
-   =  ( "D;D", bD $ snd $ esimp d (ell1 `u` ell2) )
-\end{code}
 
 \newpage
 \HDRd{Reduce $D(L_1) ;  A(I,O,as,R,A,L_2)$}
@@ -2462,3 +2478,13 @@ we can assert the slightly stronger:
 \RLEQNS{
    atm(a) &=& D(out) \lor X(in|out|a|in|out)
 }
+
+\HDRc{$atm(a) \cseq atm(b)$}
+
+\begin{eqnarray*}
+   \lefteqn{atm(a)[\g{:1},\ell_g/g,out] \lor atm(b)[\g{:2},\ell_g/g,in]}
+\\ &=& D(\ell_g)
+       \lor X(in|\ell_g|a|in|\ell_g)
+       \lor D(out)
+       \lor X(\ell_g|out|b|\ell_g|out)
+\end{eqnarray*}

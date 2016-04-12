@@ -31,6 +31,7 @@ Now, some generic intelligent composite constructors:
 
 \HDRc{Associative Flattening }~
 
+First, building a flattened associative list:
 \begin{code}
 mkAssoc
   :: String -> (MPred s -> Bool) -> [MPred s]-> [MPred s]
@@ -41,6 +42,18 @@ mkAssoc op isOp srpm (mpr:mprs)
  | otherwise  = mkAssoc op isOp (mpr:srpm) mprs
 
 predPrs (_,Comp _ prs) = prs  ;  predPrs _ = []
+\end{code}
+
+Next, a simplifier version that flattens something already built:
+\begin{code}
+flatAssoc isOp mpr@(ms,Comp op mprs)
+ | isOp mpr   = (flatnote,(ms,mkAssoc op isOp [] mprs'))
+ | otherwise  = (note,(ms,Comp op mprs'))
+ where
+   (notes,mprs') = unzip $ map (flatAssoc isOp) mprs
+   flatnote = (op++"-flatten")
+   note = if all null notes then "" else flatnote
+flatAssoc isOp mpr = ("", mpr)
 \end{code}
 
 \newpage
