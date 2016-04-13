@@ -15,9 +15,14 @@
 \def\phlor{\phantom{\lor}}
 
 % healthiness
-\def\DL{\mathbf{DL}}
-\def\KS{\mathbf{KS}}
-\def\W{\mathbf{W}}
+\def\WWH#1#2#3#4{\mathbf{#1}_{#2,#3}^{#4}}
+
+\def\DLP#1#2#3{\WWH{DL}{#1}{#2}{#3}}
+\def\KSP#1#2#3{\WWH{KS}{#1}{#2}{#3}}
+\def\WP#1#2#3{\WWH{W}{#1}{#2}{#3}}
+\def\DL{\DLP{in}{out}{g}}
+\def\KS{\KSP{in}{out}{g}}
+\def\W{\WP{in}{out}{g}}
 
 % semantic macros
 \def\lexc#1#2{ls\ominus(#1|#2)}

@@ -756,21 +756,21 @@ Full forms
 
 \HDRc{Healthiness Predicates}
 
-It now looks like we really need the following healthiness condition:
+It now looks like we really need the following \emph{parameterised}  healthiness condition:
 \RLEQNS{
- \DL(P)
+ \DLP i o g(P)
  &\defs&
    P & \mbox{Disjoint Labels}
-\\ && {} \land (ls(in) \implies ls(\B{out,labs(g)})
-\\ && {} \land (ls(out) \implies ls(\B{in,labs(g)}))
-\\ && {} \land (\lnot ls(\B{labs(g)}) \implies ls(\B{in,out}))
+\\ && {} \land (ls(i) \implies ls(\B{o,labs(g)})
+\\ && {} \land (ls(o) \implies ls(\B{i,labs(g)}))
+\\ && {} \land (\lnot ls(\B{labs(g)}) \implies ls(\B{i,o}))
 \\
-\\ \KS(P) &\defs& ls(\B{out}) * P & \mbox{Keep Spinning}
+\\ \KSP  i o g (P) &\defs& ls(\B{o}) * P & \mbox{Keep Spinning}
 }
 
 We define our main healthiness condition:
 \RLEQNS{
-\W &\defs& \KS \circ \DL
+\WP i o g &\defs& \KSP i o g \circ \DLP i o g
 }
 \begin{code}
 nW = "W" -- internal abstract name
