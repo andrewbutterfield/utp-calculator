@@ -1525,6 +1525,12 @@ vReduce vd (_,Comp ns [ (_,Comp nx1 [ (_,Atm e1)     -- X(E1
    r'  = snd $ esimp vd (r1 `u` r2)
    a'  = snd $ esimp vd ((a1 `sdiff` r2) `u` a2)
 \end{code}
+We easily see that composing $X(E|D|a|R|A)$ with iteslf results in
+\[
+X(E|D|a;a|R|A)
+\land (E\setminus A)\cap R = \emptyset
+\land A \cap D = \emptyset
+\]
 
 \HDRd{$M$ and $D$}
 
