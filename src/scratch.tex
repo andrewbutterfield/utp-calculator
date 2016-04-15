@@ -109,13 +109,14 @@ Now apply the new $\DLP{}{}{}$ healthiness conditions:
 \\ \DLP{\ell_g}{out}{\g{:2}} &=&[\ell_g|out|\g{:2}]& \mbox{also for }atm(b)
 \\ ~[in|out|g] \land [in|\ell_g|\g{:1}]
    &=&
-   \multicolumn{2}{l}{[in|out|\ell_g|\g{:1}|\g{:2}]}
+   \multicolumn{2}{l}{[in|out|\ell_g|\g{:1}|\g{:2}|\g1|\g2]}
 \\ ~[in|out|g] \land [\ell_g|out|\g{:2}]
    &=&
-   \multicolumn{2}{l}{[in|out|\ell_g|\g{:2}|\g{:1}]}
-\\ \DL \land \DLP{in}{\ell_g}{\g{:1}}  &=& [in|out|\ell_g|\g{:1}|\g{:2}]&
-\\ \DL \land \DLP{\ell_g}{out}{\g{:2}} &=& [in|out|\ell_g|\g{:1}|\g{:2}]&
-\\ \DL \land \DLP{in}{\ell_g}{\g{:1}} \DLP{\ell_g}{out}{\g{:2}} &=& [in|out|\ell_g|\g{:1}|\g{:2}]&
+   \multicolumn{2}{l}{[in|out|\ell_g|\g{:2}|\g{:1}|\g1|\g2]}
+\\ \DL \land \DLP{in}{\ell_g}{\g{:1}}  &=& [in|out|\ell_g|\g{:1}|\g{:2}|\g1|\g2]&
+\\ \DL \land \DLP{\ell_g}{out}{\g{:2}} &=& [in|out|\ell_g|\g{:1}|\g{:2}|\g1|\g2]&
+\\ \DL \land \DLP{in}{\ell_g}{\g{:1}} \DLP{\ell_g}{out}{\g{:2}}
+    &=& [in|out|\ell_g|\g{:1}|\g{:2}|\g1|\g2]&
 }
 Here is previous result with False ones removed, and invariant added
 {\footnotesize\begin{verbatim}

@@ -1,0 +1,113 @@
+\HDRa{Math support for Views}\label{ha:mViews}
+
+We shall start with a quick look at the semantics:
+
+\HDRb{Definitions}
+
+\RLEQNS{
+   \I o i g &\defs& [i|o|G]
+\\ \DLP i o G (P) &\defs& P \land\I i o G
+\\ \KSP i o G(P) &\defs& ls(\B{o}) * P
+\\ \W(P) &\defs& \DL \circ \KS
+\\ &=& \I i o G \land (~ls(\B o) * P~)
+\\ E \arr a N
+   &\defs&
+   ls(E) \land s'\in\sem a s \land ls'=(ls\setminus E)\cup N
+\\ atm(a) &\defs& \W(in \arr a out)
+\\ P \cseq Q
+   &\defs&
+   \W( P[\ell_g,\g{:1}/out,g]
+       \lor Q[\ell_g,\g{:2}/in,g])
+}
+
+\RLEQNS{
+   D(T) &\defs& ls(T) \land \Skip
+\\ X(E|a|N) &\defs& ls(E) \land s'\in\sem a s \land ls'=(ls\setminus E)\cup N
+}
+
+\HDRb{Semantic Calculations}
+
+\HDRc{Atomic Semantics}
+
+\RLEQNS{
+  && atm(a)
+\EQ{defn $atm$}
+\\&&  \W(in \arr a out)
+\EQ{expand $\W$}
+\\&& [in|out|g] \land (ls(\B{out}) * (in \arr a out))
+\EQ{loop unroll, twice}
+\\&    & ls(out) \land \Skip & [in|out|g]
+\\&\lor& ls(\B{out}) \land  (in \arr a out)
+         \seq ls(out) \land \Skip
+\\&\lor& (ls(\B{out}) \land  (in \arr a out)
+         \seq ls(\B{out}) \land  (in \arr a out)
+         \seq ls(\B{out}) * (in \arr a out)
+\EQ{pull before-expr back through $\seq$, $\Skip$-r-unit}
+\\&    & ls(out) \land \Skip & [in|out|g]
+\\&\lor& ls(\B{out}) \land  (in \arr a out)
+         \land ls'(out)
+\\&\lor& (ls(\B{out}) \land  (in \arr a out)
+         \seq ls(\B{out}) \land  (in \arr a out)
+         \seq ls(\B{out}) * (in \arr a out)
+\EQ{$(\_\arr a out) \seq ls(\B{out})$ is False}
+\\&    & ls(out) \land \Skip & [in|out|g]
+\\&\lor& ls(\B{out}) \land  (in \arr a out)
+         \land ls'(out)
+\EQ{$(\_\arr a out)$ implies $ls'(out)$}
+\\&    & ls(out) \land \Skip & [in|out|g]
+\\&\lor& ls(\B{out}) \land  (in \arr a out)
+\EQ{$[in|out|g] \land ls(in)$ implies $ls(\B{out})$}
+\\&    & ls(out) \land \Skip & [in|out|g]
+\\&\lor& (in \arr a out)
+\EQ{shorthand}
+\\&& [in|out|g] \land ( D(out) \lor (in \arr a out) )
+}
+
+\HDRc{Sequence Semantics}
+
+\RLEQNS{
+  && atm(a)[\ell_g,\g{:1}/out,g]
+\EQ{atomic calculation}
+\\&& ( [in|out|g] \land ( D(out) \lor (in \arr a out) ))
+    [\ell_g,\g{:1}/out,g]
+\EQ{substitution}
+\\&& [in|\ell_g|\g{:1}] \land ( D(\ell_g) \lor (in \arr a \ell_g) )
+\\&& \coz{and for the $atm(b)$ case below \dots}
+\\&& [\ell_g|out|\g{:2}] \land ( D(out) \lor (\ell_g \arr b out) )
+}
+
+\RLEQNS{
+   g - \ell_g &=& [\g:|\g1|\g2]
+\\ g - \g{:1} &=& [\ell_g|\g1|\g2|\ell_{g:}|\g{::}|\g{:2}]
+\\ g - \g{:2} &=& [\ell_g|\g1|\g2|\ell_{g:}|\g{::}|\g{:1}]
+\\ ~[in|\ell_g|\g{:1}] \land [in|\ell_g|\g{:2}]
+   &=& [in|\ell_g|\g{:1}|\g{:2}]
+\\ ~[in|out|g] \land [in|\ell_g|\g{:1}]
+   &=& [in|out|\ell_g|\g{:1}|\g1|\g2|\ell_{g:}|\g{::}|\g{:2}]
+\\ ~[in|out|g] \land [in|\ell_g|\g{:2}]
+   &=& [in|out|\ell_g|\g{:2}|\g1|\g2|\ell_{g:}|\g{::}|\g{:1}]
+\\ ~[in|out|g] \land [in|\ell_g|\g{:1}] \land [in|\ell_g|\g{:2}]
+   &=& [in|out|\ell_g|\ell_{g:}|\g{::}|\g{:1}|\g{:2}|\g1|\g2]
+}
+\RLEQNS{
+  && atm(a) \cseq atm(b)
+\EQ{Defn. $\cseq$}
+\\&& \W( atm(a)[\ell_g,\g{:1}/out,g]
+       \lor atm(b)[\ell_g,\g{:2}/in,g])
+\EQ{Expand $\W$}
+\\&& [in|out|g]
+     \land (~ ls(\B{out})
+       * atm(a)[\ell_g,\g{:1}/out,g]
+           \lor
+           atm(b)[\ell_g,\g{:2}/in,g] ~)
+\EQ{Sequence $atm$ calc. above}
+\\&& ls(\B{out}) * & [in|out|g]
+\\&& ([in|\ell_g|\g{:1}] \land ( D(\ell_g) \lor (in \arr a \ell_g) ))
+     \lor
+    ([\ell_g|out|\g{:2}] \land ( D(out) \lor (\ell_g \arr b out) ))
+\EQ{label-sets calc above}
+\\&& ls(\B{out}) * & [in|out|g]
+\\&& ( D(\ell_g) \lor (in \arr a \ell_g) ) \land [in|out|\ell_g|\ell_{g:}|\g{::}|\g{:1}|\g{:2}|\g1|\g2]
+\\&& \lor
+    ( D(out) \lor (\ell_g \arr b out) ) \land  [in|out|\ell_g|\ell_{g:}|\g{::}|\g{:1}|\g{:2}|\g1|\g2]
+}
