@@ -102,12 +102,61 @@ We shall start with a quick look at the semantics:
            atm(b)[\ell_g,\g{:2}/in,g] ~)
 \EQ{Sequence $atm$ calc. above}
 \\&& ls(\B{out}) * & [in|out|g]
-\\&& ([in|\ell_g|\g{:1}] \land ( D(\ell_g) \lor (in \arr a \ell_g) ))
-     \lor
-    ([\ell_g|out|\g{:2}] \land ( D(out) \lor (\ell_g \arr b out) ))
+\\&& [in|\ell_g|\g{:1}] \land ( D(\ell_g) \lor (in \arr a \ell_g) ) \lor {}
+\\&& [\ell_g|out|\g{:2}] \land ( D(out) \lor (\ell_g \arr b out) )
 \EQ{label-sets calc above}
 \\&& ls(\B{out}) * & [in|out|g]
-\\&& ( D(\ell_g) \lor (in \arr a \ell_g) ) \land [in|out|\ell_g|\ell_{g:}|\g{::}|\g{:1}|\g{:2}|\g1|\g2]
+\\&& ( D(\ell_g) \lor (in \arr a \ell_g) ) 
+     \land [in|out|\ell_g|\ell_{g:}|\g{::}|\g{:1}|\g{:2}|\g1|\g2]
 \\&& \lor
-    ( D(out) \lor (\ell_g \arr b out) ) \land  [in|out|\ell_g|\ell_{g:}|\g{::}|\g{:1}|\g{:2}|\g1|\g2]
+    ( D(out) \lor (\ell_g \arr b out) ) 
+     \land  [in|out|\ell_g|\ell_{g:}|\g{::}|\g{:1}|\g{:2}|\g1|\g2]
+\EQ{shorthand}
+\\&& ls(\B{out}) * S & [in|out|g]
+\\&& \textbf{where}
+\\&& S =
+   ( D(\ell_g) \lor (in \arr a \ell_g)\lor  D(out) \lor (\ell_g \arr b out) ) 
+\\&& \qquad {} \land  [in|out|\ell_g|\ell_{g:}|\g{::}|\g{:1}|\g{:2}|\g1|\g2]
+\EQ{loop unroll twice}
+\\&& D(out) 
+     \lor S \seq D(out)
+     \lor S \seq S \seq ls(\B{out}) * S
+\\&& {} \land  [in|out|\ell_g|\ell_{g:}|\g{::}|\g{:1}|\g{:2}|\g1|\g2]
 }
+
+We now assume the invariant 
+$[in|out|\ell_g|\ell_{g:}|\g{::}|\g{:1}|\g{:2}|\g1|\g2]$
+and proceed to calculate out 
+$D(out) \seq S$
+and $S\seq S$.
+
+We note a useful property of $D$:
+\RLEQNS{
+  && D(out)
+\EQ{expand $D$ (and $\Skip$)}
+\\&& ls(out) \land s'=s \land ls'=ls
+\EQ{use equality of $ls$ and $ls'$ to add implied conjunct}
+\\&& ls(out) \land s'=s \land ls'=ls \land ls'(out)
+\EQ{use equality of $ls$ and $ls'$ to remove implied conjunct}
+\\&& s'=s \land ls'=ls \land ls'(out)
+\EQ{Defn of $\Skip$}
+\\&& \Skip \land ls'(out)
+}
+
+\RLEQNS{
+  && D(out) \seq S
+\EQ{expand $D$, using property above}
+\\&& \Skip \land ls'(out) \seq S
+\EQ{push after-exrp through $\seq$}
+\\&& \Skip \seq ls(out) \land S
+\EQ{$\seq$-l-unit}
+\\&& ls(out) \land S
+\EQ{expand $S$ and distribute}
+\\&& ls(out) \land
+  ( D(\ell_g) \lor (in \arr a \ell_g)\lor  D(out) \lor (\ell_g \arr b out) ) 
+}
+
+\RLEQNS{
+  && S \seq S
+}
+
