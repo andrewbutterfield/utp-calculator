@@ -143,20 +143,91 @@ We note a useful property of $D$:
 \\&& \Skip \land ls'(out)
 }
 
+We then note another:
+\RLEQNS{
+  && D(N) \seq P
+\EQ{expand $D$, using property above}
+\\&& \Skip \land ls'(N) \seq P
+\EQ{push after-expr through $\seq$}
+\\&& \Skip \seq ls(N) \land P
+\EQ{$\seq$-l-unit}
+\\&& ls(N) \land P
+}
+Note that an easy consequence of this is that $D(L)\seq D(L) = D(L)$,
+and it is easy to show that $P \seq D(N) = P \land ls'(N)$.
+
 \RLEQNS{
   && D(out) \seq S
-\EQ{expand $D$, using property above}
-\\&& \Skip \land ls'(out) \seq S
-\EQ{push after-exrp through $\seq$}
-\\&& \Skip \seq ls(out) \land S
-\EQ{$\seq$-l-unit}
+\EQ{using property above}
 \\&& ls(out) \land S
 \EQ{expand $S$ and distribute}
-\\&& ls(out) \land
-  ( D(\ell_g) \lor (in \arr a \ell_g)\lor  D(out) \lor (\ell_g \arr b out) ) 
+\\&& ls(out) \land D(\ell_g) \lor
+     ls(out) \land (in \arr a \ell_g) \lor {}
+\\&& ls(out) \land D(out) \lor
+     ls(out) \land (\ell_g \arr b out)
+\EQ{apply invariant check}
+\\&& \false \lor
+     \false \lor {}
+\\&& ls(out) \land D(out) \lor
+     \false
+\EQ{simplify, noting $D(out) = ls(out)\land\Skip$}
+\\&& D(out)}
+
+Composing very composable actions, ignoring invariants
+\RLEQNS{
+  && E \arr a A \seq A \arr b B
+\EQ{Defn. action}
+\\&& ls(E) \land [a] \land ls'=(ls\setminus E)\cup A \seq {}
+\\&& ls(A) \land [b] \land ls'=(ls\setminus A)\cup B
+\EQ{Isn't it obvious?}
+\\&& ls(E) \land [a\seq b] \land ls'=(ls\setminus E)\cup B
+\EQ{Defn. action}
+\\&& E \arr{a\seq b} B
 }
 
 \RLEQNS{
   && S \seq S
+\EQ{Expand both $S$}
+\\&& \quad D(\ell_g) \lor (in \arr a \ell_g)\lor  D(out) \lor (\ell_g \arr b out)
+\\&& \,{} \seq
+     D(\ell_g) \lor (in \arr a \ell_g)\lor  D(out) \lor (\ell_g \arr b out)
+\EQ{distribute (step 1)}
+\\&& D(\ell_g) \seq
+     (~D(\ell_g) \lor (in \arr a \ell_g)\lor  D(out) \lor (\ell_g \arr b out)~)
+\\&& (in \arr a \ell_g) \seq
+     (~D(\ell_g) \lor (in \arr a \ell_g)\lor  D(out) \lor (\ell_g \arr b out)~)
+\\&& D(out) \seq
+     (~D(\ell_g) \lor (in \arr a \ell_g)\lor  D(out) \lor (\ell_g \arr b out)~)
+\\&& (\ell_g \arr b out) \seq
+     (~D(\ell_g) \lor (in \arr a \ell_g)\lor  D(out) \lor (\ell_g \arr b out)~)
+\EQ{delete those ruled out by invariant.}
+\\&& D(\ell_g) \seq
+     (~D(\ell_g) \lor (\ell_g \arr b out)~)
+\\&& (in \arr a \ell_g) \seq
+     (~D(\ell_g) \lor (\ell_g \arr b out)~)
+\\&& D(out) \seq
+     D(out)
+\\&& (\ell_g \arr b out) \seq
+     D(out)
+\EQ{distribute (step 2), and simplify $D(L)^2$) and $D\seq P$ or $P\seq D$}
+\\&& D(\ell_g)  \lor
+     (ls(\ell_g) \land (\ell_g \arr b out)) \lor {}
+\\&& ((in \arr a \ell_g) \land ls'(\ell_g)) \lor
+     ((in \arr a \ell_g) \seq (\ell_g \arr b out)) \lor {}
+\\&& D(out)  \lor
+     ((\ell_g \arr b out)\land ls'(out))
+\EQ{obvious(?) subsumptions.}
+\\&& D(\ell_g)  \lor
+     (\ell_g \arr b out) \lor
+     (in \arr a \ell_g) \lor
+     D(out)  \lor {}
+\\&& ((in \arr a \ell_g) \seq (\ell_g \arr b out))
+\EQ{do very composable composition, re-arrange}
+\\&& (in \arr a \ell_g)  \lor
+     D(\ell_g)  \lor
+     (\ell_g \arr b out) \lor
+     (in \arr{a \seq b}  out) \lor
+     D(out)
 }
+Hypothesis: $S^n = S^2$, for $n \geq 2$.
 
