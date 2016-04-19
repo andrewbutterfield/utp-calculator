@@ -1,34 +1,5 @@
 \HDRa{Math support for Views}\label{ha:mViews}
 
-We shall start with a quick look at the semantics:
-
-\HDRb{Definitions}
-
-\RLEQNS{
-   \I o i g &\defs& [i|o|G]
-\\ \DLP i o G (P) &\defs& P \land\I i o G
-\\ \KSP i o G(P) &\defs& ls(\B{o}) * P
-\\ \W(P) &\defs& \DL \circ \KS
-\\ &=& \I i o G \land (~ls(\B o) * P~)
-\\ E \arr a N
-   &\defs&
-   ls(E) \land s'\in\sem a s \land ls'=(ls\setminus E)\cup N
-\\ atm(a) &\defs& \W(in \arr a out)
-\\ P \cseq Q
-   &\defs&
-   \W( P[\ell_g,\g{:1}/out,g]
-       \lor Q[\ell_g,\g{:2}/in,g])
-\\ P + Q
-   &\defs&
-   \W(P[g_{1:},\ell_{g1}/g,in] \lor Q[g_{2:},\ell_{g2}/g,in])
-}
-
-\RLEQNS{
-   D(T) &\defs& ls(T) \land \Skip
-\\ X(E|a|N) &\defs& ls(E) \land s'\in\sem a s \land ls'=(ls\setminus E)\cup N
-}
-
-\newpage
 \HDRb{Working with the Invariant}
 
 We have introduced the following notation:
@@ -50,6 +21,116 @@ then none of the others do (and similarly for $ls'$):
         i \neq j \land L_i \cap ls' \neq \emptyset
         \implies L_j \cap ls' = \emptyset
 }
+
+By \emph{design}, our labels and generator scheme
+establishes the following (weakest) invariant:
+\[ [in|out|g]\]
+and for any generator expression $G$ we can split it into
+four disjoint parts (also by design) to get
+\[  [\ell_G|G_{:}|G_1|G_2] . \]
+So we can always strengthen out invariant by splitting some $G$
+in this way:
+\RLEQNS{
+  && [in|out|g]
+\EQ{split $g$}
+\\&& [in|out|\ell_g|\g:|\g1|\g2]
+\EQ{split $\g:$}
+\\&& [in|out|\ell_g| \ell_{g:}|\g{::}|\g{:1}|\g{:2}|\g1|\g2]
+}
+
+\newpage
+\HDRb{Semantic Definitions}
+
+For ``wheels-within-wheels'' to work,
+we need to ensure we spin up as long as any constituent
+atomic action does not have its $out$ label in $ls$.
+\RLEQNS{
+  C &=& ls(\B{OUT}) * \bigvee_{i=1}^n in_i \arr{a_i} out_i
+\\ && \textbf{where }OUT = \setof{out_1,\dots,out_n}
+}
+Now this looks a little non-compositional,
+but perhaps we can get this outcome by only looking one level down\dots
+
+We assume the generator invariant $[in|out|g]$
+and all its strengthening hold throughout.
+
+
+
+\RLEQNS{
+   E \arr a N &\defs& ls(E) \land s'\in\sem a \land ls'=(ls\setminus E)\cup N
+\\ atm(a) &\defs& ls(\B{out}) * in \arr a out
+\\ C \cseq D
+   &\defs&
+   ls(\B{\ell_g,out}) *
+     ( C[\ell_g,\g{:1}/out,g] \lor
+       D[\ell_g,\g{:2}/in,g] )
+\\ C + D
+   &\defs&
+   ls(\B{out}) *
+     ( C[g_{1:},\ell_{g1}/g,in] \lor
+       D[g_{2:},\ell_{g2}/g,in] )
+\\ C \parallel D
+   &\defs&
+   ls(\B{\ell_{g1},\ell_{g2},\ell_{g1:},\ell_{g2:},out}) * {}
+\\&& \quad (~
+      (in \arr{ii} \ell_{g1},\ell{g2}) \lor
+      (\ell_{g1:},\ell{g2:} \arr{ii} out) \lor {}
+\\&& \quad ~~
+       C[g_{1::},\ell_{g1},\ell_{g1:}/g,in,out] \lor
+       D[g_{2::},\ell_{g2},\ell_{g2:}/g,in,out] ~)
+\\ C^*
+   &\defs&
+   ls(\B{out}) *
+     (~ (in \arr{ii} out) \lor
+       (in \arr{ii} \ell_g) \lor
+       C[\g:,\ell_g,in/g,in,out] ~)
+}
+
+
+\newpage
+\HDRb{Semantic Calculations}
+
+We need to only investigate the combinators
+applied to atoms, but also some nesting to see if everything
+does keep going.
+
+The basic principle relies on the following properties of
+standard UTP iteration:
+\RLEQNS{
+  && c*P
+\EQ{loop unroll}
+\\&& P \seq c*P \cond c \Skip
+\EQ{defn. of $\cond{}$}
+\\&& \lnot c \land \Skip
+     \lor
+     c \land (P \seq c*P)
+\EQ{push $c$ into $\seq$}
+\\&& \lnot c \land \Skip
+     \lor
+     c \land P \seq c*P
+\EQ{repeat above steps several times with $\lor$-$\seq$-distr.}
+\\&& \lnot c \land \Skip
+     \lor
+     c \land P \seq \lnot c \land \Skip
+     \lor
+     (c \land P)^2 \seq \lnot c \land \Skip
+     \lor \dots \lor
+     (c \land P)^n \seq c*P
+\EQ{pushed to the limit}
+\\&& \bigvee_{i=0}^\infty (c \land P)^i \seq \lnot c \land \Skip
+}
+
+We introduce further shorthand:
+\RLEQNS{
+   D &\defs& \lnot c \land \Skip
+\\ S &\defs& c \land P
+\\ c*P &=& \bigvee_{i=0}^\infty S^i \seq D
+}
+So the nature of $S^i\seq D$ is the critical thing to compute.
+
+
+SOME OLD STUFF THAT MAY NEED REWRITING:
+
 Now, for our basic primitives some easy calculations show:
 \RLEQNS{
    D(T) &\implies& ls(T) \land ls'(T)
@@ -68,395 +149,4 @@ of these two violate the invariant, e.g, given $[in|out|\ell_g]$
 \\ (in \arr a \ell_g) \seq (in \arr a \ell_g) &=& \false
 \\ (in \arr a \ell_g) \seq D(out) &=& \false
 \\ (in \arr a \ell_g) \seq D(\ell_g) &=& (in \arr a \ell_g)
-}
-
-By \emph{design}, our labels and generator scheme
-establishes the following (weakest) invariant:
-\[ [in|out|g]\]
-and for any generator expression $G$ we can split it into
-four disjoint parts (also by design) to get
-\[  [\ell_G|G_{:}|G_1|G_2] . \]
-So we can always strengthen out invariant by splitting some $G$
-in this way:
-\RLEQNS{
-  && [in|out|g]
-\EQ{split $g$}
-\\&& [in|out|\ell_g|\g:|\g1|\g2]
-\EQ{split $\g:$}
-\\&& [in|out|\ell_g| \ell_{g:}|\g{::}|\g{:1}|\g{:2}|\g1|\g2]
-}
-\newpage
-\HDRb{Semantic Calculations}
-
-The key principle being used is the following:
-\RLEQNS{
-  && \W(S) & S \mbox{ is iteration `step'}
-\EQ{expanding $\W$, ignoring invariant part}
-\\&& ls(\B{out}) * S
-\EQ{loop unroll $n$ times}
-\\&& D(out) \lor S\seq D(out) \lor S^2\seq D(out) \lor
-     \dots \lor S^n \seq ls(\B{out})*S
-}
-At this point we note that if we calculate  $S^i\seq D(out)$
-for small $i$ we should notice terms disappearing or getting subsumed,
-leading to a finite disjunction of the form:
-\[
-  \bigvee_{i \in 0\dots k} S^i \seq D(out)
-\]
-
-We summarise the results from below here,
-with the invariant instance used in each at the end
-of that result on a line by itself
-\RLEQNS{
-   atm(a) &=& D(out) \lor (in \arr a out)
-\\ && [in|out|g]
-\\ atm(a) \cseq atm(b)
-   &=& (in \arr a \ell_g)  \lor
-     D(\ell_g)  \lor
-     (\ell_g \arr b out) \lor
-     (in \arr{a \seq b}  out) \lor
-     D(out)
-\\ && [in|out|\ell_g|\ell_{g:}|\g{::}|\g{:1}|\g{:2}|\g1|\g2]
-}
-
-
-\newpage
-\HDRc{Atomic Semantics}
-
-Here $S = in \arr a out$.
-
-A complete restart:
-\RLEQNS{
-  && S \seq D(out)
-\EQ{expand $S$}
-\\&& (in \arr a out) \seq D(out)
-\EQ{$D(out)$ is true, and gets absorbed}
-\\&& in \arr a out
-\EQ{shorthand}
-\\&& S
-\\
-\\&& S \seq S
-\EQ{expand $S$}
-\\&& (in \arr a out) \seq (in \arr a out)
-\EQ{fails invariant check}
-\\&& \false
-\\
-\\&& atm(a)
-\EQ{defn., $atm$, shorthand}
-\\&& \W(S)
-\EQ{unroll loop}
-\\&& D(out) \lor S\seq D(out) \lor S^2\seq D(out) \lor S^3\seq D(out) \lor \dots
-\EQ{above calcs}
-\\&& D(out) \lor S \lor \false \lor \false \lor \dots
-\EQ{shorthand}
-\\&& D(out) \lor (in \arr a out)
-}
-
-\RLEQNS{
-  && atm(a)
-\EQ{defn $atm$}
-\\&&  \W(in \arr a out)
-\EQ{expand $\W$}
-\\&& [in|out|g] \land (ls(\B{out}) * (in \arr a out))
-\EQ{loop unroll, twice}
-\\&    & ls(out) \land \Skip & [in|out|g]
-\\&\lor& ls(\B{out}) \land  (in \arr a out)
-         \seq ls(out) \land \Skip
-\\&\lor& (ls(\B{out}) \land  (in \arr a out)
-         \seq ls(\B{out}) \land  (in \arr a out)
-         \seq ls(\B{out}) * (in \arr a out)
-\EQ{pull before-expr back through $\seq$, $\Skip$-r-unit}
-\\&    & ls(out) \land \Skip & [in|out|g]
-\\&\lor& ls(\B{out}) \land  (in \arr a out)
-         \land ls'(out)
-\\&\lor& (ls(\B{out}) \land  (in \arr a out)
-         \seq ls(\B{out}) \land  (in \arr a out)
-         \seq ls(\B{out}) * (in \arr a out)
-\EQ{$(\_\arr a out) \seq ls(\B{out})$ is False}
-\\&    & ls(out) \land \Skip & [in|out|g]
-\\&\lor& ls(\B{out}) \land  (in \arr a out)
-         \land ls'(out)
-\EQ{$(\_\arr a out)$ implies $ls'(out)$}
-\\&    & ls(out) \land \Skip & [in|out|g]
-\\&\lor& ls(\B{out}) \land  (in \arr a out)
-\EQ{$[in|out|g] \land ls(in)$ implies $ls(\B{out})$}
-\\&    & ls(out) \land \Skip & [in|out|g]
-\\&\lor& (in \arr a out)
-\EQ{shorthand}
-\\&& [in|out|g] \land ( D(out) \lor (in \arr a out) )
-}
-
-\newpage
-\HDRc{Sequence Semantics}
-
-Here
-\[ S
-   = D(\ell_g) \lor (in \arr a \ell_g)
-     \lor
-     D(out) \lor (\ell_g \arr b out)
-\]
-
-\RLEQNS{
-  && S \seq D(out)
-\EQ{expand $S$}
-\\&& D(\ell_g) \lor (in \arr a \ell_g)
-     \lor
-     D(out) \lor (\ell_g \arr b out)
-     \seq D(out)
-\EQ{distribute}
-\\&& D(\ell_g)           \seq D(out) & fail
-\\&& (in \arr a \ell_g)  \seq D(out) & fail
-\\&& D(out)              \seq D(out) & ok
-\\&& (\ell_g \arr b out) \seq D(out) & ok
-\EQ{simplify survivors}
-\\&& D(out) \lor (\ell_g \arr b out)
-}
-
-\RLEQNS{
-  && atm(a)[\ell_g,\g{:1}/out,g]
-\EQ{atomic calculation}
-\\&& ( [in|out|g] \land ( D(out) \lor (in \arr a out) ))
-    [\ell_g,\g{:1}/out,g]
-\EQ{substitution}
-\\&& [in|\ell_g|\g{:1}] \land ( D(\ell_g) \lor (in \arr a \ell_g) )
-\\&& \coz{and for the $atm(b)$ case below \dots}
-\\&& [\ell_g|out|\g{:2}] \land ( D(out) \lor (\ell_g \arr b out) )
-}
-
-\RLEQNS{
-   g - \ell_g &=& [\g:|\g1|\g2]
-\\ g - \g{:1} &=& [\ell_g|\g1|\g2|\ell_{g:}|\g{::}|\g{:2}]
-\\ g - \g{:2} &=& [\ell_g|\g1|\g2|\ell_{g:}|\g{::}|\g{:1}]
-\\ ~[in|\ell_g|\g{:1}] \land [in|\ell_g|\g{:2}]
-   &=& [in|\ell_g|\g{:1}|\g{:2}]
-\\ ~[in|out|g] \land [in|\ell_g|\g{:1}]
-   &=& [in|out|\ell_g|\g{:1}|\g1|\g2|\ell_{g:}|\g{::}|\g{:2}]
-\\ ~[in|out|g] \land [in|\ell_g|\g{:2}]
-   &=& [in|out|\ell_g|\g{:2}|\g1|\g2|\ell_{g:}|\g{::}|\g{:1}]
-\\ ~[in|out|g] \land [in|\ell_g|\g{:1}] \land [in|\ell_g|\g{:2}]
-   &=& [in|out|\ell_g|\ell_{g:}|\g{::}|\g{:1}|\g{:2}|\g1|\g2]
-}
-\RLEQNS{
-  && atm(a) \cseq atm(b)
-\EQ{Defn. $\cseq$}
-\\&& \W( atm(a)[\ell_g,\g{:1}/out,g]
-       \lor atm(b)[\ell_g,\g{:2}/in,g])
-\EQ{Expand $\W$}
-\\&& [in|out|g]
-     \land (~ ls(\B{out})
-       * atm(a)[\ell_g,\g{:1}/out,g]
-           \lor
-           atm(b)[\ell_g,\g{:2}/in,g] ~)
-\EQ{Sequence $atm$ calc. above}
-\\&& ls(\B{out}) * & [in|out|g]
-\\&& [in|\ell_g|\g{:1}] \land ( D(\ell_g) \lor (in \arr a \ell_g) ) \lor {}
-\\&& [\ell_g|out|\g{:2}] \land ( D(out) \lor (\ell_g \arr b out) )
-\EQ{label-sets calc above}
-\\&& ls(\B{out}) * & [in|out|g]
-\\&& ( D(\ell_g) \lor (in \arr a \ell_g) )
-     \land [in|out|\ell_g|\ell_{g:}|\g{::}|\g{:1}|\g{:2}|\g1|\g2]
-\\&& \lor
-    ( D(out) \lor (\ell_g \arr b out) )
-     \land  [in|out|\ell_g|\ell_{g:}|\g{::}|\g{:1}|\g{:2}|\g1|\g2]
-\EQ{shorthand}
-\\&& ls(\B{out}) * S & [in|out|g]
-\\&& \textbf{where}
-\\&& S =
-   ( D(\ell_g) \lor (in \arr a \ell_g)\lor  D(out) \lor (\ell_g \arr b out) )
-\\&& \qquad {} \land  [in|out|\ell_g|\ell_{g:}|\g{::}|\g{:1}|\g{:2}|\g1|\g2]
-\EQ{loop unroll twice}
-\\&& D(out)
-     \lor S \seq D(out)
-     \lor S \seq S \seq ls(\B{out}) * S
-\\&& {} \land  [in|out|\ell_g|\ell_{g:}|\g{::}|\g{:1}|\g{:2}|\g1|\g2]
-}
-
-We now assume the invariant
-$[in|out|\ell_g|\ell_{g:}|\g{::}|\g{:1}|\g{:2}|\g1|\g2]$
-and proceed to calculate out
-$D(out) \seq S$
-and $S\seq S$.
-
-We note a useful property of $D$:
-\RLEQNS{
-  && D(out)
-\EQ{expand $D$ (and $\Skip$)}
-\\&& ls(out) \land s'=s \land ls'=ls
-\EQ{use equality of $ls$ and $ls'$ to add implied conjunct}
-\\&& ls(out) \land s'=s \land ls'=ls \land ls'(out)
-\EQ{use equality of $ls$ and $ls'$ to remove implied conjunct}
-\\&& s'=s \land ls'=ls \land ls'(out)
-\EQ{Defn of $\Skip$}
-\\&& \Skip \land ls'(out)
-}
-
-We then note another:
-\RLEQNS{
-  && D(N) \seq P
-\EQ{expand $D$, using property above}
-\\&& \Skip \land ls'(N) \seq P
-\EQ{push after-expr through $\seq$}
-\\&& \Skip \seq ls(N) \land P
-\EQ{$\seq$-l-unit}
-\\&& ls(N) \land P
-}
-Note that an easy consequence of this is that $D(L)\seq D(L) = D(L)$,
-and it is easy to show that $P \seq D(N) = P \land ls'(N)$.
-
-\RLEQNS{
-  && D(out) \seq S
-\EQ{using property above}
-\\&& ls(out) \land S
-\EQ{expand $S$ and distribute}
-\\&& ls(out) \land D(\ell_g) \lor
-     ls(out) \land (in \arr a \ell_g) \lor {}
-\\&& ls(out) \land D(out) \lor
-     ls(out) \land (\ell_g \arr b out)
-\EQ{apply invariant check}
-\\&& \false \lor
-     \false \lor {}
-\\&& ls(out) \land D(out) \lor
-     \false
-\EQ{simplify, noting $D(out) = ls(out)\land\Skip$}
-\\&& D(out)}
-
-Composing very composable actions, ignoring invariants
-\RLEQNS{
-  && E \arr a A \seq A \arr b B
-\EQ{Defn. action}
-\\&& ls(E) \land [a] \land ls'=(ls\setminus E)\cup A \seq {}
-\\&& ls(A) \land [b] \land ls'=(ls\setminus A)\cup B
-\EQ{Isn't it obvious?}
-\\&& ls(E) \land [a\seq b] \land ls'=(ls\setminus E)\cup B
-\EQ{Defn. action}
-\\&& E \arr{a\seq b} B
-}
-
-\RLEQNS{
-  && S \seq S
-\EQ{Expand both $S$}
-\\&& \quad D(\ell_g) \lor (in \arr a \ell_g)\lor  D(out) \lor (\ell_g \arr b out)
-\\&& \,{} \seq
-     D(\ell_g) \lor (in \arr a \ell_g)\lor  D(out) \lor (\ell_g \arr b out)
-\EQ{distribute (step 1)}
-\\&& D(\ell_g) \seq
-     (~D(\ell_g) \lor (in \arr a \ell_g)\lor  D(out) \lor (\ell_g \arr b out)~)
-\\&& (in \arr a \ell_g) \seq
-     (~D(\ell_g) \lor (in \arr a \ell_g)\lor  D(out) \lor (\ell_g \arr b out)~)
-\\&& D(out) \seq
-     (~D(\ell_g) \lor (in \arr a \ell_g)\lor  D(out) \lor (\ell_g \arr b out)~)
-\\&& (\ell_g \arr b out) \seq
-     (~D(\ell_g) \lor (in \arr a \ell_g)\lor  D(out) \lor (\ell_g \arr b out)~)
-\EQ{delete those ruled out by invariant.}
-\\&& D(\ell_g) \seq
-     (~D(\ell_g) \lor (\ell_g \arr b out)~)
-\\&& (in \arr a \ell_g) \seq
-     (~D(\ell_g) \lor (\ell_g \arr b out)~)
-\\&& D(out) \seq
-     D(out)
-\\&& (\ell_g \arr b out) \seq
-     D(out)
-\EQ{distribute (step 2), and simplify $D(L)^2$) and $D\seq P$ or $P\seq D$}
-\\&& D(\ell_g)  \lor
-     (ls(\ell_g) \land (\ell_g \arr b out)) \lor {}
-\\&& ((in \arr a \ell_g) \land ls'(\ell_g)) \lor
-     ((in \arr a \ell_g) \seq (\ell_g \arr b out)) \lor {}
-\\&& D(out)  \lor
-     ((\ell_g \arr b out)\land ls'(out))
-\EQ{obvious(?) subsumptions.}
-\\&& D(\ell_g)  \lor
-     (\ell_g \arr b out) \lor
-     (in \arr a \ell_g) \lor
-     D(out)  \lor {}
-\\&& ((in \arr a \ell_g) \seq (\ell_g \arr b out))
-\EQ{do very composable composition, re-arrange}
-\\&& (in \arr a \ell_g)  \lor
-     D(\ell_g)  \lor
-     (\ell_g \arr b out) \lor
-     (in \arr{a \seq b}  out) \lor
-     D(out)
-}
-
-Hypothesis: $S^n = S^2$, for $n \geq 2$.
-
-If we look at both $S\seq S^2$ and $S^2\seq S$ we see that the
-only potential new terms result from combining
-the `extra' term $(in \arr{a \seq b}  out)$
-in $S^2$ with the four terms of $S$
-
-\RLEQNS{
-   D(\ell_g)  \seq (in \arr{a \seq b}  out) && \false
-\\ (in \arr{a \seq b}  out) \seq D(\ell_g) && \false
-\\ (in \arr a \ell_g) \seq (in \arr{a \seq b}  out) && \false
-\\ (in \arr{a \seq b}  out) \seq (in \arr a \ell_g) && \false
-\\ D(out) \seq (in \arr{a \seq b}  out) && \false
-\\ (in \arr{a \seq b}  out) \seq D(out) && (in \arr{a \seq b}  out)
-\\ (\ell_g \arr b out) \seq (in \arr{a \seq b}  out) && \false
-\\ (in \arr{a \seq b}  out) \seq (\ell_g \arr b out) && \false
-}
-So every term except the `extra` one disappears.
-So we have shown that $S\seq S^2 = S^2 = S^2\seq S$.
-
-We need to do $S^2 \seq D(out)$:
-\RLEQNS{
-  && S^2 \seq D(out)
-\EQ{expand}
-\\&& (in \arr a \ell_g)  \lor
-     D(\ell_g)  \lor
-     (\ell_g \arr b out) \lor
-     (in \arr{a \seq b}  out) \lor
-     D(out)
-     \seq D(out)
-\EQ{distribute}
-\\&& (in \arr a \ell_g)      \seq D(out) & fail
-\\&& D(\ell_g)               \seq D(out) & fail
-\\&& (\ell_g \arr b out)     \seq D(out) & ok
-\\&& (in \arr{a \seq b} out) \seq D(out) & ok
-\\&& D(out)                  \seq D(out) & ok
-\EQ{simplify survivors}
-\\&& (\ell_g \arr b out) \lor
-     (in \arr{a \seq b} out) \lor
-     D(out)
-}
-
-So the expansion of $atm(a) \cseq atm(b)$ becomes
-\RLEQNS{
-  && atm(a) \cseq atm(b)
-\EQ{loop unroll, given $S$}
-\\&& D(out) \lor S\seq D(out) \lor S^2\seq D(out) \lor S^2\seq D(out) \dots
-\EQ{simplify, expand $S^i$}
-\\&& D(out) \lor D(out) \lor (\ell_g \arr b out)
-       \lor S^2\seq D(out) \lor {}
-\\&& (\ell_g \arr b out) \lor
-     (in \arr{a \seq b} out) \lor
-      D(out)
-}
-
-\newpage
-\HDRc{Choice Semantics}
-
-\RLEQNS{
-  && atm(a)[g_{1:},\ell_{g1}/g,in]
-\EQ{defn $atm$}
-\\&& (D(out) \lor (in \arr a out))[g_{1:},\ell_{g1}/g,in]
-\EQ{substitution}
-\\&& (D(out) \lor (\ell_{g1} \arr a out))
-\\
-\\&& atm(b)[g_{2:},\ell_{g2}/g,in]
-\EQ{defn $atm$}
-\\&& (D(out) \lor (in \arr b out))[g_{2:},\ell_{g2}/g,in]
-\EQ{substitution}
-\\&& (D(out) \lor (\ell_{g2} \arr b out))
-\\
-\\&& atm(a)[g_{1:},\ell_{g1}/g,in] + atm(b)[g_{2:},\ell_{g2}/g,in]
-\EQ{merge above two}
-\\&& D(out) \lor (\ell_{g1} \arr a out) \lor (\ell_{g2} \arr b out)
-\EQ{introduce shorthand}
-\\&& S
-}
-
-\RLEQNS{
-  && atm(a) + atm(b)
-\EQ{Defn. $+$}
-\\&& \W(atm(a)[g_{1:},\ell_{g1}/g,in] + atm(b)[g_{2:},\ell_{g2}/g,in])
 }
