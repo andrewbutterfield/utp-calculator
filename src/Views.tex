@@ -1,5 +1,67 @@
 \HDRa{Math support for Views}\label{ha:mViews}
 
+We go for a new formulation
+\RLEQNS{
+   atm(a) &=& \true * (\Skip \lor (in\arr a out) \land [in|out|g])
+\\ C &=& \bigvee_{i=0}^\infty (actions(C)) \land [in|out|g] \land I_C
+}
+where $I_C$ is some more $C$-specific invariants.
+
+\HDRb{Basic Actions}
+
+We define the basic action as:
+\RLEQNS{
+   E \arr a N
+   &\defs&
+   ls(E) \land s' \in \sem a s \land ls' = (ls\setminus E)\cup N
+}
+and calculate its self-sequential composition as:
+\RLEQNS{
+  && E_1 \arr a N_1 \seq E_2 \arr b N_2
+\EQ{Defns of $\seq$ and $\arr{-}$}
+\\&& \exists s_m,ls_m @
+\\&& \quad ls(E_1) \land s_m \in \sem a s \land ls_m = (ls\setminus E_1)\cup N_1
+     \land {}
+\\&& \quad ls_m(E_2) \land s' \in \sem b s_m \land ls' = (ls_m\setminus E_2)\cup N_2
+\EQ{1pt-rule, $ls_m = (ls\setminus E_1)\cup N_1$}
+\\&& \exists s_m @
+\\&& \quad ls(E_1) \land s_m \in \sem a s \land s' \in \sem b s_m \land  {}
+\\&& \quad ((ls\setminus E_1)\cup N_1)(E_2)
+           \land ls' = (((ls\setminus E_1)\cup N_1)\setminus E_2)\cup N_2
+\EQ{push scope in}
+\\&& ls(E_1) \land
+     (\exists s_m @ s_m \in \sem a s \land s' \in \sem b s_m) \land  {}
+\\&& ((ls\setminus E_1)\cup N_1)(E_2) \land
+     ls' = (((ls\setminus E_1)\cup N_1)\setminus E_2)\cup N_2
+\EQ{Defn $\seq$, re-arrange}
+\\&& ls(E_1) \land
+     ((ls\setminus E_1)\cup N_1)(E_2) \land {}
+\\&& s' \in \sem{a\seq b} s) \land
+     ls' = (((ls\setminus E_1)\cup N_1)\setminus E_2)\cup N_2
+\EQ{simplify $ls'$}
+\\&& ls(E_1) \land
+     ((ls\setminus E_1)\cup N_1)(E_2) \land {}
+\\&& s' \in \sem{a\seq b} s) \land
+     ls' = (ls\setminus (E_1\setminus N_1)\cup E_2))
+           \cup (N_1\setminus E_2 \cup N_2
+\EQ{GUESS $ls$}
+\\&& ls(E_1 \cup (E_2 \setminus N_1))\land 
+     s' \in \sem{a\seq b} s) \land {}
+\\&& ls' = (ls\setminus (E_1\setminus N_1\cup E_2))
+           \cup (N_1\setminus E_2 \cup N_2
+\EQ{fold defn $\arr{-}$}
+\\&& (~E_1 \cup (E_2 \setminus N_1)
+     \arr{a\seq b}
+     (N_1\setminus E_2) \cup N_2~)
+}
+
+Check $(E \arr a N)^2$
+\RLEQNS{
+  && (E \arr a N)^2
+\EQ{prev. calc.}
+}
+
+\newpage
 \HDRb{Working with the Invariant}
 
 We have introduced the following notation:
@@ -37,6 +99,10 @@ in this way:
 \EQ{split $\g:$}
 \\&& [in|out|\ell_g| \ell_{g:}|\g{::}|\g{:1}|\g{:2}|\g1|\g2]
 }
+However, sometimes we don't wait to do this.
+The hope is that by requiring $[in|out|g]$ at each level,
+that we get the right level of exclusivity vs. sharing of $ls$
+by generated labels.
 
 \newpage
 \HDRb{Semantic Definitions}
