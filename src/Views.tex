@@ -18,6 +18,9 @@ We shall start with a quick look at the semantics:
    &\defs&
    \W( P[\ell_g,\g{:1}/out,g]
        \lor Q[\ell_g,\g{:2}/in,g])
+\\ P + Q
+   &\defs&
+   \W(P[g_{1:},\ell_{g1}/g,in] \lor Q[g_{2:},\ell_{g2}/g,in])
 }
 
 \RLEQNS{
@@ -25,9 +28,129 @@ We shall start with a quick look at the semantics:
 \\ X(E|a|N) &\defs& ls(E) \land s'\in\sem a s \land ls'=(ls\setminus E)\cup N
 }
 
+\newpage
+\HDRb{Working with the Invariant}
+
+We have introduced the following notation:
+\[
+  [ L_1 | L_2 | \dots | L_n ]
+\]
+Its first intended meaning is to assert that
+all the $L_i$ are mutually disjoint:
+\RLEQNS{
+   \forall i,j \in 1\dots n @ i \neq j \implies L_i \cap L_j = \emptyset
+}
+It also states that if any one of its members overlaps with $ls$,
+then none of the others do (and similarly for $ls'$):
+\RLEQNS{
+  &&   \forall i,j \in 1\dots n @
+        i \neq j \land L_i \cap ls \neq \emptyset
+        \implies L_j \cap ls = \emptyset
+\\&&   \forall i,j \in 1\dots n @
+        i \neq j \land L_i \cap ls' \neq \emptyset
+        \implies L_j \cap ls' = \emptyset
+}
+Now, for our basic primitives some easy calculations show:
+\RLEQNS{
+   D(T) &\implies& ls(T) \land ls'(T)
+\\ E \arr a N &\implies& ls(E) \land ls'(N)
+}
+If we keep in mind that,
+\RLEQNS{
+  P \land c' \seq Q &=& P \seq c \land Q
+}
+then we can very easily read-off whether or not sequential compositions
+of these two violate the invariant, e.g, given $[in|out|\ell_g]$
+\RLEQNS{
+   D(in) \seq D(\ell_g) &=& \false
+\\ (in \arr a \ell_g) \seq (\ell_g \arr b out)
+    &=& (in \arr{a \seq b} out)
+\\ (in \arr a \ell_g) \seq (in \arr a \ell_g) &=& \false
+\\ (in \arr a \ell_g) \seq D(out) &=& \false
+\\ (in \arr a \ell_g) \seq D(\ell_g) &=& (in \arr a \ell_g)
+}
+
+By \emph{design}, our labels and generator scheme
+establishes the following (weakest) invariant:
+\[ [in|out|g]\]
+and for any generator expression $G$ we can split it into
+four disjoint parts (also by design) to get
+\[  [\ell_G|G_{:}|G_1|G_2] . \]
+So we can always strengthen out invariant by splitting some $G$
+in this way:
+\RLEQNS{
+  && [in|out|g]
+\EQ{split $g$}
+\\&& [in|out|\ell_g|\g:|\g1|\g2]
+\EQ{split $\g:$}
+\\&& [in|out|\ell_g| \ell_{g:}|\g{::}|\g{:1}|\g{:2}|\g1|\g2]
+}
+\newpage
 \HDRb{Semantic Calculations}
 
+The key principle being used is the following:
+\RLEQNS{
+  && \W(S) & S \mbox{ is iteration `step'}
+\EQ{expanding $\W$, ignoring invariant part}
+\\&& ls(\B{out}) * S
+\EQ{loop unroll $n$ times}
+\\&& D(out) \lor S\seq D(out) \lor S^2\seq D(out) \lor
+     \dots \lor S^n \seq ls(\B{out})*S
+}
+At this point we note that if we calculate  $S^i\seq D(out)$
+for small $i$ we should notice terms disappearing or getting subsumed,
+leading to a finite disjunction of the form:
+\[
+  \bigvee_{i \in 0\dots k} S^i \seq D(out)
+\]
+
+We summarise the results from below here,
+with the invariant instance used in each at the end
+of that result on a line by itself
+\RLEQNS{
+   atm(a) &=& D(out) \lor (in \arr a out)
+\\ && [in|out|g]
+\\ atm(a) \cseq atm(b)
+   &=& (in \arr a \ell_g)  \lor
+     D(\ell_g)  \lor
+     (\ell_g \arr b out) \lor
+     (in \arr{a \seq b}  out) \lor
+     D(out)
+\\ && [in|out|\ell_g|\ell_{g:}|\g{::}|\g{:1}|\g{:2}|\g1|\g2]
+}
+
+
+\newpage
 \HDRc{Atomic Semantics}
+
+Here $S = in \arr a out$.
+
+A complete restart:
+\RLEQNS{
+  && S \seq D(out)
+\EQ{expand $S$}
+\\&& (in \arr a out) \seq D(out)
+\EQ{$D(out)$ is true, and gets absorbed}
+\\&& in \arr a out
+\EQ{shorthand}
+\\&& S
+\\
+\\&& S \seq S
+\EQ{expand $S$}
+\\&& (in \arr a out) \seq (in \arr a out)
+\EQ{fails invariant check}
+\\&& \false
+\\
+\\&& atm(a)
+\EQ{defn., $atm$, shorthand}
+\\&& \W(S)
+\EQ{unroll loop}
+\\&& D(out) \lor S\seq D(out) \lor S^2\seq D(out) \lor S^3\seq D(out) \lor \dots
+\EQ{above calcs}
+\\&& D(out) \lor S \lor \false \lor \false \lor \dots
+\EQ{shorthand}
+\\&& D(out) \lor (in \arr a out)
+}
 
 \RLEQNS{
   && atm(a)
@@ -63,7 +186,31 @@ We shall start with a quick look at the semantics:
 \\&& [in|out|g] \land ( D(out) \lor (in \arr a out) )
 }
 
+\newpage
 \HDRc{Sequence Semantics}
+
+Here
+\[ S
+   = D(\ell_g) \lor (in \arr a \ell_g)
+     \lor
+     D(out) \lor (\ell_g \arr b out)
+\]
+
+\RLEQNS{
+  && S \seq D(out)
+\EQ{expand $S$}
+\\&& D(\ell_g) \lor (in \arr a \ell_g)
+     \lor
+     D(out) \lor (\ell_g \arr b out)
+     \seq D(out)
+\EQ{distribute}
+\\&& D(\ell_g)           \seq D(out) & fail
+\\&& (in \arr a \ell_g)  \seq D(out) & fail
+\\&& D(out)              \seq D(out) & ok
+\\&& (\ell_g \arr b out) \seq D(out) & ok
+\EQ{simplify survivors}
+\\&& D(out) \lor (\ell_g \arr b out)
+}
 
 \RLEQNS{
   && atm(a)[\ell_g,\g{:1}/out,g]
@@ -106,27 +253,27 @@ We shall start with a quick look at the semantics:
 \\&& [\ell_g|out|\g{:2}] \land ( D(out) \lor (\ell_g \arr b out) )
 \EQ{label-sets calc above}
 \\&& ls(\B{out}) * & [in|out|g]
-\\&& ( D(\ell_g) \lor (in \arr a \ell_g) ) 
+\\&& ( D(\ell_g) \lor (in \arr a \ell_g) )
      \land [in|out|\ell_g|\ell_{g:}|\g{::}|\g{:1}|\g{:2}|\g1|\g2]
 \\&& \lor
-    ( D(out) \lor (\ell_g \arr b out) ) 
+    ( D(out) \lor (\ell_g \arr b out) )
      \land  [in|out|\ell_g|\ell_{g:}|\g{::}|\g{:1}|\g{:2}|\g1|\g2]
 \EQ{shorthand}
 \\&& ls(\B{out}) * S & [in|out|g]
 \\&& \textbf{where}
 \\&& S =
-   ( D(\ell_g) \lor (in \arr a \ell_g)\lor  D(out) \lor (\ell_g \arr b out) ) 
+   ( D(\ell_g) \lor (in \arr a \ell_g)\lor  D(out) \lor (\ell_g \arr b out) )
 \\&& \qquad {} \land  [in|out|\ell_g|\ell_{g:}|\g{::}|\g{:1}|\g{:2}|\g1|\g2]
 \EQ{loop unroll twice}
-\\&& D(out) 
+\\&& D(out)
      \lor S \seq D(out)
      \lor S \seq S \seq ls(\B{out}) * S
 \\&& {} \land  [in|out|\ell_g|\ell_{g:}|\g{::}|\g{:1}|\g{:2}|\g1|\g2]
 }
 
-We now assume the invariant 
+We now assume the invariant
 $[in|out|\ell_g|\ell_{g:}|\g{::}|\g{:1}|\g{:2}|\g1|\g2]$
-and proceed to calculate out 
+and proceed to calculate out
 $D(out) \seq S$
 and $S\seq S$.
 
@@ -229,5 +376,87 @@ Composing very composable actions, ignoring invariants
      (in \arr{a \seq b}  out) \lor
      D(out)
 }
+
 Hypothesis: $S^n = S^2$, for $n \geq 2$.
 
+If we look at both $S\seq S^2$ and $S^2\seq S$ we see that the
+only potential new terms result from combining
+the `extra' term $(in \arr{a \seq b}  out)$
+in $S^2$ with the four terms of $S$
+
+\RLEQNS{
+   D(\ell_g)  \seq (in \arr{a \seq b}  out) && \false
+\\ (in \arr{a \seq b}  out) \seq D(\ell_g) && \false
+\\ (in \arr a \ell_g) \seq (in \arr{a \seq b}  out) && \false
+\\ (in \arr{a \seq b}  out) \seq (in \arr a \ell_g) && \false
+\\ D(out) \seq (in \arr{a \seq b}  out) && \false
+\\ (in \arr{a \seq b}  out) \seq D(out) && (in \arr{a \seq b}  out)
+\\ (\ell_g \arr b out) \seq (in \arr{a \seq b}  out) && \false
+\\ (in \arr{a \seq b}  out) \seq (\ell_g \arr b out) && \false
+}
+So every term except the `extra` one disappears.
+So we have shown that $S\seq S^2 = S^2 = S^2\seq S$.
+
+We need to do $S^2 \seq D(out)$:
+\RLEQNS{
+  && S^2 \seq D(out)
+\EQ{expand}
+\\&& (in \arr a \ell_g)  \lor
+     D(\ell_g)  \lor
+     (\ell_g \arr b out) \lor
+     (in \arr{a \seq b}  out) \lor
+     D(out)
+     \seq D(out)
+\EQ{distribute}
+\\&& (in \arr a \ell_g)      \seq D(out) & fail
+\\&& D(\ell_g)               \seq D(out) & fail
+\\&& (\ell_g \arr b out)     \seq D(out) & ok
+\\&& (in \arr{a \seq b} out) \seq D(out) & ok
+\\&& D(out)                  \seq D(out) & ok
+\EQ{simplify survivors}
+\\&& (\ell_g \arr b out) \lor
+     (in \arr{a \seq b} out) \lor
+     D(out)
+}
+
+So the expansion of $atm(a) \cseq atm(b)$ becomes
+\RLEQNS{
+  && atm(a) \cseq atm(b)
+\EQ{loop unroll, given $S$}
+\\&& D(out) \lor S\seq D(out) \lor S^2\seq D(out) \lor S^2\seq D(out) \dots
+\EQ{simplify, expand $S^i$}
+\\&& D(out) \lor D(out) \lor (\ell_g \arr b out)
+       \lor S^2\seq D(out) \lor {}
+\\&& (\ell_g \arr b out) \lor
+     (in \arr{a \seq b} out) \lor
+      D(out)
+}
+
+\newpage
+\HDRc{Choice Semantics}
+
+\RLEQNS{
+  && atm(a)[g_{1:},\ell_{g1}/g,in]
+\EQ{defn $atm$}
+\\&& (D(out) \lor (in \arr a out))[g_{1:},\ell_{g1}/g,in]
+\EQ{substitution}
+\\&& (D(out) \lor (\ell_{g1} \arr a out))
+\\
+\\&& atm(b)[g_{2:},\ell_{g2}/g,in]
+\EQ{defn $atm$}
+\\&& (D(out) \lor (in \arr b out))[g_{2:},\ell_{g2}/g,in]
+\EQ{substitution}
+\\&& (D(out) \lor (\ell_{g2} \arr b out))
+\\
+\\&& atm(a)[g_{1:},\ell_{g1}/g,in] + atm(b)[g_{2:},\ell_{g2}/g,in]
+\EQ{merge above two}
+\\&& D(out) \lor (\ell_{g1} \arr a out) \lor (\ell_{g2} \arr b out)
+\EQ{introduce shorthand}
+\\&& S
+}
+
+\RLEQNS{
+  && atm(a) + atm(b)
+\EQ{Defn. $+$}
+\\&& \W(atm(a)[g_{1:},\ell_{g1}/g,in] + atm(b)[g_{2:},\ell_{g2}/g,in])
+}
