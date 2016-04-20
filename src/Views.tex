@@ -1,65 +1,291 @@
 \HDRa{Math support for Views}\label{ha:mViews}
 
+\HDRb{The Big Plan}
+
 We go for a new formulation
 \RLEQNS{
-   atm(a) &=& \true * (\Skip \lor (in\arr a out) \land [in|out|g])
-\\ C &=& \bigvee_{i=0}^\infty (actions(C)) \land [in|out|g] \land I_C
+   X(E|a|R|A) &\defs&
+   ls(E) \land s' \in \sem a s \land ls' = (ls\setminus R)\cup A
+\\ A(E|a|N) &\defs& X(E|a|E|N)
+\\ \W(P) &\defs& \true * (\Skip \lor P)
+\\       &=& \bigvee_{i \in \Nat} \Skip \seq P^i
+\\ atm(a) &=& \W(A(in|a|out) \land [in|out])
+\\ C &=& \W(actions(C) \land [in|out|g] \land I_C)
 }
 where $I_C$ is some more $C$-specific invariants.
 
+\HDRb{Set Inclusion/Membership}
+
+An atomic action $A(E|a|N)$ is enabled if $E$ is contained
+in the global label-set ($ls(E)$)
+and results in $E$ being removed from that set, and new labels
+$N$ being added ($ls'=(ls\setminus E)\cup N$).
+We need a way to reason about containment is such an $ls'$
+in terns of $E$ and $N$, and to compute sequential compositions
+of such forms, which will take the more general form $X(E|a|R|A)$.
+
+We find we get assertions of the form $(F(ls))(E)$,
+asserting that $E$ is a subset of $F(ls)$ where $F$ is a set-function
+composed of named/enumerated sets and standard set-operations.
+We want to transform it into $ls(G) \land P$ where $G$ and $P$
+do not involve $ls$.
+
+We present the laws,
+then the proofs
+\RLEQNS{
+   (ls \cup A)(S)      &=& ls(S\setminus A)
+\\ (ls \setminus R)(S) &=& ls(S) \land S \cap R = \emptyset
+\\ (ls \cap M)(S)      &=& ls(S) \land S \subseteq M
+\\ ((ls \setminus R) \cup A)(S)
+   &=& ls(S \setminus A) \land (S \setminus A) \cap R = \emptyset
+\\ (((ls\setminus R_1) \cup A_1)\setminus R_2) \cup A_2
+  &=& (ls \setminus (R_1 \cup R_2)) \cup ((A_1\setminus R_2) \cup A_2)
+}
+
+We do the proofs in ``classical'' set notation
+\RLEQNS{
+  && S \subseteq (ls \cup A)
+\EQ{set definitions}
+\\&& x \in S \implies x \in (ls \cup A)
+\EQ{defn $\cup$}
+\\&& x \in S \implies x \in ls \lor x \in A
+\EQ{defn $\implies$}
+\\&& x \notin S \lor x \in ls \lor x \in A
+\EQ{rearrange}
+\\&& x \notin S \lor x \in A \lor x \in ls
+\EQ{De-Morgan, defn $\implies$}
+\\&& (x \in S \land x \notin A) \implies x \in ls
+\EQ{defn subset}
+\\&& (S \setminus A) \subseteq ls
+}
+
+\RLEQNS{
+  && S \subseteq (ls \setminus R)
+\EQ{set definitions}
+\\&& x \in S \implies x \in (ls \setminus R)
+\EQ{set definition}
+\\&& x \in S \implies x \in ls \land x \notin R
+\EQ{defn $\implies$}
+\\&& x \notin S \lor x \in ls \land x \notin R
+\EQ{distribution}
+\\&& (x \notin S \lor x \in ls)
+     \land
+     ( x \notin S \lor x \notin R)
+\EQ{defn implies, de-morgan}
+\\&& (x \in S \implies x \in ls)
+     \land
+     \lnot( x \in S \land x \in R)
+\EQ{defn subset}
+\\&&S \subseteq ls \land S \cap R = \emptyset
+}
+
+\RLEQNS{
+  && S \subseteq (ls \cap M)
+\EQ{set definitions}
+\\&& x \in S \implies x \in ls \land x \in M
+\EQ{defn $\implies$}
+\\&& x \notin S \lor x \in ls \land x \in M
+\EQ{distribution}
+\\&& (x \notin S \lor x \in ls)
+     \land
+     (x \notin S \lor x \in M)
+\EQ{defn $implies$}
+\\&& (x \in S \implies x \in ls)
+     \land
+     (x \in S \implies x \in M)
+\EQ{def subset}
+\\&& S \subseteq ls \land S \subseteq M
+}
+
+\RLEQNS{
+  && ((ls \setminus R) \cup A)(S)
+\EQ{laws above}
+\\&& (ls \setminus R)(S \setminus A)
+\EQ{laws above}
+\\&& ls(S \setminus A) \land (S \setminus A) \cap R = \emptyset
+}
+
+\RLEQNS{
+  && x \in (ls\setminus R_1) \cup A_1
+\EQ{defn $\cup$}
+\\&& x \in (ls\setminus R_1) \lor x \in  A_1
+\EQ{defn $\setminus$}
+\\&& x \in ls \land x \notin R_1 \lor x \in  A_1
+}
+
+\RLEQNS{
+  && x \in (((ls\setminus R_1) \cup A_1)\setminus R_2) \cup A_2
+\EQ{above law}
+\\&& x \in (ls\setminus R_1) \cup A_1) \land x \notin R_2 \lor x \in  A_2
+\EQ{above law}
+\\&& (x \in ls \land x \notin R_1 \lor x \in  A_1) \land x \notin R_2 \lor x \in  A_2
+\EQ{distributivity}
+\\&& (x \in ls \land x \notin R_1 \land x \notin R_2)
+     \lor
+     (x \in  A_1 \land x \notin R_2)
+     \lor x \in  A_2
+\EQ{de-Morgan, defn $\setminus$}
+\\&& (x \in ls \land \lnot(x \in R_1 \lor x \in R_2))
+     \lor
+     x \in  A_1 \setminus R_2
+     \lor x \in  A_2
+\EQ{defn $\cup$, twice}
+\\&& (x \in ls \land \lnot(x \in R_1 \cup R_2))
+     \lor
+     x \in  A_1 \setminus R_2 \cup  A_2
+\EQ{tweak}
+\\&& (x \in ls \land x \notin R_1 \cup R_2)
+     \lor
+     x \in  A_1 \setminus R_2 \cup  A_2
+\EQ{definition of $\setminus$}
+\\&& x \in (ls \setminus R_1 \cup R_2)
+     \lor
+     x \in  A_1 \setminus R_2 \cup  A_2
+\EQ{definition of $cup$}
+\\&& x \in (ls \setminus R_1 \cup R_2)
+     \cup
+     (A_1 \setminus R_2 \cup  A_2)
+}
+
 \HDRb{Basic Actions}
 
-We define the basic action as:
+We first by defining a basic operation form that is closed
+under sequential composition, modulo some `ground' side-conditions.
 \RLEQNS{
-   E \arr a N
+   X(E|a|R|A)
    &\defs&
-   ls(E) \land s' \in \sem a s \land ls' = (ls\setminus E)\cup N
+   ls(E) \land [a] \land ls' = (ls\setminus R) \cup A
 }
-and calculate its self-sequential composition as:
+Composing these requires us decouple the enabling labels
+from those removed---they are the same for a basic action,
+but differ as they are sequentially composed.
+
+The general composition:
 \RLEQNS{
-  && E_1 \arr a N_1 \seq E_2 \arr b N_2
-\EQ{Defns of $\seq$ and $\arr{-}$}
+  && X(E_1|a|R_1|A_1)\seq X(E_2|b|R_2|A_2)
+\EQ{Defn $X$}
+\\&& ls(E_1) \land [a] \land ls' = (ls\setminus R_1) \cup A_1
+     \quad\seq\quad
+     ls(E_2) \land [b] \land ls' = (ls\setminus R_2) \cup A_2
+\EQ{Defn $\seq$}
 \\&& \exists s_m,ls_m @
-\\&& \quad ls(E_1) \land s_m \in \sem a s \land ls_m = (ls\setminus E_1)\cup N_1
-     \land {}
-\\&& \quad ls_m(E_2) \land s' \in \sem b s_m \land ls' = (ls_m\setminus E_2)\cup N_2
-\EQ{1pt-rule, $ls_m = (ls\setminus E_1)\cup N_1$}
+\\&& \quad ls(E_1) \land
+           [a][s_m/s'] \land
+           ls_m = (ls\setminus R_1) \cup A_1 \land {}
+\\&& \quad ls_m(E_2) \land
+           [b][s_m/s] \land
+           ls' = (ls_m\setminus R_2) \cup A_2
+\EQ{1-pt rule ($ls_m$), re-arrange}
 \\&& \exists s_m @
-\\&& \quad ls(E_1) \land s_m \in \sem a s \land s' \in \sem b s_m \land  {}
-\\&& \quad ((ls\setminus E_1)\cup N_1)(E_2)
-           \land ls' = (((ls\setminus E_1)\cup N_1)\setminus E_2)\cup N_2
-\EQ{push scope in}
+\\&& \quad ls(E_1) \land
+           ((ls\setminus R_1) \cup A_1)(E_2) \land {}
+\\&& \quad [a][s_m/s'] \land
+           [b][s_m/s] \land {}
+\\&& \quad ls' = (((ls\setminus R_1) \cup A_1)\setminus R_2) \cup A_2
+\EQ{shrink $s_m$ scope, use $ls(-)$ laws above}
 \\&& ls(E_1) \land
-     (\exists s_m @ s_m \in \sem a s \land s' \in \sem b s_m) \land  {}
-\\&& ((ls\setminus E_1)\cup N_1)(E_2) \land
-     ls' = (((ls\setminus E_1)\cup N_1)\setminus E_2)\cup N_2
-\EQ{Defn $\seq$, re-arrange}
-\\&& ls(E_1) \land
-     ((ls\setminus E_1)\cup N_1)(E_2) \land {}
-\\&& s' \in \sem{a\seq b} s) \land
-     ls' = (((ls\setminus E_1)\cup N_1)\setminus E_2)\cup N_2
-\EQ{simplify $ls'$}
-\\&& ls(E_1) \land
-     ((ls\setminus E_1)\cup N_1)(E_2) \land {}
-\\&& s' \in \sem{a\seq b} s) \land
-     ls' = (ls\setminus (E_1\setminus N_1)\cup E_2))
-           \cup (N_1\setminus E_2 \cup N_2
-\EQ{GUESS $ls$}
-\\&& ls(E_1 \cup (E_2 \setminus N_1))\land 
-     s' \in \sem{a\seq b} s) \land {}
-\\&& ls' = (ls\setminus (E_1\setminus N_1\cup E_2))
-           \cup (N_1\setminus E_2 \cup N_2
-\EQ{fold defn $\arr{-}$}
-\\&& (~E_1 \cup (E_2 \setminus N_1)
-     \arr{a\seq b}
-     (N_1\setminus E_2) \cup N_2~)
+     ls(E_2\setminus A_1) \land
+     (E_2\setminus A_1) \cap R_1 = \emptyset \land {}
+\\&& (\exists s_m @ [a][s_m/s'] \land [b][s_m/s]) \land {}
+\\&& ls' = (((ls\setminus R_1) \cup A_1)\setminus R_2) \cup A_2
+\EQ{defn $\seq$, prop of $ls(-)$, simplification from above}
+\\&& ls(E_1 \cup (E_2\setminus A_1)) \land
+     (E_2\setminus A_1) \cap R_1 = \emptyset \land {}
+\\&& [a;b] \land {}
+\\&& ls' = (ls \setminus R_1 \cup R_2)
+           \cup
+           (A_1 \setminus R_2 \cup  A_2)
+\EQ{defn of $X$}
+\\&& X(E_1 \cup (E_2\setminus A_1)
+       |a\seq b
+       |R_1 \cup R_2
+       |A_1 \setminus R_2 \cup  A_2)
+       \land (E_2\setminus A_1) \cap R_1 = \emptyset
+}
+Here the `ground' side-condition is
+ $(E_2\setminus A_1) \cap R_1 = \emptyset$.
+
+Composing a basic operation with itself:
+\RLEQNS{
+  && X(E|a|R|A) \seq X(E|a|R|A)
+\EQ{by above}
+\\&& X(E \cup (E\setminus A)
+       |a\seq a
+       |R \cup R
+       |A \setminus R \cup  A)
+       \land (E\setminus A) \cap R = \emptyset
+\EQ{simpify}
+\\&& X(E|a\seq a|R|A)
+       \land (E\setminus A) \cap R = \emptyset
 }
 
-Check $(E \arr a N)^2$
+A basic action identifies $E$ and $R$:
 \RLEQNS{
-  && (E \arr a N)^2
-\EQ{prev. calc.}
+  && A(E|a|N) \defs X(E|a|E|N)
+\\
+\\&& A(E_1|a|N_1) \seq A(E_2|a|N_2)
+\EQ{by defn}
+\\&& A(E_1|a|E_1|N_1) \seq A(E_2|a|E_2|N_2)
+\EQ{by calc above, with $R_i = E_i$}
+\\&& X(E_1 \cup (E_2\setminus A_1)
+       |a\seq b
+       |E_1 \cup E_2
+       |A_1 \setminus E_2 \cup  A_2)
+       \land (E_2\setminus A_1) \cap E_1 = \emptyset
 }
+We cannot transform this into the form $A(-|a\seq b|-)$
+unless it happens to be the case that
+\\$E_1 \cup (E_2\setminus A_1)= E_1 \cup E_2$.
+For an $A$ composed with itself:
+\RLEQNS{
+  && A(E|a|N) \seq A(E|a|N)
+\EQ{defn $A$}
+\\&& X(E|a|E|N) \seq X(E|a|E|N)
+\EQ{calc above}
+\\&& X(E|a\seq a|E|A)
+       \land (E\setminus A) \cap E = \emptyset
+}
+We see that we get a $\false$ result unless we have $E \subseteq A$,
+in which everything we remove is added back in, plus possibly some extra.
+We get the following which is similar
+\[
+  X(E|a\seq a|\emptyset|A)
+\]
+This is a consequence of the following easy law:
+\[
+ (ls \setminus R) \cup A
+ =
+ (ls \setminus (R \setminus A)) \cup A
+ =
+ (ls \cup A) \setminus (R \setminus A)
+\]
+
+\HDRc{Laws of Actions}
+Here we summarise the main results:
+\RLEQNS{
+  && X(E_1|a|R_1|A_1)\seq X(E_2|b|R_2|A_2)
+\EQ{proof above}
+\\&& X(E_1 \cup (E_2\setminus A_1)
+       \mid a\seq b
+       \mid R_1 \cup R_2
+       \mid A_1 \setminus R_2 \cup  A_2)
+\\&& {} \land (E_2\setminus A_1) \cap R_1 = \emptyset
+\\
+\\&& \\&& A(E_1|a|N_1) \seq A(E_2|a|N_2)
+\EQ{proof above}
+\\&& X(E_1 \cup (E_2\setminus A_1)
+       \mid a\seq b
+       \mid E_1 \cup E_2
+       \mid A_1 \setminus E_2 \cup  A_2)
+\\&& {} \land (E_2\setminus A_1) \cap E_1 = \emptyset
+\\
+\\&& A(E|a|N) \seq A(E|a|N)
+\EQ{proof above}
+\\&& X(E|a\seq a|E|A)
+\\&& {} \land (E\setminus A) \cap E = \emptyset
+}
+
+
 
 \newpage
 \HDRb{Working with the Invariant}

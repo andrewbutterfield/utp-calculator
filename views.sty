@@ -16,14 +16,15 @@
 
 % healthiness
 \def\WWH#1#2#3#4{\mathbf{#1}_{#2,#3}^{#4}}
-
 \def\I#1#2#3{I_{#1,#2}^{#3}}
 \def\DLP#1#2#3{\WWH{DL}{#1}{#2}{#3}}
 \def\KSP#1#2#3{\WWH{KS}{#1}{#2}{#3}}
 \def\WP#1#2#3{\WWH{W}{#1}{#2}{#3}}
 \def\DL{\DLP{in}{out}{g}}
 \def\KS{\KSP{in}{out}{g}}
-\def\W{\WP{in}{out}{g}}
+%\def\W{\WP{in}{out}{g}}
+\def\W{\mathbf{W}}
+
 
 % semantic macros
 \def\lexc#1#2{ls\ominus(#1|#2)}
