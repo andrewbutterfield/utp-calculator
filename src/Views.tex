@@ -347,6 +347,8 @@ then $ls(L_2)$ is false:
 \\&& A(L_1|a|L_3)
 }
 
+
+Two actions meant to work together:
 \RLEQNS{
   && A(L_1|a|L_2) \seq A(L_2|b|L_3) & [L_1|L_2|L_3]
 \EQ{law $A^2$}
@@ -365,6 +367,26 @@ then $ls(L_2)$ is false:
 \EQ{defn $A$}
 \\&& A( L_1 |  a\seq b | L_3 )
 }
+
+Two actions meant to be mutually exclusive (the hint being the invariant):
+\RLEQNS{
+  && A(L_1|a|L_2) \seq A(L_3|b|L_4) & [L_1|L_2|L_3|L_4]
+\EQ{law $A^2$}
+\\&& L_3\setminus L_2 \cap L_1 = \emptyset \and {}
+\\&& X(    L_1 \cup L_3\setminus L_2
+      \mid a\seq b
+      \mid L_1 \cup L_3
+      \mid L_2\setminus L_3 \cup L_4 )
+\EQ{simplify, noting invariant}
+\\&& X(    L_1 \cup L_3
+      \mid a\seq b
+      \mid L_1 \cup L_3
+      \mid L_2 \cup L_4 )
+\EQ{Falsifies $[L_1|L_3|\ldots]$}
+\\&& \false
+}
+This law also works with invariant fragments 
+$[L_1|L_3|\dots]$ and $[L_2|L_4|\dots]$
 
 \newpage
 \HDRb{Semantic Definitions}
@@ -678,8 +700,8 @@ So we have
 \\&\lor& A(\ell_{g2}|b|out) \seq A(in|ii|\ell_{g2}) \quad \mbox{--- ok}
 \\&\lor& A(\ell_{g2}|b|out) \seq A(\ell_{g1}|a|out) \quad \mbox{--- ok}
 \\&\lor& A(\ell_{g2}|b|out) \seq A(\ell_{g2}|b|out) \quad \mbox{--- fail}
-\EQ{drop fails, apply $A^2$ law \emph{with invariant}}
-\\&\lor& A(in|ii\seq a|out)
+\EQ{drop fails, apply $A^2$ work together law w.r.t $I$}
+\\&    & A(in|ii\seq a|out)
 \\&\lor& A(in|ii|\ell_{g1}) \seq A(\ell_{g2}|b|out)
 \\&\lor& A(in|ii|\ell_{g2}) \seq A(\ell_{g1}|a|out)
 \\&\lor& A(in|ii \seq b|out)
@@ -689,6 +711,43 @@ So we have
 \\&\lor& A(\ell_{g2}|b|out) \seq A(in|ii|\ell_{g1})
 \\&\lor& A(\ell_{g2}|b|out) \seq A(in|ii|\ell_{g2})
 \\&\lor& A(\ell_{g2}|b|out) \seq A(\ell_{g1}|a|out)
+\EQ{apply $A^2$ mutually-exclusive law w.r.t. $I$}
+\\&    & A(in|ii\seq a|out)
+\\&\lor& A(in|ii\seq b|out)
+\EQ{$ii$ is unit for $\seq$ over $s$, $s'$}
+\\&& A(in|a|out) \lor A(in|b|out)
+}
+
+\RLEQNS{
+  && Q^3
+\EQ{split as $Q^2 \seq Q$}
+\\&& (A(in|a|out) \lor A(in|b|out)) \seq {}
+\\&& (~ A(in|ii|\ell_{g1}) \lor
+     A(in|ii|\ell_{g2}) \lor
+     A(\ell_{g1}|a|out) \lor
+     A(\ell_{g2}|b|out)~)
+\EQ{distribute}
+\\&    & A(in|a|out) \seq A(in|ii|\ell_{g1}) \quad \mbox{--- $A^2$ cond fail}
+\\&\lor& A(in|a|out) \seq A(in|ii|\ell_{g2}) \quad \mbox{--- $A^2$ cond fail}
+\\&\lor& A(in|a|out) \seq A(\ell_{g1}|a|out) \quad \mbox{--- mut-exc fail}
+\\&\lor& A(in|a|out) \seq A(\ell_{g2}|b|out) \quad \mbox{--- mut-exc fail}
+\\&\lor& A(in|b|out) \seq A(in|ii|\ell_{g1}) \quad \mbox{--- $A^2$ cond fail}
+\\&\lor& A(in|b|out) \seq A(in|ii|\ell_{g2}) \quad \mbox{--- $A^2$ cond fail}
+\\&\lor& A(in|b|out) \seq A(\ell_{g1}|a|out) \quad \mbox{--- mut-exc fail}
+\\&\lor& A(in|b|out) \seq A(\ell_{g2}|b|out) \quad \mbox{--- mut-exc fail}
+\EQ{all gone!}
+\\&& \false
+}
+So, we go as far as $Q^2$:
+
+\RLEQNS{
+  && atm(a)+atm(b)
+\EQ{$Q$ expansion}
+\\&& \Skip \lor Q \lor Q^2
+\EQ{expand $Q^i$}
+\\&& \Skip \lor A(in|ii|\ell_{g1}) \lor A(in|ii|\ell_{g2}) \lor {}
+\\&& A(\ell_{g1}|a|out) \lor A(\ell_{g2}|b|out) \lor{}
+\\&& A(in|a|out) \lor A(in|b|out)
 }
 
 
@@ -705,6 +764,11 @@ So we have
          A(\ell_g|b|out) \lor
          A(in|a \seq b| out) ~)
 \\&& {} \land [in|\ell_g|out]
+\\ atm(a)+atm(b)
+   &=& (~\Skip \lor A(in|ii|\ell_{g1}) \lor A(in|ii|\ell_{g2}) \lor {}
+\\&& A(\ell_{g1}|a|out) \lor A(\ell_{g2}|b|out) \lor{}
+\\&& A(in|a|out) \lor A(in|b|out)~)
+\\&& {} \land [in|\ell_{g1}|\ell_{g2}|out]
 }
 
 \newpage
