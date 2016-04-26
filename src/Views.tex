@@ -347,6 +347,8 @@ then $ls(L_2)$ is false:
 \\&& A(L_1|a|L_3)
 }
 
+
+Two actions meant to work together:
 \RLEQNS{
   && A(L_1|a|L_2) \seq A(L_2|b|L_3) & [L_1|L_2|L_3]
 \EQ{law $A^2$}
@@ -365,6 +367,26 @@ then $ls(L_2)$ is false:
 \EQ{defn $A$}
 \\&& A( L_1 |  a\seq b | L_3 )
 }
+
+Two actions meant to be mutually exclusive (the hint being the invariant):
+\RLEQNS{
+  && A(L_1|a|L_2) \seq A(L_3|b|L_4) & [L_1|L_2|L_3|L_4]
+\EQ{law $A^2$}
+\\&& L_3\setminus L_2 \cap L_1 = \emptyset \and {}
+\\&& X(    L_1 \cup L_3\setminus L_2
+      \mid a\seq b
+      \mid L_1 \cup L_3
+      \mid L_2\setminus L_3 \cup L_4 )
+\EQ{simplify, noting invariant}
+\\&& X(    L_1 \cup L_3
+      \mid a\seq b
+      \mid L_1 \cup L_3
+      \mid L_2 \cup L_4 )
+\EQ{Falsifies $[L_1|L_3|\ldots]$}
+\\&& \false
+}
+This law also works with invariant fragments 
+$[L_1|L_3|\dots]$ and $[L_2|L_4|\dots]$
 
 \newpage
 \HDRb{Semantic Definitions}
@@ -678,8 +700,8 @@ So we have
 \\&\lor& A(\ell_{g2}|b|out) \seq A(in|ii|\ell_{g2}) \quad \mbox{--- ok}
 \\&\lor& A(\ell_{g2}|b|out) \seq A(\ell_{g1}|a|out) \quad \mbox{--- ok}
 \\&\lor& A(\ell_{g2}|b|out) \seq A(\ell_{g2}|b|out) \quad \mbox{--- fail}
-\EQ{drop fails, apply $A^2$ law \emph{with invariant}}
-\\&\lor& A(in|ii\seq a|out)
+\EQ{drop fails, apply $A^2$ work together law w.r.t $I$}
+\\&    & A(in|ii\seq a|out)
 \\&\lor& A(in|ii|\ell_{g1}) \seq A(\ell_{g2}|b|out)
 \\&\lor& A(in|ii|\ell_{g2}) \seq A(\ell_{g1}|a|out)
 \\&\lor& A(in|ii \seq b|out)
@@ -689,7 +711,176 @@ So we have
 \\&\lor& A(\ell_{g2}|b|out) \seq A(in|ii|\ell_{g1})
 \\&\lor& A(\ell_{g2}|b|out) \seq A(in|ii|\ell_{g2})
 \\&\lor& A(\ell_{g2}|b|out) \seq A(\ell_{g1}|a|out)
+\EQ{apply $A^2$ mutually-exclusive law w.r.t. $I$}
+\\&    & A(in|ii\seq a|out)
+\\&\lor& A(in|ii\seq b|out)
+\EQ{$ii$ is unit for $\seq$ over $s$, $s'$}
+\\&& A(in|a|out) \lor A(in|b|out)
 }
+
+\RLEQNS{
+  && Q^3
+\EQ{split as $Q^2 \seq Q$}
+\\&& (A(in|a|out) \lor A(in|b|out)) \seq {}
+\\&& (~ A(in|ii|\ell_{g1}) \lor
+     A(in|ii|\ell_{g2}) \lor
+     A(\ell_{g1}|a|out) \lor
+     A(\ell_{g2}|b|out)~)
+\EQ{distribute}
+\\&    & A(in|a|out) \seq A(in|ii|\ell_{g1}) \quad \mbox{--- $A^2$ cond fail}
+\\&\lor& A(in|a|out) \seq A(in|ii|\ell_{g2}) \quad \mbox{--- $A^2$ cond fail}
+\\&\lor& A(in|a|out) \seq A(\ell_{g1}|a|out) \quad \mbox{--- mut-exc fail}
+\\&\lor& A(in|a|out) \seq A(\ell_{g2}|b|out) \quad \mbox{--- mut-exc fail}
+\\&\lor& A(in|b|out) \seq A(in|ii|\ell_{g1}) \quad \mbox{--- $A^2$ cond fail}
+\\&\lor& A(in|b|out) \seq A(in|ii|\ell_{g2}) \quad \mbox{--- $A^2$ cond fail}
+\\&\lor& A(in|b|out) \seq A(\ell_{g1}|a|out) \quad \mbox{--- mut-exc fail}
+\\&\lor& A(in|b|out) \seq A(\ell_{g2}|b|out) \quad \mbox{--- mut-exc fail}
+\EQ{all gone!}
+\\&& \false
+}
+So, we go as far as $Q^2$:
+
+\RLEQNS{
+  && atm(a)+atm(b)
+\EQ{$Q$ expansion}
+\\&& \Skip \lor Q \lor Q^2
+\EQ{expand $Q^i$}
+\\&& \Skip \lor A(in|ii|\ell_{g1}) \lor A(in|ii|\ell_{g2}) \lor {}
+\\&& A(\ell_{g1}|a|out) \lor A(\ell_{g2}|b|out) \lor{}
+\\&& A(in|a|out) \lor A(in|b|out)
+}
+
+\newpage
+\HDRc{Parallel Composition}
+
+
+\RLEQNS{
+   C \parallel D
+   &\defs&
+   \W(~
+      A(in|ii|\ell_{g1},\ell_{g2}) \lor
+      A(\ell_{g1:},\ell_{g2:}|ii|out) \lor {}
+\\&& ~~
+       C[g_{1::},\ell_{g1},\ell_{g1:}/g,in,out] \lor
+       D[g_{2::},\ell_{g2},\ell_{g2:}/g,in,out] ~)
+\\&& {} \land [in|\ell_{g1},\ell_{g2}|\ell_{g1:},\ell_{g2:}|out]
+}
+
+\RLEQNS{
+   P &=& A(in|ii|\ell_{g1},\ell_{g2}) \lor
+         A(\ell_{g1:},\ell_{g2:}|ii|out) \lor {}
+\\   & & atm(a)[g_{1::},\ell_{g1},\ell_{g1:}/g,in,out] \lor
+         atm(b)[g_{2::},\ell_{g2},\ell_{g2:}/g,in,out]
+\\ I &=& [in|\ell_{g1},\ell_{g2}|\ell_{g1:},\ell_{g2:}|out]
+}
+
+\RLEQNS{
+  && P
+\EQ{expand $P$}
+\\&& A(in|ii|\ell_{g1},\ell_{g2}) \lor
+     A(\ell_{g1:},\ell_{g2:}|ii|out) \lor {}
+\\&& atm(a)[g_{1::},\ell_{g1},\ell_{g1:}/g,in,out] \lor
+     atm(b)[g_{2::},\ell_{g2},\ell_{g2:}/g,in,out]
+\EQ{expand $atm$}
+\\&& A(in|ii|\ell_{g1},\ell_{g2}) \lor
+     A(\ell_{g1:},\ell_{g2:}|ii|out) \lor {}
+\\&& ((\Skip \lor A(in|a|out)) \land [in|out])
+     [g_{1::},\ell_{g1},\ell_{g1:}/g,in,out] \lor {}
+\\&& ((\Skip \lor A(in|b|out)) \land [in|out])
+     [g_{2::},\ell_{g2},\ell_{g2:}/g,in,out]
+\EQ{substitution}
+\\&& A(in|ii|\ell_{g1},\ell_{g2}) \lor
+     A(\ell_{g1:},\ell_{g2:}|ii|out) \lor {}
+\\&& (\Skip \lor A(\ell_{g1}|a|\ell_{g1:})) \land [\ell_{g1}|\ell_{g1:}] \lor {}
+\\&& (\Skip \lor A(\ell_{g2}|b|\ell_{g2:})) \land [\ell_{g2}|\ell_{g2:}]
+\EQ{atomic invariants subsumed by $I$}
+\\&& A(in|ii|\ell_{g1},\ell_{g2}) \lor
+     A(\ell_{g1:},\ell_{g2:}|ii|out) \lor {}
+\\&& \Skip \lor A(\ell_{g1}|a|\ell_{g1:}) \lor \Skip \lor A(\ell_{g2}|b|\ell_{g2:})
+\EQ{re-arrange, simplify}
+\\&& \Skip \lor 
+     A(in|ii|\ell_{g1},\ell_{g2}) \lor
+     A(\ell_{g1:},\ell_{g2:}|ii|out) \lor
+     A(\ell_{g1}|a|\ell_{g1:}) \lor
+     A(\ell_{g2}|b|\ell_{g2:})
+\EQ{$Q$ again}
+\\&& \Skip \lor Q
+}
+
+\RLEQNS{
+  && Q^2
+\EQ{expand $Q$}
+\\&& (~ A(in|ii|\ell_{g1},\ell_{g2}) \lor
+        A(\ell_{g1:},\ell_{g2:}|ii|out) \lor {}
+\\&& ~~ A(\ell_{g1}|a|\ell_{g1:}) \lor
+        A(\ell_{g2}|b|\ell_{g2:}) ~) \seq {}
+\\&& (~ A(in|ii|\ell_{g1},\ell_{g2}) \lor
+        A(\ell_{g1:},\ell_{g2:}|ii|out) \lor {}
+\\&& ~~ A(\ell_{g1}|a|\ell_{g1:}) \lor
+        A(\ell_{g2}|b|\ell_{g2:}) ~)
+\EQ{distr., assess w.r.t $A^2$, $[in|\ell_{g1},\ell_{g2}|\ell_{g1:},\ell_{g2:}|out]$}
+\\&\lor& A(in|ii|\ell_{g1},\ell_{g2})
+    \seq A(in|ii|\ell_{g1},\ell_{g2})    & fail
+\\&\lor& A(in|ii|\ell_{g1},\ell_{g2})
+    \seq A(\ell_{g1:},\ell_{g2:}|ii|out) & fail
+\\&\lor& A(in|ii|\ell_{g1},\ell_{g2})
+    \seq A(\ell_{g1}|a|\ell_{g1:})       & ok
+\\&\lor& A(in|ii|\ell_{g1},\ell_{g2})
+    \seq A(\ell_{g2}|b|\ell_{g2:})       & ok
+\\&\lor& A(\ell_{g1:},\ell_{g2:}|ii|out)
+    \seq A(in|ii|\ell_{g1},\ell_{g2})    & fail
+\\&\lor& A(\ell_{g1:},\ell_{g2:}|ii|out)
+    \seq A(\ell_{g1:},\ell_{g2:}|ii|out) & fail
+\\&\lor& A(\ell_{g1:},\ell_{g2:}|ii|out)
+    \seq A(\ell_{g1}|a|\ell_{g1:})       & fail
+\\&\lor& A(\ell_{g1:},\ell_{g2:}|ii|out)
+    \seq A(\ell_{g2}|b|\ell_{g2:})       & fail
+\\&\lor& A(\ell_{g1}|a|\ell_{g1:})
+    \seq A(in|ii|\ell_{g1},\ell_{g2})    & fail
+\\&\lor& A(\ell_{g1}|a|\ell_{g1:})
+    \seq A(\ell_{g1:},\ell_{g2:}|ii|out) & ok
+\\&\lor& A(\ell_{g1}|a|\ell_{g1:})
+    \seq A(\ell_{g1}|a|\ell_{g1:})       & fail
+\\&\lor& A(\ell_{g1}|a|\ell_{g1:})
+    \seq A(\ell_{g2}|b|\ell_{g2:})       & ok
+\\&\lor& A(\ell_{g2}|b|\ell_{g2:})
+    \seq A(in|ii|\ell_{g1},\ell_{g2})    & fail
+\\&\lor& A(\ell_{g2}|b|\ell_{g2:})
+    \seq A(\ell_{g1:},\ell_{g2:}|ii|out) & ok
+\\&\lor& A(\ell_{g2}|b|\ell_{g2:})
+    \seq A(\ell_{g1}|a|\ell_{g1:})       & ok
+\\&\lor& A(\ell_{g2}|b|\ell_{g2:})
+    \seq A(\ell_{g2}|b|\ell_{g2:})       & fail
+\EQ{drop fails}
+\\&\lor& A(in|ii|\ell_{g1},\ell_{g2})
+    \seq A(\ell_{g1}|a|\ell_{g1:})       & ok
+\\&\lor& A(in|ii|\ell_{g1},\ell_{g2})
+    \seq A(\ell_{g2}|b|\ell_{g2:})       & ok
+\\&\lor& A(\ell_{g1}|a|\ell_{g1:})
+    \seq A(\ell_{g1:},\ell_{g2:}|ii|out) & ok
+\\&\lor& A(\ell_{g1}|a|\ell_{g1:})
+    \seq A(\ell_{g2}|b|\ell_{g2:})       & ok
+\\&\lor& A(\ell_{g2}|b|\ell_{g2:})
+    \seq A(\ell_{g1:},\ell_{g2:}|ii|out) & ok
+\\&\lor& A(\ell_{g2}|b|\ell_{g2:})
+    \seq A(\ell_{g1}|a|\ell_{g1:})       & ok
+\EQ{law $A^2$}
+\\&& \mbox{the calculator might be a good idea at this point!}
+}
+We will need to go to $Q^4$, and show that $Q^5$ is $\false$.
+
+\newpage
+\HDRc{Iteration}
+
+A quick pen'n'paper calculation for $atm(a)^*$ yields:
+\[\begin{array}{rcccc}
+   Q   &=& in\arr{} out & in\arr{}\ell_g & in\arr{a} in
+\\ Q^2 &=& in \arr{a} in & \ell_g \arr{a} out & \ell_g \arr{a} \ell_g
+\\ Q^3   &=& in\arr{a} out & in\arr{a}\ell_g & in\arr{aa} in
+\\ Q^4 &=& in \arr{aa} in & \ell_g \arr{aa} out & \ell_g \arr{aa} \ell_g
+\\ Q^5   &=& in\arr{aa} out & in\arr{aa}\ell_g & in\arr{aaa} in
+\\ Q^6 &=& in \arr{aaa} in & \ell_g \arr{aaa} out & \ell_g \arr{aaa} \ell_g
+\end{array}\]
 
 
 \newpage
@@ -705,6 +896,32 @@ So we have
          A(\ell_g|b|out) \lor
          A(in|a \seq b| out) ~)
 \\&& {} \land [in|\ell_g|out]
+\\ atm(a)+atm(b)
+   &=& (~\Skip \lor A(in|ii|\ell_{g1}) \lor A(in|ii|\ell_{g2}) \lor {}
+\\&& A(\ell_{g1}|a|out) \lor A(\ell_{g2}|b|out) \lor{}
+\\&& A(in|a|out) \lor A(in|b|out)~)
+\\&& {} \land [in|\ell_{g1}|\ell_{g2}|out]
+}
+
+
+Better formatting(?): 1st line is invariant, 
+other lines are the disjuncts (poss. several on one line), with $\Skip$ ommitted
+
+\RLEQNS{
+   atm(a)
+   &=& [in|out]
+\\ & & A(in|a|out)
+\\
+\\ atm(a)\seq atm(b)
+   &=& [in|\ell_g|out]
+\\ & & A(in|a|\ell_g) \quad A(\ell_g|b|out)
+\\ & & A(in|a \seq b|out)
+\\
+\\ atm(a)+atm(b)
+   &=& [in|\ell_{g1}|\ell_{g2}|out]
+\\ & & A(in|ii|\ell_{g1}) \quad A(in|ii|\ell_{g2})
+\\ & & A(\ell_{g1}|a|out) \quad A(\ell_{g2}|b|out)
+\\ & & A(in|a|out) \quad A(in|b|out)
 }
 
 \newpage
