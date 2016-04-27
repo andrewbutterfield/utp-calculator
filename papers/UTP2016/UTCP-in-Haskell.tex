@@ -24,13 +24,7 @@ of the repository, with a \texttt{.lhs} file extension
 
 We start by defining the syntax of our language
 \[
-   p,q \in UTCP
-   ::= Idle
-  \mid  \A(A)
-  \mid  p \lseq q
-  \mid  p \lcond c q
-  \mid  p \parallel q
-  \mid  c \wdo p
+   P ::= A \mid P \pseq P \mid P \parallel P \mid P \pcond P \mid \piter P
 \]
 and assign them pretty printing precedences,
 so they work well with the definitions in modules
@@ -99,7 +93,7 @@ so that a singleton set $\setof x$ is rendered as $x$
 and the very common idiom $S \subseteq ls$
 is rendered as $ls(S)$,
 so that for example, $ls(in)$ is short for $\setof{in} \subseteq ls$.
-So we encode a set construct as follows
+So we encode a set construct as follows:
 \begin{code}
 set = App "set"                             -- set constructor
 showSet d [elm] = edshow d elm      -- drop {,} from singleton
@@ -316,7 +310,7 @@ to see that we have a top-level sequential composition
 of two conjunctions,
 then we use a function that will check both conjunction predicate-lists
 for the existence of a $ls'=\dots$ component,
-and that everythiong else also satisfies the requirements regarding
+and that everything else also satisfies the requirements regarding
 the occurrence, or otherwise of $ls$ or $ls'$:
 \begin{code}
 reduceUTCP d pr@(_,Comp "Seq" [ (_,Comp "And" pAs)
@@ -388,7 +382,7 @@ a number of alternative outcomes, each guarded by some predicate
 that is hard to evaluate.
 The user elects which one to use by checking the conditions manually.
 We define a function, similar to reduceUTCP,
-that contains a series of patterns fro each conditional reduction law.
+that contains a series of patterns for each conditional reduction law.
 \begin{code}
 creduceUTCP :: (Show s, Ord s) => CDictRWFun s
 \end{code}

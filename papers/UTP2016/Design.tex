@@ -25,15 +25,11 @@ because there was no need for it until this point.
 
 \subsection{Software Architecture}\label{ssec:architecture}
 
-All the code described here is available online as a git repo
+All the code described here is available online
 at
-\\\url{https://andrewbutterfield@bitbucket.org/andrewbutterfield/utp-calculator.git}
-as Literate Haskell Script%
-\footnote{
-Note, this paper is not itself a literate Haskell script
-(you'll be relieved to know).
-}
-(\texttt{.lhs}) files in the \texttt{src} sub-directory.
+\\\url{https://bitbucket.org/andrewbutterfield/utp-calculator.git}
+as Literate Haskell Script files (\texttt{.lhs})
+in the \texttt{src} sub-directory.
 
 Taking into account the repetitive nature of the calculations,
 as mentioned at the end of \S\ref{ssec:plan},
@@ -46,7 +42,7 @@ on four initial design decisions:
    very simple, with only equality being singled out.
   \item We would need to have a good way to pretty-print long predicates
     that made it easy to see their overall structure
-  \item We would reply on a dictionary based system to
+  \item We would rely on a dictionary based system to
     make it easy to customise how specific constructs
     were to be handled.
 \end{enumerate}

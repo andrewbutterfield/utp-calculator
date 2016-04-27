@@ -17,7 +17,7 @@ notations essentially involve concurrency with global shared mutable state.
 There has been work using UTP
 to model concurrent programs with shared mutable state,
 most notably
-with an encoding into actions systems having been done by
+with an encoding into action systems having been done by
 Woodcock and Hughes\cite{DBLP:conf/icfem/WoodcockH02}.
 We have been looking at adapting this work to provide a UTP semantics
 for PML.
@@ -40,7 +40,7 @@ in order to give a slight improvement to the compositionality
 of the semantics. This we call a Unifying Theory of Concurrent Programming
 (UTCP) and details of this are,
 at the time of writing,
-currently under review\cite{conf/tase/BMN165}.
+accepted for publication\cite{conf/tase/BMN16}.
 We give a very brief overview here of this theory.
 The language assumes atomic actions ($A$) that modify a generic state,
 and four composition operators: sequential ($\lseq$), parallel ($\parallel$),
@@ -77,7 +77,7 @@ and then a series of calculations were undertaken in order to check
 the validity of those definitions.
 The first such calculation was that of the semantics of a single atomic
 action ($A$), and this always seemed to work out fine.
-The second calculation was of the sequential compositions of two atomic
+The second calculation was of the sequential composition of two atomic
 actions ($A\pseq B$), and this is where problems arose.
 
 The first problem was relatively minor
@@ -100,7 +100,7 @@ but then checking $A \parallel B$ (an even longer calculation)
 would give an incorrect answer.
 In every case the fault was traced back to sequential composition%
 \footnote{
-In the authors experience,
+In the author's experience,
 when building semantic theories involving concurrency or parallelism,
 it is always sequential composition that causes the most difficulty
 }
@@ -121,7 +121,7 @@ an extract of which is shown in Fig. \ref{fig:attempt4}.
   \label{fig:attempt4}
 \end{figure}
 
-With choice and iteration to be covered
+With choice and iteration to be covered,
 it was becoming very clear that a better way was required
 for checking semantic outcomes.
 
@@ -164,5 +164,4 @@ This is followed by a short example of the calculator in use
 (Sect. \ref{sec:Using}).
 We then discuss this calculator, and related work
 and draw some conclusions in Sect. \ref{sec:Conc},
-before finishing up describing future plans for the calculator
-(Section \ref{ssec:Future}).
+before finishing up describing future plans for the calculator.
