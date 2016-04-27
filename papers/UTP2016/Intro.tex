@@ -1,5 +1,79 @@
 \section{Introduction}\label{sec:Intro}
 
+\subsection*{Bits dropped in form elsewhere}
+
+The developments of a Unifying Theory of Programming (UTP)
+can involve a number of false starts,
+as alphabet variables are chosen
+and semantics and healthiness conditions are defined.
+Typically, some calculations done just to check that everything
+is fine in fact reveal problems with the theory.
+So we iterate by revising the basic definitions,
+and attempting the calculations again.
+Hopefully, these eventually converge to what becomes a sound and useful
+UTP Theory.
+In a recent bout of such theory revision and re-calculation,
+which required five iterations in total,
+the author noted that common patterns of proof-steps kept occurring
+in each iteration.
+
+The way the calculator is designed to be used is
+that a function implementing a calculator Read-Execute-Print-Loop (REPL)
+is given a dictionary and starting predicate as inputs.
+It then offers the user the opportunity to invoke various
+commands to perform calculation steps.
+The user can then indicate when they are finished,
+at which point the calculator function returns
+a data-structure that logs the complete calculation outcome.
+
+
+The first property of interest for this calculator
+was calculating the effect of $run(A \pseq B)$,
+where $A$ and $B$ were atomic action predicates with alphabet $\setof{s,s'}$.
+For convenience we predefined the predicate $A \pseq B$, as
+\begin{code}
+athenb = pseq [patm (pvar "A"),patm (pvar "B")]
+\end{code}
+We then invoke the calculator as follows,
+\begin{code}
+calcREPL dictUTCP (run athenb)
+\end{code}
+and proceed to interact
+(here the prompt  ``\texttt{ ?,d,r,l,s,c,u,x :-}''
+shows the available commands)
+\begin{verbatim}
+UTCP-0.7, UTP-Calc v0.0.1
+run(A(A) ;; A(B))
+ ?,d,r,l,s,c,u,x :- d
+ = "defn. of run.3"
+   (A(A) ;; A(B))[g::,lg,lg,lg:/g,in,ls,out]
+ ; ~ls(lg:) * (A(A) ;; A(B))[g::,lg,lg:/g,in,out]
+ ?,d,r,l,s,c,u,x :- d
+ = "defn. of ;;"
+   (A(A)[g:1,lg/g,out] \/
+   A(B)[g:2,lg/g,in])[g::,lg,lg,lg:/g,in,ls,out]
+ ; ~ls(lg:) * (A(A) ;; A(B))[g::,lg,lg:/g,in,out]
+ ?,d,r,l,s,c,u,x :- s
+ = "simplify"
+   A(A)[g:::1,lg,lg,lg::/g,in,ls,out] \/
+   A(B)[g:::2,lg::,lg,lg:/g,in,ls,out]
+ ; ~ls(lg:) * (A(A) ;; A(B))[g::,lg,lg:/g,in,out]
+.... 10 more steps
+ ?,d,r,l,s,c,u,x :- r
+ = "ls'-cleanup"
+(A ; B) /\ ls' = {lg:}
+\end{verbatim}
+The user simply indicates the broad class of command required,
+and the calculator works on the current goal predicate.
+A text transcript is produced,
+which is essentially the above
+without the prompts.
+The marking facility, requiring the \texttt{Pred}/\texttt{MPred} complication,
+is currently used when displaying the transcript in a terminal
+window to highlight old and new parts of predicates as changes are made.
+Currently this only works well on the Mac OS X terminal,
+because it seems to be the only one that properly supports ANSI escape sequences.
+
 \subsection{Research Context}\label{ssec:context}
 
 We have recently started to explore using UTP
