@@ -1,1 +1,28 @@
 \section{Related Work}\label{sec:Related}
+
+Get related work from the UTP2 paper sources
+
+
+\subsection{The decision}
+
+We briefly considered using the \UTP2 theorem prover
+\cite{DBLP:conf/utp/Butterfield10,DBLP:conf/utp/Butterfield12},
+but it would have required a lot of setup effort,
+and it is currently not in an ideal state%
+\footnote{The issue has to do with difficulties installing
+the relevant software libraries
+on more recent versions of Haskell.}
+.
+However, as part of our work on the formal semantics of PML,
+we had developed a parser and some initial analysis tools
+in Haskell\cite{Haskell2010},
+and this software contained abstract syntax and support
+for general predicates.
+It became really obvious that this could be quickly adapted,
+to mechanise the checking calculations, that were being performed
+during each attempt.
+In particular,
+the key inspiration was the observation,
+over all of those calculation attempts (five in all!),
+that the pattern of each calculation was very uniform and similar.
+So a decision was taken to construct the calculator described in this paper.

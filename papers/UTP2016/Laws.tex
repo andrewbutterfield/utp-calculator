@@ -1,0 +1,294 @@
+\section{Laws}\label{sec:Laws}
+
+\subsubsection{Law Entries}~
+
+\begin{code}
+Entry s
+  = ...
+  | LawEntry  { reduce :: [DictRWFun s]
+              , creduce :: [CDictRWFun s]
+              , unroll :: [String -> DictRWFun s] }
+\end{code}
+Law entries are currently only associated with one key,
+namely the string \texttt{"laws"},
+which is what the calculator uses to find such entries.
+There are three parts,
+each consisting of lists of functions.
+These lists are intended to be be applied in order to the
+``current predicate'', until either one succeeds,
+or none do.
+All the functions take a dictionary
+and (marked) predicate as arguments,
+and return either
+an single-outcome indicator (\texttt{reduce},\texttt{unroll}):
+\begin{code}
+type DictRWFun s = Dict s -> RWFun s
+type RWFun s = MPred s -> RWResult s
+type RWResult s = (String, MPred s)
+\end{code}
+or a conditional  multiple-outcome result (\texttt{creduce}).
+\begin{code}
+type CDictRWFun s = Dict s -> CRWFun s
+type CRWFun s = MPred s -> CRWResult s
+type CRWResult s = (String, [(Pred s, MPred s)])
+\end{code}
+\begin{description}
+  \item[\texttt{reduce}]
+     is a list of reduction laws,
+     to be tried out when a reduction step is invoked by the user.
+  \item[\texttt{creduce}]
+    is a list of conditional reduction laws,
+    which have multiple outcomes dependent on a side-condition.
+    Rather than try to resolve conditions automatically,
+    we prefer to let the user choose the appropriate outcome.
+  \item[\texttt{unroll}]
+    is a list of loop-unrolling functions.
+    The extra string argument is to give the user finer control
+    of how much unrolling is done, and how it is presented.
+\end{description}
+
+
+\subsection{Coding UTCP Laws}
+
+The definition of the semantics of the UTCP language
+constructs, and of $run$,
+make use of the (almost) standard notions of skip,
+sequential composition
+and iteration in UTP.
+The versions used here are slightly non-standard because we have
+non-homogeneous relations,
+where the static parameters have no dashed counterparts.
+In essence we ignore the parameters as far as flow-of-control is concerned:
+\RLEQNS{
+   \Skip &\defs& s'=s \land ls'=ls
+\\ P ; Q
+   &\defs&
+   \exists s_m,ls_m @
+     P[s_m,ls_m/s',ls']
+     \land
+     Q[s_m,ls_m/s,ls]
+\\ c * P &\defs& \mu L @ (P ; L) \cond c \Skip
+\\ P \cond c Q &\defs& c \land P \lor \lnot c \land Q
+}
+Here, the definition of $\cond\_$ is entirely standard, of course.
+
+What is key here though,
+is realising that we do not want to define the constructs
+as above and use them directly, as it involves
+quantifiers and explicit recursion,
+both of which would introduce considerable complexity to the calculator.
+Instead, we encode useful laws that they satisfy,
+that do not require their definitions to be expanded.
+Such laws might include the following:
+\RLEQNS{
+  \Skip \seq\ P & {} = P = {} & P \seq \Skip
+\\ c * P &=& (P \seq c* P ) \cond c \Skip
+\\ (c * P)[e/x] &=& P[e/x] \seq c * P, \qquad if c[e/x]
+\\ (c * P)[e/x] &=& \Skip[e/x] , \qquad if \lnot c[e/x]
+}
+These laws need to be proven by hand (carefully),
+by the theory developer, and then encoded into Haskell
+(equally carefully), as we are about to describe.
+
+We can easily give a definition of $\Skip$,
+which is worth expanding.
+\RLEQNS{
+   \Skip &\defs& s'=s \land ls'=ls
+}
+\begin{code}
+defnUTCPII = mkAnd[ equal s' s, equal ls' ls ]
+\end{code}
+
+For more complex laws,
+the idea is that we pattern-match on predicate syntax
+to see if a law is applicable (we have its lefthand-side),
+and if so,
+we then build an appropriate instance of the righthand-side.
+The plan is that we gather all these pattern/outcome pairs
+in one function definition,
+which will try them in order.
+This is a direct match for how Haskell pattern-matching works.
+So for UTCP we have a function called \texttt{reduceUTCP},
+structured as follows:
+\begin{code}
+reduceUTCP :: (Show s, Ord s) => DictRWFun s
+reduceUTCP (...1st law pattern...) = 1st outcome
+reduceUTCP (...2nd law pattern...) = 2nd outcome
+...
+reduceUTCP d mpr = lred "" mpr  -- catch-all at end, no change
+\end{code}
+The last clause matches any predicate
+and simply returns it with a null string,
+indicating no change took place.
+The main idea is find a suitable collection of patterns,
+in the right order,
+to be most effective in performing calculations.
+The best way to determine this is start with none,
+run the calculator and when it stalls
+(no change is happening for any command),
+see what law would help make progress, and encode it.
+This is the essence of the agile approach to theory calculator development.
+
+A simple example of such a pattern is the following encoding
+of $\Skip;P = P$ :
+\begin{code}
+reduceUTCP d
+ (_,Comp "Seq" [(_,Comp "Skip" []), mpr]) = lred ";-lunit" mpr
+\end{code}
+The second argument has type marked-predicate (\texttt{MPred})
+which is a marking/predicate pair.
+We are not interested in the markings
+so we use the wildcard pattern '\verb"_"'
+for the first pair component.
+The sub-pattern in the second pair component,
+\verb'Comp "Seq" [(_,Comp "Skip" []), mpr])',
+matches a composite called ``Seq'',
+with a argument list containing two (marked) predicates.
+The first argument predicate pattern \verb'(_,Comp "Skip" [])'
+matches a ``Skip'' composite with no further subarguments.
+The second argument pattern \verb'mpr' matches an arbitrary predicate
+($P$ in the law above).
+The righthand-side returns the application \verb'lred ";-lunit" mpr'
+which simply constructs a string/predicate pair,
+with the string being a justification note that says a reduction-step
+using a law called ``$;$-lunit'' was applied.
+
+
+
+\subsection{UTCP Recognisers}
+
+Some laws require matching that is a bit more sophisticated.
+For example,
+consider a useful reduction for tidying up at the end,
+assuming that $ls' \notin A$ and $ls \notin B$, and both $k$ and $h$
+are ground:
+\[
+   (A \land ls'=k) ; (B \land ls'= h)
+   \quad\equiv\quad
+   (A;B) \land ls'=h
+   \qquad \elabel{$ls'$-cleanup}
+\]
+However, we want this law to work when both $A$
+and $B$ are themselves conjunctions, with the $ls'=\dots$
+as part of the same conjunction, located at some arbitrary position.
+We can break the problem into two parts.
+First we do a top-level pattern match
+to see that we have a top-level sequential composition
+of two conjunctions,
+then we use a function that will check both conjunction predicate-lists
+for the existence of a $ls'=\dots$ component,
+and that everything else also satisfies the requirements regarding
+the occurrence, or otherwise of $ls$ or $ls'$:
+\begin{code}
+reduceUTCP d pr@(_,Comp "Seq" [ (_,Comp "And" pAs)
+                              , (_,Comp "And" pBs)])
+ = case isSafeLSDash d ls' ls' pAs of -- no ls' in rest of pAs
+    Nothing -> lred "" pr
+    Just (_,restA) ->
+     case isSafeLSDash d ls' ls pBs of -- no ls in rest of pBs
+      Nothing -> lred "" pr
+      Just (eqB,restB)
+       -> lred "ls'-cleanup" $   -- build RHS
+             comp "And" [ comp "Seq" [ bAnd restA
+                                     , bAnd restB ]
+                        , eqB ]
+\end{code}
+The function \texttt{isSafeLSDash}
+is designed to
+(i) locate the $ls'=e$ conjunct and check that its rhs is a ground expression;
+(ii) check that none of the remaining conjuncts make use of the
+`unwanted' version of the label-set variable ($ls$ or $ls'$);
+and (iii), if all ok, return a pair
+whose first component is the ($ls'=\dots$) equality,
+and whose second is the list of other conjuncts.
+To achieve (i) above,
+we make use of two functions provided by the \texttt{CalcRecogniser} module:
+\begin{code}
+mtchNmdObsEqToConst :: Ord s => String -> Dict s -> Recogniser s
+matchRecog :: (Ord s, Show s)
+           => Recogniser s -> [MPred s]
+           -> Maybe ([MPred s],(MPred s,[MPred s]),[MPred s])
+\end{code}
+where
+\begin{code}
+type Recogniser s = MPred s -> (Bool, [MPred s])
+\end{code}
+A recogniser is a function that takes a predicate
+and if it ``recognises'' it, returns \texttt{(True, parts)},
+where parts are the subcomponents of the predicate in some order.
+The recogniser \texttt{mtchNmdObsEqtoConst v d} matches a predicate of the form
+\texttt{Equal (Var v) k}, returning a list with both parts.
+The function \texttt{matchRecog} takes a recogniser and list of predicates
+and looks in the list for the first predicate to satisfy
+the recogniser, returning a triple of the form
+(before,satisyingPred,after).
+If the recogniser succeeds,
+we then check the validity of the expression,
+and the absence of the unwanted variable from the
+rest of the conjuncts --- using boolean function
+ \texttt{dftlyNotInP} (``definitely not in $P$''),
+ so handling task (ii) above.
+\begin{code}
+isSafeLSDash d theLS unwanted prs
+ = case matchRecog (mtchNmdObsEqToConst theLS d) prs of
+    Nothing -> Nothing
+    Just (pre,(eq@(_,Equal _ k),_),post) ->
+     if notGround d k
+      then Nothing
+      else if all (dftlyNotInP d unwanted) rest
+       then Just (eq,rest)
+       else Nothing
+     where rest = pre++post
+\end{code}
+
+\subsection{Conditional Reductions}
+
+To avoid having to support a wide range of expression-related theories,
+we provide a conditional reducer, that computes
+a number of alternative outcomes, each guarded by some predicate
+that is hard to evaluate.
+The user elects which one to use by checking the conditions manually.
+We define a function, similar to reduceUTCP,
+that contains a series of patterns for each conditional reduction law.
+\begin{code}
+creduceUTCP :: (Show s, Ord s) => CDictRWFun s
+\end{code}
+Provided that $\vec x \subseteq in\alpha P$
+ (which in this case is $\setof{s,ls}$):
+\RLEQNS{
+   c[\vec e/\vec x]
+   &\implies&
+   (c * P)[\vec e/\vec x] = P[\vec e/\vec x] ; c * P
+\\ \lnot c[\vec e/\vec x]
+   &\implies&
+   (c * P)[\vec e/\vec x] = \Skip[\vec e/\vec x]
+}
+\begin{code}
+creduceUTCP d (_,PSub w@(_,Comp "Iter" [c,p]) sub)
+ | isCondition c        -- true if expr c is a UTP 'condition'
+   && beforeSub d sub   -- true if subst-vars are all undashed
+ = lcred "loop-substn" [ctrue,cfalse]
+ where
+   csub = psub c sub            --  psub builds a substitution
+   ctrue  = ( psimp d csub          -- psimp runs a simplifier
+            , bSeq (psub p sub) w )
+   cfalse = ( psimp d $ bNot csub
+            , psub bSkip sub )
+\end{code}
+If this succeeds, the user is presented with two options,
+each of the form (side-condition, outcome)
+The user can then identify which of those side-conditions is true,
+resulting in the appropriate outcome.
+
+We make these two reduction functions ``known'' to the calculator
+by adding them into a dictionary.
+\begin{code}
+lawsUTCPDict
+ = makeDict [("laws", LawEntry [reduceUTCP] [creduceUTCP] [])]
+\end{code}
+We then can take a number of partial dictionaries and use various
+dictionary functions,
+defined in \texttt{CalcPredicates}, to merge them together.
+\begin{code}
+dictUTCP = foldl1 dictMrg [ alfUTCPDict, ..., lawsUTCPDict]
+\end{code}

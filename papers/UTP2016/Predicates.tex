@@ -1,1 +1,126 @@
 \section{Predicates}\label{sec:Predicates}
+
+In Fig. \ref{fig:pred-types} we show the Haskell declarations
+of the datatypes to represent both expressions and predicates.
+Of course this means we are developing a deep embedding\cite{Gibbons:2014:FDS},
+which is required in order to be able to do the kind of calculations we require.
+\begin{figure}[tb]
+\begin{code}
+data Pred s
+  = T | F | PVar String | Equal (Expr s) (Expr s) | Atm (Expr s)
+  | Comp String [MPred s] | PSub (MPred s) (Substn s) | PUndef
+
+type MPred s = (Marks, Pred s)
+\end{code}
+  \caption{Predicate Datatypes (\texttt{CalcTypes.lhs})}
+  \label{fig:pred-types}
+\end{figure}
+Both datatypes are parameterised on a generic state type \texttt{s},
+which allows us to be able to handle different concrete types
+of shared state with one piece of code.
+Both types have basic values (\texttt{St},\texttt{B},\texttt{Z},\texttt{T},\texttt{F}),
+variables (\texttt{Var},\texttt{PVar}),
+generic composites (\texttt{App},\texttt{Comp}),
+substitution (\texttt{Sub},\texttt{PSub})
+and undefined values (\texttt{Undef},\texttt{PUndef}).
+The predicate datatype has a way to embed a (boolean-valued)
+expression to form an atomic predicate (\texttt{Atm}),
+as well as an explicit form for atomic predicates that take
+the form of an equality (\texttt{Equal}).
+We give a specialised form for equality simply because
+its use in laws is widespread and worth optimising.
+
+Also important to point out is the fact that \texttt{Pred} is
+defined in terms of \texttt{MPred}, which in turn is defined
+in terms of \texttt{Pred}.
+This is done to facilitate the association of markings (lists of integers)
+with predicate constructs.
+These markings are used to indicate which parts of a predicate
+were changed at each calculation step.
+We will not discuss marking further in this document
+as it runs completely ``under the hood'',
+and its only impact on the users of this calculator
+is their need to be aware of the interplay involving \texttt{Pred} and \texttt{MPred}.
+
+\subsubsection{Predicate Entries}~
+
+\begin{code}
+Entry s
+  = ...
+  | PredEntry
+    { pcansub :: [String]
+    , pprint :: Dict s -> MarkStyle -> Int -> [MPred s] -> PP
+    , alfa :: [String]
+    , pdefn :: Rewrite s
+    , prsimp :: Rewrite s }
+type Rewrite s = Dict s -> [MPred s] -> (String, Pred s)
+\end{code}
+The predicate entry associated with Comp name pargs
+has five fields:
+\begin{description}
+  \item[\texttt{pcansub}]
+    does for predicates what \texttt{ecansub} does for expressions.
+  \item[\texttt{pprint}]
+    is similar to \texttt{eprint} except it has two extra arguments,
+    used to help with special renderings for predicates marked as changed,
+    and precedence levels for managing bracketing.
+    We do pretty-printing tricks such as indenting and adding line-breaks
+    at the predicate level.
+  \item[\texttt{alfa}]
+    is used to identify the alphabet of the predicate.
+  \item[\texttt{pdefn}]
+    is a function invoked when \texttt{name} has a definition,
+    and we want to expand it.
+  \item[\texttt{prsimp}]
+    is called by the simplifier when processing \texttt{name}.
+\end{description}
+Both \texttt{pdefn} and \texttt{prsimp} take a dictionary argument
+and list of sub-component (marked)predicates,
+returning a string/predicate pair,
+interpreted in a manner similar to \texttt{eval} above.
+
+
+\subsection{Coding Atomic Semantics}
+
+Formally, using our shorthand notations, we define atomic behaviour as:
+\[
+    \A(A) \defs ls(in) \land A \land ls'=ls\ominus(in,out)
+\]
+where $A$ is a predicate whose alphabet is restricted to $s$ and $s'$.
+We code this up as follows:
+\begin{code}
+patm mpr = comp "A" [mpr] -- we assume mpr has only s, s' free
+
+defnAtomic d [a] = ldefn shPAtm $ mkAnd [lsin,a,ls'eqlsinout]
+
+inp = Var "in" -- 'in' is a Haskell keyword
+out = Var "out"
+lsin = atm $ App "subset" [inp,ls]
+lsinout = App "sswap" [ls,inp,out]
+ls'eqlsinout = equal ls' lsinout
+
+patmEntry
+ = ( nPAtm
+   , PredEntry [] ppPAtm [] defnAtomic (pNoChg nPAtm) )
+\end{code}
+Here \texttt{atm} lifts an expression to a marked predicate,
+while \texttt{"sswap"} names the ternary operation $\_\ominus(\_,\_)$,
+and \texttt{equal} is the marked form of \texttt{Equal}.
+
+
+We won't show the encoding of the composite constructs,
+or a predicate transformer called $run$ that actually
+enables us to symbolically `execute' our semantics.
+We will show how the \texttt{pprint} entry for
+sequential composition in UTCP is defined,
+just to show how easy support for infix notation is.
+\begin{code}
+ppPSeq d ms p [mpr1,mpr2]
+ = paren p precPSeq -- parenthesise if precedence requires it
+     $ ppopen  (pad ";;") [ mshowp d ms precPSeq mpr1
+                          , mshowp d ms precPSeq mpr2 ]
+\end{code}
+Here \texttt{pad} puts spaces around its argument,
+while \texttt{ppopen} uses its first argument as a
+separator between all the elements of its second list argument.
+The function \texttt{mshowp} is the top-level predicate printer.

@@ -1,4 +1,4 @@
-\section{Building Theories}\label{sec:Theorising}
+\section{Building TheoriesX}\label{sec:TheorisingX}
 
 %Sometimes learning by doing is the best approach,
 %so here we sketch out how a theory like UTCP
@@ -19,30 +19,3 @@ calculator,
 rather than trying to explain the theory itself, or its design motivation.
 
 \input{UTCP-in-HaskellX}
-
-\subsection{What's Missing?}
-
-\subsubsection{No Quantifiers}\label{ssec:no-quant}
-
-    They bring a world of pain with them,
-    and as it turns out, are not required
-    for the kinds of calculations we wish to do.
-    Handwritten proofs of laws involving concepts
-    defined using quantifier and binders
-    are required to validate the laws,
-    but these are easy to do---the pain is automating these proofs,
-    not doing them by hand.
-
-\subsubsection{No Targetting}\label{ssec:no-target}
-
-First-come, first-served, just works.
-We don't provide a facility
-to allow the user to specify
-precisely which law to apply,
-or which sub-predicate should be the target of a rewrite attempt.
-Instead we allow a blunt command that simply chooses between
-definition-expansion, reduction, simplification or conditional-reduction.
-The calculator engine then simply looks for the first location
-were the command succeeds.
-To date this has had no major effect on the ability of the calculator
-to work, but instead makes it very easy and fast to explore the calculation space.
