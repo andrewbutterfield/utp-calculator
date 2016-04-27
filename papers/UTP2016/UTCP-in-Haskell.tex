@@ -13,7 +13,7 @@ which are broken into two groups:
     are pre-defined theory modules that cover standard logic,
     whose names start with \texttt{Std}, and modules that cover ``standard''
     UTP, whose names start with \texttt{StdUTP}.
-    These theory modules typically come in three, covering
+    These theory modules typically come in threes, covering
     \texttt{Predicates}, \texttt{Precedences} and \texttt{Laws}.
 \end{description}
 All the Haskell modules are found in the \texttt{src} directory
@@ -23,16 +23,15 @@ of the repository, with a \texttt{.lhs} file extension
 \subsection{UTCP Syntax}
 
 We start by defining the syntax of our language
-\RLEQNS{
+\[
    p,q \in UTCP
-   &::=& Idle
+   ::= Idle
   \mid  \A(A)
   \mid  p \lseq q
   \mid  p \lcond c q
   \mid  p \parallel q
   \mid  c \wdo p
-}
-\noindent
+\]
 and assign them pretty printing precedences,
 so they work well with the definitions in modules
 \texttt{StdPrecedences} and \texttt{StdUTPPrecedences}.
@@ -70,7 +69,7 @@ that are dynamic, whose values change as the program runs
 from those that are static,
 unchanged during program execution (e.g. $g$, $in$ and $out$).
 We have pre-defined names for these categories,
-and an function \texttt{stdAlfDictGen} that
+and a function \texttt{stdAlfDictGen} that
 builds all the appropriate entries
 given three lists of script, dynamic model and static variable strings.
 We also declare that the predicate variables $A$, $B$ and $C$
@@ -91,7 +90,7 @@ alfUTCPDict
 , \texttt{CalcPredicates}
 , \texttt{StdPredicates}.)
 
-\subsection{UTPC Expressions}
+\subsection{UTCP Expressions}
 
 We have sets of labels
 so we need a way to implement set-expressions.
@@ -100,7 +99,7 @@ so that a singleton set $\setof x$ is rendered as $x$
 and the very common idiom $S \subseteq ls$
 is rendered as $ls(S)$,
 so that for example, $ls(in)$ is short for $\setof{in} \subseteq ls$.
-So we might encode a set construct as follows
+So we encode a set construct as follows
 \begin{code}
 set = App "set"                             -- set constructor
 showSet d [elm] = edshow d elm      -- drop {,} from singleton
@@ -145,9 +144,9 @@ within the calculator, as \texttt{lg:1:} .
 \subsection{Coding Atomic Semantics}
 
 Formally, using our shorthand notations, we define atomic behaviour as:
-\RLEQNS{
-    \A(A) &\defs& ls(in) \land A \land ls'=ls\ominus(in,out)
-}
+\[
+    \A(A) \defs ls(in) \land A \land ls'=ls\ominus(in,out)
+\]
 where $A$ is a predicate whose alphabet is restricted to $s$ and $s'$.
 We code this up as follows:
 \begin{code}
@@ -248,7 +247,7 @@ The plan is that we gather all these pattern/outcome pairs
 in one function definition,
 which will try them in order.
 This is a direct match for how Haskell pattern-matching works.
-So for UTCP we have a function called reduceUTCP,
+So for UTCP we have a function called \texttt{reduceUTCP},
 structured as follows:
 \begin{code}
 reduceUTCP :: (Show s, Ord s) => DictRWFun s
@@ -302,17 +301,17 @@ For example,
 consider a useful reduction for tidying up at the end,
 assuming that $ls' \notin A$ and $ls \notin B$, and both $k$ and $h$
 are ground:
-\RLEQNS{
-   A \land ls'=k ; B \land ls'= h
-   &\equiv&
+\[
+   (A \land ls'=k) ; (B \land ls'= h)
+   \quad\equiv\quad
    (A;B) \land ls'=h
-   & \elabel{$ls'$-cleanup}
-}
-However, we want this law to work when both $A$ 
+   \qquad \elabel{$ls'$-cleanup}
+\]
+However, we want this law to work when both $A$
 and $B$ are themselves conjunctions, with the $ls'=\dots$
 as part of the same conjunction, located at some arbitrary position.
 We can break the problem into two parts.
-First we do a top-level pattern match 
+First we do a top-level pattern match
 to see that we have a top-level sequential composition
 of two conjunctions,
 then we use a function that will check both conjunction predicate-lists
@@ -327,14 +326,14 @@ reduceUTCP d pr@(_,Comp "Seq" [ (_,Comp "And" pAs)
     Just (_,restA) ->
      case isSafeLSDash d ls' ls pBs of -- no ls in rest of pBs
       Nothing -> lred "" pr
-      Just (eqB,restB) 
+      Just (eqB,restB)
        -> lred "ls'-cleanup" $   -- build RHS
              comp "And" [ comp "Seq" [ bAnd restA
                                      , bAnd restB ]
                         , eqB ]
 \end{code}
 The function \texttt{isSafeLSDash}
-is designed to 
+is designed to
 (i) locate the $ls'=e$ conjunct and check that its rhs is a ground expression;
 (ii) check that none of the remaining conjuncts make use of the
 `unwanted' version of the label-set variable ($ls$ or $ls'$);
@@ -362,11 +361,11 @@ The function \texttt{matchRecog} takes a recogniser and list of predicates
 and looks in the list for the first predicate to satisfy
 the recogniser, returning a triple of the form
 (before,satisyingPred,after).
-If the recogniser suceeds,
+If the recogniser succeeds,
 we then check the validity of the expression,
 and the absence of the unwanted variable from the
 rest of the conjuncts --- using boolean function
- \texttt{dftlyNotInP} (``definitely not in $P$),
+ \texttt{dftlyNotInP} (``definitely not in $P$''),
  so handling task (ii) above.
 \begin{code}
 isSafeLSDash d theLS unwanted prs

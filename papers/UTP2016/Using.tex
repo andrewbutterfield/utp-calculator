@@ -2,7 +2,7 @@
 
 The first property of interest for this calculator
 was calculating the effect of $run(A \pseq B)$,
-where $A$ and $B$ where atomic action predicates with alphabet $\setof{s,s'}$.
+where $A$ and $B$ were atomic action predicates with alphabet $\setof{s,s'}$.
 For convenience we predefined the predicate $A \pseq B$, as
 \begin{code}
 athenb = pseq [patm (pvar "A"),patm (pvar "B")]
@@ -43,6 +43,6 @@ which is essentially the above
 without the prompts.
 The marking facility, requiring the \texttt{Pred}/\texttt{MPred} complication,
 is currently used when displaying the transcript in a terminal
-window to highlight old and new parts of predicates as chages are made.
+window to highlight old and new parts of predicates as changes are made.
 Currently this only works well on the Mac OS X terminal,
-because it seems to be the only one that properly supports ANSI secpae sequences.
+because it seems to be the only one that properly supports ANSI escape sequences.

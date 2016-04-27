@@ -46,7 +46,7 @@ on four initial design decisions:
    very simple, with only equality being singled out.
   \item We would need to have a good way to pretty-print long predicates
     that made it easy to see their overall structure
-  \item We would reply on a dictionary based system to 
+  \item We would reply on a dictionary based system to
     make it easy to customise how specific constructs
     were to be handled.
 \end{enumerate}
@@ -62,7 +62,7 @@ the following regarding the calculation steps that would be supported:
     We would avoid, at all costs,
     any use of quantifiers or binding constructs.
   \item
-    The calculator use interface would be very simple,
+    The calculator user interface would be very simple,
     supporting a few high level commands such as ``simplify''
     or ``reduce''.
     In particular,
@@ -137,6 +137,7 @@ had to split over multiple lines,
 that the breaks are always around the top-most operator or composition
 symbol, with sub-components indented in.
 An example of such pretty-printing in action is
+
 {\small
 \begin{verbatim}
     D(out)
@@ -162,7 +163,7 @@ We have a default way to pretty-print composites,
 so that the predicate $\true \land \false$,
 represented in Haskell by \texttt{Comp "And" [bT,bF]},
 would render as \texttt{And(true,false)}.
-However it would be nice to be able to render it as the usual
+However it is nice to be able to render it as the usual
 infix operator, giving \texttt{true /\BS\ false}.
 In addition, we need some way to associate laws and definitions,
 as appropriate, with composites.
@@ -202,7 +203,7 @@ We make full use of this in three of the entry kinds discussed below.
 
 \begin{code}
 Entry s
-  = ExprEntry 
+  = ExprEntry
     { ecansub :: [String]
     , eprint :: Dict s -> [Expr s] -> String
     , eval :: Dict s -> [Expr s] -> (String, Expr s)
@@ -248,13 +249,14 @@ in a context where we know that $L$ is a set expression defined
 only over variables $g$, $in$ and $out$.
 Now, consider the following instance, with a substitution,
 and two attempts to calculate a full expansion:
-\begin{eqnarray*}
-   & D(\setof{out})[\setof{\ell_1},\ell_2/ls,out] &
-\\ (\setof{out \subseteq ls})[\setof{\ell_1},\ell_2/ls,out]=
- && = D(\setof{\ell_2})
-\\ \setof{\ell_2} \subseteq \setof{\ell_1}=
- && = \setof{\ell_2} \subseteq ls
-\end{eqnarray*}
+\[\begin{array}{l@{\qquad}l}
+   D(\setof{out})[\setof{\ell_1},\ell_2/ls,out]
+ & D(\setof{out})[\setof{\ell_1},\ell_2/ls,out]
+\\ {} = (\setof{out} \subseteq ls)[\setof{\ell_1},\ell_2/ls,out]
+ & {}= D(\setof{\ell_2})
+\\ {} = \setof{\ell_2} \subseteq \setof{\ell_1}
+ & {} = \setof{\ell_2} \subseteq ls
+\end{array}\]
 The lefthand calculation is correct, the righthand is not.
 The substitution refers to variables (e.g. $ls$)
 that are hidden when the $D$ shorthand is used.
@@ -277,7 +279,7 @@ then we use the ``wildcard'' form: \texttt{["*"]}.
 \begin{code}
 Entry s
   = ...
-  | PredEntry 
+  | PredEntry
     { pcansub :: [String]
     , pprint :: Dict s -> MarkStyle -> Int -> [MPred s] -> PP
     , alfa :: [String]
@@ -331,7 +333,7 @@ and (marked) predicate as arguments,
 and return either
 an single-outcome indicator (\texttt{reduce},\texttt{unroll}):
 \begin{code}
-type DictRWFun s = Dict s -> RWFun sdata
+type DictRWFun s = Dict s -> RWFun s
 type RWFun s = MPred s -> RWResult s
 type RWResult s = (String, MPred s)
 \end{code}
@@ -350,7 +352,7 @@ type CRWResult s = (String, [(Pred s, MPred s)])
     which have multiple outcomes dependent on a side-condition.
     Rather than try to resolve conditions automatically,
     we prefer to let the user choose the appropriate outcome.
-  \item[\texttt{loop}]
+  \item[\texttt{unroll}]
     is a list of loop-unrolling functions.
     The extra string argument is to give the user finer control
     of how much unrolling is done, and how it is presented.
@@ -395,7 +397,7 @@ request help ('\texttt{?}'),
 and to signal an exit from the calculator ('\texttt{x}').
 However,
 of most interest are the five calculation commands.
-The first is a global simplify command ('s'),
+The first is a global simplify command ('\texttt{s}'),
 that scans the entire predicate from the bottom-up
 looking for simplifiers for each composite and applying them.
 Simplifiers are captured as \texttt{eval} or \texttt{prsimp} components
@@ -443,4 +445,3 @@ perhaps unroll a loop a bit; etc...
     This is done to prevent the calculator from having
     to embody predicate simplifiers ``modulo various expression theories''.
 \end{description}
-

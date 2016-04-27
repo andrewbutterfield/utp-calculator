@@ -58,11 +58,11 @@ In UTCP we have two distinct groups of observations:
     modelling the generic state ($s,s'$)
     and the global label-set ($ls,ls'$) used to manage control-flow.
   \item
-    Variables that record static parameters such the start ($in$)
+    Variables that record static parameters such as start ($in$)
     and stop ($out$) labels for a construct,
     as well as a label generator ($g$) associated with each construct.
 \end{itemize}
-So our UTCP theory is a non-homogeneous relation
+So our UTCP theory is based on a non-homogeneous relation
 with alphabet $s$, $s'$, $ls$, $ls'$, $g$, $in$, and $out$.
 
 
@@ -81,8 +81,9 @@ The second calculation was of the sequential compositions of two atomic
 actions ($A\pseq B$), and this is where problems arose.
 
 The first problem was relatively minor
----a lot of the semantics talks about the presence in or absence of
-various labels from the global label set, and of modifications to that set.
+---a lot of the semantics talks about the presence of various
+labels in the global label-set, or alternatively, their  absence,
+and of modifications to that set.
 This resulted in very wide expressions,
 so some shorthand notations were introduced:
 using $\ell$ to denote singleton set $\setof\ell$;
@@ -139,12 +140,12 @@ we had developed a parser and some initial analysis tools
 in Haskell\cite{Haskell2010},
 and this software contained abstract syntax and support
 for general predicates.
-It became really obvious that this could be quickly adapted
-to mechanise the checking calculations that were being performed
+It became really obvious that this could be quickly adapted,
+to mechanise the checking calculations, that were being performed
 during each attempt.
 In particular,
 the key inspiration was the observation,
-over all of those calculation attempts (5 in all!)
+over all of those calculation attempts (five in all!),
 that the pattern of each calculation was very uniform and similar.
 So a decision was taken to construct the calculator described in this paper.
 
@@ -154,12 +155,12 @@ So a decision was taken to construct the calculator described in this paper.
 
 In Sect. \ref{sec:Design}
 we describe key design decisions
-that underly the calculator's features,
+that underlie the calculator's features,
 and which are responsible for its success.
 Then, in Sect. \ref{sec:Theorising}
 we present a development of a theory using the calculator,
-as a way of describing its features, from a users perspective.
-This is followed by a short example of the calculator in use 
+as a way of describing its features, from a user's perspective.
+This is followed by a short example of the calculator in use
 (Sect. \ref{sec:Using}).
 We then discuss this calculator, and related work
 and draw some conclusions in Sect. \ref{sec:Conc},
