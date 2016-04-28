@@ -1,17 +1,56 @@
 \section{Related Work}\label{sec:Related}
 
-Get related work from the UTP2 paper sources
+There are lots of tools for assisting with the kinds of
+calculations we are trying to perform,
+ranging from calculators
+\cite{Bird14},
+through rewrite/transformation
+systems
+(Unfold/Fold\cite{BurstallAndDarlington77},
+CIP-S\cite{DBLP:books/sp/BauerEH87},
+ZAP\cite{Feather:1982:SAP:357153.357154},
+KIDS\cite{Smith91},
+Stratego\cite{conf/rta/Visser01},
+ASF+DSF\cite{VanDenBrand:2002:CLD}
+Maude\cite{conf/rta/ClavelDELMMT03}
+HATS\cite{conf/gttse/WinterB06})
+to full-blown theorem provers
+(Isabelle/HOL\cite{books/sp/NipkowPW02},
+CoQ\cite{bk:Coq'Art:04},
+PVS\cite{conf/fmcad/Shankar96})
+including those that support equational reasoning
+(Isabelle/ISAR\cite{man:Isabelle:Isar:Wenzel:10}).
 
-See \cite{conf/utp/Butterfield10}.
+Most of the above have a considerable body of work behind,
+both in terms of theory and tool development,
+and provide very comprehensive coverage of their problem domain,
+be it rewriting, program transformation or theorem proving.
+However many are tied to specific languages,
+or have limited ability to allow the user to customise the target language.
+In particular,
+it is not in clear any of them,
+how to achieve the ability to do rapid calculation
+with a high degree of ease in proof-reading its
+output.
 
-There is very little work similar to this in the literature.
-In \cite{Bird14} we find a calculator
-for point-free equational proofs as a final case-study.
-Also of interest is the discussion of deep/shallow embedding
-in \cite{Gibbons:2014:FDS},
-which suggests, that although our calculator is based on deep embedding,
-the way it uses hand-coded laws from dictionaries
-it more like shallow-embedding in character.
+In addition to our own work on theorem proving for UTP \cite{conf/utp/Butterfield10},
+there is also work on embedding UTP into Isabelle/HOL\cite{DBLP:conf/utp/FosterZW14}.
+
+Within the UTP community,
+there has been considerable work using Proof{\-}Power-Z
+such as deep embedding into Z of an imperative language whose semantics
+were given using UTP \cite{conf/utp/NukaW06}and
+ re-working the mechanisation of UTP in order to better support
+the hierarchical nature of UTP theory building \cite{journals/entcs/ZeydaC09}.
+Some support for Z-like theories from UTP (such as Circus)
+can be found as extensions implemented in the Community Z Tools project
+\cite{conf/zum/MalikU05}.
+
+Whilst all of good pedigree, CoQ, Isabelle/HOL, ProofPower-Z and PVS
+all have in common that they work best when used in the manner
+for which they were designed%
+---in none of these cases does this manner match the way
+we wish to work in UTP, as described in the introduction.
 
 
 
@@ -38,96 +77,3 @@ the key inspiration was the observation,
 over all of those calculation attempts (five in all!),
 that the pattern of each calculation was very uniform and similar.
 So a decision was taken to construct the calculator described in this paper.
-
-\subsection{From reviewer 3}
-
-\begin{verbatim}
-Some relevant systems are:
-
-- LCF: tactics and tacticals much more general than the fixed bottom-up or
-top-down, depth-first mentioned in the last 2 paragraphs of Page 9; see e.g.
-(Paulson 1983)
-
-- Isabelle: architecture with small logical core designed to make proofs
-trustworthy; supports quantifiers, higher-order unification, automatic proof
-checking and proof finding, proof replay
-
-- Isabelle/Isar supports equational reasoning; see also other readable proof
-languages such as Mizar (Wenzel/Wiedijk 2002)
-
-- tactics in Coq and Sledgehammer in Isabelle/HOL: automation of proof steps
-(i.e. finding proofs, not just checking)
-
-- term rewriting systems, e.g. Maude: AC rewriting, AC matching are
-extensively studied problems; Section 3.7 seems to try to solve a special
-case of this
-
-- program transformation systems (e.g. Unfold/Fold: Burstall/Darlington 1977;
-ZAP: Feather 1982; CIP-S: Bauer et al. 1987; ASF+SDF: Bergstra et al. 1989;
-KIDS: Smith, 1991; HATS: Winter, 1999; Stratego: Visser 2001) and many
-systems based on unfold/fold supporting not only programs, but also
-specifications involving quantifiers and binding constructs, which could be
-applied to logical formulas and their interactive exploration; moreover
-support of unfold (pdefn on page 8), fold, simplifications, user-defined
-transformation rules (cf. law reduce on page 10)
-\end{verbatim}
-
-\subsection{From UTP2010}
-
-There are a lot of theorem provers in existence,
-of which the most prominent feature in \cite{conf/tphol/2006provers}.
-Of these, the most obvious candidates for consideration for UTP prover support
-are Isabelle/HOL\cite{books/sp/NipkowPW02},
-PVS\cite{conf/fmcad/Shankar96},
-and Coq \cite{bk:Coq'Art:04}.
-They are powerful, well-supported,
-with decades of development experience
-and large active user communities.
-They all support higher-order logic of some form, with a command-line interface,
-typically based around tactics of some form. All three require functions to be total,
-but support some kind of mechanism for handling partial functions
-(e.g. dependent types in PVS).
-Their reasoning frameworks are based on some form of sequent calculus,
-and do not support equational reasoning in a native fashion.
-
-There has been work done on improving the user interfaces
-of the above theorem provers.
-An interesting example was ``proof by pointing'' \cite{conf/tacs/BertotKT94}
-for CoQ which allowed the user to select a subterm,
-whereupon it would generate and apply a tactic based on the subterm's top-level
-operator.
-Whilst proof-by-pointing is not supported in more recent versions of CoQ,
-it has been incorporated into ``Proof General'' \cite{conf/tacas/Aspinall00},
-a general purpose user interface for theorem provers, built on top of Emacs.
-It supports Isabelle and Coq, among others,
-and is basically a proof-script management system.
-In essence it supports the command-line tactics of the provers,
-allowing the user to edit proof scripts at will,
-whilst maintaining prover consistency behind the scenes.
-
-Within the UTP community,
-there has been considerable work using Proof{\-}Power-Z to
-build models of UTP theories in Z in order to mechanise proofs.
-Early work looked at deep embedding into Z of an imperative language whose semantics
-were given using UTP \cite{conf/utp/NukaW06}.
-Work extending this to a mechanisation of UTP itself was also undertaken,
-driven by a desire to mechanically verify the semantics of Circus \cite{journals/fac/OliveiraCW09}.
-Recent work has looked at re-working the mechanisation of UTP in order to better support
-the hierarchical nature of UTP theory building \cite{journals/entcs/ZeydaC09},
-where alphabetised predicates are restricted to relations, then designs, and so on.
-Some support for Z-like theories from UTP (such as Circus)
-can be found as extensions implemented in the Community Z Tools project
-\cite{conf/zum/MalikU05}.
-
-
-Whilst all of good pedigree, CoQ, Isabelle/HOL, ProofPower-Z and PVS
-all have in common that they work best when used in the manner
-for which they were designed%
----in none of these cases does this manner match the way
-we wish to work in UTP, as described in the introduction.
-Ironically, the key inspiration for the design of UTP2 came not from the
-above provers, but instead from the one provided as part
-of the RAISE Development Method \cite{bk:Raise-dev-mthd:95}.
-That theorem prover had mechanisms for selecting sub-expressions
-and identifying applicable laws for that sub-expression,
-a feature very close to that required for the proof style that UTP2 supports.
