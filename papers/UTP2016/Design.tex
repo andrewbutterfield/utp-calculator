@@ -1,9 +1,43 @@
 \section{Design \& Architecture}\label{sec:Design}
 
-\DRAFT{Talk about the spectrum from hand-proof to full-blown theorem prover}
+\subsection{Key Design Decisions}
+
+Taking into account the repetitive nature of the calculations,
+and the need for shorthand notations we very rapidly converged
+on four initial design decisions:
+\begin{enumerate}
+  \item No parsers! All calculation objects are written
+  directly in Haskell.
+  \item We would keep the expression and predicate datatype declarations
+   very simple, with only equality being singled out.
+  \item We would need to have a good way to pretty-print long predicates
+    that made it easy to see their overall structure
+  \item We would rely on a dictionary based system to
+    make it easy to customise how specific constructs
+    were to be handled.
+\end{enumerate}
+From our experience with the \UTP2 theorem-prover we also decided
+the following regarding the calculation steps that would be supported:
+\begin{itemize}
+  \item
+    We would not support full  propositional calculus
+    or theories of numbers or sets.
+    Instead we would support the use of hard-coded relevant laws,
+    typically derived from  a handwritten proof.
+  \item
+    We would avoid, at all costs,
+    any use of quantifiers or binding constructs.
+  \item
+    The calculator user interface would be very simple,
+    supporting a few high level commands such as ``simplify''
+    or ``reduce''.
+    In particular,
+    no facility would be provided for the user to identify
+    the relevant sub-part of the current goal to which any operation
+    should be applied.
+\end{itemize}
 
 \subsection{The Calculator REPL}
-
 
 The way the calculator is designed to be used is
 that a function implementing a calculator Read-Execute-Print-Loop (REPL)
@@ -75,7 +109,7 @@ and $\A(\_)$ lifts these to predicates over the full UTCP alphabet,
 with added control-flow.
 Function $run$ is a top-level predicate-transformer in the theory that computes
 all possible behaviours of its argument (when run in isolation).
-For convenience we predefined the predicate $A \pseq B$ in Haskell as
+For convenience we predefined the predicate $\A(A) \pseq \A(B)$ in Haskell as
 \begin{code}
 athenb = pseq [patm (pvar "A"),patm (pvar "B")]
 \end{code}
@@ -109,11 +143,15 @@ A /\ ls' = {lg::} ; B /\ ls' = {lg:}
  = "ls'-cleanup"
 (A ; B) /\ ls' = {lg:}
 \end{lstlisting}
-The user simply indicates the broad class of command required,
-and the calculator works on the current goal predicate.
-A text transcript is produced,
-which is essentially the above
-without the prompts.
+Lines 2, 6, 11, and 18 show the user entering a single key command at the prompt.
+Lines 3, 7, and 19 show a short string identifying the relevant definition
+or law.
+Lines 1, 4--5, 8--10, 17 and 20 show various stages of the calculation.
+%The user simply indicates the broad class of command required,
+%and the calculator works on the current goal predicate.
+%A text transcript is produced,
+%which is essentially the above
+%without the prompts.
 %The marking facility, requiring the \texttt{Pred}/\texttt{MPred} complication,
 %is currently used when displaying the transcript in a terminal
 %window to highlight old and new parts of predicates as changes are made.
@@ -148,22 +186,22 @@ An example of such pretty-printing in action is
 %     ; W(D(lg) \/ A(in,lg,a,in,lg,lg) \/ D(out) \/ A(lg,out,b,lg,out,out)))
 %\end{verbatim}
 %}
+\noindent
 The top-level structure of this is
 \[D(out) \lor ( (\lnot ls(out) \land \dots) ; W(\dots) )\]
 
+\noindent
 The pretty printing support can be found in \texttt{PrettyPrint.lhs},
 which was written from scratch, but inspired by writings of
 Hughes\cite{HughesJohn1995c} and Wadler\cite{wadler-pp}
 on the subject.
-
-\subsection{Shorthand Notations}
 
 In addition to the layout management aspects of pretty-printing
 as just illustrated above,
 there is also a need for a support for shorthand notations,
 in order to ensure that predicates are more readable.
 This particularly arises when set notation is in heavy use.
-\DRAFT{A good example}
+We illustrate this in Sect.\ref{sec:Expressions}.
 
 \subsection{Dictionaries}\label{ssec:dict}
 
@@ -194,42 +232,6 @@ is the primary way for users to set up calculations.
 
 
 
-\subsection{Key Design Decisions}
-
-Taking into account the repetitive nature of the calculations,
-and the need for shorthand notations we very rapidly converged
-on four initial design decisions:
-\begin{enumerate}
-  \item No parsers! All calculation objects are written
-  directly in Haskell.
-  \item We would keep the expression and predicate datatype declarations
-   very simple, with only equality being singled out.
-  \item We would need to have a good way to pretty-print long predicates
-    that made it easy to see their overall structure
-  \item We would rely on a dictionary based system to
-    make it easy to customise how specific constructs
-    were to be handled.
-\end{enumerate}
-From our experience with the \UTP2 theorem-prover we also decided
-the following regarding the calculation steps that would be supported:
-\begin{itemize}
-  \item
-    We would not support full  propositional calculus
-    or theories of numbers or sets.
-    Instead we would support the use of hard-coded relevant laws,
-    typically derived from  a handwritten proof.
-  \item
-    We would avoid, at all costs,
-    any use of quantifiers or binding constructs.
-  \item
-    The calculator user interface would be very simple,
-    supporting a few high level commands such as ``simplify''
-    or ``reduce''.
-    In particular,
-    no facility would be provided for the user to identify
-    the relevant sub-part of the current goal to which any operation
-    should be applied.
-\end{itemize}
 
 \subsection{Before we dive in \dots}
 
