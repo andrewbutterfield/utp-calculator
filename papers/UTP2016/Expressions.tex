@@ -145,11 +145,11 @@ Consider the following:
 \begin{eqnarray*}
   && A \land \setof{\ell_{g}} \subseteq \setof{\ell_{g}}
   \land ls'
-    = (\setof{\ell_{g}} \setminus \setof{\ell_{g}}) 
+    = (\setof{\ell_{g}} \setminus \setof{\ell_{g}})
       \cup\setof{\ell_{g::}}
 \\&& {} \lor B \land \setof{\ell_{g::}} \subseteq \setof{\ell_{g}}
-  \land ls' = 
-  (\setof{\ell_{g}} \setminus \setof{\ell_{g::}}) 
+  \land ls' =
+  (\setof{\ell_{g}} \setminus \setof{\ell_{g::}})
    \cup \setof{\ell_{g:}}
 \\&& {} ; \setof{\ell_{g:}} \cap ls = \emptyset * (\A(A) \lseq \A(B))[\g{::},\ell_{g},\ell_{g:}/g,in,out]
 \end{eqnarray*}
@@ -234,7 +234,7 @@ Dict s -> [Expr s] -> [Expr s] -> Maybe Bool
 \end{verbatim}
 Such a function takes a dictionary and the two expression
 lists from the two \texttt{App} instances
-and either returns Nothing, if it cannot establish 
+and either returns Nothing, if it cannot establish
 
 Suitable code for \verb$"set"$ is the following
 \begin{code}
@@ -262,7 +262,7 @@ within the calculator, as \texttt{lg:1:} .
 
 \subsection{The Expression Entry}~
 
-The dictionary entry for expression has the following form:
+The dictionary entry for expressions has the following form:
 \begin{verbatim}
 Entry s
   = ExprEntry
@@ -282,7 +282,7 @@ for expressions, predicates and laws.
 The \texttt{eprint}, \texttt{eval} and \texttt{isEqual} components correspond
 to the various examples we have seen above.
 The \texttt{ecansub} component
-indicates those variables occurring in the \texttt{App} expression 
+indicates those variables occurring in the \texttt{App} expression
 list for which it is safe to replace in substitutions.
 
 To understand the need for \texttt{ecansub},
