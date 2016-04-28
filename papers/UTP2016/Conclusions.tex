@@ -19,7 +19,8 @@ In either case, by hand or by calculator,
 the theory developer has a responsibility to carefully check every line.
 This is one reason why so much effort was put into pretty-printing
 and marking.
-The calculator's real benefit is the ease with which
+The calculator's real benefit, and\emph{ main design purpose},
+is the ease with which
 it can produce a calculation and transcript.
 
 In effect, this UTP Calculator is a tool that assists
@@ -28,18 +29,18 @@ and is designed for use by someone with expertise
 in UTP theory building,
 and a good working knowledge of Haskell.
 
-A key lesson learnt during the development
-of both the calculator, and the UTCP theory,
-is the value of the agile approach.
-By focussing development of both on what
-was the immediate need at any given moment,
-we found that the calculator, and its dictionaries,
-were prevented from excessive bloat
-e.g., coding up a common, useful, obvious law,
-that actually wasn't needed.
-What was important was
-finding the ``sweet spot'' between the use of definition
-expansion, and hard-coded laws based on by-hand proofs.
+%A key lesson learnt during the development
+%of both the calculator, and the UTCP theory,
+%is the value of the agile approach.
+%By focussing development of both on what
+%was the immediate need at any given moment,
+%we found that the calculator, and its dictionaries,
+%were prevented from excessive bloat
+%e.g., coding up a common, useful, obvious law,
+%that actually wasn't needed.
+%What was important was
+%finding the ``sweet spot'' between the use of definition
+%expansion, and hard-coded laws based on by-hand proofs.
 
 A very interesting observation was that the most effective use
 of the calculator seems to involve defining shorthand
@@ -48,15 +49,6 @@ about how they interact with key operators used
 in semantics definitions, such as standard UTP sequential composition.
 This drives the development of what is a bespoke semantics algebra.
 
-
-There is very little work similar to this in the literature.
-In \cite{Bird14} we find a calculator
-for point-free equational proofs as a final case-study.
-Also of interest is the discussion of deep/shallow embedding
-in \cite{Gibbons:2014:FDS},
-which suggests, that although our calculator is based on deep embedding,
-the way it uses hand-coded laws from dictionaries
-it more like shallow-embedding in character.
 
 
 %\subsection{Future Work}\label{ssec:Future}

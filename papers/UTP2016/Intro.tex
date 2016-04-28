@@ -9,35 +9,29 @@ can involve a number of false starts,
 as alphabet variables are chosen
 and semantics and healthiness conditions are defined.
 Typically, some calculations done just to check that everything
-is fine in fact reveal problems with the theory.
-So we iterate by revising the basic definitions,
+work reveal problems with the theory.
+So an iteration occurs by revising the basic definitions,
 and attempting the calculations again.
 Hopefully, these eventually converge to what becomes a sound and useful
 UTP Theory.
 In a recent bout of such theory revision and re-calculation,
 which required five iterations in total,
-the author noted that common patterns of proof-steps kept occurring
+the author noted that common patterns of proof-steps kept arising
 in each iteration.
 
 We have recently started to explore using UTP
 to do the  formal modelling of a language,
-called ``Process Modelling Language'' (PML),
-designed to describe software development and similar business
-processes \cite{DBLP:journals/infsof/AtkinsonWN07}.
-The main objective is to give PML a formal semantics,
-as the basis for a number of analysis tools that could be made available
-to process designers and users---with one key application
-area being the modelling of clinical healthcare pathways.
-It quickly became apparent that PML and similar (business) process
-notations essentially involve concurrency with global shared mutable state.
-
-There has been work using UTP
-to model concurrent programs with shared mutable state,
-most notably
-with an encoding into action systems having been done by
-Woodcock and Hughes\cite{DBLP:conf/icfem/WoodcockH02}.
-We have been looking at adapting this work to provide a UTP semantics
-for PML.
+called ``Process Modelling Language''
+(PML)\cite{DBLP:journals/infsof/AtkinsonWN07}.
+%It quickly became apparent that PML and similar (business) process
+%notations essentially involve concurrency with global shared mutable state.
+%There has been work using UTP
+%to model concurrent programs with shared mutable state,
+%most notably
+%with an encoding into action systems having been done by
+%Woodcock and Hughes\cite{DBLP:conf/icfem/WoodcockH02}.
+%We have been looking at adapting this work to provide a UTP semantics
+%for PML.
 %In addition, we have started to take an interest in the ``Views'' paper
 %by Dinsdale-Young and colleagues\cite{conf/popl/Dinsdale-YoungBGPY13},
 %that provides a framework within which it is possible
@@ -49,7 +43,6 @@ for PML.
 %and rely-guarantee\cite{Jones83}
 %approaches,
 %among others.
-
 So we started by taking the action-system UTP semantics for Unifying Theories
 of Parallel Programming (UTPP) \cite{DBLP:conf/icfem/WoodcockH02},
 and reworking it to use a system for generating unique labels,
@@ -58,6 +51,7 @@ of the semantics. This we call a Unifying Theory of Concurrent Programming
 (UTCP) and details of this are,
 at the time of writing,
 accepted for publication\cite{conf/tase/BMN16}.
+
 We give a very brief overview here of this theory.
 The language assumes atomic actions ($A$) that modify a generic state,
 and four composition operators: sequential ($\lseq$), parallel ($\parallel$),
@@ -86,44 +80,28 @@ with alphabet $s$, $s'$, $ls$, $ls'$, $g$, $in$, and $out$.
 The theory with its somewhat unusual arrangement of observation variables
 did \emph{not} emerge as an immediate and obvious solution.
 The theory design started with an homogeneous alphabet with $g'$, $in'$ and $out'$
-being present.
-Semantic definitions were proposed for all constructs,
-and then a series of calculations were undertaken in order to check
-the validity of those definitions.
-The first such calculation was that of the semantics of a single atomic
-action ($A$), and this always seemed to work out fine.
-The second calculation was of the sequential composition of two atomic
-actions ($A\pseq B$), and this is where problems arose.
+being present, and the need for the dynamic/static distinction only emerged
+through various iterations of the theory.
 
 The first problem was relatively minor
 ---a lot of the semantics talks about the presence of various
 labels in the global label-set, or alternatively, their  absence,
 and of modifications to that set.
 This resulted in very wide expressions,
-so some shorthand notations were introduced:
-using $\ell$ to denote singleton set $\setof\ell$;
-or writing $ls(L)$ instead of $L \subseteq ls$, for example.
+so some shorthand notations were introduced.
 
 The second problem was more serious.
-The calculation to take $A \pseq B$,
-expand it using the semantics of $\pseq$,
-and reduce it down to a simple predicate that described the fairly obvious
-correct behaviour,
-was very lengthy.
-Often it would give the right result,
-but then checking $A \parallel B$ (an even longer calculation)
-would give an incorrect answer.
+It often took long painstaking calculations to discover problems
+with a proposed version of the theory,
+typically when trying to calculate outcomes associated with
+$A \pseq B$and then  $A \parallel B$.
 In every case the fault was traced back to sequential composition%
 \footnote{
 In the author's experience,
 when building semantic theories involving concurrency or parallelism,
 it is always sequential composition that causes the most difficulty
 }
-,
-where either the definition of $\pseq$ was wrong,
-or, as proved crucial,
-the behaviour of ``standard'' UTP sequential composition
-was at fault.
+.
 The calculations for sequential and parallel composition
 required typically about 400 lines of \LaTeX\ and resulted
 in 7 full pages of output,

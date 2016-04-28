@@ -1,52 +1,6 @@
 \section{Laws}\label{sec:Laws}
 
-\subsubsection{Law Entries}~
-
-\begin{code}
-Entry s
-  = ...
-  | LawEntry  { reduce :: [DictRWFun s]
-              , creduce :: [CDictRWFun s]
-              , unroll :: [String -> DictRWFun s] }
-\end{code}
-Law entries are currently only associated with one key,
-namely the string \texttt{"laws"},
-which is what the calculator uses to find such entries.
-There are three parts,
-each consisting of lists of functions.
-These lists are intended to be be applied in order to the
-``current predicate'', until either one succeeds,
-or none do.
-All the functions take a dictionary
-and (marked) predicate as arguments,
-and return either
-an single-outcome indicator (\texttt{reduce},\texttt{unroll}):
-\begin{code}
-type DictRWFun s = Dict s -> RWFun s
-type RWFun s = MPred s -> RWResult s
-type RWResult s = (String, MPred s)
-\end{code}
-or a conditional  multiple-outcome result (\texttt{creduce}).
-\begin{code}
-type CDictRWFun s = Dict s -> CRWFun s
-type CRWFun s = MPred s -> CRWResult s
-type CRWResult s = (String, [(Pred s, MPred s)])
-\end{code}
-\begin{description}
-  \item[\texttt{reduce}]
-     is a list of reduction laws,
-     to be tried out when a reduction step is invoked by the user.
-  \item[\texttt{creduce}]
-    is a list of conditional reduction laws,
-    which have multiple outcomes dependent on a side-condition.
-    Rather than try to resolve conditions automatically,
-    we prefer to let the user choose the appropriate outcome.
-  \item[\texttt{unroll}]
-    is a list of loop-unrolling functions.
-    The extra string argument is to give the user finer control
-    of how much unrolling is done, and how it is presented.
-\end{description}
-
+\DRAFT{Talk about reduce, creduce and unroll}
 
 \subsection{Coding UTCP Laws}
 
@@ -292,3 +246,50 @@ defined in \texttt{CalcPredicates}, to merge them together.
 \begin{code}
 dictUTCP = foldl1 dictMrg [ alfUTCPDict, ..., lawsUTCPDict]
 \end{code}
+
+\subsubsection{Law Entries}~
+
+\begin{code}
+Entry s
+  = ...
+  | LawEntry  { reduce :: [DictRWFun s]
+              , creduce :: [CDictRWFun s]
+              , unroll :: [String -> DictRWFun s] }
+\end{code}
+Law entries are currently only associated with one key,
+namely the string \texttt{"laws"},
+which is what the calculator uses to find such entries.
+There are three parts,
+each consisting of lists of functions.
+These lists are intended to be be applied in order to the
+``current predicate'', until either one succeeds,
+or none do.
+All the functions take a dictionary
+and (marked) predicate as arguments,
+and return either
+an single-outcome indicator (\texttt{reduce},\texttt{unroll}):
+\begin{code}
+type DictRWFun s = Dict s -> RWFun s
+type RWFun s = MPred s -> RWResult s
+type RWResult s = (String, MPred s)
+\end{code}
+or a conditional  multiple-outcome result (\texttt{creduce}).
+\begin{code}
+type CDictRWFun s = Dict s -> CRWFun s
+type CRWFun s = MPred s -> CRWResult s
+type CRWResult s = (String, [(Pred s, MPred s)])
+\end{code}
+\begin{description}
+  \item[\texttt{reduce}]
+     is a list of reduction laws,
+     to be tried out when a reduction step is invoked by the user.
+  \item[\texttt{creduce}]
+    is a list of conditional reduction laws,
+    which have multiple outcomes dependent on a side-condition.
+    Rather than try to resolve conditions automatically,
+    we prefer to let the user choose the appropriate outcome.
+  \item[\texttt{unroll}]
+    is a list of loop-unrolling functions.
+    The extra string argument is to give the user finer control
+    of how much unrolling is done, and how it is presented.
+\end{description}

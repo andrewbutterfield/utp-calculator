@@ -1,33 +1,65 @@
 \section{Expressions}\label{sec:Expressions}
-In Fig. \ref{fig:expr-types} we show the Haskell declarations
-of the datatypes to represent both expressions and predicates.
-Of course this means we are developing a deep embedding\cite{Gibbons:2014:FDS},
-which is required in order to be able to do the kind of calculations we require.
-\begin{figure}[tb]
-\begin{code}
-data Expr s
-  = St s | B Bool | Z Int | Var String
-  | App String [Expr s] | Sub (Expr s) (Substn s) | Undef
 
-type Substn s = [(String,Expr s)]
+In this section we focus on how to specify the properties and
+rendering of expressions of interest.
+
+\DRAFT{Put this somewhere useful: One big win in using a functional language like Haskell,
+in which functions are first class data values,
+is that we can easily define datatypes that
+contain function-valued components.
+We make full use of this in three of the entry kinds discussed below.
+}
+
+\subsection{UTCP Expressions}
+
+We have sets of labels
+so we need a way to implement set-expressions.
+To avoid long set expressions a number of shorthands are desirable,
+so that a singleton set $\setof x$ is rendered as $x$
+and the very common idiom $S \subseteq ls$
+is rendered as $ls(S)$,
+so that for example, $ls(in)$ is short for $\setof{in} \subseteq ls$.
+So we encode a set construct as follows:
+\begin{code}
+set = App "set"                             -- set constructor
+showSet d [elm] = edshow d elm      -- drop {,} from singleton
+showSet d elms = "{" ++ dlshow d "," elms ++ "}"
 \end{code}
-  \caption{Expression Datatypes (\texttt{CalcTypes.lhs})}
-  \label{fig:expr-types}
-\end{figure}
-Both datatypes are parameterised on a generic state type \texttt{s},
-which allows us to be able to handle different concrete types
-of shared state with one piece of code.
-Both types have basic values (\texttt{St},\texttt{B},\texttt{Z},\texttt{T},\texttt{F}),
-variables (\texttt{Var},\texttt{PVar}),
-generic composites (\texttt{App},\texttt{Comp}),
-substitution (\texttt{Sub},\texttt{PSub})
-and undefined values (\texttt{Undef},\texttt{PUndef}).
-The predicate datatype has a way to embed a (boolean-valued)
-expression to form an atomic predicate (\texttt{Atm}),
-as well as an explicit form for atomic predicates that take
-the form of an equality (\texttt{Equal}).
-We give a specialised form for equality simply because
-its use in laws is widespread and worth optimising.
+We also define an equality tester for sets,
+that gets the two element-lists
+\begin{code}
+eqSet d es1 es2
+ = let ns1 = nub $ sort $ es1                -- normalise sets
+       ns2 = nub $ sort $ es2
+   in if all (isGround d) (ns1++ns2)
+      then Just (ns1==ns2)
+      else Nothing
+\end{code}
+The predicate \texttt{isGround} checks to see if an expression has no
+dynamic variables.
+For the purposes of this theory at least,
+we know we can treat these expressions as values.
+This is a common feature of encoding theories for this calculator%
+---%
+knowing when a particular simplification makes sense.
+The dictionary entry for the set construct then looks like
+\begin{code}
+ExprEntry ["*"] showSet none eqSet
+\end{code}
+where we permit any substitutions directly on the elements,
+and we use the special builtin function \texttt{none}
+as an evaluator that does not make any changes,
+since we regard these sets as evaluated, in this theory.
+
+Similar tricks are used to code a very compact rendering
+of a mechanism that involves unique label generators
+that can also be split, so that an expression like
+\[
+ \pi_2(new(\pi_1(new(\pi_1(split(\pi_1(new(g))))))))
+\]
+can be displayed as $\ell_{g:1:}$, or,
+within the calculator, as \texttt{lg:1:} .
+
 
 \subsubsection{Expression Entries}~
 
@@ -102,53 +134,3 @@ The righthand side of the definition is what should be returned
 by the \texttt{eval} component.
 If we want to state that any substitution is safe,
 then we use the ``wildcard'' form: \texttt{["*"]}.
-
-\subsection{UTCP Expressions}
-
-We have sets of labels
-so we need a way to implement set-expressions.
-To avoid long set expressions a number of shorthands are desirable,
-so that a singleton set $\setof x$ is rendered as $x$
-and the very common idiom $S \subseteq ls$
-is rendered as $ls(S)$,
-so that for example, $ls(in)$ is short for $\setof{in} \subseteq ls$.
-So we encode a set construct as follows:
-\begin{code}
-set = App "set"                             -- set constructor
-showSet d [elm] = edshow d elm      -- drop {,} from singleton
-showSet d elms = "{" ++ dlshow d "," elms ++ "}"
-\end{code}
-We also define an equality tester for sets,
-that gets the two element-lists
-\begin{code}
-eqSet d es1 es2
- = let ns1 = nub $ sort $ es1                -- normalise sets
-       ns2 = nub $ sort $ es2
-   in if all (isGround d) (ns1++ns2)
-      then Just (ns1==ns2)
-      else Nothing
-\end{code}
-The predicate \texttt{isGround} checks to see if an expression has no
-dynamic variables.
-For the purposes of this theory at least,
-we know we can treat these expressions as values.
-This is a common feature of encoding theories for this calculator%
----%
-knowing when a particular simplification makes sense.
-The dictionary entry for the set construct then looks like
-\begin{code}
-ExprEntry ["*"] showSet none eqSet
-\end{code}
-where we permit any substitutions directly on the elements,
-and we use the special builtin function \texttt{none}
-as an evaluator that does not make any changes,
-since we regard these sets as evaluated, in this theory.
-
-Similar tricks are used to code a very compact rendering
-of a mechanism that involves unique label generators
-that can also be split, so that an expression like
-\[
- \pi_2(new(\pi_1(new(\pi_1(split(\pi_1(new(g))))))))
-\]
-can be displayed as $\ell_{g:1:}$, or,
-within the calculator, as \texttt{lg:1:} .

@@ -1,5 +1,10 @@
 \section{Design \& Architecture}\label{sec:Design}
 
+\DRAFT{Talk about the spectrum from hand-proof to full-blown theorem prover}
+
+\subsection{The Calculator REPL}
+
+
 The way the calculator is designed to be used is
 that a function implementing a calculator Read-Execute-Print-Loop (REPL)
 is given a dictionary and starting predicate as inputs.
@@ -8,143 +13,6 @@ commands to perform calculation steps.
 The user can then indicate when they are finished,
 at which point the calculator function returns
 a data-structure that logs the complete calculation outcome.
-
-
-The first property of interest for this calculator
-was calculating the effect of $run(A \pseq B)$,
-where $A$ and $B$ were atomic action predicates with alphabet $\setof{s,s'}$.
-For convenience we predefined the predicate $A \pseq B$, as
-\begin{code}
-athenb = pseq [patm (pvar "A"),patm (pvar "B")]
-\end{code}
-We then invoke the calculator as follows,
-\begin{code}
-calcREPL dictUTCP (run athenb)
-\end{code}
-and proceed to interact
-(here the prompt  ``\texttt{ ?,d,r,l,s,c,u,x :-}''
-shows the available commands)
-\begin{verbatim}
-UTCP-0.7, UTP-Calc v0.0.1
-run(A(A) ;; A(B))
- ?,d,r,l,s,c,u,x :- d
- = "defn. of run.3"
-   (A(A) ;; A(B))[g::,lg,lg,lg:/g,in,ls,out]
- ; ~ls(lg:) * (A(A) ;; A(B))[g::,lg,lg:/g,in,out]
- ?,d,r,l,s,c,u,x :- d
- = "defn. of ;;"
-   (A(A)[g:1,lg/g,out] \/
-   A(B)[g:2,lg/g,in])[g::,lg,lg,lg:/g,in,ls,out]
- ; ~ls(lg:) * (A(A) ;; A(B))[g::,lg,lg:/g,in,out]
- ?,d,r,l,s,c,u,x :- s
- = "simplify"
-   A(A)[g:::1,lg,lg,lg::/g,in,ls,out] \/
-   A(B)[g:::2,lg::,lg,lg:/g,in,ls,out]
- ; ~ls(lg:) * (A(A) ;; A(B))[g::,lg,lg:/g,in,out]
-.... 10 more steps
- ?,d,r,l,s,c,u,x :- r
- = "ls'-cleanup"
-(A ; B) /\ ls' = {lg:}
-\end{verbatim}
-The user simply indicates the broad class of command required,
-and the calculator works on the current goal predicate.
-A text transcript is produced,
-which is essentially the above
-without the prompts.
-The marking facility, requiring the \texttt{Pred}/\texttt{MPred} complication,
-is currently used when displaying the transcript in a terminal
-window to highlight old and new parts of predicates as changes are made.
-Currently this only works well on the Mac OS X terminal,
-because it seems to be the only one that properly supports ANSI escape sequences.
-
-
-
-\subsection{Pretty-Printing}\label{ssec:pp}
-
-For the calculator output,
-it is very important that it be readable,
-as many of the predicates get very large,
-particularly at intermediate points of the calculation.
-For this reason, a lot of effort was put into the development
-of both good pretty-printing,
-and ways to highlight old and new parts of predicates as changes are made.
-The key principle was to ensure that whenever a predicate
-had to split over multiple lines,
-that the breaks are always around the top-most operator or composition
-symbol, with sub-components indented in.
-An example of such pretty-printing in action is
-
-{\small
-\begin{verbatim}
-    D(out)
- \/ (      ~ls(out)
-        /\ (D(lg) \/ A(in,lg,a,in,lg,lg) \/ D(out) \/ A(lg,out,b,lg,out,out))
-     ; W(D(lg) \/ A(in,lg,a,in,lg,lg) \/ D(out) \/ A(lg,out,b,lg,out,out)))
-\end{verbatim}
-}
-The top-level structure of this is
-\[D(out) \lor ( (\lnot ls(out) \land \dots) ; \W(\dots) )\]
-
-The pretty printing support can be found in \texttt{PrettyPrint.lhs}.
-
-\subsection{Dictionaries}\label{ssec:dict}
-
-The abstract syntax is very simple,
-and uses names as Haskell Strings to distinguish between
-different composites.
-So for example logical operators $\land$ and $\lor$
-might be represented as \texttt{Comp "And"} and \texttt{Comp "Or"}
-respectively.
-We have a default way to pretty-print composites,
-so that the predicate $\true \land \false$,
-represented in Haskell by \texttt{Comp "And" [bT,bF]},
-would render as \texttt{And(true,false)}.
-However it is nice to be able to render it as the usual
-infix operator, giving \texttt{true /\BS\ false}.
-In addition, we need some way to associate laws and definitions,
-as appropriate, with composites.
-
-The approach taken is to implement a dictionary that maps names
-to entries that supply extra information.
-The names can be those of expression or predicate composites,
-or correspond to variables, and a few other features of note.
-All of the main calculator functions are driven by this
-dictionary,
-and the correct definition of dictionary entries
-is the primary way for users to set up calculations.
-
-The standard approach is that the calculator
-will seek information regarding some name that is
-currently of interest.
-It will perform a dictionary lookup which can result
-in either failure, for which a suitable default action will be used,
-or success, in which case the dictionary entry will supply
-information to guide the required name-specific behaviour.
-
-There are four kinds of dictionary entries,
-one each for expressions and predicates,
-one for laws of various kinds,
-and one for alphabet handling.
-We will discuss each kind in turn,
-but leave examples of their use until Sect.\ref{sec:Theorising}.
-
-One big win in using a functional language like Haskell,
-in which functions are first class data values,
-is that we can easily define datatypes that
-contain function-valued components.
-We make full use of this in three of the entry kinds discussed below.
-
-
-\subsection{The Calculator REPL}
-
-
-The data-structure that logs the complete calculation outcome
-is a triple consisting of the final predicate,
-a list of the steps, each with a justification string,
-and the dictionary that was used.
-\begin{code}
-type CalcLog s = (MPred s, [RWResult s], Dict s)
-\end{code}
 
 Calculator commands include an ability to undo previous steps ('\texttt{u}'),
 request help ('\texttt{?}'),
@@ -200,44 +68,135 @@ perhaps unroll a loop a bit; etc...
     to embody predicate simplifiers ``modulo various expression theories''.
 \end{description}
 
-\subsection{What's Missing?}
 
-\subsubsection{No Quantifiers}\label{ssec:no-quant}
+Here is a sample run obtained when calculating the effect of $run(\A(A) \pseq \A(B))$,
+where $A$ and $B$ are atomic action predicates with alphabet $\setof{s,s'}$,
+and $\A(\_)$ lifts these to predicates over the full UTCP alphabet,
+with added control-flow.
+Function $run$ is a top-level predicate-transformer in the theory that computes
+all possible behaviours of its argument (when run in isolation).
+For convenience we predefined the predicate $A \pseq B$ in Haskell as
+\begin{code}
+athenb = pseq [patm (pvar "A"),patm (pvar "B")]
+\end{code}
+We then invoked the calculator as follows,
+\begin{code}
+calcREPL dictUTCP (run athenb)
+\end{code}
+and proceed to interact
+(here the prompt  ``\texttt{ ?,d,r,l,s,c,u,x :-}''
+shows the available commands)
 
-    They bring a world of pain with them,
-    and as it turns out, are not required
-    for the kinds of calculations we wish to do.
-    Handwritten proofs of laws involving concepts
-    defined using quantifier and binders
-    are required to validate the laws,
-    but these are easy to do---the pain is automating these proofs,
-    not doing them by hand.
+\begin{lstlisting}[basicstyle=\ttfamily, numbers=left, numberstyle=\tiny, numbersep=5pt]
+run(A(A) ;; A(B))
+ ?,d,r,l,s,c,u,x :- d
+ = "defn. of run.3"
+   (A(A) ;; A(B))[g::,lg,lg,lg:/g,in,ls,out]
+ ; ~ls(lg:) * (A(A) ;; A(B))[g::,lg,lg:/g,in,out]
+ ?,d,r,l,s,c,u,x :- d
+ = "defn. of ;;"
+   (A(A)[g:1,lg/g,out] \/
+   A(B)[g:2,lg/g,in])[g::,lg,lg,lg:/g,in,ls,out]
+ ; ~ls(lg:) * (A(A) ;; A(B))[g::,lg,lg:/g,in,out]
+ ?,d,r,l,s,c,u,x :- s
+ = "simplify"
+   A(A)[g:::1,lg,lg,lg::/g,in,ls,out] \/
+   A(B)[g:::2,lg::,lg,lg:/g,in,ls,out]
+ ; ~ls(lg:) * (A(A) ;; A(B))[g::,lg,lg:/g,in,out]
+.... 10 more steps
+A /\ ls' = {lg::} ; B /\ ls' = {lg:}
+ ?,d,r,l,s,c,u,x :- r
+ = "ls'-cleanup"
+(A ; B) /\ ls' = {lg:}
+\end{lstlisting}
+The user simply indicates the broad class of command required,
+and the calculator works on the current goal predicate.
+A text transcript is produced,
+which is essentially the above
+without the prompts.
+%The marking facility, requiring the \texttt{Pred}/\texttt{MPred} complication,
+%is currently used when displaying the transcript in a terminal
+%window to highlight old and new parts of predicates as changes are made.
+%Currently this only works well on the Mac OS X terminal,
+%because it seems to be the only one that properly supports ANSI escape sequences.
 
-\subsubsection{No Targetting}\label{ssec:no-target}
-
-First-come, first-served, just works.
-We don't provide a facility
-to allow the user to specify
-precisely which law to apply,
-or which sub-predicate should be the target of a rewrite attempt.
-Instead we allow a blunt command that simply chooses between
-definition-expansion, reduction, simplification or conditional-reduction.
-The calculator engine then simply looks for the first location
-were the command succeeds.
-To date this has had no major effect on the ability of the calculator
-to work, but instead makes it very easy and fast to explore the calculation space.
 
 
-\subsection{Software Architecture}\label{ssec:architecture}
+\subsection{Pretty-Printing}\label{ssec:pp}
 
-All the code described here is available online
-at
-\\\url{https://bitbucket.org/andrewbutterfield/utp-calculator.git}
-as Literate Haskell Script files (\texttt{.lhs})
-in the \texttt{src} sub-directory.
+For the calculator output,
+it is very important that it be readable,
+as many of the predicates get very large,
+particularly at intermediate points of the calculation.
+For this reason, a lot of effort was put into the development
+of both good pretty-printing,
+and ways to highlight old and new parts of predicates as changes are made.
+The key principle was to ensure that whenever a predicate
+had to split over multiple lines,
+that the breaks are always around the top-most operator or composition
+symbol, with sub-components indented in, both after and \emph{before}.
+An example of such pretty-printing in action is
+
+\noindent
+\includegraphics[scale=0.155]{pprint-xmpl.eps}
+
+%{\small
+%\begin{verbatim}
+%    D(out)
+% \/ (      ~ls(out)
+%        /\ (D(lg) \/ A(in,lg,a,in,lg,lg) \/ D(out) \/ A(lg,out,b,lg,out,out))
+%     ; W(D(lg) \/ A(in,lg,a,in,lg,lg) \/ D(out) \/ A(lg,out,b,lg,out,out)))
+%\end{verbatim}
+%}
+The top-level structure of this is
+\[D(out) \lor ( (\lnot ls(out) \land \dots) ; W(\dots) )\]
+
+The pretty printing support can be found in \texttt{PrettyPrint.lhs},
+which was written from scratch, but inspired by writings of
+Hughes\cite{HughesJohn1995c} and Wadler\cite{wadler-pp}
+on the subject.
+
+\subsection{Shorthand Notations}
+
+In addition to the layout management aspects of pretty-printing
+as just illustrated above,
+there is also a need for a support for shorthand notations,
+in order to ensure that predicates are more readable.
+This particularly arises when set notation is in heavy use.
+\DRAFT{A good example}
+
+\subsection{Dictionaries}\label{ssec:dict}
+
+The approach taken is to implement a dictionary that maps names
+to entries that supply extra information.
+The names can be those of expression or predicate composites,
+or correspond to variables, and a few other features of note.
+All of the main calculator functions are driven by this
+dictionary,
+and the correct definition of dictionary entries
+is the primary way for users to set up calculations.
+
+%The standard approach is that the calculator
+%will seek information regarding some name that is
+%currently of interest.
+%It will perform a dictionary lookup which can result
+%in either failure, for which a suitable default action will be used,
+%or success, in which case the dictionary entry will supply
+%information to guide the required name-specific behaviour.
+%
+%There are four kinds of dictionary entries,
+%one each for expressions and predicates,
+%one for laws of various kinds,
+%and one for alphabet handling.
+%We will discuss each kind in turn,
+%but leave examples of their use until Sect.\ref{sec:Theorising}.
+
+
+
+
+\subsection{Key Design Decisions}
 
 Taking into account the repetitive nature of the calculations,
-as mentioned at the end of \S\ref{ssec:plan},
 and the need for shorthand notations we very rapidly converged
 on four initial design decisions:
 \begin{enumerate}
@@ -272,9 +231,6 @@ the following regarding the calculation steps that would be supported:
     should be applied.
 \end{itemize}
 
-We will now expand on some of the points above,
-and in so doing expose some of the concrete architecture of the calculator code.
-
 \subsection{Before we dive in \dots}
 
 The UTP Calculator is implemented as a series
@@ -293,6 +249,8 @@ which are broken into two groups:
     These theory modules typically come in threes, covering
     \texttt{Predicates}, \texttt{Precedences} and \texttt{Laws}.
 \end{description}
-All the Haskell modules are found in the \texttt{src} directory
-of the repository, with a \texttt{.lhs} file extension
-(e.g., \texttt{CalcTypes.lhs}).
+All the code described here is available online
+at
+\\\url{https://bitbucket.org/andrewbutterfield/utp-calculator.git}
+as Literate Haskell Script files (\texttt{.lhs})
+in the \texttt{src} sub-directory.

@@ -1,0 +1,109 @@
+\section{Types}\label{sec:Types}
+
+We give an overview of key types in the calculator here,
+focussing on Expressions, Predicates and the Dictionary.
+
+\subsection{Expressions}
+
+In Fig. \ref{fig:expr-types} we show the Haskell declarations
+of the datatypes used to represent expressions and substitution.
+\begin{figure}[tb]
+\begin{code}
+data Expr s
+  = St s | B Bool | Z Int | Var String
+  | App String [Expr s] | Sub (Expr s) (Substn s) | Undef
+
+type Substn s = [(String,Expr s)]
+\end{code}
+  \caption{Expression and Sunstitution Datatypes (\texttt{CalcTypes.lhs})}
+  \label{fig:expr-types}
+\end{figure}
+Both datatypes are parameterised on a generic state type \texttt{s},
+which allows us to be able to handle different concrete types
+of shared state with one piece of code.
+Both types have basic values (\texttt{St},\texttt{B},\texttt{Z},\texttt{T},\texttt{F}),
+variables (\texttt{Var},\texttt{PVar}),
+generic composites (\texttt{App},\texttt{Comp}),
+substitution (\texttt{Sub},\texttt{PSub})
+and undefined values (\texttt{Undef},\texttt{PUndef}).
+The predicate datatype has a way to embed a (boolean-valued)
+expression to form an atomic predicate (\texttt{Atm}),
+as well as an explicit form for atomic predicates that take
+the form of an equality (\texttt{Equal}).
+We give a specialised form for equality simply because
+its use in laws is widespread and worth optimising.
+
+The abstract syntax is very simple,
+and uses names as Haskell Strings to distinguish between
+different composites.
+
+\subsection{Predicates}
+
+In Fig. \ref{fig:pred-types} we show the Haskell declarations
+of the datatypes to represent predicates.
+\begin{figure}[tb]
+\begin{code}
+data Pred s
+  = T | F | PVar String | Equal (Expr s) (Expr s) | Atm (Expr s)
+  | Comp String [MPred s] | PSub (MPred s) (Substn s) | PUndef
+
+type MPred s = (Marks, Pred s)
+\end{code}
+  \caption{Predicate Datatypes (\texttt{CalcTypes.lhs})}
+  \label{fig:pred-types}
+\end{figure}
+Both datatypes are parameterised on a generic state type \texttt{s},
+which allows us to be able to handle different concrete types
+of shared state with one piece of code.
+Both types have basic values (\texttt{St},\texttt{B},\texttt{Z},\texttt{T},\texttt{F}),
+variables (\texttt{Var},\texttt{PVar}),
+generic composites (\texttt{App},\texttt{Comp}),
+substitution (\texttt{Sub},\texttt{PSub})
+and undefined values (\texttt{Undef},\texttt{PUndef}).
+The predicate datatype has a way to embed a (boolean-valued)
+expression to form an atomic predicate (\texttt{Atm}),
+as well as an explicit form for atomic predicates that take
+the form of an equality (\texttt{Equal}).
+We give a specialised form for equality simply because
+its use in laws is widespread and worth optimising.
+
+Also important to point out is the fact that \texttt{Pred} is
+defined in terms of \texttt{MPred}, which in turn is defined
+in terms of \texttt{Pred}.
+This is done to facilitate the association of markings (lists of integers)
+with predicate constructs.
+These markings are used to indicate which parts of a predicate
+were changed at each calculation step.
+We will not discuss marking further in this document
+as it runs completely ``under the hood'',
+and its only impact on the users of this calculator
+is their need to be aware of the interplay involving \texttt{Pred} and \texttt{MPred}.
+
+The abstract syntax is very simple,
+and uses names as Haskell Strings to distinguish between
+different composites.
+So for example logical operators $\land$ and $\lor$
+might be represented as \texttt{Comp "And"} and \texttt{Comp "Or"}
+respectively.
+We have a default way to pretty-print composites,
+so that the predicate $\true \land \false$,
+represented in Haskell by \texttt{Comp "And" [bT,bF]},
+would render as \texttt{And(true,false)}.
+However it is nice to be able to render it as the usual
+infix operator, giving \texttt{true /\BS\ false}.
+In addition, we need some way to associate laws and definitions,
+as appropriate, with composites.
+
+\subsection{Dictionary}
+
+
+
+
+
+The data-structure that logs the complete calculation outcome
+is a triple consisting of the final predicate,
+a list of the steps, each with a justification string,
+and the dictionary that was used.
+\begin{code}
+type CalcLog s = (MPred s, [RWResult s], Dict s)
+\end{code}
