@@ -1,5 +1,59 @@
 \section{Predicates}\label{sec:Predicates}
 
+In Fig. \ref{fig:pred-types} we show the Haskell declarations
+of the datatypes to represent predicates.
+\begin{figure}[tb]
+\begin{verbatim}
+data Pred s
+  = T | F | PVar String | Equal (Expr s) (Expr s) | Atm (Expr s)
+  | Comp String [MPred s] | PSub (MPred s) (Substn s) | PUndef
+
+type MPred s = (Marks, Pred s)
+\end{verbatim}
+  \caption{Predicate Datatypes (\texttt{CalcTypes.lhs})}
+  \label{fig:pred-types}
+\end{figure}
+Both datatypes are parameterised on a generic state type \texttt{s},
+which allows us to be able to handle different concrete types
+of shared state with one piece of code.
+Both types have basic values (\texttt{St},\texttt{B},\texttt{Z},\texttt{T},\texttt{F}),
+variables (\texttt{Var},\texttt{PVar}),
+generic composites (\texttt{App},\texttt{Comp}),
+substitution (\texttt{Sub},\texttt{PSub})
+and undefined values (\texttt{Undef},\texttt{PUndef}).
+The predicate datatype has a way to embed a (boolean-valued)
+expression to form an atomic predicate (\texttt{Atm}),
+as well as an explicit form for atomic predicates that take
+the form of an equality (\texttt{Equal}).
+We give a specialised form for equality simply because
+its use in laws is widespread and worth optimising.
+
+Also important to point out is the fact that \texttt{Pred} is
+defined in terms of \texttt{MPred}, which in turn is defined
+in terms of \texttt{Pred}.
+This is done to facilitate the association of markings (lists of integers)
+with predicate constructs.
+These markings are used to indicate which parts of a predicate
+were changed at each calculation step.
+We will not discuss marking further in this document
+as it runs completely ``under the hood'',
+and its only impact on the users of this calculator
+is their need to be aware of the interplay involving \texttt{Pred} and \texttt{MPred}.
+
+The abstract syntax is very simple,
+and uses names as Haskell Strings to distinguish between
+different composites.
+So for example logical operators $\land$ and $\lor$
+might be represented as \texttt{Comp "And"} and \texttt{Comp "Or"}
+respectively.
+We have a default way to pretty-print composites,
+so that the predicate $\true \land \false$,
+represented in Haskell by \texttt{Comp "And" [bT,bF]},
+would render as \texttt{And(true,false)}.
+However it is nice to be able to render it as the usual
+infix operator, giving \texttt{true /\BS\ false}.
+In addition, we need some way to associate laws and definitions,
+as appropriate, with composites.
 
 \subsection{Coding Atomic Semantics}
 
@@ -48,7 +102,7 @@ The function \texttt{mshowp} is the top-level predicate printer.
 
 \subsubsection{Predicate Entries}~
 
-\begin{code}
+\begin{verbatim}
 Entry s
   = ...
   | PredEntry
@@ -58,7 +112,7 @@ Entry s
     , pdefn :: Rewrite s
     , prsimp :: Rewrite s }
 type Rewrite s = Dict s -> [MPred s] -> (String, Pred s)
-\end{code}
+\end{verbatim}
 The predicate entry associated with Comp name pargs
 has five fields:
 \begin{description}
@@ -82,3 +136,25 @@ Both \texttt{pdefn} and \texttt{prsimp} take a dictionary argument
 and list of sub-component (marked)predicates,
 returning a string/predicate pair,
 interpreted in a manner similar to \texttt{eval} above.
+
+
+With sets, we can define a notion of equality as follows,
+where the first parameter
+\begin{code}
+eqSet d es1 es2
+ = let ns1 = nub $ sort $ es1                -- normalise sets
+       ns2 = nub $ sort $ es2
+   in if all (isGround d) (ns1++ns2)
+      then Just (ns1==ns2)
+      else Nothing
+\end{code}
+
+
+The data-structure that logs the complete calculation outcome
+is a triple consisting of the final predicate,
+a list of the steps, each with a justification string,
+and the dictionary that was used.
+\begin{verbatim}
+type CalcLog s = (MPred s, [RWResult s], Dict s)
+\end{verbatim}
+

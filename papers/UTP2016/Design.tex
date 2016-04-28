@@ -110,13 +110,13 @@ with added control-flow.
 Function $run$ is a top-level predicate-transformer in the theory that computes
 all possible behaviours of its argument (when run in isolation).
 For convenience we predefined the predicate $\A(A) \pseq \A(B)$ in Haskell as
-\begin{code}
+\begin{verbatim}
 athenb = pseq [patm (pvar "A"),patm (pvar "B")]
-\end{code}
+\end{verbatim}
 We then invoked the calculator as follows,
-\begin{code}
+\begin{verbatim}
 calcREPL dictUTCP (run athenb)
-\end{code}
+\end{verbatim}
 and proceed to interact
 (here the prompt  ``\texttt{ ?,d,r,l,s,c,u,x :-}''
 shows the available commands)
@@ -233,7 +233,7 @@ is the primary way for users to set up calculations.
 
 
 
-\subsection{Before we dive in \dots}
+\subsection{Impementation Overview}
 
 The UTP Calculator is implemented as a series
 of Haskell modules,
@@ -256,3 +256,16 @@ at
 \\\url{https://bitbucket.org/andrewbutterfield/utp-calculator.git}
 as Literate Haskell Script files (\texttt{.lhs})
 in the \texttt{src} sub-directory.
+
+\subsubsection{Display Convention}
+
+In the rest of this paper, code that is part of the underlying
+calculator infrastructure is shown as a simple verbatim display, thus:
+\begin{verbatim}
+underlying UTPCalc code
+\end{verbatim}
+while code supplied by the user to set it up for a particular
+theory under investigation is shown enclosed in horizontal lines:
+\begin{code}
+user-supplied theory customisation code
+\end{code}

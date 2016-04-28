@@ -157,16 +157,16 @@ whose first component is the ($ls'=\dots$) equality,
 and whose second is the list of other conjuncts.
 To achieve (i) above,
 we make use of two functions provided by the \texttt{CalcRecogniser} module:
-\begin{code}
+\begin{verbatim}
 mtchNmdObsEqToConst :: Ord s => String -> Dict s -> Recogniser s
 matchRecog :: (Ord s, Show s)
            => Recogniser s -> [MPred s]
            -> Maybe ([MPred s],(MPred s,[MPred s]),[MPred s])
-\end{code}
+\end{verbatim}
 where
-\begin{code}
+\begin{verbatim}
 type Recogniser s = MPred s -> (Bool, [MPred s])
-\end{code}
+\end{verbatim}
 A recogniser is a function that takes a predicate
 and if it ``recognises'' it, returns \texttt{(True, parts)},
 where parts are the subcomponents of the predicate in some order.
@@ -204,9 +204,9 @@ that is hard to evaluate.
 The user elects which one to use by checking the conditions manually.
 We define a function, similar to reduceUTCP,
 that contains a series of patterns for each conditional reduction law.
-\begin{code}
+\begin{verbatim}
 creduceUTCP :: (Show s, Ord s) => CDictRWFun s
-\end{code}
+\end{verbatim}
 Provided that $\vec x \subseteq in\alpha P$
  (which in this case is $\setof{s,ls}$):
 \RLEQNS{
@@ -249,13 +249,13 @@ dictUTCP = foldl1 dictMrg [ alfUTCPDict, ..., lawsUTCPDict]
 
 \subsubsection{Law Entries}~
 
-\begin{code}
+\begin{verbatim}
 Entry s
   = ...
   | LawEntry  { reduce :: [DictRWFun s]
               , creduce :: [CDictRWFun s]
               , unroll :: [String -> DictRWFun s] }
-\end{code}
+\end{verbatim}
 Law entries are currently only associated with one key,
 namely the string \texttt{"laws"},
 which is what the calculator uses to find such entries.
@@ -268,17 +268,17 @@ All the functions take a dictionary
 and (marked) predicate as arguments,
 and return either
 an single-outcome indicator (\texttt{reduce},\texttt{unroll}):
-\begin{code}
+\begin{verbatim}
 type DictRWFun s = Dict s -> RWFun s
 type RWFun s = MPred s -> RWResult s
 type RWResult s = (String, MPred s)
-\end{code}
+\end{verbatim}
 or a conditional  multiple-outcome result (\texttt{creduce}).
-\begin{code}
+\begin{verbatim}
 type CDictRWFun s = Dict s -> CRWFun s
 type CRWFun s = MPred s -> CRWResult s
 type CRWResult s = (String, [(Pred s, MPred s)])
-\end{code}
+\end{verbatim}
 \begin{description}
   \item[\texttt{reduce}]
      is a list of reduction laws,

@@ -3,12 +3,130 @@
 In this section we focus on how to specify the properties and
 rendering of expressions of interest.
 
-\DRAFT{Put this somewhere useful: One big win in using a functional language like Haskell,
-in which functions are first class data values,
-is that we can easily define datatypes that
-contain function-valued components.
-We make full use of this in three of the entry kinds discussed below.
-}
+In Fig. \ref{fig:expr-types} we show the Haskell declarations
+of the datatypes used to represent expressions and substitution.
+\begin{figure}[tb]
+\begin{verbatim}
+data Expr s
+  = St s | B Bool | Z Int | Var String
+  | App String [Expr s] | Sub (Expr s) (Substn s) | Undef
+  deriving (Eq, Ord, Show)
+  
+type Substn s = [(String,Expr s)]
+\end{verbatim}
+  \caption{Expression and Substitution Datatypes (\texttt{CalcTypes.lhs})}
+  \label{fig:expr-types}
+\end{figure}
+Both types are parameterised on a generic state type \texttt{s},
+which allows us to be able to reason independently of any particular type, or with a specific concrete type in mind,
+all with one piece of code.
+In expressions (\texttt{Expr}) we include booleans (\texttt{B}) and integers (\texttt{Z}) as basic types,
+as well as values of the parameter type (\texttt{St}).
+We then have the notion of the application (\texttt{App}) of a named function
+to a list of expression arguments,
+and a substitution (\texttt{Sub}), which pairs an expression
+with a substitution (\texttt{Substn}) which is a list of variable/expression pairs, each denoting the replacement of all free
+occurrences of the variable by the corresponding expression.
+The \texttt{deriving} clause for \texttt{Expr} enables the Haskell default notions
+of equality, ordering and display for the type.
+
+The abstract expression syntax is very simple,
+and uses names, as Haskell Strings, to distinguish between
+different applications.
+Missing are any binding constructs, such as lambda expressions,
+or the ability to curry functions.
+
+\subsection{Set Expressions}
+
+We shall explore the use of the \texttt{Expr}  datatype
+by indicating how the notions of sets and some basic operators
+could be defined with the calculator.
+We shall represent sets as instances of \texttt{App} with the name ``set'',
+and the subset relation as an \texttt{App} with name ``subset'',
+so the set $\setof{1,2}$ would be represented by 
+\verb$App "set" [Z 1,Z 2]$, 
+and the predicate $S \subseteq T$ by
+\verb$App "subset" [Var "S",Var "T"]$.
+In practice, we would define constructor functions to build
+these:
+\begin{code}
+set es = App "set" es
+subset s1 s2 = App "subset" [s1,s2]
+\end{code}
+We will want an equality test for sets,
+but as equality is handled at the predicate level, we defer discussion until later.
+However, it will be very useful to be able to simplify
+uses of subset.
+There is a standard interface for defining expression simplifiers:
+define a function with the following type:
+\begin{verbatim}
+Dict s -> [Expr s] -> (String, Expr s)
+\end{verbatim}
+The first argument, of type \texttt{Dict}, 
+is the dictionary currently in use,
+which we describe in more detail later on.
+The second argument is the list of sub-expression of
+the \texttt{App} construct for which the simplifier is intended.
+The result is a pair consisting of a string and an expression.
+If the simplification succeeds, then the string is non-empty
+and gives some indication
+of what was simplified,
+while the expression component is the simplified result.
+If the simplification has no effect, then the string is empty,
+and the expression return is not defined.
+
+The following code defines a simplifier for subset
+(with not quite the right type):
+\begin{code}
+dosubset d es1 es2 -- is es1 a subset of es2 ?
+  | null es1lesses2  =  ( "subset", B True )
+  | all (isGround d) (es1lesses2 ++ es2)
+                     =  ( "subset", B False )
+  | otherwise        =  none
+  where
+    es1lesses2 = es1 \\ es2
+\end{code}
+It is basically a Haskell function definition with three alternatives,
+tested in order.
+
+The first simply returns an expression denoting true 
+if the result of subtracting the second list from the first
+is empty---using the standard Haskell sequence difference operator (\verb$\\$).
+
+The second test sees if all elements remaining are ``ground'',
+i.e. do not contain any dynamic observation variables.
+Static parameter variables are considered ground,
+for reasons beyond the scope of this paper.
+If the test succeeds, 
+then we have leftover values, so we can conclude that \texttt{es1} is not a subset of \texttt{es2}.
+The function \texttt{isGround} takes a dictionary,
+and an expression, and checks to see if the expression is ground.
+It uses the dictionary to get information about the status
+of any variables it may find.
+
+The 3rd clause (otherwise) means we have some different
+variables in the sets, which might have the same values,
+or might not, so we cannot conclude anything further.
+We return the predefined value \texttt{none} which is defined to be 
+\verb$("",Undef)$.
+
+For the simplifier, we need a list of expressions,
+rather than two as arguments, after the dictionary argument.
+We use \texttt{evalSubset} to pattern match on the expression list
+associated with an instance of subset,
+and then to call \texttt{dosubset} as appropriate.
+We expect the expression list to be of length 2,
+each entry denoting a set.
+\begin{code}
+evalSubset d [App "set" es1,App "set" es2] = dosubset d es1 es2
+evalSubset d [es1,App "set" es2] = dosubset d [es1] es2
+evalSubset d [App "set" es1,es2] = dosubset d es1 [es2]
+evalSubset d [es1,es2] = dosubset d [es1] [es2]
+evalSubset _ _ = none
+\end{code}
+The first line above matches the case when both sets are enumerations.
+The remainder treat a non-set argument as being a singleton set.
+The last line 
 
 \subsection{UTCP Expressions}
 
@@ -27,14 +145,7 @@ showSet d elms = "{" ++ dlshow d "," elms ++ "}"
 \end{code}
 We also define an equality tester for sets,
 that gets the two element-lists
-\begin{code}
-eqSet d es1 es2
- = let ns1 = nub $ sort $ es1                -- normalise sets
-       ns2 = nub $ sort $ es2
-   in if all (isGround d) (ns1++ns2)
-      then Just (ns1==ns2)
-      else Nothing
-\end{code}
+
 The predicate \texttt{isGround} checks to see if an expression has no
 dynamic variables.
 For the purposes of this theory at least,
@@ -63,7 +174,7 @@ within the calculator, as \texttt{lg:1:} .
 
 \subsubsection{Expression Entries}~
 
-\begin{code}
+\begin{verbatim}
 Entry s
   = ExprEntry
     { ecansub :: [String]
@@ -71,7 +182,7 @@ Entry s
     , eval :: Dict s -> [Expr s] -> (String, Expr s)
     , isEqual :: Dict s -> [Expr s] -> [Expr s] -> Maybe Bool}
   | ...
-\end{code}
+\end{verbatim}
 Imagine that \texttt{App name args }is being processed
 and that a dictionary lookup with key \texttt{name}
 has returned an expression entry.
@@ -134,3 +245,11 @@ The righthand side of the definition is what should be returned
 by the \texttt{eval} component.
 If we want to state that any substitution is safe,
 then we use the ``wildcard'' form: \texttt{["*"]}.
+
+\DRAFT{Put this somewhere useful: One big win in using a functional language like Haskell,
+in which functions are first class data values,
+is that we can easily define datatypes that
+contain function-valued components.
+We make full use of this in three of the entry kinds discussed below.
+}
+
