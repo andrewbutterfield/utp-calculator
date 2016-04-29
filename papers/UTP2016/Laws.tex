@@ -9,10 +9,10 @@ to the behaviour of either the simplifier or definition expansion.
 Instead the reserved dictionary key \verb$"laws"$ is used
 to lookup a special dictionary entry
 \begin{verbatim}
- | LawEntry {
-     reduce  :: [Dict s -> MPred s -> (String, MPred s)]
-   , creduce :: [Dict s -> MPred s -> CRWResult s]
-   , unroll  :: [String -> Dict s -> MPred s -> (String, MPred s)] }
+LawEntry {
+   reduce  :: [Dict s -> MPred s -> (String, MPred s)]
+ , creduce :: [Dict s -> MPred s -> CRWResult s]
+ , unroll  :: [String -> Dict s -> MPred s -> (String, MPred s)]}
 type CRWResult s = ( String, [ (Pred s, MPred s) ] )
 \end{verbatim}
 A list of functions implementing the desired law class laws is then extracted.

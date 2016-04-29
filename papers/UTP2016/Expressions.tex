@@ -37,10 +37,11 @@ by indicating how the notions of sets and some basic operators
 could be defined with the calculator.
 We shall represent sets as instances of \texttt{App} with the name ``set'',
 and the subset relation as an \texttt{App} with name ``subset'',
-so the set $\setof{1,2}$ would be represented by
+so the set $\setof{1,2}$  and predicate $S \subseteq T$
+would be represented by
 \verb$App "set" [Z 1,Z 2]$,
-and the predicate $S \subseteq T$ by
-\verb$App "subset" [Var "S",Var "T"]$.
+and
+\verb$App "subset" [Var "S",Var "T"]$ respectively.
 In practice, we would define constructor functions to build
 these:
 \begin{code}
@@ -96,7 +97,7 @@ and then to call \texttt{dosubset} as appropriate.
 We expect the expression list to be of length 2,
 each entry denoting a set.
 \begin{code}
-evalSubset d [App "set" es1,App "set" es2] = dosubset d es1 es2
+evalSubset d [App "set" s1,App "set" s2] = dosubset d s1 s2
 evalSubset _ _ = none
 \end{code}
 The first line above matches the case when both sets are enumerations.
@@ -129,9 +130,8 @@ is looked up in the dictionary.
 If an \texttt{ExprEntry} is not found, then the default rendering is used,
 in which \verb$App "f" [e1,e2,..,en]$
 is converted into \verb$f(e1,e2,..,en)$.
-Otherwise, a function in that entry,
-of type \verb$Dict s -> [Expr s] -> String$
-is used to render the construct.
+Otherwise, a functionof type \verb$Dict s -> [Expr s] -> String$,
+in that entry, is used to render the construct.
 
 As far as expressions are concerned,
 they become strings, and so are viewed as atomic
@@ -144,7 +144,7 @@ that keep expressions short.
 So, we could show singleton sets without enclosing braces
 by defining:
 \begin{code}
-showSet d [elm] = edshow d elm      -- drop {,} from singleton
+showSet d [elm] = edshow d elm   -- drop {,} from singleton
 showSet d elms = "{" ++ dlshow d "," elms ++ "}"
 \end{code}
 Here \texttt{dlshow} (dictionary-list-show) displays the expressions
