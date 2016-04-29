@@ -15,7 +15,7 @@ type MPred s = (Marks, Pred s)
 \end{figure}
 We have two mutually recursive types,
 with \texttt{Pred} giving the basic structure,
-while \texttt{MPred} bundles a \texttt{Pred} 
+while \texttt{MPred} bundles a \texttt{Pred}
 with a \texttt{Marks} datatype.
 All references from a \texttt{Pred} to a sub-component invoke
 the \texttt{MPred} form.
@@ -61,12 +61,12 @@ differ from expressions:
     with a \texttt{PVar}, so defining its alphabet.
     This can be useful when reasoning about atomic state-change
     actions which only depend on $s$ and $s'$.
-    Such entries will be looked up when certain 
+    Such entries will be looked up when certain
     side-conditions are being checked.
   \item
     We distinguish between have a definition associated with a \texttt{Comp},
     and having a way to simplify one.
-  \item 
+  \item
     Rendering predicates involves the pretty printer
     so the interface is more complex.
     We explain this below.
@@ -111,7 +111,7 @@ lsin = atm $ App "subset" [inp,ls]
 lsinout = App "sswap" [ls,inp,out]
 ls'eqlsinout = equal ls' lsinout
 \end{code}
-Here \texttt{equal} is to \texttt{Equal} as \texttt{comp} is to \texttt{Comp}: 
+Here \texttt{equal} is to \texttt{Equal} as \texttt{comp} is to \texttt{Comp}:
 it produces an \texttt{MPred} with a null marking.
 The function \texttt{mkAnd} is a smart builder from \texttt{StdPredicates}
 that does some optimisations on the fly (e.g. \verb$mkAnd [mpr] = mpr$).
@@ -148,10 +148,10 @@ ppPAtm d ms p [mpr]
 \end{code}
 The functions \texttt{pplist}, \texttt{ppa} and \texttt{ppbracket}
 build instances of \texttt{PP} respectively,
-that represent lists of \texttt{PP}, 
+that represent lists of \texttt{PP},
 atomic strings,
 and an occurence of \texttt{PP} surrounded by the designated brackets.
-Note that the \texttt{MarkStyle} argument (\texttt{ms}) 
+Note that the \texttt{MarkStyle} argument (\texttt{ms})
 is just passed into \texttt{mshowp},
 and the precedence is set to zero as it is bracketed.
 
@@ -181,24 +181,28 @@ but looser than conjunction, as defined in module \texttt{StdPrecedences}.
 
 The dictionary entry for predicates has the following form:
 \begin{verbatim}
-Entry s
-  = ...
   | PredEntry
     { pcansub :: [String]
     , pprint :: Dict s -> MarkStyle -> Int -> [MPred s] -> PP
     , alfa :: [String]
-    , pdefn :: Rewrite s
-    , prsimp :: Rewrite s }
-type Rewrite s = Dict s -> [MPred s] -> (String, Pred s)
+    , pdefn  :: Dict s -> [MPred s] -> (String, Pred s)
+    , prsimp :: Dict s -> [MPred s] -> (String, Pred s) }
 \end{verbatim}
-Fields \texttt{pcansub}, \texttt{pdefn}, 
-and \texttt{prsimp} are the predicate analoges
+Fields \texttt{pcansub} and \texttt{prsimp} are the predicate analoges
 of \texttt{ecansub} and \texttt{eval} in the expression entry.
 Here \texttt{pprint} plays the same role as eprint,
 but is oriented towards pretty printing.
 The \texttt{alfa} component allows an specific alphabet to
 be associated with a composite
 ---if empty then the dictionary alphabet entries apply.
+
+The \texttt{pdefn} component, of the same type as \texttt{prsimp},
+is used when the user invokes the Definition Expansion
+command from the REPL.
+The calculator searches top-down, left-right
+    for the first \texttt{Comp} whose \texttt{pdefn} function
+    returns a changed outcome.
+
 
 The dictionary entry for our atomic semantics is then:
 \begin{code}
@@ -207,4 +211,3 @@ patmEntry
    , PredEntry [] ppPAtm [] defnAtomic (pNoChg "A") )
 \end{code}
 The function \texttt{pNoChg} creates a simplifer that does nothing.
-

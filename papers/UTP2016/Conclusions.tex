@@ -1,16 +1,83 @@
 \section{Conclusions}\label{sec:Conc}
-The calculator was used to develop the semantic definitions
-for our UTP theory of concurrent programming (UTCP),
-and has proved to be invaluable in checking that all
-the definitions led to the correct outcomes.
-It continues to be in active use with work in this area
-that is extending and improving the theory.
 
-However, there are no guarantees of soundness.
-Great care has been taken to ensure that the pre-packaged
-dictionaries are correct,
-and similar care is needed to ensure that theory-specific
-definitions are correct.
+We have presented a description of a calculator written in Haskell,
+that allows the encoding of an UTP theory under development,
+in order to be able to rapidly perform test calculations
+in order to check that predictions of the theory match expectations.
+The tool was not designed to be a complete and sound theory development
+system,
+but instead to act as a rapid-prototype tool to help smoke out problems
+with a developing theory. This approach relies on the  developer
+to be checking and scrutinising everything.
+
+
+As far as the development of the UTCP theory is concerned,
+and the ongoing work to develop a fully composition UTP theory
+of shared-state concurrency that does not require $run$,
+the costs of developing and customising the calculator
+have been well worth the benefits.
+
+We note a few observations based on our experience
+using the calculator:
+\begin{itemize}
+  \item
+   First-come, first-served, just works.
+   The approach of giving a blunt specification of what is to be done
+   and then let the calculator do a top-down, left-to-right search
+   for the first applicable location,
+   has proven to be surprisingly effective.
+   One reason why this has turned out to be the case,
+   is that the kind of calculations that are needed for UTPC
+   and related theories unfold very effectively with this strategy.
+  \item
+   The main idea is find a suitable collection of patterns,
+   in the right order,
+   to be most effective in performing calculations.
+   The best way to determine this is start with none,
+   run the calculator and when it stalls
+   (no change is happening for any command),
+   see what law would help make progress, and encode it.
+   This leads to an unexpected side-effect of calculator,
+   in that we learnt what laws we needed,
+   rather than what we thought we would need.
+  \item
+    An issue that can be raised,
+    given the customisation and lack of soundness guarantees,
+    is how well has the calculator been tested?
+    The answer is basically that the process of using it ensures
+    that the whole system is comprehensively tested.
+    This is because calculations fail repeatedly.
+    Such failures lead to a post-mortem to identify the reason.
+    Early in the calculator development,
+    the reason would be traced to a bug in the calculator infrastructure.
+    The next phase has failures that can be attributed to bugs in the encoding
+    of laws in Haskell, or poor ordering in the dictionary.
+    What makes the above tolerable is that the time taken to identify
+    and fix each code problem is relatively short,
+    often a matter of five to ten minutes.
+    The final phase is where calculation failures arise because of errors
+    the proposed theory---this is the real payback.
+    In the author's experience,
+    the cost of all the above failures
+    is considerably outweighed by the cost of tryimg to do the check calculations
+    manually.
+  \item
+    Effective use of the calculator results in an inexorable
+    push towards algebras. By this we do not mean the Kleene algebras,
+    or similar, that might characterise the language being formalised.
+    Rather we mean that the most effective use of the calculator results
+    when we define predicate functions that encapsulate some simple
+    behaviour, and demonstrate, by proofs done without the calculator,
+    some laws they obey, particularly with respect to sequential composition.
+    In fact, one of the `algebras' under development for the fully
+    compositional theory, is so effective, that many of the test calculations
+    can be done manually
+    (however some, most notably involving parallel,
+    still require the calculator).
+\end{itemize}
+
+
+There are no guarantees of soundness.
 But working on a theory by hand faces exactly the same issues
 --- a proof or calculation by hand always raises the issue
 of the correctness of a law, or the validity of a ``proof-step''
@@ -22,6 +89,7 @@ and marking.
 The calculator's real benefit, and\emph{ main design purpose},
 is the ease with which
 it can produce a calculation and transcript.
+
 
 In effect, this UTP Calculator is a tool that assists
 with the validation of UTP semantic definitions,
@@ -42,19 +110,6 @@ and a good working knowledge of Haskell.
 %finding the ``sweet spot'' between the use of definition
 %expansion, and hard-coded laws based on by-hand proofs.
 
-A very interesting observation was that the most effective use
-of the calculator seems to involve defining shorthand
-combinator like notations, and hand-proving key laws
-about how they interact with key operators used
-in semantics definitions, such as standard UTP sequential composition.
-This drives the development of what is a bespoke semantics algebra.
-
-
-\DRAFT{Mention Carrette
-\cite{journals/jfp/CaretteKS09}
-somewhere here.}
-
-%\subsection{Future Work}\label{ssec:Future}
 
 We plan a formal release of this calculator as a Haskell package.
 A key part of this would be comprehensive
