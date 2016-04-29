@@ -1,7 +1,5 @@
 \section{Introduction}\label{sec:Intro}
 
-We present a calculator \dots
-
 \subsection{Motivation}
 
 The developments of a Unifying Theory of Programming (UTP)
@@ -12,40 +10,12 @@ Typically, some calculations done just to check that everything
 work reveal problems with the theory.
 So an iteration occurs by revising the basic definitions,
 and attempting the calculations again.
-Hopefully, these eventually converge to what becomes a sound and useful
-UTP Theory.
-In a recent bout of such theory revision and re-calculation,
-which required five iterations in total,
-the author noted that common patterns of proof-steps kept arising
-in each iteration.
 
 We have recently started to explore using UTP
-to do the  formal modelling of a language,
-called ``Process Modelling Language''
-(PML)\cite{DBLP:journals/infsof/AtkinsonWN07}.
-%It quickly became apparent that PML and similar (business) process
-%notations essentially involve concurrency with global shared mutable state.
-%There has been work using UTP
-%to model concurrent programs with shared mutable state,
-%most notably
-%with an encoding into action systems having been done by
-%Woodcock and Hughes\cite{DBLP:conf/icfem/WoodcockH02}.
-%We have been looking at adapting this work to provide a UTP semantics
-%for PML.
-%In addition, we have started to take an interest in the ``Views'' paper
-%by Dinsdale-Young and colleagues\cite{conf/popl/Dinsdale-YoungBGPY13},
-%that provides a framework within which it is possible
-%to construct instances of many different concurrency theories,
-%ranging from
-%type-theory \cite{tal-toplas,Smit00b,journals/fuin/AhmedFM07},
-%Owicki-Gries\cite{Owicki76},
-%separation logic\cite{conf/lics/CalcagnoOY07}
-%and rely-guarantee\cite{Jones83}
-%approaches,
-%among others.
-So we started by taking the action-system UTP semantics for Unifying Theories
-of Parallel Programming (UTPP) \cite{DBLP:conf/icfem/WoodcockH02},
-and reworking it to use a system for generating unique labels,
+to describe shared-variable concurrency,
+by adapting the workof the  UTP semantics for Unifying Theories
+of Parallel Programming (UTPP) \cite{DBLP:conf/icfem/WoodcockH02}.
+We have reworked it to use a system for generating unique labels,
 in order to give a slight improvement to the compositionality
 of the semantics. This we call a Unifying Theory of Concurrent Programming
 (UTCP) and details of this are,
@@ -61,28 +31,18 @@ non-deterministic choice ($\pcond$) and non-deterministic iterations ($\piter{}$
 \]
 Note that this is essentially the same as the baseline ``Command'' language
 in the Views paper\cite{conf/popl/Dinsdale-YoungBGPY13}.
-In UTCP we have two distinct groups of observations:
-\begin{itemize}
-  \item
-    Variables that track changes during execution
-    (dynamic observations),
-    modelling the generic state ($s,s'$)
-    and the global label-set ($ls,ls'$) used to manage control-flow.
-  \item
-    Variables that record static parameters such as start ($in$)
-    and stop ($out$) labels for a construct,
-    as well as a label generator ($g$) associated with each construct.
-\end{itemize}
 So our UTCP theory is based on a non-homogeneous relation
 with alphabet $s$, $s'$, $ls$, $ls'$, $g$, $in$, and $out$.
+Observations $s$ and $ls$ (and dashed counterparts)
+represent the shared state and the gloval label-set used for control flow.
+Observations $g$, $in$ and $out$ are static parameters that do not change
+at run time.
 
 
 The theory with its somewhat unusual arrangement of observation variables
-did \emph{not} emerge as an immediate and obvious solution.
-The theory design started with an homogeneous alphabet with $g'$, $in'$ and $out'$
-being present, and the need for the dynamic/static distinction only emerged
-through various iterations of the theory.
-
+did \emph{not} emerge as an immediate and obvious solution,
+but as a result of many trial calculations.
+These trial calculations exposed two problems:
 The first problem was relatively minor
 ---a lot of the semantics talks about the presence of various
 labels in the global label-set, or alternatively, their  absence,
@@ -94,26 +54,8 @@ The second problem was more serious.
 It often took long painstaking calculations to discover problems
 with a proposed version of the theory,
 typically when trying to calculate outcomes associated with
-$A \pseq B$and then  $A \parallel B$.
-In every case the fault was traced back to sequential composition%
-\footnote{
-In the author's experience,
-when building semantic theories involving concurrency or parallelism,
-it is always sequential composition that causes the most difficulty
-}
-.
-The calculations for sequential and parallel composition
-required typically about 400 lines of \LaTeX\ and resulted
-in 7 full pages of output,
-an extract of which is shown in Fig. \ref{fig:attempt4}.
-
-\begin{figure}
-  \centering
-  \includegraphics[width=4.5in]{Attempt4.eps}\\
-  \caption{Extract from 4th attempt to calculate $x:=x+y \parallel y:=y-x$}
-  \label{fig:attempt4}
-\end{figure}
-
+$A \pseq B$ and then  $A \parallel B$
+(400 lines of \LaTeX\,7 full pages of output)
 With choice and iteration to be covered,
 it was becoming very clear that a better way was required
 for checking semantic outcomes.
@@ -131,3 +73,14 @@ expected from the tools further along the spectrum.
 
 
 \subsection{Structure of this paper}
+
+In Sect.\ref{sec:Related} we discuss related work
+to justify our decision to develop the calculator.
+The key design decisions and tool architecture is then described
+in Sect. \ref{sec:Design}.
+Three key components of the system are the discussed:
+Dictionaries (Sect.\ref{sec:Dictionaries});
+Expressions (Sect.\ref{sec:Expressions}); and
+Predicates (Sect.\ref{sec:Predicates}).
+In Sect.\ref{sec:Laws} we describe how to encode laws
+and then conclude in (Sect.\ref{sec:Conc}.

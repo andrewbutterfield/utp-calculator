@@ -6,13 +6,13 @@ Taking into account the repetitive nature of the calculations,
 and the need for shorthand notations we very rapidly converged
 on four initial design decisions:
 \begin{enumerate}
-  \item No parsers! All calculation objects are written
-  directly in Haskell.
-  \item We would keep the expression and predicate datatype declarations
-   very simple, with only equality being singled out.
-  \item We would need to have a good way to pretty-print long predicates
+  \item All calculation objects are written
+  directly in Haskell, to avoid having to implement a parser.
+  \item The he expression and predicate datatype declarations
+   would be very simple, with only equality being singled out.
+  \item Provide a good way to pretty-print long predicates
     that made it easy to see their overall structure
-  \item We would rely on a dictionary based system to
+  \item Rely on a dictionary based system to
     make it easy to customise how specific constructs
     were to be handled.
 \end{enumerate}
@@ -23,7 +23,7 @@ the following regarding the calculation steps that would be supported:
     We would not support full  propositional calculus
     or theories of numbers or sets.
     Instead we would support the use of hard-coded relevant laws,
-    typically derived from  a handwritten proof.
+    typically derived from a handwritten proof.
   \item
     We would avoid, at all costs,
     any use of quantifiers or binding constructs.
@@ -59,7 +59,7 @@ looking for simplifiers for each composite and applying them.
 Simplifiers are captured as \texttt{eval} or \texttt{prsimp} components
 in dictionary entries.
 
-The other four commands work by searching top-down, depth-first for
+The other four commands work by searching top-down, left-to-right for
 the first sub-component for which the relevant dictionary calculator
 function returns a changed result.
 Here is where we have a reduced degree of control,
@@ -68,39 +68,7 @@ but turns out to be strikingly effective in practice.
 This is because these kinds of semantic ``smoke-test'' calculations
 tend to go in phases: expand all definitions; simplify; reduce; simplify;
 perhaps unroll a loop a bit; etc...
-\begin{description}
-  \item[Defn. Expand ('\texttt{d}')]
-    Find the first predicate changed by applying its
-     \texttt{pdefn} dictionary entry, which should unfold its definition.
-  \item[Law Reduce ('\texttt{r}')]
-    Find the first predicate transformed by a function
-    in the \texttt{reduce} list of the \texttt{LawEntry} indexed
-     by the string \texttt{"laws"}.
-     This function captures an equational law,
-     that is only applied in a left to right direction.
-  \item[Loop Unroll ('\texttt{l}')]
-    Find the first predicate transformed by a function
-    in the \texttt{unroll} list of the \texttt{LawEntry} indexed
-     by the string \texttt{"laws"}.
-    The remainder of the command string after the initial '\texttt{l}'
-    is passed to the function to control the nature and degree
-    of unrolling. How this string is interpreted is entirely
-    up to the user.
-  \item[Conditional Reduce ('\texttt{c}')]
-    Find the first predicate transformed by a function
-    in the \texttt{creduce} list of the \texttt{LawEntry} indexed
-     by the string \texttt{"laws"}.
-     This function captures an equational law with a side condition,
-    which returns a list of alternatives,
-    each alternative being a side-condition predicate
-    paired with a result.
-    These are presented to the user,
-    who then selects which outcome is appropriate.
-    In effect the user has to look at each condition
-    and select the one (if any) that evaluates to true.
-    This is done to prevent the calculator from having
-    to embody predicate simplifiers ``modulo various expression theories''.
-\end{description}
+See Sect.\ref{sec:Laws} for more detail.
 
 
 Here is a sample run obtained when calculating the effect of $run(\A(A) \pseq \A(B))$,
@@ -198,9 +166,7 @@ on the subject.
 
 In addition to the layout management aspects of pretty-printing
 as just illustrated above,
-there is also a need for a support for shorthand notations,
-in order to ensure that predicates are more readable.
-This particularly arises when set notation is in heavy use.
+there is also a need for a support for shorthand notations.
 We illustrate this in Sect.\ref{sec:Expressions}.
 
 \subsection{Dictionaries}\label{ssec:dict}
@@ -228,34 +194,6 @@ is the primary way for users to set up calculations.
 %and one for alphabet handling.
 %We will discuss each kind in turn,
 %but leave examples of their use until Sect.\ref{sec:Theorising}.
-
-
-
-
-
-\subsection{Impementation Overview}
-
-The UTP Calculator is implemented as a series
-of Haskell modules,
-which are broken into two groups:
-\begin{description}
-  \item[Infrastructure]
-    are modules that implement the calculator mechanics,
-    pretty-printing, etc.
-    These include \texttt{PrettyPrint},
-    and all modules with names starting with \texttt{Calc}.
-  \item[Builtin Theories]
-    are pre-defined theory modules that cover standard logic,
-    whose names start with \texttt{Std}, and modules that cover ``standard''
-    UTP, whose names start with \texttt{StdUTP}.
-    These theory modules typically come in threes, covering
-    \texttt{Predicates}, \texttt{Precedences} and \texttt{Laws}.
-\end{description}
-All the code described here is available online
-at
-\\\url{https://bitbucket.org/andrewbutterfield/utp-calculator.git}
-as Literate Haskell Script files (\texttt{.lhs})
-in the \texttt{src} sub-directory.
 
 \subsubsection{Display Convention}
 

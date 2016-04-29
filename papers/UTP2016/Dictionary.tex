@@ -2,23 +2,13 @@
 
 \begin{figure}
   \centering
-\begin{verbatim}
-aAlf  = "Alf"   -- entire alphabet
-aObs  = "Obs"   -- all undashed variables
-aObs' = "Obs'"  -- all dashed variables
-aMdl  = "Mdl"   -- all undashed model variables
-aMdl' = "Mdl'"  -- all dashed model variables
-aScr  = "Scr"   -- all undashed script variables
-aScr' = "Scr'"  -- all dashed script variables
-aDyn  = "Dyn"   -- all undashed dynamic observables
-aDyn' = "Dyn'"  -- all dashed dynamic observables
-aStc  = "Stc"   -- all undashed static parameters
-laws  = "laws"  -- all available laws
-\end{verbatim}
+%\begin{verbatim}
+\texttt{Alf Obs Obs' Mdl Mdl' Scr Scr' Dyn Dyn' Stc laws}
+%\end{verbatim}
   \caption{Reserved Dictionary Names}\label{fig:rsvd-names}
 \end{figure}
 
-The dictionary datatype (\texttt{Dict s}), 
+The dictionary datatype (\texttt{Dict s}),
 parameterised with a generic type \texttt{s},
 is critical to the functioning of the calculator.
 \begin{verbatim}
@@ -38,26 +28,24 @@ data Entry s = AlfEntry .. | ExprEntry .. | PredEntry .. | LawEntry ..
 }
 For simplicity, there is only one namespace involved,
 and some names are reserved for special purposes.
-These are listed in Fig. \ref{fig:rsvd-names},
-along with Haskell identifiers for them.
-
+These are listed in Fig. \ref{fig:rsvd-names}.
 There are ten names that describe different
-parts of the theory alphabet.
+(overlapping)
+parts of the theory alphabet (Fig. \ref{fig:rsvd-names}).
 While is is possible to define these individually,
 this can be quite error-prone,
 so a function is provided to construct all these entries
 from three basic pieces of information:
-program variable names (`script');
-auxiliary variable names (`model',
+program variable names (`script', \texttt{Scr});
+auxiliary variable names (`model',\texttt{Mdl}),
 e.g. variables like $ok$ or $tr$ that don't represent variable values,
 but instead some other observable program property of interest);
-and static parameter vairiable names. 
+and static parameter variable names (\texttt{Stc}).
 \begin{verbatim}
 stdAlfDictGen :: [String] -> [String] -> [String] -> Dict s
 \end{verbatim}
-All lists contain undashed names, with dashes added were required
+All lists contain undashed names, with dashes added when required
 by the function.
-
 So, the alphabet entries for the UTCP theory are defined as follows:
 \begin{code}
 dictAlpha = stdAlfDictGen ["s"] ["ls"] ["g","in","out"]
@@ -65,7 +53,7 @@ dictAlpha = stdAlfDictGen ["s"] ["ls"] ["g","in","out"]
 All of these entries will be of kind \texttt{AlfEntry},
 i.e, just lists of the relevant variables.
 \begin{verbatim}
-   AlfEntry { avars   :: [String]}
+   AlfEntry { avars  :: [String]}
 \end{verbatim}
 
 There are two important utility functions,

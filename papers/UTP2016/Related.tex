@@ -6,10 +6,7 @@ ranging from calculators
 \cite{Bird14},
 through rewrite/transformation
 systems
-(Unfold/Fold\cite{BurstallAndDarlington77},
-CIP-S\cite{DBLP:books/sp/BauerEH87},
-ZAP\cite{Feather:1982:SAP:357153.357154},
-KIDS\cite{Smith91},
+(CIP-S\cite{DBLP:books/sp/BauerEH87},
 Stratego\cite{conf/rta/Visser01},
 ASF+DSF\cite{VanDenBrand:2002:CLD}
 Maude\cite{conf/rta/ClavelDELMMT03}
@@ -33,7 +30,7 @@ how to achieve the ability to do rapid calculation
 with a high degree of ease in proof-reading its
 output.
 
-In addition to our own work on theorem proving for UTP \cite{conf/utp/Butterfield10},
+In addition to our own work on theorem proving for UTP \cite{DBLP:conf/utp/Butterfield10},
 there is also work on embedding UTP into Isabelle/HOL\cite{DBLP:conf/utp/FosterZW14}.
 
 Within the UTP community,
@@ -42,10 +39,10 @@ such as deep embedding into Z of an imperative language whose semantics
 were given using UTP \cite{conf/utp/NukaW06}and
  re-working the mechanisation of UTP in order to better support
 the hierarchical nature of UTP theory building \cite{journals/entcs/ZeydaC09}.
-Some support for Z-like theories from UTP (such as Circus)
-can be found as extensions implemented in the Community Z Tools project
-\cite{conf/zum/MalikU05}.
-
+%Some support for Z-like theories from UTP (such as Circus)
+%can be found as extensions implemented in the Community Z Tools project
+%\cite{conf/zum/MalikU05}.
+%
 Whilst all of good pedigree, CoQ, Isabelle/HOL, ProofPower-Z and PVS
 all have in common that they work best when used in the manner
 for which they were designed%
@@ -64,7 +61,7 @@ and it is currently not in an ideal state%
 the relevant software libraries
 on more recent versions of Haskell.}
 .
-However, as part of our work on the formal semantics of PML,
+However, as part of other ongoing work,
 we had developed a parser and some initial analysis tools
 in Haskell\cite{Haskell2010},
 and this software contained abstract syntax and support
@@ -74,6 +71,5 @@ to mechanise the checking calculations, that were being performed
 during each attempt.
 In particular,
 the key inspiration was the observation,
-over all of those calculation attempts (five in all!),
 that the pattern of each calculation was very uniform and similar.
 So a decision was taken to construct the calculator described in this paper.

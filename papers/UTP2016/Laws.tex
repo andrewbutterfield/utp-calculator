@@ -158,40 +158,40 @@ and a command \verb@"ln"@, with n a digit, to unroll the disjunctive form $n$ ti
 This latter facility was not used with the UTCP theory,
 but is being applied to further work that seeks a more compostional
 theory of the same language.
-\begin{code}
-wUnroll :: Ord s => String -> DictRWFun s
-wUnroll ns d mw@(_,Comp nm [mpr])
- | nm == nW = ( "W-unroll" ++ ntag ns, wunroll n )
- where
-
-   ntag "" = ""
-   ntag ns = '.':ns
-
-   n | null ns = 0
-     | isDigit $ head ns = digitToInt $ head ns
-     | otherwise = 0
-
-   wunroll 0  =  bCond (bSeq mpr mw) (bNot lsout) bSkip
-   wunroll 1  =  bOr [ loopdone
-                     , bSeq (loopstep 1) mw]
-   wunroll 2  =  bOr [ loopdone
-                     , bSeq (loopstep 1) loopdone
-                     , bSeq (loopstep 2) mw]
-   wunroll 3  =  bOr [ loopdone
-                     , bSeq (loopstep 1) loopdone
-                     , bSeq (loopstep 2) loopdone
-                     , bSeq (loopstep 3) mw]
-   wunroll _  =  bCond (bSeq mpr mw) (bNot lsout) bSkip
-
-   loopdone = bD out
-   loopstep 1 = bAnd [bM out, mpr]
-   loopstep n = bSeq (loopstep (n-1)) (loopstep 1)
-
-wUnroll _ _ mpr = ( "", mpr )
-\end{code}
-It does up to 3 unrollings---we won't explain all the various bits
-but just point out that \texttt{loopdone} is $\lnot c \land \Skip$
-(under the hood) and \texttt{loopstep} n is $(c \land P)^n$.
+%\begin{code}
+%wUnroll :: Ord s => String -> DictRWFun s
+%wUnroll ns d mw@(_,Comp nm [mpr])
+% | nm == nW = ( "W-unroll" ++ ntag ns, wunroll n )
+% where
+%
+%   ntag "" = ""
+%   ntag ns = '.':ns
+%
+%   n | null ns = 0
+%     | isDigit $ head ns = digitToInt $ head ns
+%     | otherwise = 0
+%
+%   wunroll 0  =  bCond (bSeq mpr mw) (bNot lsout) bSkip
+%   wunroll 1  =  bOr [ loopdone
+%                     , bSeq (loopstep 1) mw]
+%   wunroll 2  =  bOr [ loopdone
+%                     , bSeq (loopstep 1) loopdone
+%                     , bSeq (loopstep 2) mw]
+%   wunroll 3  =  bOr [ loopdone
+%                     , bSeq (loopstep 1) loopdone
+%                     , bSeq (loopstep 2) loopdone
+%                     , bSeq (loopstep 3) mw]
+%   wunroll _  =  bCond (bSeq mpr mw) (bNot lsout) bSkip
+%
+%   loopdone = bD out
+%   loopstep 1 = bAnd [bM out, mpr]
+%   loopstep n = bSeq (loopstep (n-1)) (loopstep 1)
+%
+%wUnroll _ _ mpr = ( "", mpr )
+%\end{code}
+%It does up to 3 unrollings---we won't explain all the various bits
+%but just point out that \texttt{loopdone} is $\lnot c \land \Skip$
+%(under the hood) and \texttt{loopstep} n is $(c \land P)^n$.
 
 
 \subsection{Bringing it all together}

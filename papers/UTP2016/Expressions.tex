@@ -17,20 +17,17 @@ type Substn s = [(String,Expr s)]
 Both types are parameterised on a generic state type \texttt{s},
 which allows us to be able to reason independently of any particular type, or with a specific concrete type in mind,
 all with one piece of code.
-In expressions (\texttt{Expr}) we include booleans (\texttt{B}) and integers (\texttt{Z}) as basic types,
-as well as values of the parameter type (\texttt{St}).
-We then have the notion of the application (\texttt{App}) of a named function
-to a list of expression arguments,
+We provide booleans (\texttt{B}),
+integers (\texttt{Z}),
+values of the parameter type (\texttt{St}),
+named function application(\texttt{App})
 and a substitution (\texttt{Sub}), which pairs an expression
 with a substitution (\texttt{Substn}) which is a list of variable/expression pairs, each denoting the replacement of all free
 occurrences of the variable by the corresponding expression.
 The \texttt{deriving} clause for \texttt{Expr} enables the Haskell default notions
 of equality, ordering and display for the type.
-
-The abstract expression syntax is very simple,
-and uses names, as Haskell Strings, to distinguish between
-different applications.
-Missing are any binding constructs, such as lambda expressions,
+Functions are identifer by a name (\texttt{String})
+and missing are any binding constructs, such as lambda expressions,
 or the ability to curry functions.
 
 \subsection{Set Expressions}
@@ -50,18 +47,13 @@ these:
 set es = App "set" es
 subset s1 s2 = App "subset" [s1,s2]
 \end{code}
-We will want an equality test for sets,
-but as equality is handled at the predicate level, we defer discussion until later.
-However, it will be very useful to be able to simplify
-uses of subset.
 There is a standard interface for defining expression simplifiers:
 define a function with the following type:
 \begin{verbatim}
 Dict s -> [Expr s] -> (String, Expr s)
 \end{verbatim}
 The first argument, of type \texttt{Dict},
-is the dictionary currently in use,
-which we describe in more detail later on.
+is the dictionary currently in use.
 The second argument is the list of sub-expression of
 the \texttt{App} construct for which the simplifier is intended.
 The result is a pair consisting of a string and an expression.
@@ -86,27 +78,15 @@ dosubset d es1 es2 -- is es1 a subset of es2 ?
 It is basically a Haskell function definition with three alternatives,
 tested in order.
 
-The first simply returns an expression denoting true
-if the result of subtracting the second list from the first
-is empty---using the standard Haskell sequence difference operator (\verb$\\$).
-
 The second test sees if all elements remaining are ``ground'',
 i.e. do not contain any dynamic observation variables.
 Static parameter variables are considered ground,
 for reasons beyond the scope of this paper.
-If the test succeeds,
-then we have leftover values, so we can conclude that \texttt{es1} is not a subset of \texttt{es2}.
 The function \texttt{isGround} takes a dictionary,
 and an expression, and checks to see if the expression is ground.
 It uses the dictionary to get information about the status
 of any variables it may find, by using the \verb$"Stc"$ key
 (Fig. \ref{fig:rsvd-names}) to identify the static variables.
-
-The 3rd clause (otherwise) means we have some different
-variables in the sets, which might have the same values,
-or might not, so we cannot conclude anything further.
-We return the predefined value \texttt{none} which is defined to be
-\verb$("",Undef)$.
 
 For the simplifier, we need a list of expressions,
 rather than two as arguments, after the dictionary argument.
@@ -117,43 +97,22 @@ We expect the expression list to be of length 2,
 each entry denoting a set.
 \begin{code}
 evalSubset d [App "set" es1,App "set" es2] = dosubset d es1 es2
-evalSubset d [es1,App "set" es2] = dosubset d [es1] es2
-evalSubset d [App "set" es1,es2] = dosubset d es1 [es2]
-evalSubset d [es1,es2] = dosubset d [es1] [es2]
 evalSubset _ _ = none
 \end{code}
 The first line above matches the case when both sets are enumerations.
-The remainder treat a non-set argument as being a singleton set.
 The last line is a catch-all with wildcard patterns that matches
 any other case, returning none.
-The middle three lines interpret a non-set value as a singleton set.
-This suited the calculations belong done for UTCP,
-but might might not suit other situations.
-In that case, those three lines can be omitted, if they don't suit.
-This illustrates the flexibility that is available to the user.
 
 Note that there is no notion of general type-checking
 in the calculator---it would introduce far too much complexity,
-with very little gain, for the type of work for which this calculator has been designed.
+with very little gain,
+for the type of work for which this calculator has been designed.
 
 \subsection{Rendering Expressions}
 
 The UTCP theory definitions and calculations
 involve a lot of reasoning about sets,
 leading to quite complicated expressions.
-Consider the following:
-\begin{eqnarray*}
-  && A \land \setof{\ell_{g}} \subseteq \setof{\ell_{g}}
-  \land ls'
-    = (\setof{\ell_{g}} \setminus \setof{\ell_{g}})
-      \cup\setof{\ell_{g::}}
-\\&& {} \lor B \land \setof{\ell_{g::}} \subseteq \setof{\ell_{g}}
-  \land ls' =
-  (\setof{\ell_{g}} \setminus \setof{\ell_{g::}})
-   \cup \setof{\ell_{g:}}
-\\&& {} ; \setof{\ell_{g:}} \cap ls = \emptyset * (\A(A) \lseq \A(B))[\g{::},\ell_{g},\ell_{g:}/g,in,out]
-\end{eqnarray*}
-
 To avoid long set expressions a number of shorthand notations are desirable,
 so that a singleton set $\setof x$ is rendered as $x$
 and the very common idiom $S \subseteq ls$
@@ -161,24 +120,11 @@ is rendered as $ls(S)$,
 so that for example, $ls(in)$ is short for $\setof{in} \subseteq ls$.
 We also introduce $S \ominus (T,U)$ as shorthand for $(S \setminus T) \cup U$
 (from\cite{DBLP:conf/icfem/WoodcockH02}).
-This shrinks the expression to a much more readable:
-\begin{eqnarray*}
-  && A \land \ell_{g}(\ell_{g}) \land ls' = \ell_{g} \ominus (\ell_{g},\ell_{g::})
-\\&& {} \lor B \land \ell_{g}(\ell_{g::}) \land ls' = \ell_{g} \ominus (\ell_{g::},\ell_{g:})
-\\&& {} ; \lnot ls(\ell_{g:}) * (\A(A) \lseq \A(B))[\g{::},\ell_{g},\ell_{g:}/g,in,out]
-\end{eqnarray*}
-Note that some of the $\setof x \subseteq ls$ forms above
-could have been done as $x \in ls$, but in the general case,
-we have non-singleton sets involved.
-Not apparent in the above example is the shorthand being used for the labels
-and their generators.
+These shrinks the expressions to a much more readable form/
 
 
-When the calculator is rendering expressions in text form,
-every construct except \texttt{App} is treated in a uniform way.
-For example, the substitution \verb$[("x",e1),("y",e2)]$
-is rendered as \verb$[e1,e2/x,y]$.
-When an \texttt{App} construct is found, its name (1st component)
+When rendering expressions,
+if an \texttt{App} construct is found, then its name
 is looked up in the dictionary.
 If an \texttt{ExprEntry} is not found, then the default rendering is used,
 in which \verb$App "f" [e1,e2,..,en]$
