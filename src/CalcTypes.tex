@@ -1,0 +1,156 @@
+\HDRa{Calculator Types (Listing)}\label{ha:calc-types-txt}
+
+Here we simply gather current types on one or two pages
+\begin{code}
+data Expr s
+ = St s  -- a value of type State
+ | B Bool
+ | Z Int
+ | Var String
+ | App String [Expr s]
+ | Sub (Expr s) (Substn s)
+ | Undef
+ deriving (Eq,Ord,Show)
+
+type Substn s = [(String,Expr s)]
+\end{code}
+
+\begin{code}
+data Pred s
+ = T
+ | F
+ | PVar String
+ | Equal (Expr s) (Expr s)
+ | Atm (Expr s)
+ | Comp String [MPred s]
+ | PSub (MPred s) (Substn s)
+ | PUndef
+ deriving (Ord, Show)
+\end{code}
+
+\begin{code}
+type MPred s = ( Marks, Pred s )
+
+type Mark = Int
+type Marks = [Mark]
+\end{code}
+
+\begin{code}
+type MarkStyle = Int -> Maybe Style
+
+noStyles :: MarkStyle
+noStyles = const Nothing
+\end{code}
+
+\begin{code}
+type RWResult s
+ = Maybe ( String  -- rewrite justification
+         , Pred s  -- result predicate
+         , Bool )  -- True if top-level modified
+type RWFun s = Dict s -> Pred s -> RWResult s
+\end{code}
+
+\begin{code}
+type CRWResult s
+ = Maybe ( String      -- justification
+         , [( Pred s   -- side-condition to be discharged
+            , MPred s  -- modified predicate
+            , Bool)])  -- True if top-level modified
+type CRWFun s = Dict s -> Pred s -> CRWResult s
+\end{code}
+
+\begin{code}
+type Dict s = M.Map String (Entry s)
+\end{code}
+
+\begin{code}
+type Rewrite s = Dict s -> [Pred s] -> RWResult s
+\end{code}
+
+\begin{code}
+data Entry s =
+   AlfEntry {   -- about Alphabets
+    avars   :: [String]  -- alphabet
+   }
+ | ExprEntry { -- about Expressions
+     ecansub :: [String]                   -- substitutable vars
+   , eprint  :: Dict s -> [Expr s] -> String   -- pretty printer
+   , eval    :: Dict s -> [Expr s]                  -- evaluator
+             -> ( String -- empty if no change, else explanation
+                , Expr s )
+   , isEqual :: Dict s -> [Expr s] -> [Expr s] -> Maybe Bool
+   }
+ | PredEntry {    -- about Predicates and PredVars
+     pcansub :: [String]                      -- substitutable vars
+   , pprint  :: Dict s -> MarkStyle           -- pretty printer
+             -> Int -> [MPred s]
+             -> PP
+   , alfa :: [String]  -- predicate alphabet
+   , pdefn   :: Rewrite s                    -- defn expansion
+   , prsimp  :: Rewrite s                    -- simplifier
+   }
+ | LawEntry {  -- about useful laws
+     reduce  :: [RWFun s]              -- list of reduction laws
+   , creduce :: [RWFun s]      -- list of conditional reductions
+   , unroll  :: [String -> RWFun s]    -- list of loop unrollers
+   }
+\end{code}
+
+\begin{code}
+type Recogniser s = Pred s -> Maybe [Pred s]
+\end{code}
+
+\begin{code}
+type CalcLog s = ( MPred s      -- initial predicate (pe1)
+                 , [(String, MPred s)] -- steps, most recent first
+                 , Dict s )     -- final dictionary
+\end{code}
+
+
+\newpage
+
+These are under-the-hood types
+\begin{code}
+data MPred' s
+ = Comp'         -- parent is a Comp node
+     Marks       -- parent marking
+     String      -- parent name
+     [MPred s] -- components before current focus
+     [MPred s] -- components after current focus
+ | PSub'         -- parent is a PSub node
+     Marks       -- parent marking
+     (Substn s)  -- substitution in parent
+ deriving Show
+\end{code}
+
+\begin{code}
+type MPZipper s
+  = ( MPred s    -- the current (focus) predicate
+    , [MPred' s] -- the steps we took to get here,
+                   -- and what we passed on the way.
+    )
+\end{code}
+
+\begin{code}
+type BeforeAfter s
+ = ( MPred s   -- before predicate, marked
+   , String      -- justification, null if no change occurred
+   , MPred s ) -- after predicate, marked
+\end{code}
+
+\begin{code}
+type BeforeAfters s
+ = ( MPred s   -- before predicate, marked
+   , String      -- justification, null if no change occurred
+   , [(Pred s,MPred s)] ) -- after predicates, marked
+\end{code}
+
+
+\begin{code}
+type MPZip2 s = (BeforeAfter s, [MPred' s])
+\end{code}
+
+
+\begin{code}
+type CMPZip2 s = ( BeforeAfters s, [MPred' s] )
+\end{code}

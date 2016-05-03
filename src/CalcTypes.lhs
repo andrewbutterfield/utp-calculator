@@ -60,13 +60,14 @@ We shall do this by using integers as markers,
 and marking predicates with a marker-set.
 We don't want to check for or pattern-match against
 a special marker predicate, but prefer to add markers everywhere,
-using a mutually recursive datatype:
+using a mutually recursive datatype.
+
+Under the hood, a top-level predicate is marked,
+but all user-supplied code will focus and pattern-match
+on predicates,
+with a few support functions to hide the details of marking.
+We represent ``matchable'' predicates using the \texttt{Pred} datatype:
 \begin{code}
-type Mark = Int
-type Marks = [Mark]
-
-type MPred s = ( Marks, Pred s )
-
 data Pred s
  = T
  | F
@@ -78,8 +79,25 @@ data Pred s
  | PUndef
  deriving (Ord, Show)
 \end{code}
+Marked predicates are marks paired with a predicate,
+denoted by the \texttt{MPred} datatype:
+\begin{code}
+type MPred s = ( Marks, Pred s )
 
-Mark management:
+type Mark = Int
+type Marks = [Mark]
+\end{code}
+We provide functions to remove markings
+and to make changes `under' markings:
+\begin{code}
+mkstrip :: [MPred s] -> [Pred s]
+mkstrip = map snd
+
+pfapply :: (Pred s -> Pred s) -> MPred s -> MPred s
+pfapply pf (m, p) = (m, pf p)
+\end{code}
+
+Mark management (SHOULD LIVE ELSEWHERE)
 \begin{code}
 startm :: Mark
 startm = 0
@@ -162,13 +180,15 @@ described in a little more detail later.
 The basic idea is that such a step rewrites a current goal
 predicate in some way, and returns both the rewritten result,
 as well as a justification string describing what was done.
+Also returned is a boolean flag that indicates
+if it was the top-level predicate that was modified,
+rather than one of its sub-components.
 \begin{code}
-type RWResult s = (String, MPred s)
-type RWFun s = MPred s -> RWResult s
-\end{code}
-Often we will parameterise such functions with a dictionary:
-\begin{code}
-type DictRWFun s = Dict s -> RWFun s
+type RWResult s
+ = Maybe ( String  -- rewrite justification
+         , Pred s  -- result predicate
+         , Bool )  -- True if top-level modified
+type RWFun s = Dict s -> Pred s -> RWResult s
 \end{code}
 
 We also have steps that are contingent on some side-condition,
@@ -177,17 +197,18 @@ nor do we want to have to break-out into a sub-calculation.
 These steps typically occur in pairs,
 giving different results based on the truth of the condition.
 So we design a ``step'' that returns the alternative rewrite outcomes,
-along with a clear statement of the condition,
-and allows the user to select which one should be used.
+along with a clear statement of the corresponding side-conditions.
+This allows the user to select which one should be used.
 \begin{code}
 type CRWResult s
- = ( String
-   , [( Pred s    -- condition to be discharged
-      , MPred s)]  -- modified predicate
-   )
-type CRWFun s = MPred s -> CRWResult s
-type CDictRWFun s = Dict s -> CRWFun s
+ = Maybe ( String      -- justification
+         , [( Pred s   -- side-condition to be discharged
+            , MPred s  -- modified predicate
+            , Bool)])  -- True if top-level modified
+type CRWFun s = Dict s -> Pred s -> CRWResult s
 \end{code}
+The justification string used in the calculator will be the one returned
+here along with a rendering of the chosen side-condition.
 
 
 
@@ -208,7 +229,7 @@ This function will be passed the dictionary,
 and the list of sub-components for it to do its work,
 and will return a justification string and un-marked predicate:
 \begin{code}
-type Rewrite s = Dict s -> [MPred s] -> (String, Pred s)
+type Rewrite s = Dict s -> [Pred s] -> RWResult s
 \end{code}
 
 When applying general laws (usually as reductions)
@@ -240,10 +261,11 @@ $A \defs \setof{v_1,v_2,\ldots,v_n}$.
 \begin{code}
 -- data Entry s = ....
  | ExprEntry { -- about Expressions
-     ecansub :: [String]                     -- substitutable vars
-   , eprint  :: Dict s -> [Expr s] -> String -- pretty printer
-   , eval    :: Dict s -> [Expr s]           -- evaluator
-             -> ( String, Expr s )
+     ecansub :: [String]                   -- substitutable vars
+   , eprint  :: Dict s -> [Expr s] -> String   -- pretty printer
+   , eval    :: Dict s -> [Expr s]                  -- evaluator
+             -> ( String -- empty if no change, else explanation
+                , Expr s )
    , isEqual :: Dict s -> [Expr s] -> [Expr s] -> Maybe Bool
    }
 \end{code}
@@ -311,10 +333,10 @@ To do so risks an infinite loop.
 \HDRc{Law Entry}\label{hc:law-entry}
 
 \begin{code}
- | LawEntry {                   -- about useful laws
-     reduce  :: [DictRWFun s]  -- list of reduction laws
-   , creduce :: [CDictRWFun s] -- list of conditional reductions
-   , unroll  :: [String -> DictRWFun s]  -- list of loop unrollers
+ | LawEntry {  -- about useful laws
+     reduce  :: [RWFun s]              -- list of reduction laws
+   , creduce :: [RWFun s]      -- list of conditional reductions
+   , unroll  :: [String -> RWFun s]    -- list of loop unrollers
    }
 \end{code}
 We interpret a \texttt{Dict} entry like:
@@ -534,7 +556,7 @@ type CMPZip2 s = ( BeforeAfters s, [MPred' s] )
 A calculation log records all pertinent data regarding a calculation
 \begin{code}
 type CalcLog s = ( MPred s      -- initial predicate (pe1)
-                 , [RWResult s] -- steps, most recent first
+                 , [(String, MPred s)] -- steps, most recent first
                  , Dict s )     -- final dictionary
 \end{code}
 The dictionary is included as it is required, for example,
@@ -561,16 +583,14 @@ viewcalc (currpr,steps,_)
 \HDRb{Recognisers}\label{hc:recog}
 
 A recogniser looks for a specific pattern within
-a predicate, and either return false if no such pattern exists
-or else returns true along with a selection of zero or more sub-components
+a predicate, and either returns \texttt{Nothing} if no such pattern exists
+or else returns \texttt{Just} a selection of zero or more sub-components
 of interest.
 \begin{code}
-type Recogniser s = MPred s -> (Bool, [MPred s])
+type Recogniser s = Pred s -> Maybe [Pred s]
 
-noMatch         =  (False, [])
-noBind b        =  (b, [])
-matchBind mprs  =  (True,  mprs)
-condBind c mprs = if c then matchBind mprs else noMatch
+noBind        =  Just []
+condBind c prs = if c then Just prs else Nothing
 \end{code}
 
 When building up rules it can help to have
