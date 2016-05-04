@@ -1176,6 +1176,8 @@ vReduce vd (_,Comp n [a])
                   , bOr [ bD  out, bX inp out a inp out ] )
 \end{code}
 
+\NOTE{JUNK ALL OF THIS AND REPLACE WITH NEW W,A and X and invariant I
+experiment and work out an automated $Q^n$ calculator}
 
 We expect the following combinations to arise in calculations:
 \RLEQNS{

@@ -385,7 +385,7 @@ Two actions meant to be mutually exclusive (the hint being the invariant):
 \EQ{Falsifies $[L_1|L_3|\ldots]$}
 \\&& \false
 }
-This law also works with invariant fragments 
+This law also works with invariant fragments
 $[L_1|L_3|\dots]$ and $[L_2|L_4|\dots]$
 
 \newpage
@@ -635,6 +635,7 @@ So we have
          A(in|ii|\ell_{g2}) \lor {}
 \\   & & atm(a)[g_{1:},\ell_{g1}/g,in] \lor
          atm(b)[g_{2:},\ell_{g2}/g,in]
+\\
 \\ I &=& [in|\ell_{g1}|\ell_{g2}|out]
 }
 
@@ -771,6 +772,7 @@ So, we go as far as $Q^2$:
          A(\ell_{g1:},\ell_{g2:}|ii|out) \lor {}
 \\   & & atm(a)[g_{1::},\ell_{g1},\ell_{g1:}/g,in,out] \lor
          atm(b)[g_{2::},\ell_{g2},\ell_{g2:}/g,in,out]
+\\
 \\ I &=& [in|\ell_{g1},\ell_{g2}|\ell_{g1:},\ell_{g2:}|out]
 }
 
@@ -798,7 +800,7 @@ So, we go as far as $Q^2$:
      A(\ell_{g1:},\ell_{g2:}|ii|out) \lor {}
 \\&& \Skip \lor A(\ell_{g1}|a|\ell_{g1:}) \lor \Skip \lor A(\ell_{g2}|b|\ell_{g2:})
 \EQ{re-arrange, simplify}
-\\&& \Skip \lor 
+\\&& \Skip \lor
      A(in|ii|\ell_{g1},\ell_{g2}) \lor
      A(\ell_{g1:},\ell_{g2:}|ii|out) \lor
      A(\ell_{g1}|a|\ell_{g1:}) \lor
@@ -904,7 +906,7 @@ A quick pen'n'paper calculation for $atm(a)^*$ yields:
 }
 
 
-Better formatting(?): 1st line is invariant, 
+Better formatting(?): 1st line is invariant,
 other lines are the disjuncts (poss. several on one line), with $\Skip$ ommitted
 
 \RLEQNS{
