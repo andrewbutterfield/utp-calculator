@@ -331,6 +331,24 @@ The hope is that by requiring $[in|out|g]$ at each level,
 that we get the right level of exclusivity vs. sharing of $ls$
 by generated labels.
 
+\HDRc{Nested Invariants}
+
+\NOTE{
+All of these comments above are true if the invariant is just about disjointness.
+It is not true in general when we consider exclusivity.
+For example in parallel execution it is perfectly reasonable to have both
+$\ell_{g1}$ and $\ell_{g2:}$ (or $\ell_{g2}$) together in the label-set,
+but not both $\ell_{g1}$ and $\ell_{g1:}$
+or both $\ell_{g2}$ and $\ell_{g2:}$.
+}
+
+
+\NOTE{Need to talk about
+$$
+[in|(\ell_{g1}|\ell_{g1:}),(\ell_{g2}|\ell_{g2:})|out].
+$$}
+
+
 \HDRc{Using $A$ with invariants}
 
 Noting that $[L_1|L_2|\dots]$ implies that if $ls(L_1)$ is true,
