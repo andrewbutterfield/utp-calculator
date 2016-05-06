@@ -812,111 +812,88 @@ vReduce :: (Ord s, Show s) => DictRWFun s
 
 
 \newpage
-\HDRd{$X$ then $X$}
+\HDRd{$A$ then $A$}
 
 \RLEQNS{
-  && X(E_1|D_1|a|R_1|A_1) \seq X(E_2|D_2|b|R_2|A_2)
-\EQ{defns. $X$ }
-\\&& ls(E_1) \land ls(\B{D_1}) \land [a]
-      \land ls' = (ls \!\setminus\! R_1) \cup A_1
-\\&& \seq
-     ls(E_2) \land ls(\B{D_2}) \land [b]
-     \land ls' = (ls \!\setminus\! R_2) \cup A_2
-\EQ{defn $\seq$}
-\\&& \exists ls_m,s_m @
-\\&& \qquad ls(E_1) \land ls(\B{D_1}) \land [a][s_m/s']
-     \land ls_m = (ls \!\setminus\! R_1) \cup A_1
-\\&& \quad {} \land
-     ls_m(E_2) \land ls_m(\B{D_2}) \land [b][s_m/s]
-     \land ls' = (ls_m \!\setminus\! R_2) \cup A_2
-\EQ{1pt ($ls_m = \dots$)}
-\\&& \exists s_m @
-\\&& \qquad ls(E_1) \land ls(\B{D_1}) \land [a][s_m/s']
-\\&& \quad {} \land
-     ((ls \!\setminus\! R_1) \cup A_1)(E_2)
-     \land ((ls \!\setminus\! R_1) \cup A_1)(\B{D_2})
-\\&& \quad {} \land [b][s_m/s]
-     \land ls' = (((ls \!\setminus\! R_1) \cup A_1) \!\setminus\! R_2) \cup A_2
-\EQ{re-arrange, shrink $\exists$ scope}
-\\&& ls(E_1) \land ls(\B{D_1})
-\\&& {} \land ((ls \!\setminus\! R_1) \cup A_1)(E_2)
-\\&& {} \land ((ls \!\setminus\! R_1) \cup A_1)(\B{D_2})
-\\&& {} \land (\exists s_m @ [a][s_m/s']\land[b][s_m/s])
-\\&& {} \land ls' = (((ls \!\setminus\! R_1) \cup A_1) \!\setminus\! R_2) \cup A_2
-\EQ{Lemmas Still-(Inside,Outside), Two-Step, defn $\seq$}
-\\&& ls(E_1) \land ls(\B{D_1})
-\\&& {} \land ls(E_2\setminus A_1) \land (E_2\setminus A_1) \cap R_1 = \emptyset
-\\&& {} \land ls(\B{D_2\!\setminus\! R_1}) \land  A_1 \cap D_2 = \emptyset
-\\&& {} \land [a\seq b]
-\\&& {} \land ls' = (ls\setminus(R_1 \cup R_2)) \cup (A_1\setminus R_2) \cup A_2
-\EQ{re-arrange}
-\\&& ls(E_1) \land ls(E_2\setminus A_1)
-\\&& {} \land ls(\B{D_1}) \land ls(\B{D_2\!\setminus\! R_1})
-\\&& {} \land [a\seq b]
-\\&& {} \land ls' = (ls\setminus(R_1 \cup R_2)) \cup (A_1\setminus R_2) \cup A_2
-\\&& {}  \land (E_2\setminus A_1) \cap R_1 = \emptyset
-         \land  A_1 \cap D_2 = \emptyset
-\EQ{merge}
-\\&& ls(E_1 \cup E_2\setminus A_1)
-\\&& {} \land ls(\B{D_1 \cup D_2\!\setminus\! R_1})
-\\&& {} \land [a\seq b]
-\\&& {} \land ls' = (ls\setminus(R_1 \cup R_2)) \cup (A_1\setminus R_2) \cup A_2
-\\&& {}  \land (E_2\setminus A_1) \cap R_1 = \emptyset
-         \land  A_1 \cap D_2 = \emptyset
-\EQ{defn $X$}
-\\&& X(E_1 \cup E_2\setminus A_1
-      |D_1 \cup D_2\!\setminus\! R_1
-      |a\seq b
-      |R_1 \cup R_2
-      |A_1\setminus R_2 \cup A_2)
-\\&& {}  \land (E_2\setminus A_1) \cap R_1 = \emptyset
-         \land  A_1 \cap D_2 = \emptyset
+  && A(E_1|a|N_1) \seq A(E_2|b|N_2)
+\EQ{proof in Views.tex }
+\\&& X(E_1 \cup (E_2\setminus N_1)
+       |a\seq b
+       |E_1 \cup E_2
+       |N_1 \setminus E_2 \cup  N_2)
+       \land (E_2\setminus N_1) \cap E_1 = \emptyset
 }
+\begin{code}
+vReduce vd (_,Comp ns [ (_,Comp na1 [ (_,Atm e1)     -- A(E1
+                                    , as             --  |a
+                                    , (_,Atm n1)  ]) --  |N1)
+                      , (_,Comp na2 [ (_,Atm e2)     -- A(E2
+                                    , bs             --  |b
+                                    , (_,Atm n2)  ]) --  |N2)
+                      ])
+ | ns == nSeq && na1 == nA && na2 == nA
+   =  ( "A-then-A"
+      , bAnd [ bX e' abs r' n'
+             , equal (e2ln1 `i` e1) emp])
+ where
+   e2ln1 = snd $ esimp vd (e2 `sdiff` n1)
+   e'  = snd $ esimp vd (e1 `u` e2ln1)
+   abs = bSeq as bs
+   r'  = snd $ esimp vd (e1 `u` e2)
+   n'  = snd $ esimp vd ((n1 `sdiff` e2) `u` n2)
+\end{code}
 
 \newpage
-We need a lemma Still-Outside:
-\[
-  ((L \setminus R) \cup A)(\B T) = ls(\B{T\setminus R}) \land A \cap T = \emptyset
-\]
-and lemma Two-Step:
-\[
- (((L \setminus R_1)\cup A_1)\setminus R_2) \cup A_2
- =
- L\setminus(R_1 \cup R_2) \cup (A_1\setminus R_2) \cup A_2
-\]
-These can be easily proven carefully by hand, noting the
-following laws:
-\RLEQNS{
-   (L \cup A) \cap T = \emptyset
-    &=&
-    L \cap T =\emptyset \land A \cap T = \emptyset
-\\ (L\setminus R) \cap T =\emptyset
-   &=&
-   L \cap (T \setminus R) = \emptyset
-\\ (S \setminus R) \cup A
-   &=&
-   (S \setminus (R \setminus A)) \cup A
-}
+\HDRd{$X$ then $A$}
 
 \RLEQNS{
-  && X(E_1|D_1|a|R_1|A_1) \seq X(E_2|D_2|b|R_2|A_2)
-\EQ{$X$-then-$X$}
-\\&& X(E_1 \cup E_2\setminus A_1
-      |D_1 \cup D_2\!\setminus\! R_1
-      |a\seq b
-      |R_1 \cup R_2
-      |A_1\setminus R_2 \cup A_2)
-\\&& {}  \land (E_2\setminus A_1) \cap R_1 = \emptyset
-         \land  A_1 \cap D_2 = \emptyset
+  && X(E_1|a|R_1|A_1) \seq A(E_2|b|N_2)
+\EQ{proof in Views.tex }
+\\&& X(E_1 \cup (E_2\setminus A_1)
+       |a\seq b
+       |R_1 \cup E_2
+       |A_1 \setminus E_2 \cup  N_2)
+       \land (E_2\setminus A_1) \cap R_1 = \emptyset
 }
 \begin{code}
 vReduce vd (_,Comp ns [ (_,Comp nx1 [ (_,Atm e1)     -- X(E1
-                                    , (_,Atm d1)     --  |D1
+                                    , as             --  |a
+                                    , (_,Atm r1)     --  |R1
+                                    , (_,Atm a1)  ]) --  |A1)
+                      , (_,Comp na2 [ (_,Atm e2)     -- A(E2
+                                    , bs             --  |b
+                                    , (_,Atm n2)  ]) --  |N2)
+                      ])
+ | ns == nSeq && nx1 == nX && na2 == nA
+   =  ( "X-then-A"
+      , bAnd [ bX e' abs r' a'
+             , equal (e2la1 `i` r1) emp])
+ where
+   e2la1 = snd $ esimp vd (e2 `sdiff` a1)
+   e'  = snd $ esimp vd (e1 `u` e2la1)
+   abs = bSeq as bs
+   r'  = snd $ esimp vd (r1 `u` e2)
+   a'  = snd $ esimp vd ((a1 `sdiff` e2) `u` n2)
+\end{code}
+
+\newpage
+\HDRd{$X$ then $X$}
+
+\RLEQNS{
+  && X(E_1|a|R_1|A_1) \seq X(E_2|b|R_2|A_2)
+\EQ{proof in Views.tex }
+\\&& X(E_1 \cup (E_2\setminus A_1)
+       |a\seq b
+       |R_1 \cup R_2
+       |A_1 \setminus R_2 \cup  A_2)
+       \land (E_2\setminus A_1) \cap R_1 = \emptyset
+}
+\begin{code}
+vReduce vd (_,Comp ns [ (_,Comp nx1 [ (_,Atm e1)     -- X(E1
                                     , as             --  |a
                                     , (_,Atm r1)     --  |R1
                                     , (_,Atm a1)  ]) --  |A1)
                       , (_,Comp nx2 [ (_,Atm e2)     -- X(E2
-                                    , (_,Atm d2)     --  |D2
                                     , bs             --  |b
                                     , (_,Atm r2)     --  |R2
                                     , (_,Atm a2)  ]) --  |A2)
@@ -924,12 +901,10 @@ vReduce vd (_,Comp ns [ (_,Comp nx1 [ (_,Atm e1)     -- X(E1
  | ns == nSeq && nx1 == nX && nx2 == nX
    =  ( "X-then-X"
       , bAnd [ bX e' abs r' a'
-             , equal (e2la1 `i` r1) emp
-             , equal (a1 `i` d2)  emp])
+             , equal (e2la1 `i` r1) emp])
  where
    e2la1 = snd $ esimp vd (e2 `sdiff` a1)
    e'  = snd $ esimp vd (e1 `u` e2la1)
-   d'  = snd $ esimp vd (d1 `u` (d2 `sdiff` r1))
    abs = bSeq as bs
    r'  = snd $ esimp vd (r1 `u` r2)
    a'  = snd $ esimp vd ((a1 `sdiff` r2) `u` a2)

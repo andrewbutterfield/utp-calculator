@@ -348,6 +348,40 @@ $$
 [in|(\ell_{g1}|\ell_{g1:}),(\ell_{g2}|\ell_{g2:})|out].
 $$}
 
+Invariants are based on the following general construct:
+\RLEQNS{
+   EXC_{i=1}^n A_i
+   &\defs&
+   \forall i,j \in 1\dots n @ i\neq j \land A_i \implies \lnot A_j
+}
+which we can also write as $EXC(A_1,\dots,A_n)$.
+A quick calculation shows that
+(using hardware logic notation for compactness):
+\[
+ EXC(A,B,C) = \B A ~ \B B  + \B A ~ \B C + \B B ~ \B C
+\]
+Do the following laws hold?
+\RLEQNS{
+   EXC(EXC(A,B),EXC(B,C)) &=& EXC(A,B,C)
+\\ EXC(EXC(A,B),EXC(C,D)) &=& EXC(A,B,C,D)
+}
+No - the first lhs asserts that either $A$ and $B$ are exclusive,
+or $B$ and $C$ are exclusive, but not both,
+i.e. we have $EXC(A,B) \implies \lnot EXC(B,C)$.
+
+How about:
+\RLEQNS{
+   EXC(A,B) \land EXC(B,C) &=& EXC(A,B,C)
+\\ EXC(A,B) \land EXC(C,D) &=& EXC(A,B,C,D)
+}
+No, The first doesn't force the exclusivity of $A$ and $C$.
+
+We need full information, so the following is required:
+\RLEQNS{
+   EXC(A,B) \land EXC(B,C) \land EXC(A,C) &=& EXC(A,B,C)
+}
+This works
+
 
 \HDRc{Using $A$ with invariants}
 
