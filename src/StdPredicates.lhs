@@ -92,9 +92,12 @@ sLattice tag op zero unit prs
 
 First, a composite recogniser:
 \begin{code}
-isComp :: String -> MPred s -> Bool
-isComp cname (_, Comp nm _)  =  nm == cname
-isComp _     _               =  False
+isComp :: String -> Pred s -> Bool
+isComp cname (Comp nm _)  =  nm == cname
+isComp _     _            =  False
+
+iscomp :: String -> MPred s -> Bool
+iscomp s = isComp s . snd
 \end{code}
 
 \newpage
@@ -146,11 +149,11 @@ bNot mpr = noMark $ mkNot mpr
 \\ &|& \mAnd & \tAnd
 }
 \begin{code}
-nAnd = "And" ; isAnd  =  isComp nAnd
+nAnd = "And" ; isAnd  =  isComp nAnd ; isand = iscomp nAnd
 
 mkAnd []   = T
 mkAnd [(_,pr)] = pr
-mkAnd mprs  = mkAssoc nAnd isAnd [] mprs
+mkAnd mprs  = mkAssoc nAnd isand [] mprs
 
 ppAnd d ms p [] = showp d ms p T
 ppAnd d ms p [mpr] = mshowp d ms p mpr
@@ -178,11 +181,11 @@ bAnd mprs = noMark $ mkAnd mprs
 \\ &|& \mOr & \tOr
 }
 \begin{code}
-nOr = "Or" ; isOr  = isComp nOr
+nOr = "Or" ; isOr  = isComp nOr ; isor = iscomp nOr
 
 mkOr [] = F
 mkOr [(_,pr)] = pr
-mkOr mprs = mkAssoc nOr isOr [] mprs
+mkOr mprs = mkAssoc nOr isor [] mprs
 
 ppOr d ms p [] = showp d ms p F
 ppOr d ms p [mpr] = mshowp d ms p mpr

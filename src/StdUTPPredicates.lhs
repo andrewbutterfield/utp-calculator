@@ -46,8 +46,8 @@ mkBot = Comp nBot []
 ppTop d ms p _ = ppa "T"
 ppBot d ms p _ = ppa "_|_"
 
-defnTop d _ = ("",F) -- assuming full predicate lattice
-defnBot d _ = ("",T) -- assuming full predicate lattice
+defnTop d _ = Just ("",F,diff) -- assuming full predicate lattice
+defnBot d _ = Just ("",T,diff) -- assuming full predicate lattice
 
 topEntry
  = ( nTop
@@ -71,11 +71,11 @@ bBot = noMark mkBot
 \\ &|& \mNDC & \tNDC
 }
 \begin{code}
-nNDC = "NDC" ; isNDC  = isComp nNDC
+nNDC = "NDC" ; isNDC  = isComp nNDC ; isndc = iscomp nNDC
 
 mkNDC [] = T
 mkNDC [(_,pr)] = pr
-mkNDC mprs = mkAssoc nNDC isNDC [] mprs
+mkNDC mprs = mkAssoc nNDC isndc [] mprs
 
 ppNDC d ms p [] = showp d ms p T
 ppNDC d ms p [mpr] = mshowp d ms p mpr
@@ -115,7 +115,7 @@ ppRfdby d ms p [mpr1,mpr2]
                      , mshowp d ms precRfdby mpr2 ]
 ppRfdby d ms p mprs = pps styleRed $ ppa "invalid-|="
 
-simpRfdby d [mpr1, mpr2] = ( "",  mkImp mpr1 mpr2 )
+simpRfdby d [mpr1, mpr2] = Nothing
 
 rfdbyEntry :: (Show s, Ord s) => (String, Entry s)
 rfdbyEntry
@@ -148,7 +148,7 @@ ppCond d ms p [mprt,mprc,mpre]
                , mshowp d ms precCond mpre ]
 ppCond d ms p mprs = pps styleRed $ ppa "invalid-<|>"
 
-simpCond d [mpr1, mpr2, mpr3] = ( "",  mkCond mpr1 mpr2 mpr3)
+simpCond d [mpr1, mpr2, mpr3] = Nothing
 
 condEntry :: (Show s, Ord s) => (String, Entry s)
 condEntry
@@ -174,7 +174,7 @@ mkSkip = Comp nSkip []
 shSkip = "II"
 ppSkip d _ p _ = ppa shSkip
 
-simpSkip d _ = ("",mkSkip)
+simpSkip d _ = Nothing
 
 skipEntry
   = ( nSkip
@@ -203,19 +203,19 @@ ppSeq d ms p [mpr1,mpr2]
                     , mshowp d ms precSeq mpr2 ]
 ppSeq d ms p mprs = pps styleRed $ ppa "invalid-;"
 
-simpSeq d [ (_,F), mpr2 ] = ( "simp-;", F)
-simpSeq d [ mpr1, (_,F) ] = ( "simp-;", F)
-simpSeq d [ mpr1, mpr2    ]
+simpSeq d [ F, pr ] = Just ( "simp-;", F, diff )
+simpSeq d [ pr, F ] = Just ( "simp-;", F, diff )
+simpSeq d [ pr1, pr2 ]
 \end{code}
   $\Skip \seq p = p$
 \begin{code}
- | isSkip mpr1 = ( "simp-;",  snd mpr2 )
+ | isSkip pr1  =  Just ( "simp-;", pr2, diff )
 \end{code}
   $p \seq \Skip = p$
 \begin{code}
- | isSkip mpr2 = ( "simp-;",  snd mpr1 )
+ | isSkip pr2  =  Just ( "simp-;", pr1, diff )
 
- | otherwise   = ( "", mkSeq mpr1 mpr2 )
+ | otherwise   =  Nothing
 
 seqEntry :: (Show s, Ord s) => (String, Entry s)
 seqEntry
@@ -244,7 +244,7 @@ ppIter d ms p [mpr1,mpr2]
                     , mshowp d ms precIter mpr2 ]
 ppIter d _ p mprs = pps styleRed $ ppa "invalid-*"
 
-simpIter d [mpr1, mpr2 ] = ( "", mkIter mpr1 mpr2 )
+simpIter d [mpr1, mpr2 ] = Nothing
 
 iterEntry :: (Show s, Ord s) => (String, Entry s)
 iterEntry

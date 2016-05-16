@@ -67,9 +67,9 @@ of these and other predicate constructs.
 We define laws that are generally
 viewed as reduction steps going from left-to-right.
 \begin{code}
-lred nm mpr = ( nm, mpr )
+lred nm pr = Just ( nm, pr, diff )
 
-reduceStd :: (Ord s, Show s) => DictRWFun s
+reduceStd :: (Ord s, Show s) => RWFun s
 \end{code}
 
 \HDRc{Skip and Sequential Composition}\label{hc:skip-and-seq}
@@ -80,10 +80,10 @@ These laws are immediate, and their proof is left as an exercise.
 \\ P;\Skip &=& P & \elabel{$;$-r-unit}
 }
 \begin{code}
-reduceStd d (_,Comp "Seq" [(_,Comp "Skip" []), mpr])
-                                            = lred ";-lunit" mpr
-reduceStd d (_,Comp "Seq" [mpr, (_,Comp "Skip" [])])
-                                            = lred ";-runit" mpr
+reduceStd d (Comp "Seq" [(_,Comp "Skip" []), (_,pr)])
+                                            = lred ";-lunit" pr
+reduceStd d (Comp "Seq" [(_,pr), (_,Comp "Skip" [])])
+                                            = lred ";-runit" pr
 \end{code}
 
 \HDRc{Conditions preceding Iteration}
@@ -158,10 +158,10 @@ then we get:
 We implement this latter one:
 \begin{code}
 reduceStd d
- (_,Comp "Seq" [ (_,Comp "And" mprs), mpr ])
- | all (isAfterEqToConst d) mprs
+ (Comp "Seq" [ (_,Comp "And" mprs), mpr ])
+ | (all (isAfterEqToConst d) $ map snd mprs)
    && sort (map getLVar mprs) == sort (getAlpha aDyn' d)
- = lred "all-x'=k-;-init" $ psub mpr $ map eqToSub mprs
+ = lred "all-x'=k-;-init" $ PSub mpr $ map eqToSub mprs
  where
    getLVar (_,Equal (Var x') _) = x'
 \end{code}
@@ -174,24 +174,24 @@ $x'\in Dyn'$,
 \\ A \land x'=k ; B &=& A ; x=k \land B[k/x] & \elabel{const-$;$-prop}
 }
 \begin{code}
-reduceStd d (_, Comp "Seq" [(_,Comp "And" mpAs), mpB])
+reduceStd d (Comp "Seq" [(_,Comp "And" mpAs), mpB])
 
  | isJust match1
      = lred "bool-;-switch"
-        $ bSeq (bAnd (pre1++post1)) $ bAnd [atm $ unDash e', mpB]
+        $ mkSeq (bAnd (pre1++post1)) $ bAnd [atm $ unDash e', mpB]
 
  | isJust match2
      = let x = init x'
        in lred "const-;-prop"
-           $ bSeq (bAnd (pre2++post2))
+           $ mkSeq (bAnd (pre2++post2))
                 $ bAnd [equal (Var x) k,psub mpB [(x,k)]]
  where
 
    match1 = matchRecog (mtchDashedObsExpr d) mpAs
-   Just (pre1,(_,[(_,Atm e')]),post1) = match1
+   Just (pre1, (_, [(Atm e')] ), post1) = match1
 
    match2 = matchRecog (mtchAfterEqToConst d) mpAs
-   Just (pre2,((_,Equal (Var x') k),_),post2) = match2
+   Just (pre2, ((Equal (Var x') k), _), post2) = match2
 \end{code}
 
 \HDRc{Disjunction and Sequential Composition}
@@ -206,10 +206,10 @@ We more specific laws first, more general later.
 }
 \begin{code}
 reduceStd d
-  (_, Comp "Seq" [ mpA
-                 , (_,Comp "Seq" [ (_,Comp "Or" mpBs)
-                                 , mpC] ) ] )
- = lred ";-\\/-3distr" $ bOr $ map (bracketWith mpA mpC) mpBs
+  (Comp "Seq" [ mpA
+              , (_,Comp "Seq" [ (_,Comp "Or" mpBs)
+                              , mpC] ) ] )
+ = lred ";-\\/-3distr" $ mkOr $ map (bracketWith mpA mpC) mpBs
  where
    bracketWith p q r = bSeq p $ bSeq r q
 \end{code}
@@ -221,8 +221,8 @@ reduceStd d
    & \ecite{$\lor$-$;$-distr}
 }
 \begin{code}
-reduceStd d (_,Comp "Seq" [(_,Comp "Or" mpAs), mpB])
- = lred "\\/-;-distr" $ bOr $ map (postFixWith mpB) mpAs
+reduceStd d (Comp "Seq" [(_,Comp "Or" mpAs), mpB])
+ = lred "\\/-;-distr" $ mkOr $ map (postFixWith mpB) mpAs
  where
   postFixWith p q = bSeq q p
 \end{code}
@@ -246,12 +246,13 @@ Iteration  satisfies the loop-unrolling law:
   c * P  \quad=\quad (P ; c * P ) \cond c \Skip
 \]
 \begin{code}
-unrollStd :: Ord s => String -> DictRWFun s
-unrollStd ns d mw@(_,Comp nm  [mc, mpr])
+unrollStd :: Ord s => String -> RWFun s
+unrollStd ns d w@(Comp nm  [mc, mpr])
  | nm== nIter && isCondition mc
-           = ( "std-loop-unroll"
-             , bCond (bSeq mpr mw) mc bSkip )
-unrollStd _ _ mpr = ("", mpr )
+           = Just( "std-loop-unroll"
+                 , mkCond (bSeq mpr $ noMark w) mc bSkip
+                 , diff )
+unrollStd _ _ _ = Nothing
 \end{code}
 
 Now, the standard unroll dictionary entry:
