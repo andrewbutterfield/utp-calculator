@@ -19,12 +19,6 @@ dbg str x = trace (str++show x) x
 \newpage
 \HDRb{Calculation Step Basics}\label{hb:step-basics}
 
-A failed step returns a null string,
-and the predicate part is generally considered undefined.
-\begin{code}
-nope :: RWResult s
-nope = ( "", error "calc. step failed" )
-\end{code}
 Given a decision,
 typically obtained from the user,
 we can resolve a conditional step
@@ -32,27 +26,27 @@ into a completed one:
 \begin{code}
 condResolve :: (Ord s, Show s)
          => Dict s -> Int -> CRWResult s -> RWResult s
-condResolve d i ( nm, [ (T, outcome) ] ) -- no choice
- = ( nm, outcome )
-condResolve d i ( nm, outcomes )
- = ( nm
-     ++ ", given "
-     ++ pdshow 1000 d cnd -- no linebreaks, for now
-   , res )
- where (cnd, res) = outcomes !! (i-1)
+condResolve _ _ Nothing = Nothing
+condResolve d i (Just (nm, [(mpr,pr,chgd)])) = Just (nm,pr,chgd)
+condResolve d i (Just (nm, outcomes))
+ = Just( nm
+         ++ ", given "
+         ++ pdshow 1000 d cnd -- no linebreaks, for now
+       , res, chgd )
+ where (cnd, res, chgd) = outcomes !! (i-1)
 \end{code}
 
 \newpage
 \HDRb{Atomic Step}\label{hb:atomic-step}
 
 We treat things like simplification here as one big atomic modify step.
-
 \begin{code}
-doAtomicStep :: Mark -> (Mark -> RWFun s)  -> MPred s
+doAtomicStep :: Mark -> (Mark -> MPred s -> RWResult s) -> MPred s
              -> Maybe (MPred s, String, MPred s)
-doAtomicStep m mcstep mpr
- = let (what,mpr') = mcstep m mpr
-   in if null what then Nothing else Just (mpr,what,mpr')
+doAtomicStep m mcstep mpr@(_,pr)
+ = case mcstep m pr of
+     Nothing -> Nothing
+     Just (what,pr',_) -> Just (mpr,what,noMark pr')
 \end{code}
 
 \newpage
@@ -226,7 +220,7 @@ expandDefn d m mpr
      Nothing   ->  ( mpr, "", mpr )
      Just exp  ->  exp
 
-expDefs :: DictRWFun s
+expDefs :: RWFun s
 expDefs d mpr@(ms, Comp name mprs )
  = case plookup name d of
     Just pd@(PredEntry _ _ _ pdef _)
