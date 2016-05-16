@@ -169,12 +169,11 @@ pdoes :: String -> (Dict s -> [Pred s] -> Pred s)
 pdoes nm p d ps = ( nm, p d ps )
 
 pNoChg :: String -> Rewrite s
-pNoChg name d mprs = ( "", Comp name mprs )
+pNoChg name d mprs = Nothing
 
 -- labelling definitions
-ldefn :: String -> Pred s -> (String, Pred s)
-ldefn "" pr = ( "", pr )
-ldefn nm pr = ( "defn. of " ++ nm, pr )
+ldefn :: String -> Pred s -> RWResult s
+ldefn nm pr = Just ( "Expanded defn. of " ++ nm, pr, True )
 \end{code}
 
 
