@@ -203,7 +203,7 @@ This allows the user to select which one should be used.
 type CRWResult s
  = Maybe ( String      -- justification
          , [( Pred s   -- side-condition to be discharged
-            , MPred s  -- modified predicate
+            , Pred s   -- modified predicate
             , Bool)])  -- True if top-level modified
 type CRWFun s = Dict s -> Pred s -> CRWResult s
 \end{code}

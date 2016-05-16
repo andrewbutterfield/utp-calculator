@@ -218,10 +218,13 @@ and then look in the dictionary by name for a simplifier.
 simplify d m mpr@(ms,pr@(Comp name mprs))
  = let
     (subchgs,befores,afters) = subsimp same [] [] mprs
-    (what,comppr') = compsimp afters
-    topchgd = not $ null what
-   in assemble comppr' befores afters
-              (subchgs||topchgd) topchgd
+    mcomppr' = compsimp $ map snd afters
+   in case mcomppr' of
+    Nothing
+     -> assemble (Comp name afters) befores afters subchgs False
+    Just (what,comppr',topchgd)
+     -> assemble comppr' befores afters
+                                      (subchgs||topchgd) topchgd
  where
 
    subsimp chgd befores afters []
@@ -237,10 +240,10 @@ simplify d m mpr@(ms,pr@(Comp name mprs))
 To do so risks an infinite loop.
 }
 \begin{code}
-   compsimp mprs'
+   compsimp prs'
     = case plookup name d of
-       Just (PredEntry _ _ _ _ psimp)  ->  psimp d mprs'
-       _                               ->  ("",Comp name mprs')
+       Just (PredEntry _ _ _ _ psimp)  ->  psimp d prs'
+       _                               ->  Nothing
 \end{code}
 Assembling the result:
 \begin{code}

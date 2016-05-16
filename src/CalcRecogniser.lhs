@@ -45,15 +45,15 @@ where $bits$ are any fragments of $A_i$ picked out by the recogniser.
 \begin{code}
 matchRecog :: (Ord s, Show s)
            => Recogniser s -> [MPred s]
-           -> Maybe ([MPred s],(MPred s,[MPred s]),[MPred s])
+           -> Maybe ([MPred s],(Pred s,[Pred s]),[MPred s])
 matchRecog recog mprs
  = mR [] mprs
  where
    mR erofeb [] = Nothing  -- "erofeb" = reverse "before"
-   mR erofeb (mpr:mprs)
-    | found      =  Just (reverse erofeb, (mpr,bits), mprs)
-    | otherwise  =  mR (mpr:erofeb) mprs
-    where (found,bits) = recog mpr
+   mR erofeb (mpr@(_,pr):mprs)
+    = case recog pr of
+     Nothing -> mR (mpr:erofeb) mprs
+     Just bits -> Just (reverse erofeb, (pr,bits), mprs)
 \end{code}
 
 
@@ -67,11 +67,11 @@ matchRecog recog mprs
 }
 \begin{code}
 mtchDashedObsExpr :: Ord s => Dict s -> Recogniser s
-mtchDashedObsExpr d a'@(_,(Atm e'))
+mtchDashedObsExpr d a'@(Atm e')
                  = condBind (isDashed e' && notGround d e') [a']
-mtchDashedObsExpr _ _  = noMatch
+mtchDashedObsExpr _ _  = Nothing
 
-isDashedObsExpr d = fst . mtchDashedObsExpr d
+isDashedObsExpr d = isJust . mtchDashedObsExpr d -- isJust ?
 \end{code}
 
 \HDRc{After-Obs. equated to Ground Value}
@@ -81,11 +81,11 @@ isDashedObsExpr d = fst . mtchDashedObsExpr d
 }
 \begin{code}
 mtchAfterEqToConst :: Ord s => Dict s -> Recogniser s
-mtchAfterEqToConst d (_,Equal v@(Var x') k)
-         = condBind (isDyn' d x' && isGround d k) [atm v, atm k]
-mtchAfterEqToConst _ _  = noMatch
+mtchAfterEqToConst d (Equal v@(Var x') k)
+         = condBind (isDyn' d x' && isGround d k) [Atm v, Atm k]
+mtchAfterEqToConst _ _  = Nothing
 
-isAfterEqToConst d = fst . mtchAfterEqToConst d
+isAfterEqToConst d = isJust . mtchAfterEqToConst d
 \end{code}
 
 \HDRc{Named Obs. equated to Ground Value}
@@ -96,11 +96,11 @@ $x = k$, where $x$ is an nominated observable, and $k$ is ground.
 }
 \begin{code}
 mtchNmdObsEqToConst :: Ord s => String -> Dict s -> Recogniser s
-mtchNmdObsEqToConst v d (_,Equal u@(Var x) k)
-             =  condBind (v == x && isGround d k) [atm u, atm k]
-mtchNmdObsEqToConst _ _ _  =  noMatch
+mtchNmdObsEqToConst v d (Equal u@(Var x) k)
+             =  condBind (v == x && isGround d k) [Atm u, Atm k]
+mtchNmdObsEqToConst _ _ _  =  Nothing
 
-isNmdObsEqToConst v d = fst . mtchNmdObsEqToConst v d
+isNmdObsEqToConst v d = isJust . mtchNmdObsEqToConst v d
 \end{code}
 
 With the above, it can be useful to turn such
