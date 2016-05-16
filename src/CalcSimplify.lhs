@@ -26,20 +26,12 @@ and then that level is simplified using predicate variant-specific rules
 
 At the top-level,
 when we attempt to apply some rule,
-we return a \texttt{RWResult} --- a pairing of a string with a predicate.
-If the string is empty, then no change occurred,
-otherwise it supplies a (short ?!) justification/explanation
+we return a \texttt{RWResult} --- either nothing
+or Just a triple of a string, a predicate,
+plus a boolean indicator if the top-level changed.
+The string supplies a (short ?!) justification/explanation
 for what has happened.
 
-
-For convenience,
-the expression simplification functions return a pair with the string
-replaced by a predicate that is true if a change occurred.
-\begin{code}
-diff, same :: Bool
-diff = True
-same = False
-\end{code}
 
 
 \HDRb{Expression Simplification}

@@ -71,17 +71,17 @@ sLattice :: Eq s
          -> ([MPred s] -> Pred s)
          -> Pred s
          -> Pred s
-         -> [MPred s]
-         -> (String, Pred s)
-sLattice tag op zero unit mprs
- = ret tag $ zcheck $ filter ((/= unit) . snd) mprs
+         -> [Pred s]
+         -> RWResult s
+sLattice tag op zero unit prs
+ = ret tag $ zcheck $ filter (/= unit) prs
  where
    zcheck mprs
-    | any ((==zero) . snd) mprs  =  [([], zero)]
-    | otherwise = mprs
-   ret tag mprs'
-    | map snd mprs'==map snd mprs  =  ( "", op mprs )
-    | otherwise                    =  ( tag, op mprs' )
+    | any (==zero) prs  =  [zero]
+    | otherwise = prs
+   ret tag prs'
+    | prs' == prs       =  Nothing
+    | otherwise         =  Just ( tag, op $ map noMark prs', diff )
 \end{code}
 
 
@@ -116,18 +116,18 @@ ppNot d ms p _ = pps styleRed $ ppa "invalid-~"
 \end{code}
 $\lnot\true=\false$
 \begin{code}
-simpNot d [(m,T)] = ("~-simp",F)
+simpNot d [T] = Just ("~-simp",F,diff)
 \end{code}
 $\lnot\false=\true$
 \begin{code}
-simpNot d [(m,F)] = ("~-simp",T)
+simpNot d [F] = Just ("~-simp",T,diff)
 \end{code}
 $\lnot\lnot p = p$
 \begin{code}
-simpNot d [(m,Comp name [(_,pr)])]
- | name == nNot  =  ("~~-simp",pr)
+simpNot d [Comp name [(_,pr)]]
+ | name == nNot  =  Just ("~~-simp",pr,diff)
 
-simpNot _ mprs = ("", Comp nNot mprs)
+simpNot _ _ = Nothing
 
 notEntry :: (Show s, Ord s) => (String, Entry s)
 notEntry
@@ -148,9 +148,9 @@ bNot mpr = noMark $ mkNot mpr
 \begin{code}
 nAnd = "And" ; isAnd  =  isComp nAnd
 
-mkAnd [] = T
+mkAnd []   = T
 mkAnd [(_,pr)] = pr
-mkAnd mprs = mkAssoc nAnd isAnd [] mprs
+mkAnd mprs  = mkAssoc nAnd isAnd [] mprs
 
 ppAnd d ms p [] = showp d ms p T
 ppAnd d ms p [mpr] = mshowp d ms p mpr
@@ -159,7 +159,7 @@ ppAnd d ms p mprs
      $ ppopen " /\\ "
      $ map (mshowp d ms precAnd) mprs
 
-simpAnd d mprs  = sLattice "/\\-simplify" mkAnd F T mprs
+simpAnd d prs  = sLattice "/\\-simplify" mkAnd F T prs
 
 andEntry :: (Show s, Ord s) => (String, Entry s)
 andEntry
@@ -191,7 +191,7 @@ ppOr d ms p mprs
      $ ppopen " \\/ "
      $ map (mshowp d ms precOr) mprs
 
-simpOr d mprs  = sLattice "\\/-simplify" mkOr T F mprs
+simpOr d prs  = sLattice "\\/-simplify" mkOr T F prs
 
 orEntry :: (Show s, Ord s) => (String, Entry s)
 orEntry
@@ -222,21 +222,21 @@ ppImp d ms p mprs = pps styleRed $ ppa "invalid-=>"
 \end{code}
 $\true \implies p = p$
 \begin{code}
-simpImp d [ (_,T), (_,pr) ] = ( "=>-simp", pr        )
+simpImp d [ T, pr ] = Just( "=>-simp", pr, diff )
 \end{code}
 $\false \implies p = \true$
 \begin{code}
-simpImp d [ (_,F), _      ] = ( "=>-simp", T         )
+simpImp d [ F, _ ]  = Just ( "=>-simp", T, diff )
 \end{code}
 $p \implies \false = \lnot p$
 \begin{code}
-simpImp d [ mpr,  (_,F)   ] = ( "=>-simp", mkNot mpr )
+simpImp d [pr, F ]  = Just ( "=>-simp", mkNot $ noMark pr, diff )
 \end{code}
 $p \implies \true = \true$
 \begin{code}
-simpImp d [ _,    (_,T)   ] = ( "=>-simp", T         )
+simpImp d [ _, T ]  = Just ( "=>-simp", T, diff  )
 
-simpImp d [ mpr1, mpr2    ] = ( "",  mkImp mpr1 mpr2 )
+simpImp _ _ = Nothing
 
 impEntry :: (Show s, Ord s) => (String, Entry s)
 impEntry
@@ -266,21 +266,21 @@ ppEqv d ms p mprs = pps styleRed $ ppa "invalid-=="
 \end{code}
 $p \implies p = \true$ (simple cases only)
 \begin{code}
-simpEqv d [ (_,T), (_,T)  ] = ( "==-simp", T         )
-simpEqv d [ (_,F), (_,F)  ] = ( "==-simp", T         )
+simpEqv d [ T, T ]   =  Just ( "==-simp", T, diff  )
+simpEqv d [ F, F ]   =  Just ( "==-simp", T, diff  )
 \end{code}
 $\true \equiv p = p$ and \emph{v.v.}
 \begin{code}
-simpEqv d [ (_,T), (_,pr) ] = ( "==-simp", pr        )
-simpEqv d [ (_,pr), (_,T) ] = ( "==-simp", pr        )
+simpEqv d [ T, pr ]  =  Just ( "==-simp", pr, diff )
+simpEqv d [ pr, T ]  =  Just ( "==-simp", pr, diff )
 \end{code}
 $p \equiv \false = \lnot p$ and \emph{v.v.}
 \begin{code}
-simpEqv d [ mpr,  (_,F)   ] = ( "==-simp", mkNot mpr )
-simpEqv d [ (_,F),  mpr   ] = ( "==-simp", mkNot mpr )
+simpEqv d [ pr, F ] = Just ( "==-simp", mkNot $ noMark pr, diff )
+simpEqv d [ F, pr ] = Just ( "==-simp", mkNot $ noMark pr, diff )
 \end{code}
 \begin{code}
-simpEqv d [ mpr1, mpr2    ] = ( "",  mkEqv mpr1 mpr2 )
+simpEqv _ _ = Nothing
 
 eqvEntry :: (Show s, Ord s) => (String, Entry s)
 eqvEntry

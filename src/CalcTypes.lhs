@@ -191,6 +191,13 @@ type RWResult s
 type RWFun s = Dict s -> Pred s -> RWResult s
 \end{code}
 
+For convenience we give boolean values indicating if something
+changes (\texttt{diff}erent) or has stayed the \texttt{same}.
+\begin{code}
+diff, same :: Bool; diff = True; same = False
+\end{code}
+
+
 We also have steps that are contingent on some side-condition,
 but we don't want to implement a fully automated solver for these conditions,
 nor do we want to have to break-out into a sub-calculation.
