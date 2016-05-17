@@ -157,8 +157,6 @@ vesubst sub (v,e) = (v,snd $ esubst sub e)
 
 \HDRb{Predicate Simplification}\label{hb:simplify}
 
-
-
 Now, the predicate simplifier:
 \begin{code}
 simplified = "simplify"
@@ -179,10 +177,10 @@ simplify d m mbefore@(ms,Atm e)
     (chgd,e')       ->  atmBeforeAfter (Atm e') chgd
  where
   atmBeforeAfter after chgd
-   | chgd       =  ( addMark m mbefore
-                   , simplified
-                   , addMark m (ms,after) )
-   | otherwise  =  (mbefore, "", mbefore)
+   | chgd       =  Just ( addMark m mbefore
+                        , simplified
+                        , addMark m (ms,after) )
+   | otherwise  =  Nothing
 \end{code}
 
 \HDRc{Equality Simplifier}\label{hc:simplify-equal}
@@ -196,8 +194,10 @@ simplify d m mpr@(ms,(Equal e1 e2))
     (chgd2,e2') = esimp d e2
     (chgd',pr') = sEqual d e1' e2'
     chgd = chgd1 || chgd2 || chgd'
-   in if chgd then (addMark m mpr, simplified, addMark m (ms,pr'))
-              else (mpr,"",mpr)
+   in if chgd then Just ( addMark m mpr
+                        , simplified
+                        , addMark m (ms,pr') )
+              else Nothing
 \end{code}
 
 \newpage
@@ -222,10 +222,10 @@ simplify d m mpr@(ms,pr@(Comp name mprs))
    subsimp chgd befores afters []
     = ( chgd, reverse befores, reverse afters )
    subsimp chgd befores afters  (mpr:mprs)
-    = let (before,what,after) = simplify d m mpr
-      in if null what
-       then subsimp chgd (mpr:befores) (mpr:afters)  mprs
-       else subsimp diff (before:befores) (after:afters) mprs
+    =  case simplify d m mpr of
+        Nothing -> subsimp chgd (mpr:befores) (mpr:afters)  mprs
+        Just (before,what,after)
+         -> subsimp diff (before:befores) (after:afters) mprs
 \end{code}
 \textbf{WARNING: }
 \textit{the \texttt{psimp} simplifier below must not call \texttt{simplify}!
@@ -240,12 +240,15 @@ To do so risks an infinite loop.
 Assembling the result:
 \begin{code}
    assemble top' befores afters False _
-    = ( mpr, "", mpr )
+    = Nothing
    assemble top' befores afters _ False
-    = ((ms,Comp name befores), simplified, (ms,Comp name afters))
+    = Just ( (ms,Comp name befores)
+           , simplified
+           , (ms,Comp name afters) )
    assemble top' befores afters _ True
-    = ( addMark m (ms,Comp name befores)
-      , simplified, addMark m (ms,top') )
+    = Just ( addMark m (ms,Comp name befores)
+           , simplified
+           , addMark m (ms,top') )
 \end{code}
 
 \newpage
@@ -273,45 +276,47 @@ which can be used to remove some elements from the substitution.
   sbstsimp (subchgd,subs') spr@(mp,PVar p)
    = case plookup p d of
       Just (PredEntry _ _ alf _ _)
-       -> ( addMark m mpr
-          , "pvar-substn"
-          , addMark m
-             -- should check that filter below makes a change!
-             (ms,mkPSub spr $ filter ((`elem` alf) . fst) subs'))
-      _ -> (mpr,"",mpr)
+       -> Just ( addMark m mpr
+               , "pvar-substn"
+               , addMark m                 -- should check that filter below makes a change!
+                  (ms, mkPSub spr
+                       $ filter ((`elem` alf) . fst) subs') )
+      _ -> Nothing
 \end{code}
 Nullary composites are treated the same:
 \begin{code}
   sbstsimp (subchgd,subs') spr@(mp,Comp p [])
    = case plookup p d of
       Just (PredEntry _ _ alf _ _)
-       -> ( addMark m mpr
-          , "null-comp-substn"
-          , addMark m
-             -- should check that filter below makes a change!
-             (ms,mkPSub spr $ filter ((`elem` alf) . fst) subs'))
-      _ -> (mpr,"",mpr)
+       -> Just ( addMark m mpr
+               , "null-comp-substn"
+               , addMark m
+                   (ms, mkPSub spr
+                        $ filter ((`elem` alf) . fst) subs'))
+      _ -> Nothing
 \end{code}
 In the general case,
 we simplify both predicate and substitution parts,
 and combine
 \begin{code}
   sbstsimp (subschgd,subs') spr
-   = let
-      (before,what,after) = simplify d m spr
-      predchgd = not $ null what
-      (topchgd,npr') = psubst m d subs' after
-     in assemble npr' before after subs'
-                (subschgd||topchgd||predchgd) topchgd
+   = case simplify d m spr of
+      Nothing -> assemble (snd spr) spr spr subs' subschgd False
+      Just (before,what,after)
+       -> let (topchgd,npr') = psubst m d subs' after
+          in assemble npr' before after subs'
+                                 (subschgd||topchgd) topchgd
    where
     assemble top'  before after subs' False _
-     = (mpr, "", mpr)
+     = Nothing
     assemble top' before after subs' _ False
-     = ( (ms,mkPSub before subs')
-       , simplified, (ms,mkPSub after subs') )
+     = Just ( (ms,mkPSub before subs')
+            , simplified
+            , (ms,mkPSub after subs') )
     assemble top' before after subs'  _ True
-     = ( addMark m (ms,mkPSub before subs')
-       , simplified, addMark m (ms,top') )
+     = Just ( addMark m (ms,mkPSub before subs')
+            , simplified
+            , addMark m (ms,top') )
 \end{code}
 All other cases are as simple as can be, considering\ldots
 \begin{code}
