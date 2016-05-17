@@ -296,8 +296,10 @@ doUnroll :: (Ord s, Show s) => String -> Dict s -> Mark
 doUnroll ns d m mpr
  = case M.lookup "laws" d of
     Just (LawEntry _ _ unr)   ->  doUnr ns d m mpr unr
-    _                         -> Nothing
+    _                         ->  Nothing
 
+doUnr :: (Ord s, Show s) => String -> Dict s -> Mark -> MPred s
+      -> [String -> RWFun s] -> Maybe (BeforeAfter s)
 doUnr ns d m mpr [] = Nothing
 doUnr ns d m mpr (rf:rfs)
  = case doStepSearch m (rwLift $ rf ns d) mpr of
