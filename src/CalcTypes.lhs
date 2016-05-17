@@ -521,6 +521,20 @@ any sub-component.
 
 \HDRc{Calculation Step Types}\label{hc:step-types}
 
+Under the hood we need \texttt{RWResult} versions with marked predicates:
+\begin{code}
+type MRWResult s
+ = Maybe ( String  -- rewrite justification
+         , MPred s  -- result marked predicate
+         , Bool )  -- True if top-level modified
+
+type MCRWResult s
+ = Maybe ( String      -- justification
+         , [( Pred s   -- side-condition to be discharged
+            , MPred s   -- modified marked predicate
+            , Bool)])  -- True if top-level modified
+\end{code}
+
 In order to mark and highlight predicates in calculation steps,
 we need to return not just the modified result, marked at the point of change,
 but also the original predicate, also marked at the same location
@@ -531,7 +545,7 @@ along with a justification string:
 \begin{code}
 type BeforeAfter s
  = ( MPred s   -- before predicate, marked
-   , String      -- justification, null if no change occurred
+   , String      -- justification
    , MPred s ) -- after predicate, marked
 \end{code}
 In the conditional case, we have lists of outcomes
@@ -539,7 +553,7 @@ paired with conditions:
 \begin{code}
 type BeforeAfters s
  = ( MPred s   -- before predicate, marked
-   , String      -- justification, null if no change occurred
+   , String      -- justification
    , [(Pred s,MPred s)] ) -- after predicates, marked
 \end{code}
 

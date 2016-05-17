@@ -36,18 +36,18 @@ condResolve d i (Just (nm, outcomes))
  where (cnd, res, chgd) = outcomes !! (i-1)
 \end{code}
 
-\newpage
-\HDRb{Atomic Step}\label{hb:atomic-step}
-
-We treat things like simplification here as one big atomic modify step.
-\begin{code}
-doAtomicStep :: Mark -> (Mark -> MPred s -> RWResult s) -> MPred s
-             -> Maybe (MPred s, String, MPred s)
-doAtomicStep m mcstep mpr@(_,pr)
- = case mcstep m pr of
-     Nothing -> Nothing
-     Just (what,pr',_) -> Just (mpr,what,noMark pr')
-\end{code}
+%\newpage
+%\HDRb{Atomic Step}\label{hb:atomic-step}
+%
+%We treat things like simplification here as one big atomic modify step.
+%\begin{code}
+%doAtomicStep :: Mark -> (Mark -> MPred s -> RWResult s) -> MPred s
+%             -> Maybe (MPred s, String, MPred s)
+%doAtomicStep m mcstep mpr@(_,pr)
+% = case mcstep m pr of
+%     Nothing -> Nothing
+%     Just (what,pr',_) -> Just (mpr,what,noMark pr')
+%\end{code}
 
 \newpage
 \HDRb{Recursive Predicate Search}\label{hb:rec-pred-srch}
@@ -60,7 +60,7 @@ a predicate, and returning when we succeed.
 
 This call encapsulates the use of zippers completely:
 \begin{code}
-doStepSearch :: Show s => Mark -> RWFun s  -> MPred s
+doStepSearch :: Show s => Mark -> (MPred s -> MRWResult s)  -> MPred s
              -> Maybe (BeforeAfter s)
 doStepSearch m cstep mpr
  = let
@@ -75,19 +75,18 @@ doStepSearch m cstep mpr
 We try a step function first at the current focus level,
 only recursing in deeper if that fails:
 \begin{code}
-stepFocus :: RWFun s -> MPZipper s -> MPZip2 s
+stepFocus :: (MPred s -> MRWResult s) -> MPZipper s -> MPZip2 s
 stepFocus cstep mpz@( mpr, ss )
- = let ( what, mpr' ) = cstep mpr
-   in if null what
-      then stepComponents cstep mpz
-      else ((mpr, what, mpr'), ss)
+ = case cstep mpr of
+     Nothing                 ->  stepComponents cstep mpz
+     Just ( what, mpr', _ )  ->  ((mpr, what, mpr'), ss)
 \end{code}
 
 \HDRc{Search Sub-Components}\label{hc:srch-sub-comp}
 
 We are now systematically exploring composite sub-parts:
 \begin{code}
-stepComponents :: RWFun s -> MPZipper s -> MPZip2 s
+stepComponents :: (MPred s -> MRWResult s) -> MPZipper s -> MPZip2 s
 
 -- Substitution, simple, only 1 sub-component:
 stepComponents cstep ( (mp, PSub mpr subs), ss )
@@ -107,7 +106,7 @@ stepComponents cstep ( mpr, ss ) = ( (mpr, "", mpr), ss )
 
 Going through a sub-component list:
 \begin{code}
-stepComp' :: RWFun s
+stepComp' :: (MPred s -> MRWResult s)
           -> MPred' s   -- current Comp'
           -> [MPred' s] -- current zip history
           -> MPred s    -- current focus, within Comp
@@ -141,7 +140,7 @@ a predicate, and returning when we succeed.
 
 This call encapsulates the use of zippers completely:
 \begin{code}
-doStepCSearch :: Mark -> CRWFun s  -> MPred s
+doStepCSearch :: Mark -> (Pred s -> CRWResult s)  -> MPred s
               -> Maybe (BeforeAfters s)
 doStepCSearch m ccstep mpr
  = let
@@ -156,19 +155,20 @@ doStepCSearch m ccstep mpr
 We try a step function first at the current focus level,
 only recursing in deeper if that fails:
 \begin{code}
-stepCFocus :: CRWFun s -> MPZipper s -> CMPZip2 s
+stepCFocus :: (Pred s -> CRWResult s) -> MPZipper s -> CMPZip2 s
 stepCFocus ccstep mpz@( mpr, ss )
- = let ( what, cmprs' ) = ccstep mpr
-   in if null what
-      then stepCComponents ccstep mpz
-      else ((mpr, what, cmprs'), ss)
+ = case ccstep $ snd mpr of
+    Nothing              ->  stepCComponents ccstep mpz
+    Just (what, cmprs')  ->  ((mpr, what, map fixafters cmprs'), ss)
+
+fixafters (pr, pr', _) = (pr, noMark pr')
 \end{code}
 
 \HDRc{Conditionally Search Sub-Components}\label{hc:cnd-srch-sub-comp}
 
 We are now systematically exploring composite sub-parts:
 \begin{code}
-stepCComponents :: CRWFun s -> MPZipper s -> CMPZip2 s
+stepCComponents :: (Pred s -> CRWResult s) -> MPZipper s -> CMPZip2 s
 
 -- Substitution, simple, only 1 sub-component:
 stepCComponents ccstep ( (mp, PSub mpr subs), ss )
@@ -188,7 +188,7 @@ stepCComponents ccstep ( mpr, ss ) = ( (mpr, "", [(T,mpr)]), ss )
 
 Going through a sub-component list:
 \begin{code}
-stepCComp' :: CRWFun s
+stepCComp' :: (Pred s -> CRWResult s)
           -> MPred' s   -- current Comp'
           -> [MPred' s] -- current zip history
           -> MPred s    -- current focus, within Comp
@@ -220,7 +220,7 @@ expandDefn d m mpr
      Nothing   ->  ( mpr, "", mpr )
      Just exp  ->  exp
 
-expDefs :: RWFun s
+expDefs :: (MPred s -> RWResult s)
 expDefs d mpr@(ms, Comp name mprs )
  = case plookup name d of
     Just pd@(PredEntry _ _ _ pdef _)

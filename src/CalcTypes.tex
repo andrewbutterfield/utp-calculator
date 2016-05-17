@@ -132,6 +132,19 @@ type MPZipper s
 \end{code}
 
 \begin{code}
+type MRWResult s
+ = Maybe ( String  -- rewrite justification
+         , MPred s  -- result marked predicate
+         , Bool )  -- True if top-level modified
+
+type MCRWResult s
+ = Maybe ( String      -- justification
+         , [( Pred s   -- side-condition to be discharged
+            , MPred s   -- modified marked predicate
+            , Bool)])  -- True if top-level modified
+\end{code}
+
+\begin{code}
 type BeforeAfter s
  = ( MPred s   -- before predicate, marked
    , String      -- justification, null if no change occurred
