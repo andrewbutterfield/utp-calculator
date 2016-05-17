@@ -69,6 +69,14 @@ doStepSearch m cstep mpr
      nmpr' = unzipMPZ ss $ addMark m mpr2
    in if null what then Nothing else Just (pmpr',what,nmpr')
 \end{code}
+We will need to lift functions from \texttt{Pred} to \texttt{MPred}:
+\begin{code}
+rwLift :: (Pred s -> RWResult s) -> MPred s -> MRWResult s
+rwLift prf (ms,pr)
+ = case prf pr of
+     Nothing -> Nothing
+     Just (what,pr',chgd) -> Just (what,(ms,pr'),chgd)
+\end{code}
 
 \HDRc{Search Current Focus}\label{hc:srch-focus}
 
@@ -140,7 +148,7 @@ a predicate, and returning when we succeed.
 
 This call encapsulates the use of zippers completely:
 \begin{code}
-doStepCSearch :: Mark -> (Pred s -> CRWResult s)  -> MPred s
+doStepCSearch :: Mark -> (MPred s -> MCRWResult s)  -> MPred s
               -> Maybe (BeforeAfters s)
 doStepCSearch m ccstep mpr
  = let
@@ -149,26 +157,35 @@ doStepCSearch m ccstep mpr
      nmprs' = mapsnd (unzipMPZ ss . addMark m) mprs2
    in if null what then Nothing else Just (pmpr',what,nmprs')
 \end{code}
+We will need to lift functions from \texttt{Pred} to \texttt{MPred}:
+\begin{code}
+crwLift :: (Pred s -> CRWResult s) -> MPred s -> MCRWResult s
+crwLift prf (ms,pr)
+ = case prf pr of
+     Nothing -> Nothing
+     Just (what,res) -> Just (what,map (cresLift ms) res)
+ where cresLift ms (pcond,pres,chgd) = (pcond,(ms,pres),chgd)
+\end{code}
 
 \HDRc{Conditionally Search Current Focus}\label{hc:cond-srch-focus}
 
 We try a step function first at the current focus level,
 only recursing in deeper if that fails:
 \begin{code}
-stepCFocus :: (Pred s -> CRWResult s) -> MPZipper s -> CMPZip2 s
+stepCFocus :: (MPred s -> MCRWResult s) -> MPZipper s -> CMPZip2 s
 stepCFocus ccstep mpz@( mpr, ss )
- = case ccstep $ snd mpr of
+ = case ccstep mpr of
     Nothing              ->  stepCComponents ccstep mpz
     Just (what, cmprs')  ->  ((mpr, what, map fixafters cmprs'), ss)
 
-fixafters (pr, pr', _) = (pr, noMark pr')
+fixafters (pr, mpr', _) = (pr, mpr')
 \end{code}
 
 \HDRc{Conditionally Search Sub-Components}\label{hc:cnd-srch-sub-comp}
 
 We are now systematically exploring composite sub-parts:
 \begin{code}
-stepCComponents :: (Pred s -> CRWResult s) -> MPZipper s -> CMPZip2 s
+stepCComponents :: (MPred s -> MCRWResult s) -> MPZipper s -> CMPZip2 s
 
 -- Substitution, simple, only 1 sub-component:
 stepCComponents ccstep ( (mp, PSub mpr subs), ss )
@@ -188,7 +205,7 @@ stepCComponents ccstep ( mpr, ss ) = ( (mpr, "", [(T,mpr)]), ss )
 
 Going through a sub-component list:
 \begin{code}
-stepCComp' :: (Pred s -> CRWResult s)
+stepCComp' :: (MPred s -> MCRWResult s)
           -> MPred' s   -- current Comp'
           -> [MPred' s] -- current zip history
           -> MPred s    -- current focus, within Comp
@@ -214,22 +231,18 @@ stepCComp' ccstep s@(Comp' mp name before after@(npr:rest)) ss mpr
 
 \begin{code}
 expandDefn :: (Ord s, Show s) => Dict s -> Mark
-           -> MPred s -> BeforeAfter s
-expandDefn d m mpr
- = case doStepSearch m (expDefs d) mpr of
-     Nothing   ->  ( mpr, "", mpr )
-     Just exp  ->  exp
+           -> MPred s -> Maybe (BeforeAfter s)
+expandDefn d m mpr  = doStepSearch m (expDefs d) mpr
 
-expDefs :: (MPred s -> RWResult s)
+expDefs :: Dict s -> MPred s -> MRWResult s
 expDefs d mpr@(ms, Comp name mprs )
  = case plookup name d of
     Just pd@(PredEntry _ _ _ pdef _)
-      -> let ( what, pr' ) = pdef d mprs
-         in if null what
-             then ( "", mpr )
-             else ( what, ( ms, pr') )
-    _ -> ( "", mpr )
-expDefs d mpr = ( "", mpr )
+      -> case pdef d $ map snd mprs of
+          Just (what,pr',chgd) -> Just (what, (ms,pr'), chgd)
+          _ -> Nothing
+    _ -> Nothing
+expDefs _ _ = Nothing
 \end{code}
 
 
@@ -241,51 +254,55 @@ expDefs d mpr = ( "", mpr )
 
 \begin{code}
 doReduce :: (Ord s, Show s) => Dict s -> Mark
-           -> MPred s -> BeforeAfter s
+           -> MPred s -> Maybe (BeforeAfter s)
 doReduce d m mpr
  = case M.lookup "laws" d of
     Just (LawEntry red _ _)  ->  doRed d m mpr red
-    _                        -> ( mpr, "", mpr )
+    _                        ->  Nothing
 
-doRed d m mpr [] = ( mpr, "", mpr )
-doRed d m mpr (rf:rfs)
- = case doStepSearch m (rf d) mpr of
-     Nothing   ->  doRed d m mpr rfs
-     Just red  ->  red
+doRed :: (Ord s, Show s) => Dict s -> Mark -> MPred s -> [RWFun s]
+      -> Maybe (BeforeAfter s)
+doRed d m mpr [] = Nothing
+doRed d m mpr@(ms,_) (rf:rfs)
+ = case doStepSearch m (rwLift $ rf d) mpr of
+    Nothing    ->  doRed d m mpr rfs
+    reduction  ->  reduction -- add m in as extra mark?
 \end{code}
 
 \HDRc{Conditional Reduction}
 
 \begin{code}
 doCReduce :: (Ord s, Show s) => Dict s -> Mark
-           -> MPred s -> BeforeAfters s
+           -> MPred s -> Maybe (BeforeAfters s)
 doCReduce d m mpr
  = case M.lookup "laws" d of
     Just (LawEntry _ cred _)  ->  doCRed d m mpr cred
-    _                         -> ( mpr, "", [] )
+    _                         ->  Nothing
 
-doCRed d m mpr [] = ( mpr, "", [] )
+doCRed :: (Ord s, Show s) => Dict s -> Mark -> MPred s -> [CRWFun s]
+       -> Maybe (BeforeAfters s)
+doCRed d m mpr [] = Nothing
 doCRed d m mpr (rf:rfs)
- = case doStepCSearch m (rf d) mpr of
-    Nothing   ->  doCRed d m mpr rfs
-    Just red  ->  red
+ = case doStepCSearch m (crwLift $ rf d) mpr of
+    Nothing      ->  doCRed d m mpr rfs
+    creductions  ->  creductions
 \end{code}
 
 \HDRc{Loop Unrolling}
 
 \begin{code}
 doUnroll :: (Ord s, Show s) => String -> Dict s -> Mark
-           -> MPred s -> BeforeAfter s
+           -> MPred s -> Maybe (BeforeAfter s)
 doUnroll ns d m mpr
  = case M.lookup "laws" d of
     Just (LawEntry _ _ unr)   ->  doUnr ns d m mpr unr
-    _                         -> ( mpr, "", mpr )
+    _                         -> Nothing
 
-doUnr ns d m mpr [] = ( mpr, "", mpr )
+doUnr ns d m mpr [] = Nothing
 doUnr ns d m mpr (rf:rfs)
- = case doStepSearch m (rf ns d) mpr of
-     Nothing   ->  doUnr ns d m mpr rfs
-     Just red  ->  red
+ = case doStepSearch m (rwLift $ rf ns d) mpr of
+     Nothing    ->  doUnr ns d m mpr rfs
+     unrolling  ->  unrolling
 \end{code}
 
 Hmmmm, all of the above could be abstracted down to one thing...

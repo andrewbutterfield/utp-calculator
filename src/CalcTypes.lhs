@@ -341,9 +341,9 @@ To do so risks an infinite loop.
 
 \begin{code}
  | LawEntry {  -- about useful laws
-     reduce  :: [RWFun s]              -- list of reduction laws
-   , creduce :: [RWFun s]      -- list of conditional reductions
-   , unroll  :: [String -> RWFun s]    -- list of loop unrollers
+     reduce  :: [RWFun s]            -- reduction laws
+   , creduce :: [CRWFun s]           -- conditional reductions
+   , unroll  :: [String -> RWFun s]  -- loop unrollers
    }
 \end{code}
 We interpret a \texttt{Dict} entry like:

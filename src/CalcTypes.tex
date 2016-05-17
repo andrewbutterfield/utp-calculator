@@ -90,9 +90,9 @@ data Entry s =
    , prsimp  :: Rewrite s                    -- simplifier
    }
  | LawEntry {  -- about useful laws
-     reduce  :: [RWFun s]              -- list of reduction laws
-   , creduce :: [RWFun s]      -- list of conditional reductions
-   , unroll  :: [String -> RWFun s]    -- list of loop unrollers
+     reduce  :: [RWFun s]            -- reduction laws
+   , creduce :: [CRWFun s]           -- conditional reductions
+   , unroll  :: [String -> RWFun s]  -- loop unrollers
    }
 \end{code}
 
