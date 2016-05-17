@@ -117,8 +117,11 @@ versionShow d
 
 Now, the main REPL loop:
 \begin{code}
+type Step s = (String, MPred s)
+type State s = (MPred s, [Step s])
+
 runREPL :: (Ord s, Show s)
-        => Dict s -> Mark -> (MPred s, [RWResult s])
+        => Dict s -> Mark -> State s
         -> IO (CalcLog s)
 runREPL d m state@(currpr,steps)
  = do
@@ -177,13 +180,13 @@ calcHelp d m st
 Applying a given kind of step:
 \begin{code}
 calcStep :: (Ord s, Show s)
-         => Dict s -> Mark -> (MPred s -> BeforeAfter s)
-         -> (MPred s, [RWResult s])
+         => Dict s -> Mark -> (MPred s -> Maybe (BeforeAfter s))
+         -> State s
          -> IO (CalcLog s)
 calcStep d m stepf st@(currpr,steps)
  = do case stepf currpr of
-       ( _, "", _ )  ->  runREPL d m st
-       ( before,comment, after )
+       Nothing  ->  runREPL d m st
+       Just ( before,comment, after )
          -> do  putStrLn ( "\n = " ++ show comment )
                 let st' = stUpdate (comment,before) after st
                 runREPL d (nextm m) st'

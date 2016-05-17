@@ -163,7 +163,7 @@ Now, the predicate simplifier:
 \begin{code}
 simplified = "simplify"
 simplify :: (Ord s, Show s)
-         => Dict s -> Mark -> MPred s -> BeforeAfter s
+         => Dict s -> Mark -> MPred s -> Maybe (BeforeAfter s)
 \end{code}
 
 \HDRc{Atomic Simplifier}\label{hc:simplify-atomic}
@@ -315,7 +315,7 @@ and combine
 \end{code}
 All other cases are as simple as can be, considering\ldots
 \begin{code}
-simplify d m mpr@(ms,pr) = ( mpr, "", mpr)
+simplify d m mpr@(ms,pr) = Nothing
 \end{code}
 
 \HDRd{Simplify ``Double-Tap''}
@@ -323,13 +323,15 @@ simplify d m mpr@(ms,pr) = ( mpr, "", mpr)
 It is often worth running simplify twice!
 \begin{code}
 simplify2 :: (Ord s, Show s)
-          => Dict s -> Mark -> MPred s -> BeforeAfter s
+          => Dict s -> Mark -> MPred s -> Maybe (BeforeAfter s)
 simplify2 d m mpr
- = let simp1@(before,what1,middle) = simplify d m mpr
-       simp2@(_,     what2,after ) = simplify d m middle
-   in if null what1
-       then simp1
-       else (before,what1,after)
+ = case simplify d m mpr of
+    Nothing -> Nothing
+    Just simp1@(before,what1,middle)
+     -> case simplify d m middle of
+         Nothing -> Just simp1
+         Just simp2@(_,     what2,after )
+          -> Just (before,what1,after)
 \end{code}
 
 \newpage
