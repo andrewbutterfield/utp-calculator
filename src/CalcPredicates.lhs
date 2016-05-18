@@ -258,11 +258,11 @@ mshowp0 d msf p (PSub pr sub, MT _ mts)
 mshowp0 d msf p (Comp cname pargs, MT _ mts)
  = case plookup cname d of
     Just (PredEntry _ showf _ _ _)
-       -> showf (subCompShow msf mts d p) d p pargs
+       ->  showf (subCompShow msf mts d) d p pargs
     _  ->  stdCshow d msf cname mts pargs
 
 subCompShow :: (Ord s, Show s)
-            => MarkStyle -> [MTree] -> Dict s -> Int
+            => MarkStyle -> [MTree] -> Dict s
             -> SubCompPrint s
 subCompShow msf mts d p i subpr
  | 0 < i && i <= length mts
@@ -278,6 +278,8 @@ stdCshow d msf cname mts pargs
           , ppclosed "(" ")" ","
             $ ppwalk 1 (subCompShow msf mts d 0) pargs ]
 
+ppwalk :: (Ord s, Show s)
+       => Int -> (Int -> Pred s -> PP) -> [Pred s] -> [PP]
 ppwalk _ _ []            =  []
 ppwalk i sCS (arg:args)  =  (sCS i arg) : ppwalk (i+1) sCS args
 

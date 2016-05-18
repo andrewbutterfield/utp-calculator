@@ -34,26 +34,14 @@ Now, some generic intelligent composite constructors:
 First, building a flattened associative list:
 \begin{code}
 mkAssoc
-  :: String -> (MPred s -> Bool) -> [MPred s]-> [MPred s]
+  :: String -> (Pred s -> Bool) -> [Pred s] -> [Pred s]
   -> Pred s
-mkAssoc op isOp srpm [] = Comp op $ reverse srpm
-mkAssoc op isOp srpm (mpr:mprs)
- | isOp mpr = mkAssoc op isOp (reverse (predPrs mpr)++srpm) mprs
- | otherwise  = mkAssoc op isOp (mpr:srpm) mprs
+mkAssoc op isOp srp [] = Comp op $ reverse srp
+mkAssoc op isOp srp (pr:prs)
+ | isOp pr = mkAssoc op isOp (reverse (predPrs pr)++srp) prs
+ | otherwise  = mkAssoc op isOp (pr:srp) prs
 
-predPrs (_,Comp _ prs) = prs  ;  predPrs _ = []
-\end{code}
-
-Next, a simplifier version that flattens something already built:
-\begin{code}
-flatAssoc isOp mpr@(ms,Comp op mprs)
- | isOp mpr   = (flatnote,(ms,mkAssoc op isOp [] mprs'))
- | otherwise  = (note,(ms,Comp op mprs'))
- where
-   (notes,mprs') = unzip $ map (flatAssoc isOp) mprs
-   flatnote = (op++"-flatten")
-   note = if all null notes then "" else flatnote
-flatAssoc isOp mpr = ("", mpr)
+predPrs (Comp _ prs) = prs  ;  predPrs _ = []
 \end{code}
 
 \newpage
@@ -68,7 +56,7 @@ this embodies the following laws:
 \begin{code}
 sLattice :: Eq s
          => String
-         -> ([MPred s] -> Pred s)
+         -> ([Pred s] -> Pred s)
          -> Pred s
          -> Pred s
          -> [Pred s]
@@ -81,7 +69,7 @@ sLattice tag op zero unit prs
     | otherwise = prs
    ret tag prs'
     | prs' == prs       =  Nothing
-    | otherwise         =  Just ( tag, op $ map noMark prs', diff )
+    | otherwise         =  Just ( tag, op prs', diff )
 \end{code}
 
 
@@ -95,9 +83,6 @@ First, a composite recogniser:
 isComp :: String -> Pred s -> Bool
 isComp cname (Comp nm _)  =  nm == cname
 isComp _     _            =  False
-
-iscomp :: String -> MPred s -> Bool
-iscomp s = isComp s . snd
 \end{code}
 
 \newpage
@@ -112,10 +97,10 @@ nNot = "Not" ; isNot  = isComp nNot
 
 mkNot mpr = Comp nNot [mpr]
 
-ppNot d ms p [mpr] -- ignore marking for now
+ppNot sCP d p [pr] -- ignore marking for now
  = paren p precNot
-       $ pplist [ppa "~", mshowp d ms precNot mpr]
-ppNot d ms p _ = pps styleRed $ ppa "invalid-~"
+       $ pplist [ppa "~", sCP precNot 1 pr]
+ppNot sCP d p _ = pps styleRed $ ppa "invalid-~"
 \end{code}
 $\lnot\true=\false$
 \begin{code}
@@ -127,7 +112,7 @@ simpNot d [F] = Just ("~-simp",T,diff)
 \end{code}
 $\lnot\lnot p = p$
 \begin{code}
-simpNot d [Comp name [(_,pr)]]
+simpNot d [Comp name [pr]]
  | name == nNot  =  Just ("~~-simp",pr,diff)
 
 simpNot _ _ = Nothing
@@ -136,9 +121,6 @@ notEntry :: (Show s, Ord s) => (String, Entry s)
 notEntry
  = ( nNot
    , PredEntry anyVars ppNot [] (pNoChg nNot) simpNot )
-
--- build a Not at the MPred level
-bNot mpr = noMark $ mkNot mpr
 \end{code}
 
 \newpage
@@ -149,18 +131,18 @@ bNot mpr = noMark $ mkNot mpr
 \\ &|& \mAnd & \tAnd
 }
 \begin{code}
-nAnd = "And" ; isAnd  =  isComp nAnd ; isand = iscomp nAnd
+nAnd = "And" ; isAnd  =  isComp nAnd
 
-mkAnd []   = T
-mkAnd [(_,pr)] = pr
-mkAnd mprs  = mkAssoc nAnd isand [] mprs
+mkAnd []    =  T
+mkAnd [pr]  =  pr
+mkAnd mprs  =  mkAssoc nAnd isAnd [] mprs
 
-ppAnd d ms p [] = showp d ms p T
-ppAnd d ms p [mpr] = mshowp d ms p mpr
-ppAnd d ms p mprs
+ppAnd sCP d p []    =  sCP p 0 T -- hack for top-level
+ppAnd sCP d p [pr]  =  sCP p 1 pr
+ppAnd sCP d p prs
  = paren p precAnd
      $ ppopen " /\\ "
-     $ map (mshowp d ms precAnd) mprs
+     $ ppwalk 1 (sCP precAnd) prs
 
 simpAnd d prs  = sLattice "/\\-simplify" mkAnd F T prs
 
@@ -168,9 +150,6 @@ andEntry :: (Show s, Ord s) => (String, Entry s)
 andEntry
  = ( nAnd
    , PredEntry anyVars ppAnd [] (pNoChg nAnd) simpAnd )
-
--- build an And at the MPred level
-bAnd mprs = noMark $ mkAnd mprs
 \end{code}
 
 \newpage
@@ -181,18 +160,18 @@ bAnd mprs = noMark $ mkAnd mprs
 \\ &|& \mOr & \tOr
 }
 \begin{code}
-nOr = "Or" ; isOr  = isComp nOr ; isor = iscomp nOr
+nOr = "Or" ; isOr  = isComp nOr
 
-mkOr [] = F
-mkOr [(_,pr)] = pr
-mkOr mprs = mkAssoc nOr isor [] mprs
+mkOr []   = F
+mkOr [pr] = pr
+mkOr mprs = mkAssoc nOr isOr [] mprs
 
-ppOr d ms p [] = showp d ms p F
-ppOr d ms p [mpr] = mshowp d ms p mpr
-ppOr d ms p mprs
+ppOr sCP d p [] = sCP p 0 F
+ppOr sCP d p [pr] = sCP p 1 pr
+ppOr sCP d p prs
  = paren p precOr
      $ ppopen " \\/ "
-     $ map (mshowp d ms precOr) mprs
+     $ ppwalk 1 (sCP precOr) prs
 
 simpOr d prs  = sLattice "\\/-simplify" mkOr T F prs
 
@@ -200,9 +179,6 @@ orEntry :: (Show s, Ord s) => (String, Entry s)
 orEntry
  = ( nOr
    , PredEntry anyVars ppOr [] (pNoChg nOr) simpOr )
-
--- build an Or at the MPred level
-bOr mprs = noMark $ mkOr mprs
 \end{code}
 
 \newpage
@@ -233,7 +209,7 @@ simpImp d [ F, _ ]  = Just ( "=>-simp", T, diff )
 \end{code}
 $p \implies \false = \lnot p$
 \begin{code}
-simpImp d [pr, F ]  = Just ( "=>-simp", mkNot $ noMark pr, diff )
+simpImp d [pr, F ]  = Just ( "=>-simp", mkNot pr, diff )
 \end{code}
 $p \implies \true = \true$
 \begin{code}

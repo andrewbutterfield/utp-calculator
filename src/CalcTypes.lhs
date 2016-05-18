@@ -159,7 +159,11 @@ type Rewrite s = Dict s -> [Pred s] -> RWResult s
 For pretty printing we will need to call a specific system-supplied
 function with the following type:
 \begin{code}
-type SubCompPrint s = Int -> Pred s -> PP
+type SubCompPrint s
+ = Int       -- precedence level for sub-component
+   -> Int    -- sub-component number
+   -> Pred s -- sub-component
+   -> PP
 \end{code}
 
 
