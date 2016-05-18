@@ -191,13 +191,13 @@ orEntry
 \begin{code}
 nImp = "Imp" ; isImp  = isComp nImp
 
-mkImp mpr1 mpr2 = Comp nImp [mpr1,mpr2]
+mkImp pr1 pr2 = Comp nImp [pr1,pr2]
 
-ppImp d ms p [mpr1,mpr2]
+ppImp sCP d p [pr1,pr2]
  = paren p (precImp-1) -- bracket self
-     $ ppopen  " => " [ mshowp d ms precImp mpr1
-                      , mshowp d ms precImp mpr2 ]
-ppImp d ms p mprs = pps styleRed $ ppa "invalid-=>"
+     $ ppopen  " => " [ sCP precImp 1 pr1
+                      , sCP precImp 2 pr2 ]
+ppImp sCP d p mprs = pps styleRed $ ppa "invalid-=>"
 \end{code}
 $\true \implies p = p$
 \begin{code}
@@ -221,9 +221,6 @@ impEntry :: (Show s, Ord s) => (String, Entry s)
 impEntry
  = ( nImp
    , PredEntry anyVars ppImp [] (pNoChg nImp) simpImp )
-
--- build an Imp at the MPred level
-bImp mpr1 mpr2 = noMark $ mkImp mpr1 mpr2
 \end{code}
 
 \newpage
@@ -235,13 +232,13 @@ bImp mpr1 mpr2 = noMark $ mkImp mpr1 mpr2
 \begin{code}
 nEqv = "Eqv" ; isEqv  = isComp nEqv
 
-mkEqv mpr1 mpr2 = Comp nEqv [mpr1,mpr2]
+mkEqv pr1 pr2 = Comp nEqv [pr1,pr2]
 
-ppEqv d ms p [mpr1,mpr2]
+ppEqv sCP d p [pr1,pr2]
  = paren p (precEqv-1) -- bracket self
-     $ ppopen  " == " [ mshowp d ms precEqv mpr1
-                      , mshowp d ms precEqv mpr2 ]
-ppEqv d ms p mprs = pps styleRed $ ppa "invalid-=="
+     $ ppopen  " == " [ sCP precEqv 1 pr1
+                      , sCP precEqv 2 pr2 ]
+ppEqv sCP d p mprs = pps styleRed $ ppa "invalid-=="
 \end{code}
 $p \implies p = \true$ (simple cases only)
 \begin{code}
@@ -255,8 +252,8 @@ simpEqv d [ pr, T ]  =  Just ( "==-simp", pr, diff )
 \end{code}
 $p \equiv \false = \lnot p$ and \emph{v.v.}
 \begin{code}
-simpEqv d [ pr, F ] = Just ( "==-simp", mkNot $ noMark pr, diff )
-simpEqv d [ F, pr ] = Just ( "==-simp", mkNot $ noMark pr, diff )
+simpEqv d [ pr, F ]  =  Just ( "==-simp", mkNot pr, diff )
+simpEqv d [ F, pr ]  =  Just ( "==-simp", mkNot pr, diff )
 \end{code}
 \begin{code}
 simpEqv _ _ = Nothing
@@ -265,7 +262,4 @@ eqvEntry :: (Show s, Ord s) => (String, Entry s)
 eqvEntry
  = ( nEqv
    , PredEntry anyVars ppEqv [] (pNoChg nEqv) simpEqv )
-
--- build an Eqv at the MPred level
-bEqv mpr1 mpr2 = noMark $ mkEqv mpr1 mpr2
 \end{code}
