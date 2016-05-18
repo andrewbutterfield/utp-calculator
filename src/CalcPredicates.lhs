@@ -20,9 +20,9 @@ Smart constructors and equality testing for substitutions.
 mkSub e []  = e
 mkSub e sub = Sub e $ sort sub
 
-mkPSub :: Ord s => MPred s -> [(String, Expr s)] -> Pred s
-mkPSub (_,pr) []  = pr
-mkPSub mpr sub = PSub mpr $ sort sub
+mkPSub :: Ord s => Pred s -> [(String, Expr s)] -> Pred s
+mkPSub pr []  = pr
+mkPSub pr sub = PSub pr $ sort sub
 
 -- substitutions are sorted for comparison
 ssame ::  (Eq s, Ord s) => Substn s -> Substn s -> Bool
@@ -36,40 +36,35 @@ pretty-printing and highlighting.
 \HDRc{Basic Marking}\label{hc:basic-marking}
 \begin{code}
 noMark :: Pred s -> MPred s
-noMark pr = ([], pr)
+noMark = buildMarks
 
 unMark :: MPred s -> MPred s
-unMark (_, pr) = ([], pr)
+unMark (pr, MT _ mts) = (pr, MT [] mts)
 
 addMark :: Mark -> MPred s -> MPred s
-addMark m (ms, pr) = (m:ms, pr)
+addMark m (pr, MT ms mts) = (pr, MT (m:ms) mts)
 
 popMark :: MPred s -> MPred s
-popMark (ms, pr) = (ttail ms, pr)
+popMark (pr, MT ms mts) = (pr, MT (ttail ms) mts)
 
 remMark :: Mark -> MPred s -> MPred s
-remMark m (ms, pr) = (ms\\[m], pr)
+remMark m (pr, MT ms mts) = (pr, MT (ms\\[m]) mts)
 \end{code}
 
-We also need sometimes to strip out a remark at all levels
+We also need sometimes to strip out a mark at all levels
 in a predicate:
 \begin{code}
 stripMark :: Mark -> MPred s -> MPred s
-stripMark m (ms, pr) = (ms\\[m], stripMark' m pr)
+stripMark m (pr, mt) = (pr, stripMark' m mt)
 
-stripMark' m (Comp n mprs)  = Comp n $ map (stripMark m) mprs
-stripMark' m (PSub mpr sub) = PSub (stripMark m mpr) sub
-stripMark' m pr             = pr
+stripMark' m (MT ms mts)
+ = MT (ms\\[m]) $ map (stripMark' m) mts
 \end{code}
 
 Or even more drastically, clean them all out:
 \begin{code}
 cleanMarks :: MPred s -> MPred s
-cleanMarks (_, pr) = ([], cleanMarks' pr)
-
-cleanMarks' (Comp n mprs)  = Comp n $ map cleanMarks mprs
-cleanMarks' (PSub mpr sub) = PSub (cleanMarks mpr) sub
-cleanMarks' pr             = pr
+cleanMarks (pr, _) = buildMarks pr
 
 cleanCalc :: CalcLog s -> CalcLog s
 cleanCalc (currpr, steps, d)
@@ -238,33 +233,55 @@ pmdshow w d msf mpr = render w $ mshowp d msf 0 mpr
 
 Pretty-printing predicates.
 \begin{code}
-mshowp :: (Ord s, Show s) => Dict s -> MarkStyle -> Int -> MPred s -> PP
-mshowp d msf p ( ms, pr )
+mshowp :: (Ord s, Show s)
+       => Dict s -> MarkStyle -> Int -> MPred s -> PP
+mshowp d msf p mpr@( pr, MT ms _)
  = sshowp $ catMaybes $ map msf ms
  where
-  sshowp []  =  showp d msf p pr
+  sshowp []  =  mshowp0 d msf p mpr
   sshowp (s:ss) = pps s $ sshowp ss
 
-showp :: (Ord s, Show s) => Dict s -> MarkStyle -> Int -> Pred s -> PP
-showp d _ _ T  = ppa "true"
-showp d _ _ F  = ppa "false"
-showp d _ _ (PVar p)  = ppa p
-showp d _ p (Equal e1 e2)
+mshowp0 :: (Ord s, Show s)
+        => Dict s -> MarkStyle -> Int -> MPred s -> PP
+mshowp0 d _ _ (T, _)  = ppa "true"
+mshowp0 d _ _ (F, _)  = ppa "false"
+mshowp0 d _ _ (PVar p, _)  = ppa p
+mshowp0 d _ p (Equal e1 e2, _)
    = paren p precEq
        $ ppopen' (ppa " = ")
                  [ppa $ edshow d e1, ppa $ edshow d e2]
-showp d _ p (Atm e) = ppa $ edshow d e
-showp d ms p (PSub mpr sub)
-   = pplist $ [mshowp d ms precSub mpr, ppa $ showSub d sub]
+mshowp0 d _ p (Atm e, _) = ppa $ edshow d e
+mshowp0 d msf p (PSub pr sub, MT _ mts)
+   = pplist $ [ subCompShow msf mts d precSub 1 pr
+              , ppa $ showSub d sub ]
 
-showp d ms p (Comp cname pargs)
+mshowp0 d msf p (Comp cname pargs, MT _ mts)
  = case plookup cname d of
-    Just (PredEntry _ showf _ _ _) -> showf d ms p pargs
-    _  ->  stdCshow d ms cname pargs
+    Just (PredEntry _ showf _ _ _)
+       -> showf (subCompShow msf mts d p) d p pargs
+    _  ->  stdCshow d msf cname mts pargs
+
+subCompShow :: (Ord s, Show s)
+            => MarkStyle -> [MTree] -> Dict s -> Int
+            -> SubCompPrint s
+subCompShow msf mts d p i subpr
+ | 0 < i && i <= length mts
+   = mshowp d msf p (subpr, mts !!(i-1))
+ | otherwise
+   = mshowp d msf p $ buildMarks subpr
 
 stdCshow :: (Ord s, Show s)
-         => Dict s -> MarkStyle -> String -> [MPred s] -> PP
-stdCshow d ms cname pargs
+         => Dict s -> MarkStyle -> String -> [MTree] -> [Pred s]
+         -> PP
+stdCshow d msf cname mts pargs
  = pplist [ ppa cname
-          , ppclosed "(" ")" "," $ map (mshowp d ms 0) pargs ]
+          , ppclosed "(" ")" ","
+            $ ppwalk 1 (subCompShow msf mts d 0) pargs ]
+
+ppwalk _ _ []            =  []
+ppwalk i sCS (arg:args)  =  (sCS i arg) : ppwalk (i+1) sCS args
+
+showp :: (Ord s, Show s)
+      => Dict s -> MarkStyle -> Int -> Pred s -> PP
+showp d ms p pr = mshowp d ms p $ buildMarks pr
 \end{code}

@@ -155,9 +155,12 @@ and will return a justification string and un-marked predicate:
 type Rewrite s = Dict s -> [Pred s] -> RWResult s
 \end{code}
 
-When applying general laws (usually as reductions)
-then we need a function that takes a dictionary and predicate
 
+For pretty printing we will need to call a specific system-supplied
+function with the following type:
+\begin{code}
+type SubCompPrint s = Int -> Pred s -> PP
+\end{code}
 
 
 A dictionary entry is a sum of  definition types defined below
@@ -213,7 +216,8 @@ of a proof step.
 \begin{code}
  | PredEntry {    -- about Predicates and PredVars
      pcansub :: [String]                   -- substitutable vars
-   , pprint  :: Dict s -> Int -> [Pred s]      -- pretty-printer
+   , pprint  :: SubCompPrint s                 -- pretty-printer
+             -> Dict s -> Int -> [Pred s]
              -> PP
    , alfa :: [String]                      -- predicate alphabet
    , pdefn   :: Rewrite s                      -- defn expansion
