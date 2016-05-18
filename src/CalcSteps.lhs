@@ -25,9 +25,9 @@ we can resolve a conditional step
 into a completed one:
 \begin{code}
 condResolve :: (Ord s, Show s)
-         => Dict s -> Int -> CRWResult s -> RWResult s
+         => Dict s -> Int -> MCRWResult s -> MRWResult s
 condResolve _ _ Nothing = Nothing
-condResolve d i (Just (nm, [(mpr,pr,chgd)])) = Just (nm,pr,chgd)
+condResolve d i (Just (nm, [(pr,mpr,chgd)])) = Just (nm,mpr,chgd)
 condResolve d i (Just (nm, outcomes))
  = Just( nm
          ++ ", given "

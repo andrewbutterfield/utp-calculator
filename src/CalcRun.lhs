@@ -191,33 +191,37 @@ calcStep d m stepf st@(currpr,steps)
                 let st' = stUpdate (comment,before) after st
                 runREPL d (nextm m) st'
 
+stUpdate :: (String, MPred s) ->  MPred s -> State s -> State s
 stUpdate wbefore after ( _, steps) = ( after, wbefore:steps)
 \end{code}
 
 Apply a given conditional step:
 \begin{code}
 calcCStep :: (Ord s, Show s)
-          => Dict s -> Mark -> (MPred s -> BeforeAfters s)
-          -> (MPred s, [RWResult s])
+          => Dict s -> Mark -> (MPred s -> Maybe(BeforeAfters s))
+          -> State s
           -> IO (CalcLog s)
 calcCStep d m cstepf st@(currpr,steps)
  = case cstepf currpr of
-    (_,"",_)  ->  runREPL d m st
-    ( before, comment, afters' )
+    Nothing  ->  runREPL d m st
+    Just( before, comment, afters' )
       -> do putStrLn $ unlines $ ccshow d $ zip [1..] afters'
             let num = length afters'
             putStrLn ("Please select 1.."++show num)
             sel <- fmap getInt getLine
             if 1 <= sel && sel <= num
-             then do let (_,after) = condResolve d sel (comment,afters')
+             then do let afters'' = map addtopmod afters'
+                     let Just (why,after,_)
+                           = condResolve d sel $ Just (comment,afters'')
                      putStrLn ( "\n = " ++ show comment )
-                     let st' = stUpdate (comment, before) after st
+                     let st' = stUpdate (why, before) after st
                      runREPL d (nextm m) st'
              else runREPL d m st
  where
    getInt (c:_)
     | isDigit c = digitToInt c
    getInt _ = 0
+   addtopmod (pr,mpr) = (pr,mpr,True) -- assume top modified
 
 ccshow :: (Show s, Ord s)
        => Dict s -> [(Int,(Pred s, MPred s))] -> [String]
@@ -234,7 +238,7 @@ Showing Marks
 \begin{code}
 showMarks :: (Ord s, Show s)
           => Dict s -> Mark
-          -> (MPred s, [RWResult s])
+          -> State s
           -> IO (CalcLog s)
 showMarks d m state@(currpr,steps)
  = do showm (1::Int) $ reverse (currpr:map snd steps)
@@ -310,7 +314,7 @@ calcPrint ( currpr, steps, d )
                ++ [pmdshow 80 d (stepshow $ length steps) currpr])
 
 stepPrint :: (Ord s, Show s)
-          => Dict s -> StepNo -> [RWResult s] -> [String]
+          => Dict s -> StepNo -> [Step s] -> [String]
 stepPrint d s [] = []
 stepPrint d s ((comment,mpr):rest)
  = [pmdshow 80 d (stepshow s) mpr]
