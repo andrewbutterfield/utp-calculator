@@ -11,6 +11,7 @@ import PrettyPrint
 import CalcTypes
 import CalcAlphabets
 import CalcPredicates
+import CalcSysTypes
 import CalcSimplify
 \end{code}
 

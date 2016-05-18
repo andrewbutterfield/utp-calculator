@@ -5,6 +5,7 @@ import Data.List
 import CalcTypes
 import CalcAlphabets
 import CalcPredicates
+import CalcSysTypes
 \end{code}
 
 %\begin{code}
@@ -170,7 +171,7 @@ For atomic predicates,
 we simplify the underlying expression,
 and lift any variable booleans to their predicate equivalent.
 \begin{code}
-simplify d m mbefore@(ms,Atm e)
+simplify d m mbefore@(Atm e,mt)
  = case esimp d e of
     (chgd,B True)   ->  atmBeforeAfter T        chgd
     (chgd,B False)  ->  atmBeforeAfter F        chgd
@@ -179,7 +180,7 @@ simplify d m mbefore@(ms,Atm e)
   atmBeforeAfter after chgd
    | chgd       =  Just ( addMark m mbefore
                         , simplified
-                        , addMark m (ms,after) )
+                        , addMark m (mt,after) )
    | otherwise  =  Nothing
 \end{code}
 

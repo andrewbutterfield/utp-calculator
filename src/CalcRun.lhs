@@ -9,6 +9,7 @@ import Debug.Trace
 import PrettyPrint
 import CalcTypes
 import CalcPredicates
+import CalcSysTypes
 import CalcSteps
 import CalcSimplify
 \end{code}

@@ -3,6 +3,7 @@
 module CalcZipper where
 import CalcTypes
 import CalcPredicates
+import CalcSysTypes
 \end{code}
 
 
