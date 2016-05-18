@@ -9,6 +9,7 @@ import Data.Maybe
 import Debug.Trace
 import PrettyPrint
 import CalcTypes
+import CalcSysTypes
 import StdPrecedences
 \end{code}
 
@@ -158,15 +159,6 @@ Default expression/predicate entry functions
 \begin{code}
 noEq :: Dict s -> [Expr s] -> [Expr s] -> Maybe Bool
 noEq _ _ _ = Nothing
-
-pnone :: ( String, Pred s)
-pnone = ( "", PUndef )
-nosimp :: [Pred s] -> ( String, Pred s)
-nosimp es = pnone
-pdoes :: String -> (Dict s -> [Pred s] -> Pred s)
-     -> Dict s -> [Pred s]
-     -> ( String, Pred s )
-pdoes nm p d ps = ( nm, p d ps )
 
 pNoChg :: String -> Rewrite s
 pNoChg name d mprs = Nothing

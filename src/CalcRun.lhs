@@ -234,6 +234,16 @@ ccshow d ((i,(cpr,rmpr)):rest)
 \end{code}
 
 \newpage
+
+Mark management
+\begin{code}
+startm :: Mark
+startm = 0
+nextm, prevm :: Mark -> Mark
+nextm = (+1)
+prevm = subtract 1
+\end{code}
+
 Showing Marks
 \begin{code}
 showMarks :: (Ord s, Show s)
