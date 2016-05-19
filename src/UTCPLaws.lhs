@@ -66,20 +66,24 @@ isIdleSeqAtom d s1 s2 pA
    \Skip &\defs& s'=s \land ls'=ls
 }
 \begin{code}
-defnUTCPII = mkAnd[ equal s' s, equal ls' ls ]
+defnUTCPII = mkAnd [ Equal s' s, Equal ls' ls ]
 \end{code}
 
 In the calculator we do not implement the definitions
 for $;$ and $c * P$,
 as these would make the calculator far too complex.
+We do provide a quick builder:
+\begin{code}
+mkSeq pr1 pr2 = Comp "Seq" [pr1,pr2]
+\end{code}
 Instead we implement a number of judiciously chosen laws
 satisfied by certain (equally judiciously chosen) combinations
 of these and other predicate constructs.
 We define laws that are generally
 viewed as reduction steps going from left-to-right.
 \begin{code}
-reduceUTCP :: (Show s, Ord s) => DictRWFun s
-             -- Dict -> MPred -> (String,MPred)
+reduceUTCP :: (Show s, Ord s) => RWFun s
+             -- Dict -> Pred -> (String,Pred)
 \end{code}
 
 \HDRb{Skip and Sequential Composition}
@@ -90,10 +94,10 @@ These laws are immediate, and their proof is left as an exercise.
 \\ P;\Skip &=& P & \elabel{$;$-r-unit}
 }
 \begin{code}
-reduceUTCP d (_,Comp "Seq"
-               [(_,Comp "Skip" []), mpr])  =  lred ";-lunit" mpr
-reduceUTCP d (_,Comp "Seq"
-               [mpr, (_,Comp "Skip" [])])  =  lred ";-runit" mpr
+reduceUTCP d (Comp "Seq"
+               [(Comp "Skip" []), pr])  =  lred ";-lunit" pr
+reduceUTCP d (Comp "Seq"
+               [pr, (Comp "Skip" [])])  =  lred ";-runit" pr
 \end{code}
 
 In the special case of atomic actions ($\alpha A = \setof{s,s'}$), we have:
@@ -102,11 +106,11 @@ In the special case of atomic actions ($\alpha A = \setof{s,s'}$), we have:
 \\ A ; s'=s &=& A & \elabel{atomic-;-r-unit}
 }
 \begin{code}
-reduceUTCP d (_,Comp "Seq" [ (_,Equal (Var s1) (Var s2))
-                           , pA@(_,PVar a) ])
+reduceUTCP d (Comp "Seq" [ (Equal (Var s1) (Var s2))
+                         , pA@(PVar a) ])
  | isIdleSeqAtom d s1 s2 a  =  lred "atomic-;-lunit" pA
-reduceUTCP d (_,Comp "Seq" [ pA@(_,PVar a)
-                           , (_,Equal (Var s1) (Var s2)) ])
+reduceUTCP d (Comp "Seq" [ pA@(PVar a)
+                         , (Equal (Var s1) (Var s2)) ])
  | isIdleSeqAtom d s1 s2 a  =  lred "atomic-;-runit" pA
 \end{code}
 
@@ -161,7 +165,7 @@ we have
 (A \land x'=k ; B[k/x])
 \]
 
-When all members of $Dyn'$ are set equal to something evaluated
+When all members of $Dyn'$ are set Equal to something evaluated
 over $Dyn \cup Stc$,
 we get a simpler outcome, with less restrictions.
 In our case, given that $Dyn' = \setof{s',ls'}$ we obtain:
@@ -172,16 +176,16 @@ In our case, given that $Dyn' = \setof{s',ls'}$ we obtain:
    & \elabel{$s'$-$ls'$-$;$-prop}
 }
 \begin{code}
-reduceUTCP d (_,Comp "Seq"
-                [ (_,Comp "And" [ (_,Equal (Var "s'") e)
-                                , (_,Equal (Var "ls'") f) ])
-                , mpA ])
- = lred "s'ls'-;-prop" $ psub mpA [("s",e),("ls",f)]
-reduceUTCP d (_,Comp "Seq"
-                [ (_,Comp "And" [ (_,Equal (Var ls'@"ls'") f)
-                                , (_,Equal (Var s'@"s'") e) ])
-                , mpA])
- = lred "s'ls'-;-prop" $ psub mpA [("s",e),("ls",f)]
+reduceUTCP d (Comp "Seq"
+                [ (Comp "And" [ (Equal (Var "s'") e)
+                              , (Equal (Var "ls'") f) ])
+                , pA ])
+ = lred "s'ls'-;-prop" $ PSub pA [("s",e),("ls",f)]
+reduceUTCP d (Comp "Seq"
+                [ (Comp "And" [ (Equal (Var ls'@"ls'") f)
+                              , (Equal (Var s'@"s'") e) ])
+                , pA])
+ = lred "s'ls'-;-prop" $ PSub pA [("s",e),("ls",f)]
 \end{code}
 
 \HDRb{Disjunction and Sequential Composition}
@@ -195,13 +199,13 @@ We more specific laws first, more general later.
    & \ecite{$;$-$\lor$-3distr}
 }
 \begin{code}
-reduceUTCP d (_,Comp "Seq" [ mpA
-                           , (_,Comp "Seq" [ (_,Comp "Or" mpBs)
-                                           , mpC])])
+reduceUTCP d (Comp "Seq" [ pA
+                         , (Comp "Seq" [ (Comp "Or" pBs)
+                                       , pC ]) ])
  = lred ";-\\/-3distr"
-                   $ comp "Or" $ map (bracketWith mpA mpC) mpBs
+                   $ mkOr $ map (bracketWith pA pC) pBs
  where
-   bracketWith p q r = comp "Seq" [p, comp "Seq" [r,q]]
+   bracketWith p q r = p `mkSeq` (r `mkSeq` q)
 \end{code}
 
 \RLEQNS{
@@ -211,10 +215,10 @@ reduceUTCP d (_,Comp "Seq" [ mpA
    & \ecite{$\lor$-$;$-distr}
 }
 \begin{code}
-reduceUTCP d (_,Comp "Seq" [(_,Comp "Or" mpAs), mpB])
- = lred "\\/-;-distr" $ comp "Or" $ map (postFixWith mpB) mpAs
+reduceUTCP d (Comp "Seq" [(Comp "Or" pAs), pB])
+ = lred "\\/-;-distr" $ mkOr $ map (postFixWith pB) pAs
  where
-  postFixWith p q = comp "Seq" [q, p]
+  postFixWith p q = q `mkSeq` p
 \end{code}
 
 
@@ -229,8 +233,8 @@ are ground:
    & \elabel{$ls'$-cleanup}
 }
 \begin{code}
-reduceUTCP d pr@(_,Comp "Seq" [ (_,Comp "And" pAs)
-                              , (_,Comp "And" pBs)])
+reduceUTCP d pr@(Comp "Seq" [ (Comp "And" pAs)
+                            , (Comp "And" pBs)])
  = case isSafeLSDash d ls' ls' pAs of
     Nothing -> lred "" pr
     Just (_,restA) ->
@@ -238,9 +242,8 @@ reduceUTCP d pr@(_,Comp "Seq" [ (_,Comp "And" pAs)
       Nothing -> lred "" pr
       Just (eqB,restB)
        -> lred "ls'-cleanup" $
-             comp "And" [ comp "Seq" [ bAnd restA
-                                     , bAnd restB ]
-                        , eqB ]
+             mkAnd [ (mkAnd restA) `mkSeq` (mkAnd restB)
+                   , eqB ]
  where
    ls = "ls"
    ls' = "ls'"
@@ -248,7 +251,7 @@ reduceUTCP d pr@(_,Comp "Seq" [ (_,Comp "And" pAs)
    isSafeLSDash d theLS unwanted prs
     = case matchRecog (mtchNmdObsEqToConst theLS d) prs of
        Nothing -> Nothing
-       Just (pre,(eq@(_,Equal _ k),_),post) ->
+       Just (pre,(eq@(Equal _ k),_),post) ->
         if notGround d k
          then Nothing
          else if all (dftlyNotInP d unwanted) rest
@@ -263,21 +266,21 @@ Assuming that $\fv{e'} \subseteq \setof{s',ls'}$, $x'\in\setof{s',ls'}$ and $\fv
 \\ A \land x'=k ; B &=& A ; x=k \land B[k/x] & \elabel{const-$;$-prop}
 }
 \begin{code}
-reduceUTCP d pr@(_,Comp "Seq" [(_,Comp "And" pAs), pB])
+reduceUTCP d pr@(Comp "Seq" [(Comp "And" pAs), pB])
  = case matchRecog (mtchDashedObsExpr d) pAs of
-   Just (pre,((_,Atm e'),_),post)
+   Just (pre,((Atm e'),_),post)
     -> lred "bool-;-switch"
-       $ comp "Seq" [ comp "And" (pre++post)
-                    , comp "And" [atm $ unDash e', pB]]
+       $ mkSeq (mkAnd (pre++post))
+               (mkAnd [Atm $ unDash e', pB])
    Nothing ->
     case matchRecog (mtchAfterEqToConst d) pAs of
-     Just (pre,((_,Equal (Var x') k),_),post)
+     Just (pre,((Equal (Var x') k),_),post)
       -> let x = init x'
          in lred "const-;-prop"
-            $ comp "Seq"
-                [ comp "And" (pre++post)
-                , comp "And" [ equal (Var x) k
-                             , psub pB [(x,k)]]]
+            $ mkSeq
+                (mkAnd (pre++post))
+                (mkAnd [ Equal (Var x) k
+                       , PSub pB [(x,k)]])
      Nothing  ->  lred "" pr
 \end{code}
 

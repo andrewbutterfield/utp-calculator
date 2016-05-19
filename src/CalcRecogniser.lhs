@@ -45,16 +45,16 @@ then returns a triple as follows:
 where $bits$ are any fragments of $A_i$ picked out by the recogniser.
 \begin{code}
 matchRecog :: (Ord s, Show s)
-           => Recogniser s -> [MPred s]
-           -> Maybe ([MPred s],(Pred s,[Pred s]),[MPred s])
-matchRecog recog mprs
- = mR [] mprs
+           => Recogniser s -> [Pred s]
+           -> Maybe ([Pred s],(Pred s,[Pred s]),[Pred s])
+matchRecog recog prs
+ = mR [] prs
  where
    mR erofeb [] = Nothing  -- "erofeb" = reverse "before"
-   mR erofeb (mpr@(_,pr):mprs)
+   mR erofeb (pr:prs)
     = case recog pr of
-     Nothing -> mR (mpr:erofeb) mprs
-     Just bits -> Just (reverse erofeb, (pr,bits), mprs)
+     Nothing -> mR (pr:erofeb) prs
+     Just bits -> Just (reverse erofeb, (pr,bits), prs)
 \end{code}
 
 
@@ -72,7 +72,7 @@ mtchDashedObsExpr d a'@(Atm e')
                  = condBind (isDashed e' && notGround d e') [a']
 mtchDashedObsExpr _ _  = Nothing
 
-isDashedObsExpr d = isJust . mtchDashedObsExpr d -- isJust ?
+isDashedObsExpr d = isJust . mtchDashedObsExpr d
 \end{code}
 
 \HDRc{After-Obs. equated to Ground Value}
@@ -107,7 +107,7 @@ isNmdObsEqToConst v d = isJust . mtchNmdObsEqToConst v d
 With the above, it can be useful to turn such
 an equality into an equivalent substitution pair:
 \begin{code}
-eqToSub (_,Equal (Var x) e) = (x,e)
+eqToSub (Equal (Var x) e) = (x,e)
 \end{code}
 
 
@@ -135,7 +135,7 @@ allPV vp T = True
 allPV vp F = True
 allPV vp (Equal e1 e2) = allEV vp e1 && allEV vp e2
 allPV vp (Atm e) = allEV vp e
-allPV vp (Comp _ mprs) = all (allPV vp) $ map snd mprs
+allPV vp (Comp _ prs) = all (allPV vp) prs
 allPV vp pr = False
 \end{code}
 
@@ -154,8 +154,8 @@ unDash, dash :: Ord s => Expr s -> Expr s
 unDash = mapEV remDash
 dash = mapEV addDash
 
-isCondition :: Ord s => MPred s -> Bool
-isCondition = allPV notDash . snd
+isCondition :: Ord s => Pred s -> Bool
+isCondition = allPV notDash
 \end{code}
 
 \newpage
@@ -173,24 +173,22 @@ This means that \texttt{dftlyP} is not equal to \texttt{not . dftlyNotP}.
 
 Mostly, we want to know if $x \notin P$.
 \begin{code}
-dftlyNotInP :: Dict s -> String -> MPred s -> Bool
+dftlyNotInP :: Dict s -> String -> Pred s -> Bool
 
-dftlyNotInP d v (_,PVar p)
+dftlyNotInP d v (PVar p)
  = case plookup p d of
     Just (PredEntry _ _ alf_p _ _)  ->  not (v `elem` alf_p)
     _                               ->  False
 
-dftlyNotInP d v (_,Equal e1 e2)
+dftlyNotInP d v (Equal e1 e2)
                       = dftlyNotInE d v e1 && dftlyNotInE d v e2
-dftlyNotInP d v (_,Atm e) = dftlyNotInE d v e
+dftlyNotInP d v (Atm e) = dftlyNotInE d v e
 
-dftlyNotInP _ _ (_,T) = True
-dftlyNotInP _ _ (_,F) = True
-dftlyNotInP d v (_,Comp _ mprs) = all (dftlyNotInP d v) mprs
+dftlyNotInP _ _ T = True
+dftlyNotInP _ _ F = True
+dftlyNotInP d v (Comp _ prs) = all (dftlyNotInP d v) prs
 
-dftlyNotInP d v (_,PSub mpr sub) = False -- for now
-
-dftlyNotInP _ _ _ = False -- not true, or can't tell !
+dftlyNotInP d v (PSub mpr sub) = False -- for now
 \end{code}
 
 For expressions:

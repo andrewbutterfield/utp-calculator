@@ -49,9 +49,9 @@ Here, the definition of $\cond\_$ is entirely standard, of course.
 defnII d
  = let dyn  = sort $ getAlpha aDyn  d
        dyn' = sort $ getAlpha aDyn' d
-   in noMark $ mkAnd $ map alfEq $ zip dyn' dyn
+   in  mkAnd $ map alfEq $ zip dyn' dyn
  where
-   alfEq(x',x) = noMark $ Equal (Var x') (Var x)
+   alfEq(x',x) = Equal (Var x') (Var x)
 \end{code}
 
 \newpage
@@ -80,9 +80,9 @@ These laws are immediate, and their proof is left as an exercise.
 \\ P;\Skip &=& P & \elabel{$;$-r-unit}
 }
 \begin{code}
-reduceStd d (Comp "Seq" [(_,Comp "Skip" []), (_,pr)])
+reduceStd d (Comp "Seq" [(Comp "Skip" []), pr])
                                             = lred ";-lunit" pr
-reduceStd d (Comp "Seq" [(_,pr), (_,Comp "Skip" [])])
+reduceStd d (Comp "Seq" [pr, (Comp "Skip" [])])
                                             = lred ";-runit" pr
 \end{code}
 
@@ -139,7 +139,7 @@ for  $x'_i \in Dyn'$ and $k_i$ ground:
 --  (_,Comp "Seq" [ conj@(_,Comp "And" mprs), mpr ])
 --  | not (null x'eqks) && not (null rest)
 --  = lred "some-x'=k-;-prop"
---      $ bSeq conj $ bPSub mpr $ map eqToSub x'eqks
+--      $ mkSeq conj $ bPSub mpr $ map eqToSub x'eqks
 --  where
 --    (x'eqks,rest) = partition (isAfterEqToConst d) mprs
 \end{code}
@@ -158,12 +158,12 @@ then we get:
 We implement this latter one:
 \begin{code}
 reduceStd d
- (Comp "Seq" [ (_,Comp "And" mprs), mpr ])
- | (all (isAfterEqToConst d) $ map snd mprs)
-   && sort (map getLVar mprs) == sort (getAlpha aDyn' d)
- = lred "all-x'=k-;-init" $ PSub mpr $ map eqToSub mprs
+ (Comp "Seq" [ (Comp "And" prs), pr ])
+ | (all (isAfterEqToConst d) prs)
+   && sort (map getLVar prs) == sort (getAlpha aDyn' d)
+ = lred "all-x'=k-;-init" $ PSub pr $ map eqToSub prs
  where
-   getLVar (_,Equal (Var x') _) = x'
+   getLVar (Equal (Var x') _) = x'
 \end{code}
 
 Assuming that $\fv{e'} \subseteq Dyn'$,
@@ -174,24 +174,24 @@ $x'\in Dyn'$,
 \\ A \land x'=k ; B &=& A ; x=k \land B[k/x] & \elabel{const-$;$-prop}
 }
 \begin{code}
-reduceStd d (Comp "Seq" [(_,Comp "And" mpAs), mpB])
+reduceStd d (Comp "Seq" [(Comp "And" pAs), pB])
 
  | isJust match1
      = lred "bool-;-switch"
-        $ mkSeq (bAnd (pre1++post1)) $ bAnd [atm $ unDash e', mpB]
+        $ mkSeq (mkAnd (pre1++post1)) $ mkAnd [Atm $ unDash e', pB]
 
  | isJust match2
      = let x = init x'
        in lred "const-;-prop"
-           $ mkSeq (bAnd (pre2++post2))
-                $ bAnd [equal (Var x) k,psub mpB [(x,k)]]
+           $ mkSeq (mkAnd (pre2++post2))
+                $ mkAnd [Equal (Var x) k, PSub pB [(x,k)]]
  where
 
-   match1 = matchRecog (mtchDashedObsExpr d) mpAs
-   Just (pre1, (_, [(Atm e')] ), post1) = match1
+   match1 = matchRecog (mtchDashedObsExpr d) pAs
+   Just (pre1, (_,[Atm e']), post1) = match1
 
-   match2 = matchRecog (mtchAfterEqToConst d) mpAs
-   Just (pre2, ((Equal (Var x') k), _), post2) = match2
+   match2 = matchRecog (mtchAfterEqToConst d) pAs
+   Just (pre2, (Equal (Var x') k,_), post2) = match2
 \end{code}
 
 \HDRc{Disjunction and Sequential Composition}
@@ -206,12 +206,12 @@ We more specific laws first, more general later.
 }
 \begin{code}
 reduceStd d
-  (Comp "Seq" [ mpA
-              , (_,Comp "Seq" [ (_,Comp "Or" mpBs)
-                              , mpC] ) ] )
- = lred ";-\\/-3distr" $ mkOr $ map (bracketWith mpA mpC) mpBs
+  (Comp "Seq" [ pA
+              , (Comp "Seq" [ (Comp "Or" pBs)
+                              , pC] ) ] )
+ = lred ";-\\/-3distr" $ mkOr $ map (bracketWith pA pC) pBs
  where
-   bracketWith p q r = bSeq p $ bSeq r q
+   bracketWith p q r = mkSeq p $ mkSeq r q
 \end{code}
 
 \RLEQNS{
@@ -221,10 +221,10 @@ reduceStd d
    & \ecite{$\lor$-$;$-distr}
 }
 \begin{code}
-reduceStd d (Comp "Seq" [(_,Comp "Or" mpAs), mpB])
- = lred "\\/-;-distr" $ mkOr $ map (postFixWith mpB) mpAs
+reduceStd d (Comp "Seq" [(Comp "Or" pAs), pB])
+ = lred "\\/-;-distr" $ mkOr $ map (postFixWith pB) pAs
  where
-  postFixWith p q = bSeq q p
+  postFixWith p q = mkSeq q p
 \end{code}
 
 
@@ -247,10 +247,10 @@ Iteration  satisfies the loop-unrolling law:
 \]
 \begin{code}
 unrollStd :: Ord s => String -> RWFun s
-unrollStd ns d w@(Comp nm  [mc, mpr])
- | nm== nIter && isCondition mc
+unrollStd ns d w@(Comp nm  [c, pr])
+ | nm== nIter && isCondition c
            = Just( "std-loop-unroll"
-                 , mkCond (bSeq mpr $ noMark w) mc bSkip
+                 , mkCond (mkSeq pr w) c mkSkip
                  , diff )
 unrollStd _ _ _ = Nothing
 \end{code}

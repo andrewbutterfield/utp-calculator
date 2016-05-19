@@ -8,10 +8,10 @@ import Data.Char
 import Debug.Trace
 import PrettyPrint
 import CalcTypes
-import StdPrecedences
-import StdUTPPrecedences
-import StdPredicates
 import CalcPredicates
+import StdPrecedences
+import StdPredicates
+import StdUTPPrecedences
 \end{code}
 
 Here we provide dictionary entries for all our ``standard''
@@ -43,8 +43,8 @@ isTop = isComp nTop ; isBot  = isComp nBot
 mkTop = Comp nTop []
 mkBot = Comp nBot []
 
-ppTop d ms p _ = ppa "T"
-ppBot d ms p _ = ppa "_|_"
+ppTop _ d p _ = ppa "T"
+ppBot _ d p _ = ppa "_|_"
 
 defnTop d _ = Just ("",F,diff) -- assuming full predicate lattice
 defnBot d _ = Just ("",T,diff) -- assuming full predicate lattice
@@ -55,11 +55,6 @@ topEntry
 botEntry
  = ( nBot
    , PredEntry [] ppBot [] defnBot (pNoChg nBot) )
-
--- build Top and Bot at the MPred level
-bTop, bBot :: MPred s
-bTop = noMark mkTop
-bBot = noMark mkBot
 \end{code}
 
 
@@ -71,18 +66,18 @@ bBot = noMark mkBot
 \\ &|& \mNDC & \tNDC
 }
 \begin{code}
-nNDC = "NDC" ; isNDC  = isComp nNDC ; isndc = iscomp nNDC
+nNDC = "NDC" ; isNDC  = isComp nNDC
 
 mkNDC [] = T
-mkNDC [(_,pr)] = pr
-mkNDC mprs = mkAssoc nNDC isndc [] mprs
+mkNDC [pr] = pr
+mkNDC prs = mkAssoc nNDC isNDC [] prs
 
-ppNDC d ms p [] = showp d ms p T
-ppNDC d ms p [mpr] = mshowp d ms p mpr
-ppNDC d ms p mprs
+ppNDC sCP d p []    =  sCP p 0 T
+ppNDC sCP d p [pr]  =  sCP p 1 pr
+ppNDC sCP d p prs
  = paren p precNDC
      $ ppopen " |~| "
-     $ map (mshowp d ms precNDC) mprs
+     $ ppwalk 1 (sCP precNDC) prs
 
 simpNDC d mprs  = sLattice "|~|-simplify" mkNDC mkBot mkTop mprs
 
@@ -90,9 +85,6 @@ ndcEntry :: (Show s, Ord s) => (String, Entry s)
 ndcEntry
  = ( nNDC
    , PredEntry ["*"] ppNDC [] (pNoChg nNDC) simpNDC )
-
--- build an NDC at the MPred level
-bNDC mprs = noMark $ mkNDC mprs
 \end{code}
 
 
@@ -107,15 +99,17 @@ bNDC mprs = noMark $ mkNDC mprs
 \begin{code}
 nRfdby = "Rfdby" ; isRfdby  = isComp nRfdby
 
-mkRfdby mpr1 mpr2 = Comp nRfdby [mpr1,mpr2]
+mkRfdby pr1 pr2 = Comp nRfdby [pr1,pr2]
 
-ppRfdby d ms p [mpr1,mpr2]
+ppRfdby sCP d p [pr1,pr2]
  = paren p precRfdby
-     $ ppopen " |= " [ mshowp d ms precRfdby mpr1
-                     , mshowp d ms precRfdby mpr2 ]
-ppRfdby d ms p mprs = pps styleRed $ ppa "invalid-|="
+     $ ppopen " |= " [ sCP precRfdby 1 pr1
+                     , sCP precRfdby 2 pr2 ]
+ppRfdby _ _ _ _ = pps styleRed $ ppa "invalid-|="
 
-simpRfdby d [mpr1, mpr2] = Nothing
+simpRfdby d [T, pr2] = Just ("true-|=",T,diff)
+simpRfdby d [pr1, F] = Just ("|=-false",T,diff)
+simpRfdby d [pr1, pr2] = Nothing
 
 rfdbyEntry :: (Show s, Ord s) => (String, Entry s)
 rfdbyEntry
@@ -137,26 +131,25 @@ bRfdby mpr1 mpr2 = noMark $ mkRfdby mpr1 mpr2
 \begin{code}
 nCond = "Cond" ; isCond  = isComp nCond
 
-mkCond mpr1 mpr2 mpr3 = Comp nCond [mpr1,mpr2,mpr3]
+mkCond pr1 pr2 pr3 = Comp nCond [pr1,pr2,pr3]
 
-ppCond d ms p [mprt,mprc,mpre]
+ppCond sCP d p [prt,prc,pre]
  = paren p precCond
-      $ pplist [ mshowp d ms precCond mprt
+      $ pplist [ sCP precCond 1 prt
                , ppa " <| "
-               , mshowp d ms 0 mprc
+               , sCP 0 2 prc
                , ppa " |> "
-               , mshowp d ms precCond mpre ]
-ppCond d ms p mprs = pps styleRed $ ppa "invalid-<|>"
+               , sCP precCond 3 pre ]
+ppCond sCP d p prs = pps styleRed $ ppa "invalid-<|>"
 
-simpCond d [mpr1, mpr2, mpr3] = Nothing
+simpCond d [pr1, T, pr3] = Just ("true-cond",pr1,diff)
+simpCond d [pr1, F, pr3] = Just ("false-cond",pr3,diff)
+simpCond _ _ = Nothing
 
 condEntry :: (Show s, Ord s) => (String, Entry s)
 condEntry
  = ( nCond
-   , PredEntry ["*"] ppCond [] simpCond simpCond )
-
--- build an Cond at the MPred level
-bCond mpr1 mpr2 mpr3 = noMark $ mkCond mpr1 mpr2 mpr3
+   , PredEntry ["*"] ppCond [] (pNoChg nCond) simpCond )
 \end{code}
 
 \newpage
@@ -172,17 +165,13 @@ nSkip = "Skip" ; isSkip  = isComp nSkip
 mkSkip = Comp nSkip []
 
 shSkip = "II"
-ppSkip d _ p _ = ppa shSkip
+ppSkip _ _ _ _ = ppa shSkip
 
-simpSkip d _ = Nothing
+simpSkip _ _ = Nothing
 
 skipEntry
   = ( nSkip
     , PredEntry [] ppSkip [] simpSkip simpSkip )
-
--- build Skip at the MPred level
-bSkip :: MPred s
-bSkip = noMark mkSkip
 \end{code}
 
 \newpage
@@ -197,11 +186,11 @@ nSeq = "Seq" ; isSeq  = isComp nSeq
 
 mkSeq mpr1 mpr2 = Comp nSeq [mpr1,mpr2]
 
-ppSeq d ms p [mpr1,mpr2]
+ppSeq sCP d p [pr1,pr2]
  = paren p precSeq
-     $ ppopen " ; " [ mshowp d ms precSeq mpr1
-                    , mshowp d ms precSeq mpr2 ]
-ppSeq d ms p mprs = pps styleRed $ ppa "invalid-;"
+     $ ppopen " ; " [ sCP precSeq 1 pr1
+                    , sCP precSeq 2 pr2 ]
+ppSeq _ _ _ _ = pps styleRed $ ppa "invalid-;"
 
 simpSeq d [ F, pr ] = Just ( "simp-;", F, diff )
 simpSeq d [ pr, F ] = Just ( "simp-;", F, diff )
@@ -221,9 +210,6 @@ seqEntry :: (Show s, Ord s) => (String, Entry s)
 seqEntry
  = ( nSeq
    , PredEntry [] ppSeq [] (pNoChg nSeq) simpSeq )
-
--- build an Seq at the MPred level
-bSeq mpr1 mpr2 = noMark $ mkSeq mpr1 mpr2
 \end{code}
 
 \newpage
@@ -238,19 +224,18 @@ nIter = "Iter" ; isIter  = isComp nIter
 
 mkIter mpr1 mpr2 = Comp nIter [mpr1,mpr2]
 
-ppIter d ms p [mpr1,mpr2]
+ppIter sCP d p [pr1,pr2]
  = paren p precIter
-     $ ppopen " * " [ mshowp d ms precIter mpr1
-                    , mshowp d ms precIter mpr2 ]
-ppIter d _ p mprs = pps styleRed $ ppa "invalid-*"
+     $ ppopen " * " [ sCP precIter 1 pr1
+                    , sCP precIter 2 pr2 ]
+ppIter _ _ _ _ = pps styleRed $ ppa "invalid-*"
 
-simpIter d [mpr1, mpr2 ] = Nothing
+simpIter d [pr1, F ]
+ = Just ("c-*-false", mkAnd [mkNot pr1, mkSkip], diff)
+simpIter d [pr1, pr2 ] = Nothing
 
 iterEntry :: (Show s, Ord s) => (String, Entry s)
 iterEntry
  = ( nIter
    , PredEntry [] ppIter [] (pNoChg nIter) simpIter )
-
--- build an Iter at the MPred level
-bIter mpr1 mpr2 = noMark $ mkIter mpr1 mpr2
 \end{code}

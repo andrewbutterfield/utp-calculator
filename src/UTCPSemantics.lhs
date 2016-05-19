@@ -326,21 +326,21 @@ Formally, using our shorthand notations, we can define atomic behaviour as:
 }
 \begin{code}
 nPAtm = "PAtm" -- internal abstract name
-isPAtm (_,Comp n [_]) | n==nPAtm = True; isPAtm _ = False
+isPAtm (Comp n [_]) | n==nPAtm = True; isPAtm _ = False
 
-patm atom = comp nPAtm [atom]
+patm atom = Comp nPAtm [atom]
 
 shPAtm = "A" -- show name
-ppPAtm d ms p [mpr]
+ppPAtm sCP d p [pr]
  = pplist [ ppa shPAtm
-          , ppbracket "(" (mshowp d ms 0 mpr) ")"]
-ppPAtm d ms p mprs = pps styleRed $ ppa ("invalid-"++shPAtm)
+          , ppbracket "(" (sCP 0 1 pr) ")"]
+ppPAtm _ _ _ _ = pps styleRed $ ppa ("invalid-"++shPAtm)
 
 defnAtomic d [a] = ldefn shPAtm $ mkAnd [lsin,a,ls'eqlsinout]
 
-lsin = atm $ App subsetn [inp,ls]
+lsin = Atm $ App subsetn [inp,ls]
 lsinout = App sswapn [ls,inp,out]
-ls'eqlsinout = equal ls' lsinout
+ls'eqlsinout = Equal ls' lsinout
 
 patmEntry :: (Show s, Ord s) => (String, Entry s)
 patmEntry
@@ -355,13 +355,13 @@ A special case of this is the $Idle$ construct:
 }
 \begin{code}
 nPIdle = "PIdle"
-isPIdle (_,Comp n []) | n==nPIdle = True; isPIdle _ = False
+isPIdle (Comp n []) | n==nPIdle = True; isPIdle _ = False
 
-pidle = comp nPIdle []
+pidle = Comp nPIdle []
 
 shPIdle = "Idle" -- show name
-ppPIdle d ms p [] = ppa shPIdle
-ppPIdle d ms p mprs = pps styleRed $ ppa ("invalid-"++shPIdle)
+ppPIdle _ _ _ [] = ppa shPIdle
+ppPIdle _ _ _ _  = pps styleRed $ ppa ("invalid-"++shPIdle)
 
 defnIdle d [] = ldefn shPIdle $ Equal s' s
 
@@ -382,13 +382,13 @@ Given that $\alpha A = \setof{s,s'}$, we have:
 }
 Here the notation $[\vec e/\vec x]\!|_V$ denotes the substitution restricted
 to the variables in $V$.
-\begin{code}
-substnAtomic d a subs
-  = mkAnd (psub a rsubs
-          : map (noMark . snd . psubst startm d subs)
-                                           [lsin, ls'eqlsinout])
-  where rsubs = filter ((`elem` ["s","s'"]) . fst) subs
-\end{code}
+%\begin{code}
+%-- substnAtomic d a subs
+%--   = mkAnd (psub a rsubs
+%--           : map (noMark . snd . psubst startm d subs)
+%--                                            [lsin, ls'eqlsinout])
+%--   where rsubs = filter ((`elem` ["s","s'"]) . fst) subs
+%\end{code}
 However, this can be subsumed by \eref{pvar-substn},
 if we have information about the alphabet of $A$.
 
@@ -413,7 +413,7 @@ So, in effect, we need an outcome as follows (\figref{fig:seq-idea:view}):
 
 \begin{figure}[h]
   \centering
-\includegraphics{images/seq-comp-idea.eps}
+\includegraphics{images/seq-Comp-idea.eps}
   \caption{Sequential Composition view of the world}
   \label{fig:seq-idea:view}
 \end{figure}
@@ -583,7 +583,7 @@ as we did with $in$ and $out$ (\figref{fig:seq-actual:view}).
 
 \begin{figure}[htb]
   \centering
-\includegraphics{images/seq-comp-actual.eps}
+\includegraphics{images/seq-Comp-actual.eps}
   \caption{Sequential Composition actual construction}
   \label{fig:seq-actual:view}
 \end{figure}
@@ -596,19 +596,19 @@ as we did with $in$ and $out$ (\figref{fig:seq-actual:view}).
 \newpage
 \begin{code}
 nPSeq = "PSeq"
-isPSeq (_,Comp n [_]) | n==nPSeq = True; isPSeq _ = False
+isPSeq (Comp n [_,_]) | n==nPSeq = True; isPSeq _ = False
 
-pseq = comp nPSeq
+pseq = Comp nPSeq
 
 shPSeq = ";;"
-ppPSeq d ms p [mpr1,mpr2]
+ppPSeq sCP d  p [pr1,pr2]
  = paren p precPSeq
-     $ ppopen  (pad shPSeq) [ mshowp d ms precPSeq mpr1
-                            , mshowp d ms precPSeq mpr2 ]
-ppPSeq d ms p mprs = pps styleRed $ ppa ("invalid-"++shPSeq)
+     $ ppopen  (pad shPSeq) [ sCP precPSeq 1 pr1
+                            , sCP precPSeq 2 pr2 ]
+ppPSeq _ _ _ _ = pps styleRed $ ppa ("invalid-"++shPSeq)
 
 defnSeq d [p,q]
- = ldefn shPSeq $ mkOr [psub p sub1, psub q sub2]
+ = ldefn shPSeq $ mkOr [PSub p sub1, PSub q sub2]
  where
    sub1 = [("g",g'1),("out",lg)]
    sub2 = [("g",g'2),("in",lg)]
@@ -679,7 +679,7 @@ and $Merge(\ell_{g1:},\ell_{g2:})$
 (\figref{fig:par-actual:view}).
 \begin{figure}[h]
   \centering
-\includegraphics{images/par-comp-actual.eps}
+\includegraphics{images/par-Comp-actual.eps}
   \caption{
      Parallel Composition actual construction (omitting generators).
      The $s$ box is dashed to emphasise its global nature,
@@ -698,28 +698,28 @@ and $Merge(\ell_{g1:},\ell_{g2:})$
 }
 \begin{code}
 nPPar = "PPar"
-isPPar (_,Comp n [_]) | n==nPPar = True; isPPar _ = False
+isPPar (Comp n [_,_]) | n==nPPar = True; isPPar _ = False
 
-ppar = comp nPPar
+ppar = Comp nPPar
 
 shPPar = "||"
-ppPPar d ms p [mpr1,mpr2]
+ppPPar sCP d p [pr1,pr2]
  = paren p precPPar
-     $ ppopen  (pad shPPar) [ mshowp d ms precPPar mpr1
-                            , mshowp d ms precPPar mpr2 ]
-ppPPar d ms p mprs = pps styleRed $ ppa ("invalid-"++shPPar)
+     $ ppopen  (pad shPPar) [ sCP precPPar 1 pr1
+                            , sCP precPPar 2 pr2 ]
+ppPPar _ _ _ _ = pps styleRed $ ppa ("invalid-"++shPPar)
 
 defnPPar d [p,q]
- = ldefn shPPar $ mkOr [split, psub p sub1, psub q sub2, merge]
+ = ldefn shPPar $ mkOr [split, PSub p sub1, PSub q sub2, merge]
  where
-   split = bAnd [ lsin
-               , equal s' s
-               , equal ls' (sswap ls inp $ mkSet [lg1,lg2]) ]
+   split = mkAnd [ lsin
+               , Equal s' s
+               , Equal ls' (sswap ls inp $ mkSet [lg1,lg2]) ]
    sub1 = [("g",g1''),("in",lg1),("out",lg1')]
    sub2 = [("g",g2''),("in",lg2),("out",lg2')]
-   merge = bAnd [ atm $ subset (mkSet [lg1',lg2']) ls
-               , equal s' s
-               , equal ls' (sswap ls (mkSet[lg1',lg2']) out) ]
+   merge = mkAnd [ Atm $ subset (mkSet [lg1',lg2']) ls
+               , Equal s' s
+               , Equal ls' (sswap ls (mkSet[lg1',lg2']) out) ]
 
 pparEntry :: (Show s, Ord s) => (String, Entry s)
 pparEntry
@@ -762,29 +762,29 @@ converts $in$ into $\ell_{g1}$ or $\ell_{g2}$ as determined by the condition
 }
 \begin{code}
 nPCond = "PCond"
-isPCond (_,Comp n [_]) | n==nPCond = True; isPCond _ = False
+isPCond (Comp n [_,_,_]) | n==nPCond = True; isPCond _ = False
 
 shPCondL = "<|" ; shPCondR = "|>" ;shPCond = shPCondL++shPCondR
-ppPCond d ms p [mprt,mprc,mpre]
+ppPCond sCP d p [prt,prc,pre]
  = paren p precPCond
-      $ pplist [ mshowp d ms precPCond mprt
+      $ pplist [sCP precPCond 1 prt
                , ppa $ pad shPCondL
-               , mshowp d ms 0 mprc
+               , sCP 0 2 prc
                , ppa $ pad shPCondR
-               , mshowp d ms precPCond mpre ]
-ppCCond d ms p mprs = pps styleRed $ ppa ("invalid-"++shPCond)
+               , sCP precPCond 3 pre ]
+ppCCond _ _ _ _ = pps styleRed $ ppa ("invalid-"++shPCond)
 
 
-pcond = comp nPCond
+pcond = Comp nPCond
 
 defnPCond d [c,p,q]
- = ldefn shPCond $ mkOr [ cnd lg1 c,cnd lg2 $ bNot c
-                        , psub p sub1, psub q sub2 ]
+ = ldefn shPCond $ mkOr [ cnd lg1 c,cnd lg2 $ mkNot c
+                        , PSub p sub1, PSub q sub2 ]
  where
-   cnd ell c  = bAnd [ lsin
-                    , equal s' s
+   cnd ell c  = mkAnd [ lsin
+                    , Equal s' s
                     , c
-                    , equal ls' $ sswap ls inp ell ]
+                    , Equal ls' $ sswap ls inp ell ]
    sub1 = [("g",g1'),("in",lg1)]
    sub2 = [("g",g2'),("in",lg2)]
 
@@ -817,24 +817,24 @@ as we view it as a conditional loop unrolling
 }
 \begin{code}
 nPIter = "PIter"
-isPIter (_,Comp n [_]) | n==nPIter = True; isPIter _ = False
+isPIter (Comp n [_,_]) | n==nPIter = True; isPIter _ = False
 
-piter = comp "PIter"
+piter = Comp "PIter"
 
 shPIter = "??"
-ppPIter d ms p [mpr1,mpr2]
+ppPIter sCP d p [pr1,pr2]
  = paren p precPIter
-     $ ppopen  (pad shPIter) [ mshowp d ms precPIter mpr1
-                             , mshowp d ms precPIter mpr2 ]
-ppPIter d ms p mprs = pps styleRed $ ppa ("invalid-"++shPIter)
+     $ ppopen  (pad shPIter) [ sCP precPIter 1 pr1
+                             , sCP precPIter 2 pr2 ]
+ppPIter _ _ _ _ = pps styleRed $ ppa ("invalid-"++shPIter)
 
 defnIter d [c,p]
- = ldefn shPIter $ mkOr [loop (bNot c) out, loop c lg, psub p sb]
+ = ldefn shPIter $ mkOr [loop (mkNot c) out, loop c lg, PSub p sb]
  where
-   loop c ell = bAnd [ lsin
-                     , equal s' s
+   loop c ell = mkAnd [ lsin
+                     , Equal s' s
                      , c
-                     , equal ls' $ sswap ls inp ell ]
+                     , Equal ls' $ sswap ls inp ell ]
    sb = [("g",g'),("in",lg),("out",inp)]
 
 piterEntry :: (Show s, Ord s) => (String, Entry s)
@@ -858,15 +858,15 @@ We shall denote by $run(P)$ the result of adding dynamism
 to a static view $P$ in this way.
 \begin{code}
 nPRun = "PRun"
-isPRun (_,Comp n [_]) | n==nPRun = True; isPRun _ = False
+isPRun (Comp n [_]) | n==nPRun = True; isPRun _ = False
 
-run p = comp nPRun [p]
+run p = Comp nPRun [p]
 
 shPRun = "run"
-ppPRun d ms p [mpr]
+ppPRun sCP d p [pr]
  = pplist [ ppa shPRun
-          , ppbracket "(" (mshowp d ms 0 mpr) ")"]
-ppPRun d ms p mprs = pps styleRed $ ppa ("invalid-"++shPRun)
+          , ppbracket "(" (sCP 0 1 pr) ")"]
+ppPRun _ _ _ _ = pps styleRed $ ppa ("invalid-"++shPRun)
 \end{code}
 
 We produce $run(P)$ by putting $P$ into a loop
@@ -888,13 +888,13 @@ which we also expand once:
 }
 \begin{code}
 defnRun 2 d [p]
- = idefn 2 shPRun $ mkSeq (psub p [("ls",inp)]) (runLoop p)
+ = idefn 2 shPRun $ mkSeq (mkPSub p [("ls",inp)]) (runLoop p)
 defnRun _ d [p]
  = idefn 1 shPRun $ mkPSub (runLoop p) [("ls",inp)]
 
 idefn i str = ldefn (str++'(':show i++")")
 
-runLoop p  = bIter (bNot $ atm $ subset (mkSet [out]) ls) p
+runLoop p  = mkIter (mkNot $ Atm $ subset (mkSet [out]) ls) p
 
 prunEntry :: (Show s, Ord s) => Int -> (String, Entry s)
 prunEntry n
@@ -910,19 +910,19 @@ that $ls$ is initialised appropriately.
 }
 \begin{code}
 nPDo = "PDo"
-isPDo (_,Comp n [_]) | n==nPDo = True; isPDo _ = False
+isPDo (Comp n [_]) | n==nPDo = True; isPDo _ = False
 
-doprog p = comp nPDo [p]
+doprog p = Comp nPDo [p]
 
 shPDo = "do"
-ppPDo d ms p [mpr]
+ppPDo sCP d p [pr]
  = pplist [ ppa shPDo
-          , ppbracket "(" (mshowp d ms 0 mpr) ")"]
-ppPDo d ms p mprs = pps styleRed $ ppa ("invalid-"++shPDo)
+          , ppbracket "(" (sCP 0 1 pr) ")"]
+ppPDo _ _ _ _  = pps styleRed $ ppa ("invalid-"++shPDo)
 
 
 defnDo d [p]
- = ldefn shPDo $ mkAnd [ equal ls inp, run p ]
+ = ldefn shPDo $ mkAnd [ Equal ls inp, run p ]
 
 pdoEntry :: (Show s, Ord s) => (String, Entry s)
 pdoEntry
