@@ -180,7 +180,7 @@ simplify d m mbefore@(Atm e,mt)
   atmBeforeAfter after chgd
    | chgd       =  Just ( addMark m mbefore
                         , simplified
-                        , addMark m (mt,after) )
+                        , addMark m (after,mt) )
    | otherwise  =  Nothing
 \end{code}
 
@@ -189,7 +189,7 @@ simplify d m mbefore@(Atm e,mt)
 For equality we simplify both expressions,
 and then attempt to simplify the equality to true or false.
 \begin{code}
-simplify d m mpr@(ms,(Equal e1 e2))
+simplify d m mpr@(Equal e1 e2, mt)
  = let
     (chgd1,e1') = esimp d e1
     (chgd2,e2') = esimp d e2
@@ -197,7 +197,7 @@ simplify d m mpr@(ms,(Equal e1 e2))
     chgd = chgd1 || chgd2 || chgd'
    in if chgd then Just ( addMark m mpr
                         , simplified
-                        , addMark m (ms,pr') )
+                        , addMark m (pr', mt) )
               else Nothing
 \end{code}
 
@@ -208,16 +208,19 @@ For composites,
 we first simplify the components,
 and then look in the dictionary by name for a simplifier.
 \begin{code}
-simplify d m mpr@(ms,pr@(Comp name mprs))
+simplify d m mpr@(pr@(Comp name prs), mt@(MT ms mts))
  = let
-    (subchgs,befores,afters) = subsimp same [] [] mprs
-    mcomppr' = compsimp $ map snd afters
+    (subchgs,befores,afters) = subsimp same [] [] $ zip prs mts
+    mcomppr' = compsimp $ map fst afters
    in case mcomppr' of
     Nothing
-     -> assemble (Comp name afters) befores afters subchgs False
+     -> assemble (Comp name $ map fst afters)
+                 (unzip befores) (unzip afters)
+                 subchgs False
     Just (what,comppr',topchgd)
-     -> assemble comppr' befores afters
-                                      (subchgs||topchgd) topchgd
+     -> assemble comppr'
+                 (unzip befores) (unzip afters)
+                 (subchgs||topchgd) topchgd
  where
 
    subsimp chgd befores afters []
@@ -240,16 +243,15 @@ To do so risks an infinite loop.
 \end{code}
 Assembling the result:
 \begin{code}
-   assemble top' befores afters False _
-    = Nothing
-   assemble top' befores afters _ False
-    = Just ( (ms,Comp name befores)
+   assemble _ _ _ False _ = Nothing
+   assemble top' (befores, mbef) (afters, maft) _ False
+    = Just ( (Comp name befores, MT ms mbef)
            , simplified
-           , (ms,Comp name afters) )
-   assemble top' befores afters _ True
-    = Just ( addMark m (ms,Comp name befores)
+           , (Comp name afters, MT ms maft) )
+   assemble top' (befores, mbef) (afters, maft) _ True
+    = Just ( addMark m (Comp name befores, MT ms mbef)
            , simplified
-           , addMark m (ms,top') )
+           , addMark m (top', MT ms maft) )
 \end{code}
 
 \newpage
@@ -262,7 +264,7 @@ make a distinction between predicate variables and nullary composites
 on the one hand,
 and composites of at least one component on the other.
 \begin{code}
-simplify d m mpr@(ms,(PSub spr subs))
+simplify d m mpr@(spr@(PSub _ subs), mt@(MT ms [smt]))
  = sbstsimp (ssimp d subs) spr
  where
 \end{code}
@@ -274,26 +276,30 @@ which can be used to remove some elements from the substitution.
    & \elabel{pvar-substn}
 }
 \begin{code}
-  sbstsimp (subchgd,subs') spr@(mp,PVar p)
+  sbstsimp (subchgd,subs') spr@(PVar p)
    = case plookup p d of
       Just (PredEntry _ _ alf _ _)
        -> Just ( addMark m mpr
                , "pvar-substn"
-               , addMark m                 -- should check that filter below makes a change!
-                  (ms, mkPSub spr
-                       $ filter ((`elem` alf) . fst) subs') )
+               , addMark m
+                  ( mkPSub spr
+               -- should check that filter below makes a change!
+                      $ filter ((`elem` alf) . fst) subs'
+                  , mt ) )
       _ -> Nothing
 \end{code}
 Nullary composites are treated the same:
 \begin{code}
-  sbstsimp (subchgd,subs') spr@(mp,Comp p [])
+  sbstsimp (subchgd,subs') spr@(Comp p [])
    = case plookup p d of
       Just (PredEntry _ _ alf _ _)
        -> Just ( addMark m mpr
                , "null-comp-substn"
                , addMark m
-                   (ms, mkPSub spr
-                        $ filter ((`elem` alf) . fst) subs'))
+                   ( mkPSub spr
+               -- should check that filter below makes a change!
+                        $ filter ((`elem` alf) . fst) subs'
+                   , mt ) )
       _ -> Nothing
 \end{code}
 In the general case,
@@ -301,27 +307,26 @@ we simplify both predicate and substitution parts,
 and combine
 \begin{code}
   sbstsimp (subschgd,subs') spr
-   = case simplify d m spr of
-      Nothing -> assemble (snd spr) spr spr subs' subschgd False
+   = case simplify d m mpr of
+      Nothing -> assemble spr mpr mpr subs' subschgd False
       Just (before,what,after)
-       -> let (topchgd,npr') = psubst m d subs' after
+       -> let (topchgd,(npr',_)) = psubst m d subs' after
           in assemble npr' before after subs'
                                  (subschgd||topchgd) topchgd
    where
-    assemble top'  before after subs' False _
-     = Nothing
-    assemble top' before after subs' _ False
-     = Just ( (ms,mkPSub before subs')
+    assemble _ _ _ _ False _ = Nothing
+    assemble top' (before, mbef) (after, maft) subs' _ False
+     = Just ( (mkPSub before subs', MT ms [mbef])
             , simplified
-            , (ms,mkPSub after subs') )
-    assemble top' before after subs'  _ True
-     = Just ( addMark m (ms,mkPSub before subs')
+            , (mkPSub after subs', MT ms [maft]) )
+    assemble top' (before, mbef) (after, maft) subs'  _ True
+     = Just ( addMark m (mkPSub before subs', MT ms [mbef])
             , simplified
-            , addMark m (ms,top') )
+            , addMark m (top', MT ms [maft]) )
 \end{code}
 All other cases are as simple as can be, considering\ldots
 \begin{code}
-simplify d m mpr@(ms,pr) = Nothing
+simplify _ _ _ = Nothing
 \end{code}
 
 \HDRd{Simplify ``Double-Tap''}
@@ -392,34 +397,36 @@ cannot be substituted into until their definitions are expanded.
 \begin{code}
 psubst :: Ord s
        => Mark -> Dict s -> Substn s -> MPred s
-       -> (Bool, Pred s)
+       -> (Bool, MPred s)
 
-psubst m d _ (_,T) = (diff,T)
-psubst m d _ (_,F) = (diff,F)
+psubst _ d _ mpr@(T,_) = (diff,mpr)
+psubst _ d _ mpr@(F,_) = (diff,mpr)
 
-psubst m d sub (_,Equal e1 e2)
+psubst _ d sub (Equal e1 e2, mt)
  = let
      (ediff1, e1') = (esubst sub e1)
      (ediff2, e2') = (esubst sub e2)
-   in (ediff1||ediff2, Equal e1' e2')
+   in (ediff1||ediff2, (Equal e1' e2', mt))
 
-psubst m d sub (_,Atm e)
+psubst _ d sub (Atm e, mt)
  = let (ediff, e') = esubst sub e
-   in  (ediff, Atm e')
+   in  (ediff, (Atm e', mt))
 
-psubst m d sub (_,Comp name mprs)
+psubst m d sub mpr@(Comp name prs, MT ms mts)
  | canSub sub d name
-    = let (_, mprs') = pssubst m d sub mprs
-      in  (diff, Comp name mprs')
+    = let (chgd,mprs') = pssubst m d sub $ zip prs mts
+      in if chgd
+          then let (prs',mts') = unzip mprs'
+               in (chgd, (Comp name prs', MT ms mts'))
+          else (same, mpr)
 
--- we need subcomp here, unlike in expression substitution
-
--- because psubst m d can return a PSub
-psubst m d sub (_,PSub mpr sub')
-                            = psubst m d (subcomp sub sub') mpr
+-- we need subcomp here, unlike in expression substitution,
+-- because psubst can return a PSub
+psubst m d sub (PSub pr sub', MT ms [smt])
+ = psubst m d (subcomp sub sub') (pr, smt)
 
 -- -- the rest are non-substitutable (n.s.)
-psubst m d sub mpr@(_,pr)  =  (same, mkPSub mpr sub)
+psubst m d sub (pr, mt)  =  (same, (mkPSub pr sub, MT [] [mt]))
 \end{code}
 Handling lists of predicates:
 \begin{code}
@@ -427,13 +434,12 @@ pssubst :: Ord s
         => Mark -> Dict s -> Substn s -> [MPred  s]
         -> (Bool, [MPred s])
 pssubst m d _ [] = (same,[])
-pssubst m d sub (mp@(ms,p):mps)
+pssubst m d sub (mpr:mprs)
  = let
-    (pdiff, p') = psubst m d sub mp
-    mp' = (ms,p')
-    mmp = if pdiff then addMark m mp' else mp'
-    (psdiff, mps') = pssubst m d sub mps
-   in (pdiff||psdiff, mp':mps')
+    (pdiff, mpr') = psubst m d sub mpr
+    mpr'' = if pdiff then addMark m mpr' else mpr
+    (psdiff, mprs') = pssubst m d sub mprs
+   in (pdiff||psdiff, mpr'':mprs')
 \end{code}
 
 \newpage
@@ -446,9 +452,8 @@ canSub subs d name
        ->  cansub == anyVars || null (map fst subs \\ cansub)
     _  ->  False
 
-
 substitutable :: Dict s -> MPred s -> Bool
-substitutable d (_,Comp name _)
+substitutable d (Comp name _,_)
  = case plookup name d of
     Just (PredEntry cansub _ _ _ _)  ->  not $ null cansub
     _                                ->  False
