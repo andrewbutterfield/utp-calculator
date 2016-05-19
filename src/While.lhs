@@ -81,13 +81,13 @@ of their precedence, so the first binds tightest.
 \\ &|& p \cond c q & \say{---Conditional}
 }
 \begin{code}
-pP          =  pvar nP                        ; nP   = "P"
-pQ          =  pvar nQ                        ; nQ   = "Q"
-skip        =  comp nskp []                   ; nskp = "skip"
-x ^= e      =  comp nasg [atm $ Var x, atm e] ; nasg = "asg"
-while c p   =  comp nwhl [atm c, p]           ; nwhl = "while"
-seqc p q    =  comp nseq [p, q]               ; nseq = "seq"
-cond c p q  =  comp ncnd [atm c, p, q]        ; ncnd = "cond"
+pP          =  PVar nP                        ; nP   = "P"
+pQ          =  PVar nQ                        ; nQ   = "Q"
+skip        =  Comp nskp []                   ; nskp = "skip"
+x ^= e      =  Comp nasg [Atm $ Var x, Atm e] ; nasg = "asg"
+while c p   =  Comp nwhl [Atm c, p]           ; nwhl = "while"
+seqc p q    =  Comp nseq [p, q]               ; nseq = "seq"
+cond c p q  =  Comp ncnd [Atm c, p, q]        ; ncnd = "cond"
 \end{code}
 
 \HDRc{Pretty-Printing ``While''}
@@ -168,7 +168,7 @@ evalAdd d [e,f] = ("", add e f)
 evalAdd d es = ("bad-add",App "?+" es)
 
 dAdd :: Show s => (String, Entry s)
-dAdd = ( nadd, ExprEntry True showAdd evalAdd )
+dAdd = ( nadd, ExprEntry ["*"] showAdd evalAdd )
 \end{code}
 
 \HDRd{Negation}~
@@ -182,7 +182,7 @@ evalMinus d [e] = ("", minus e)
 evalMinus d es = ("bad-minus",App "?-" es)
 
 dMinus :: Show s => (String, Entry s)
-dMinus = ( nmns, ExprEntry True showMinus evalMinus )
+dMinus = ( nmns, ExprEntry ["*"] showMinus evalMinus )
 \end{code}
 
 \HDRd{Less-Than}~
@@ -196,7 +196,7 @@ evalLT d [e,f] = ("", lt e f)
 evalLT d es = ("bad-lt",App "?<" es)
 
 dLT :: Show s => (String, Entry s)
-dLT = ( nlt, ExprEntry True showLT evalLT )
+dLT = ( nlt, ExprEntry ["*"] showLT evalLT )
 \end{code}
 
 \HDRc{Semantic Predicates}
@@ -205,7 +205,7 @@ dLT = ( nlt, ExprEntry True showLT evalLT )
    P \design Q &\defs& ok \land P \implies ok' \land Q
 }
 \begin{code}
-p |- q = comp ndsgn [p,q] ; ndsgn = "design"
+p |- q = Comp ndsgn [p,q] ; ndsgn = "design"
 
 precDsgn = precImp + 5
 
@@ -220,7 +220,7 @@ ppDsgn d ms p mprs = pps styleRed $ ppa "invalid-|-"
 defnDsgn :: Rewrite s
 defnDsgn d [mpr1,mpr2]
  = ( "design"
-   , mkImp (mkAnd [atm vok,mpr1]) (mkAnd [atm vok',mpr2]) )
+   , mkImp (mkAnd [Atm vok,mpr1]) (mkAnd [Atm vok',mpr2]) )
 \end{code}
 
 \HDRc{Definitions for ``While''}\label{hb:While-alpha}

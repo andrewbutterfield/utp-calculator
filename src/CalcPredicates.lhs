@@ -76,14 +76,14 @@ cleanCalc (currpr, steps, d)
 
 \begin{code}
 -- build a basic predicate at the MPred level
-true, false :: MPred s
-true           =  noMark T
-false          =  noMark F
-pvar str       =  noMark $ PVar str
-equal e1 e2    =  noMark $ Equal e1 e2
-atm e          =  noMark $ Atm e
-comp str mprs  =  noMark $ Comp str mprs
-psub mpr subs  =  noMark $ mkPSub mpr subs
+-- true, false :: MPred s
+-- true           =  noMark T
+-- false          =  noMark F
+-- pvar str       =  noMark $ PVar str
+-- equal e1 e2    =  noMark $ Equal e1 e2
+-- atm e          =  noMark $ Atm e
+-- comp str mprs  =  noMark $ Comp str mprs
+-- psub mpr subs  =  noMark $ mkPSub mpr subs
 \end{code}
 
 \HDRb{Dictionary}\label{hb:DataDict}
@@ -154,6 +154,8 @@ Default expression/predicate entry functions
 \begin{code}
 noEq :: Dict s -> [Expr s] -> [Expr s] -> Maybe Bool
 noEq _ _ _ = Nothing
+
+subAny =["*"]
 
 pNoChg :: String -> Rewrite s
 pNoChg name d mprs = Nothing

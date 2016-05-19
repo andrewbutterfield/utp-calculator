@@ -311,9 +311,9 @@ The Set Dictionary:
 setUTCPDict :: (Eq s, Ord s, Show s) => Dict s
 setUTCPDict
  = makeDict
-    [ (setn,(ExprEntry ["*"] showSet evalSet eqSet))
-    , (subsetn,(ExprEntry ["*"] showSubSet evalSubset noEq))
-    , (sswapn, (ExprEntry ["*"] showSSwap evalSSwap noEq))
+    [ (setn,(ExprEntry subAny showSet evalSet eqSet))
+    , (subsetn,(ExprEntry subAny showSubSet evalSubset noEq))
+    , (sswapn, (ExprEntry subAny showSSwap evalSSwap noEq))
     ]
 \end{code}
 
@@ -555,10 +555,10 @@ We can now define a generator dictionary:
 genUTCPDict :: (Eq s, Ord s, Show s) => Dict s
 genUTCPDict
  = makeDict
-    [ (new1n,(ExprEntry ["*"] showGNew1 (justMakes gNew1) noEq))
-    , (new2n,(ExprEntry ["*"] showGNew2 (justMakes gNew2) noEq))
-    , (split1n,(ExprEntry ["*"] showGSplit1 (justMakes gSplit1) noEq))
-    , (split2n,(ExprEntry ["*"] showGSplit2 (justMakes gSplit2) noEq))
+    [ (new1n,(ExprEntry subAny showGNew1 (justMakes gNew1) noEq))
+    , (new2n,(ExprEntry subAny showGNew2 (justMakes gNew2) noEq))
+    , (split1n,(ExprEntry subAny showGSplit1 (justMakes gSplit1) noEq))
+    , (split2n,(ExprEntry subAny showGSplit2 (justMakes gSplit2) noEq))
     ]
 \end{code}
 

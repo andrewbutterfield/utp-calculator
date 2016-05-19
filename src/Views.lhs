@@ -11,6 +11,7 @@ import CalcTypes
 import StdPrecedences
 import CalcPredicates
 import CalcAlphabets
+import CalcSysTypes
 import CalcSimplify
 import CalcRecogniser
 import CalcRun
@@ -32,12 +33,12 @@ We do a quick run-down of the Commands\cite{conf/popl/Dinsdale-YoungBGPY13}.
 
 \HDRb{Syntax}
 
-\def\atm#1{atm(#1)}
+\def\Atm#1{Atm(#1)}
 
 \begin{eqnarray*}
    a &\in& \Atom
 \\ C &::=&
- \atm a \mid \cskip \mid C \cseq C \mid C+C \mid C \parallel C \mid C^*
+ \Atm a \mid \cskip \mid C \cseq C \mid C+C \mid C \parallel C \mid C^*
 \\ g &:& Gen
 \\ \ell &:& Lbl
 \\ G &::=&  g \mid G_{:} \mid G_1 \mid G_2
@@ -246,12 +247,12 @@ The Set Dictionary:
 vSetDict :: (Eq s, Ord s, Show s) => Dict s
 vSetDict
  = makeDict
-    [ (setn,(ExprEntry ["*"] showSet evalSet eqSet))
-    , (unionn,(ExprEntry ["*"] ppUnion evalUnion noEq))
-    , (intn,(ExprEntry ["*"] ppIntsct evalIntsct noEq))
-    , (sdiffn,(ExprEntry ["*"] ppSDiff evalSDiff noEq))
-    , (subsetn,(ExprEntry ["*"] showSubSet evalSubset noEq))
-    , (sswapn, (ExprEntry ["*"] showSSwap evalSSwap noEq))
+    [ (setn,(ExprEntry subAny showSet evalSet eqSet))
+    , (unionn,(ExprEntry subAny ppUnion evalUnion noEq))
+    , (intn,(ExprEntry subAny ppIntsct evalIntsct noEq))
+    , (sdiffn,(ExprEntry subAny ppSDiff evalSDiff noEq))
+    , (subsetn,(ExprEntry subAny showSubSet evalSubset noEq))
+    , (sswapn, (ExprEntry subAny showSSwap evalSSwap noEq))
     ]
 \end{code}
 
@@ -308,10 +309,10 @@ We can now define a generator dictionary:
 vGenDict :: (Eq s, Ord s, Show s) => Dict s
 vGenDict
  = makeDict
-    [ (new1n,(ExprEntry ["*"] showGNew1 (justMakes gNew1) noEq))
-    , (new2n,(ExprEntry ["*"] showGNew2 (justMakes gNew2) noEq))
-    , (split1n,(ExprEntry ["*"] showGSplit1 (justMakes gSplit1) noEq))
-    , (split2n,(ExprEntry ["*"] showGSplit2 (justMakes gSplit2) noEq))
+    [ (new1n,(ExprEntry subAny showGNew1 (justMakes gNew1) noEq))
+    , (new2n,(ExprEntry subAny showGNew2 (justMakes gNew2) noEq))
+    , (split1n,(ExprEntry subAny showGSplit1 (justMakes gSplit1) noEq))
+    , (split2n,(ExprEntry subAny showGSplit2 (justMakes gSplit2) noEq))
     ]
 \end{code}
 
@@ -384,7 +385,7 @@ as well as a known alphabet.
 \\ \alpha \Skip &=& \setof{ls,ls',s,s'}
 }
 \begin{code}
-defnSkip d _ = ldefn shSkip $ mkAnd [equal ls' ls, equal s' s]
+defnSkip d _ = ldefn shSkip $ mkAnd [Equal ls' ls, Equal s' s]
 
 skipEntry' -- in stdUTPDict
   = ( nSkip
@@ -442,23 +443,22 @@ and note that
 
 \begin{code}
 nX = "X"
-isX (_,Comp n [_]) | n==nX = True; isX _ = False
+isX (_,Comp n [_,_,_,_]) | n==nX = True; isX _ = False
 
-mkX e ss' r a  = Comp nX [atm e, ss', atm r, atm a]
-bX  e ss' r a  = comp nX [atm e, ss', atm r, atm a]
+mkX e ss' r a  = Comp nX [Atm e, ss', Atm r, Atm a]
 
-pFlatShow d (_,Atm (App ns es))
+pFlatShow d (Atm (App ns es))
  | ns == setn  = flatSet d es
-pFlatShow d (_,Atm e) = flatSet d [e]
-pFlatShow_  _ = "?"
+pFlatShow d (Atm e) = flatSet d [e]
+pFlatShow _ _ = "?"
 
-ppX vd ms p mprs@[e,ss',r,a]
+ppX sCP vd p prs@[e,ss',r,a]
  = ppclosed "X(" ")" "|"
     [ ppa $ pFlatShow vd e
-    , mshowp vd ms 0 ss'
+    , sCP 0 2 ss'
     , ppa $ pFlatShow vd r
     , ppa $ pFlatShow vd a ]
-ppX vd ms p mprs = pps styleRed $ ppa ("invalid-"++nX)
+ppX _ _ _ _ = pps styleRed $ ppa ("invalid-"++nX)
 
 -- we don't want to expand the definition of this, or simplify it
 defnX = pNoChg nX
@@ -478,17 +478,16 @@ vXEntry
 
 \begin{code}
 nA = "A"
-isA (_,Comp n [_]) | n==nA = True; isA _ = False
+isA (Comp n [_,_,_]) | n==nA = True; isA _ = False
 
-mkA e ss' n  = Comp nA [atm e, ss', atm n]
-bA  e ss' n  = comp nA [atm e, ss', atm n]
+mkA e ss' n  = Comp nA [Atm e, ss', Atm n]
 
-ppA vd ms p mprs@[e,ss',n]
+ppA sCP vd p mprs@[e,ss',n]
  = ppclosed "A(" ")" "|"
     [ ppa $ pFlatShow vd e
-    , mshowp vd ms 0 ss'
+    , sCP 0 2 ss'
     , ppa $ pFlatShow vd n ]
-ppA vd ms p mprs = pps styleRed $ ppa ("invalid-"++nA)
+ppA _ _ _ _ = pps styleRed $ ppa ("invalid-"++nA)
 
 -- we don't want to expand the definition of this, or simplify it
 defnA = pNoChg nA
@@ -504,8 +503,8 @@ vAEntry
 Redo this to handle $\W(P) = \true * (\Skip \lor P)$
 }
 \begin{code}
-wUnroll :: Ord s => String -> DictRWFun s
-wUnroll _ _ mpr = ( "", mpr )
+wUnroll :: Ord s => String -> RWFun s
+wUnroll _ _ _ = Nothing
 \end{code}
 
 \newpage
@@ -517,7 +516,7 @@ The definitions, using the new shorthands:
 \\       &=& \bigvee_{i\in 0\dots} \Skip\seq C^i
 \\ ii &\defs& s'=s
 \\
-\\ \atm a &\defs&\W(A(in|a|out)) \land [in|out]
+\\ \Atm a &\defs&\W(A(in|a|out)) \land [in|out]
 \\ \cskip
    &\defs&
    \W(A(in|ii|out)) \land [in|out]
@@ -558,20 +557,20 @@ The definitions, using the new shorthands:
 \HDRc{Coding Atomic Semantics}
 
 \RLEQNS{
- \atm a &\defs&\W(A(in|a|out)) \land [in|out]
+ \Atm a &\defs&\W(A(in|a|out)) \land [in|out]
 }
 
 \begin{code}
 nAtom = "Atom" -- internal abstract name
-isAtom (_,Comp n [_]) | n==nAtom = True; isAtom _ = False
+isAtom (Comp n [_]) | n==nAtom = True; isAtom _ = False
 
-atom mpr = comp nAtom [mpr]
+atom pr = Comp nAtom [pr]
 
-ppAtom d ms p [mpr] = ppbracket "<" (mshowp d ms 0 mpr) ">"
-ppAtom d ms p mprs = pps styleRed $ ppa ("invalid-"++nAtom)
+ppAtom sCP d p [pr] = ppbracket "<" (sCP 0 1 pr) ">"
+ppAtom _ _ _ _ = pps styleRed $ ppa ("invalid-"++nAtom)
 
 defnAtom d [a]
- = ldefn nAtom $ wp $ bA inp a out
+ = ldefn nAtom $ wp $ mkA inp a out
 
 wp x = Comp "W" [x]
 
@@ -597,13 +596,13 @@ vAtmEntry
 nVSkip = "VSkip" -- internal abstract name
 isVSkip (_,Comp n [_]) | n==nVSkip = True; isVSkip _ = False
 
-vskip mpr = comp nVSkip [mpr]
+vskip mpr = Comp nVSkip [mpr]
 
 ppVSkip d ms p [mpr] = ppa "<skip>"
 ppVSkip d ms p mprs = pps styleRed $ ppa ("invalid-"++nSkip)
 
 defnVSkip d [a]
- = ldefn nVSkip $ wp $ bA inp ii out
+ = ldefn nVSkip $ wp $ mkA inp ii out
 
 vSkipEntry :: (Show s, Ord s) => (String, Entry s)
 vSkipEntry
@@ -612,7 +611,7 @@ vSkipEntry
 
 -- atomic skip
 nii= "ii"
-ii = pvar nii
+ii = PVar nii
 \end{code}
 
 
@@ -628,19 +627,19 @@ ii = pvar nii
 }
 \begin{code}
 nVSeq = "VSeq"
-isVSeq (_,Comp n [_,_]) | n==nVSeq = True; isVSeq _ = False
+isVSeq (Comp n [_,_]) | n==nVSeq = True; isVSeq _ = False
 
-vseq p q = comp nVSeq [p,q]
+vseq p q = Comp nVSeq [p,q]
 
 shVSeq = ";;"
-ppVSeq d ms p [mpr1,mpr2]
+ppVSeq sCP d p [pr1,pr2]
  = paren p precVSeq
-     $ ppopen  (pad shVSeq) [ mshowp d ms precVSeq mpr1
-                            , mshowp d ms precVSeq mpr2 ]
-ppVSeq d ms p mprs = pps styleRed $ ppa ("invalid-"++shVSeq)
+     $ ppopen  (pad shVSeq) [ sCP precVSeq 1 pr1
+                            , sCP precVSeq 2 pr2 ]
+ppVSeq _ _ _ _ = pps styleRed $ ppa ("invalid-"++shVSeq)
 
 defnVSeq d [p,q]
- = ldefn shVSeq $ wp $ bOr [psub p sub1, psub q sub2]
+ = ldefn shVSeq $ wp $ mkOr [PSub p sub1, PSub q sub2]
  where
    sub1 = [("g",g'1),("out",lg)]
    sub2 = [("g",g'2),("in",lg)]
@@ -671,24 +670,23 @@ vSeqEntry
 }
 \begin{code}
 nVChc = "VChc"
-isVChc (_,Comp n [_,_]) | n==nVChc = True; isVChc _ = False
+isVChc (Comp n [_,_]) | n==nVChc = True; isVChc _ = False
 
-vchc p q = comp nVChc [p,q]
+vchc p q = Comp nVChc [p,q]
 
 shVChc = "+"
-ppVChc d ms p [mpr1,mpr2]
+ppVChc sCP d p [pr1,pr2]
  = paren p precVChc
-     $ ppopen  (pad shVChc) [ mshowp d ms precVChc mpr1
-                            , mshowp d ms precVChc mpr2 ]
-ppVChc d ms p mprs = pps styleRed $ ppa ("invalid-"++shVChc)
+     $ ppopen  (pad shVChc) [ sCP precVChc 1 pr1
+                            , sCP precVChc 2 pr2 ]
+ppVChc _ _ _ _ = pps styleRed $ ppa ("invalid-"++shVChc)
 
 defnVChc d [p,q]
  = ldefn shVChc $ wp
-    $ bOr [ bX inp ii inp lg1
-          , bX inp ii inp lg2
-          , psub p sub1
-          , psub q sub2
-          ]
+    $ mkOr [ mkX inp ii inp lg1
+           , mkX inp ii inp lg2
+           , PSub p sub1
+           , PSub q sub2 ]
  where
    sub1 = [("g",g1'),("in",lg1)]
    sub2 = [("g",g2'),("in",lg2)]
@@ -722,24 +720,23 @@ vChcEntry
 }
 \begin{code}
 nVPar = "VPar"
-isVPar (_,Comp n [_,_]) | n==nVPar = True; isVPar _ = False
+isVPar (Comp n [_,_]) | n==nVPar = True; isVPar _ = False
 --
-vpar p q = comp nVPar [p,q]
+vpar p q = Comp nVPar [p,q]
 --
 shVPar = "||"
-ppVPar d ms p [mpr1,mpr2]
+ppVPar sCP d p [pr1,pr2]
  = paren p precVPar
-     $ ppopen  (pad shVPar) [ mshowp d ms precVPar mpr1
-                            , mshowp d ms precVPar mpr2 ]
-ppVPar d ms p mprs = pps styleRed $ ppa ("invalid-"++shVPar)
+     $ ppopen  (pad shVPar) [ sCP precVPar 1 pr1
+                            , sCP precVPar 2 pr2 ]
+ppVPar _ _ _ _ = pps styleRed $ ppa ("invalid-"++shVPar)
 --
 defnVPar d [p,q]
  = ldefn shVPar $ wp
-    $ bOr [ bX inp ii inp (set [lg1,lg2])
-          , psub p sub1
-          , psub q sub2
-          , bX s12' ii s12' out
-          ]
+    $ mkOr [ mkX inp ii inp (set [lg1,lg2])
+           , PSub p sub1
+           , PSub q sub2
+           , mkX s12' ii s12' out ]
  where
    sub1 = [("g",g1''),("in",lg1),("out",lg1')]
    sub2 = [("g",g2''),("in",lg2),("out",lg2')]
@@ -796,17 +793,17 @@ dictVP = makeDict [ vXEntry
 }
 \begin{code}
 mtchLabelSetSSwap :: Eq s => Recogniser s
-mtchLabelSetSSwap (_,Equal v' (App nm [v, s1, s2]))
- | v == ls && v' == ls'  =  matchBind [atm s1, atm s2]
-mtchLabelSetSSwap _      =  noMatch
+mtchLabelSetSSwap (Equal v' (App nm [v, s1, s2]))
+ | v == ls && v' == ls'  =  Just [Atm s1, Atm s2]
+mtchLabelSetSSwap _      =  Nothing
 \end{code}
 
 \newpage
 \HDRc{\texttt{vReduce}}\label{hc:vReduce}
 
 \begin{code}
-vReduce :: (Ord s, Show s) => DictRWFun s
-         -- Dict s -> MPred s -> (String, MPred s)
+vReduce :: (Ord s, Show s) => RWFun s
+        -- Dict s -> Pred s -> Maybe (String, Pred s, Bool)
 \end{code}
 
 
@@ -824,21 +821,21 @@ vReduce :: (Ord s, Show s) => DictRWFun s
        \land (E_2\setminus N_1) \cap E_1 = \emptyset
 }
 \begin{code}
-vReduce vd (_,Comp ns [ (_,Comp na1 [ (_,Atm e1)     -- A(E1
-                                    , as             --  |a
-                                    , (_,Atm n1)  ]) --  |N1)
-                      , (_,Comp na2 [ (_,Atm e2)     -- A(E2
-                                    , bs             --  |b
-                                    , (_,Atm n2)  ]) --  |N2)
-                      ])
+vReduce vd (Comp ns [ (Comp na1 [ (Atm e1)    -- A(E1
+                                , as          --  |a
+                                , (Atm n1) ]) --  |N1)
+                    , (Comp na2 [ (Atm e2)    -- A(E2
+                                , bs          --  |b
+                                , (Atm n2) ]) --  |N2)
+                    ])
  | ns == nSeq && na1 == nA && na2 == nA
-   =  ( "A-then-A"
-      , bAnd [ bX e' abs r' n'
-             , equal (e2ln1 `i` e1) emp])
+   =  lred "A-then-A"
+       $ mkAnd [ mkX e' abs r' n'
+               , Equal (e2ln1 `i` e1) emp]
  where
    e2ln1 = snd $ esimp vd (e2 `sdiff` n1)
    e'  = snd $ esimp vd (e1 `u` e2ln1)
-   abs = bSeq as bs
+   abs = mkSeq as bs
    r'  = snd $ esimp vd (e1 `u` e2)
    n'  = snd $ esimp vd ((n1 `sdiff` e2) `u` n2)
 \end{code}
@@ -856,22 +853,22 @@ vReduce vd (_,Comp ns [ (_,Comp na1 [ (_,Atm e1)     -- A(E1
        \land (E_2\setminus A_1) \cap R_1 = \emptyset
 }
 \begin{code}
-vReduce vd (_,Comp ns [ (_,Comp nx1 [ (_,Atm e1)     -- X(E1
-                                    , as             --  |a
-                                    , (_,Atm r1)     --  |R1
-                                    , (_,Atm a1)  ]) --  |A1)
-                      , (_,Comp na2 [ (_,Atm e2)     -- A(E2
-                                    , bs             --  |b
-                                    , (_,Atm n2)  ]) --  |N2)
-                      ])
+vReduce vd (Comp ns [ (Comp nx1 [ (Atm e1)    -- X(E1
+                                , as          --  |a
+                                , (Atm r1)    --  |R1
+                                , (Atm a1) ]) --  |A1)
+                    , (Comp na2 [ (Atm e2)    -- A(E2
+                                , bs          --  |b
+                                , (Atm n2) ]) --  |N2)
+                    ])
  | ns == nSeq && nx1 == nX && na2 == nA
-   =  ( "X-then-A"
-      , bAnd [ bX e' abs r' a'
-             , equal (e2la1 `i` r1) emp])
+   =  lred "X-then-A"
+        $mkAnd [ mkX e' abs r' a'
+               , Equal (e2la1 `i` r1) emp]
  where
    e2la1 = snd $ esimp vd (e2 `sdiff` a1)
    e'  = snd $ esimp vd (e1 `u` e2la1)
-   abs = bSeq as bs
+   abs = mkSeq as bs
    r'  = snd $ esimp vd (r1 `u` e2)
    a'  = snd $ esimp vd ((a1 `sdiff` e2) `u` n2)
 \end{code}
@@ -889,23 +886,23 @@ vReduce vd (_,Comp ns [ (_,Comp nx1 [ (_,Atm e1)     -- X(E1
        \land (E_2\setminus A_1) \cap R_1 = \emptyset
 }
 \begin{code}
-vReduce vd (_,Comp ns [ (_,Comp nx1 [ (_,Atm e1)     -- X(E1
-                                    , as             --  |a
-                                    , (_,Atm r1)     --  |R1
-                                    , (_,Atm a1)  ]) --  |A1)
-                      , (_,Comp nx2 [ (_,Atm e2)     -- X(E2
-                                    , bs             --  |b
-                                    , (_,Atm r2)     --  |R2
-                                    , (_,Atm a2)  ]) --  |A2)
+vReduce vd (Comp ns [ (Comp nx1 [ (Atm e1)     -- X(E1
+                                , as           --  |a
+                                , (Atm r1)     --  |R1
+                                , (Atm a1)  ]) --  |A1)
+                    , (Comp nx2 [ (Atm e2)     -- X(E2
+                                , bs           --  |b
+                                , (Atm r2)     --  |R2
+                                , (Atm a2)  ]) --  |A2)
                       ])
  | ns == nSeq && nx1 == nX && nx2 == nX
-   =  ( "X-then-X"
-      , bAnd [ bX e' abs r' a'
-             , equal (e2la1 `i` r1) emp])
+   =  lred "X-then-X"
+        $ mkAnd [ mkX e' abs r' a'
+                , Equal (e2la1 `i` r1) emp]
  where
    e2la1 = snd $ esimp vd (e2 `sdiff` a1)
    e'  = snd $ esimp vd (e1 `u` e2la1)
-   abs = bSeq as bs
+   abs = mkSeq as bs
    r'  = snd $ esimp vd (r1 `u` r2)
    a'  = snd $ esimp vd ((a1 `sdiff` r2) `u` a2)
 \end{code}
@@ -916,27 +913,30 @@ vReduce vd (_,Comp ns [ (_,Comp nx1 [ (_,Atm e1)     -- X(E1
    A \land (B \lor C) &=& (A \land B) \lor (A \land C)
 \end{eqnarray*}
 \begin{code}
-vReduce d (_,Comp na [ mpr, (_,Comp no mprs) ])
- | na == nAnd && no == nOr  =  ( "and-or-distr", bOr $ map f mprs )
- where f mpr' = bAnd [mpr , mpr']
+vReduce d (Comp na [ pr, (Comp no prs) ])
+ | na == nAnd && no == nOr  
+      =  lred "and-or-distr" $ mkOr $ map f prs 
+ where f pr' = mkAnd [pr , pr']
 \end{code}
 
 \begin{eqnarray*}
    A \seq (B \lor C) &=& (A \seq B) \lor (A \seq C)
 \end{eqnarray*}
 \begin{code}
-vReduce d (_,Comp ns [ mpr, (_,Comp no mprs) ])
- | ns == nSeq && no == nOr  =  ( ";-or-distr", bOr $ map f mprs )
- where f mpr' = bSeq mpr mpr'
+vReduce d (Comp ns [ pr, (Comp no prs) ])
+ | ns == nSeq && no == nOr
+      =  lred ";-or-distr" $  mkOr $ map f prs 
+ where f pr' = mkSeq pr pr'
 \end{code}
 
 \begin{eqnarray*}
   (A \lor B) \seq C &=& (A \seq C) \lor (B \seq C)
 \end{eqnarray*}
 \begin{code}
-vReduce d (_,Comp ns [ (_,Comp no mprs), mpr ])
- | ns == nSeq && no == nOr  =  ( "or-;-distr", bOr $ map f mprs )
- where f mpr' = bSeq mpr' mpr
+vReduce d (Comp ns [ (Comp no prs), pr ])
+ | ns == nSeq && no == nOr 
+      =  lred "or-;-distr" $ mkOr $ map f prs 
+ where f pr' = mkSeq pr' pr
 \end{code}
 
 We prefer sequential chains to associate to the left:
@@ -944,9 +944,9 @@ We prefer sequential chains to associate to the left:
    A \seq (B \seq C) &=& (A \seq B) \seq C
 \end{eqnarray*}
 \begin{code}
-vReduce d (_,Comp ns1 [ mprA, (_,Comp ns2 [mprB, mprC]) ])
+vReduce d (Comp ns1 [ prA, (Comp ns2 [prB, prC]) ])
  | ns1 == nSeq && ns2 == nSeq
-     =  ( ";-left-assoc", bSeq (bSeq mprA mprB) mprC )
+     =  lred  ";-left-assoc" $ mkSeq (mkSeq prA prB) prC
 \end{code}
 
 
@@ -954,7 +954,7 @@ vReduce d (_,Comp ns1 [ mprA, (_,Comp ns2 [mprB, mprC]) ])
 \newpage
 Default case: no change.
 \begin{code}
-vReduce _ mpr = ( "", mpr )
+vReduce _ _ = Nothing
 \end{code}
 
 \HDRc{The Reduction Entry}\label{hc:WWW-reduce-ent}
@@ -968,12 +968,12 @@ vRedEntry = entry laws $ LawEntry [vReduce] [] []
 \HDRb{Conditional Reductions for WWW}\label{hb:WWW-creduce}
 
 \begin{code}
-vCReduce :: CDictRWFun s
+vCReduce :: CRWFun s
 \end{code}
 
 Default case: no change.
 \begin{code}
-vCReduce _ mpr = ( "", [(T,mpr)] )
+vCReduce _ mpr = Nothing
 \end{code}
 
 \HDRc{The Conditional Reduction Entry}\label{hc:WWW-reduce-ent}
@@ -1018,9 +1018,9 @@ But we also support several styles and degrees of unrolling:
          (c \land P)^n \seq c *P
 \end{eqnarray*}
 \begin{code}
-vUnroll :: Ord s => String -> DictRWFun s
-vUnroll ns d miter@(_,Comp nm  [mc, mpr])
- | nm == nIter = ( "loop-unroll" ++ ntag ns, vunroll n )
+vUnroll :: Ord s => String -> RWFun s
+vUnroll ns d iter@(Comp nm  [c, pr])
+ | nm == nIter = lred ("loop-unroll" ++ ntag ns) $ vunroll n
  where
 
    ntag "" = ""
@@ -1030,23 +1030,23 @@ vUnroll ns d miter@(_,Comp nm  [mc, mpr])
      | isDigit $ head ns = digitToInt $ head ns
      | otherwise = 0
 
-   vunroll 0  =  bCond (bSeq mpr miter) mc bSkip
-   vunroll 1  =  bOr [ loopdone
-                     , bSeq (loopstep 1) miter]
-   vunroll 2  =  bOr [ loopdone
-                     , bSeq (loopstep 1) loopdone
-                     , bSeq (loopstep 2) miter]
-   vunroll 3  =  bOr [ loopdone
-                     , bSeq (loopstep 1) loopdone
-                     , bSeq (loopstep 2) loopdone
-                     , bSeq (loopstep 3) miter]
-   vunroll _  =  bCond (bSeq mpr miter) mc bSkip
+   vunroll 0  =  mkCond (mkSeq pr iter) c mkSkip
+   vunroll 1  =  mkOr [ loopdone
+                      , mkSeq (loopstep 1) iter]
+   vunroll 2  =  mkOr [ loopdone
+                      , mkSeq (loopstep 1) loopdone
+                      , mkSeq (loopstep 2) iter]
+   vunroll 3  =  mkOr [ loopdone
+                      , mkSeq (loopstep 1) loopdone
+                      , mkSeq (loopstep 2) loopdone
+                      , mkSeq (loopstep 3) iter]
+   vunroll _  =  mkCond (mkSeq pr iter) c mkSkip
 
-   loopdone = bAnd [bNot mc, bSkip]
-   loopstep 1 = bAnd [mc, mpr]
-   loopstep n = bSeq (loopstep (n-1)) (loopstep 1)
+   loopdone   = mkAnd [mkNot c, mkSkip]
+   loopstep 1 = mkAnd [c, pr]
+   loopstep n = mkSeq (loopstep (n-1)) (loopstep 1)
 
-vUnroll _ _ mpr = ( "", mpr )
+vUnroll _ _ _ = Nothing
 \end{code}
 
 \HDRc{The Unroll Entry}\label{hc:WWW-reduce-ent}
@@ -1079,25 +1079,26 @@ vDict
 
 
 \begin{code}
-vshow :: (Show s, Ord s) => MPred s -> String
-vshow = pmdshow 80 vDict noStyles
+vshow :: (Show s, Ord s) => Pred s -> String
+vshow = pmdshow 80 vDict noStyles . buildMarks
 
-vput :: (Show s, Ord s) => MPred s -> IO ()
+vput :: (Show s, Ord s) => Pred s -> IO ()
 vput = putStrLn . vshow
 
-vcalc mpr = calcREPL vDict mpr
-vputcalc :: (Ord s, Show s) => MPred s -> IO ()
-vputcalc mpr = printREPL vDict mpr
+vcalc pr = calcREPL vDict $ buildMarks pr
+vputcalc :: (Ord s, Show s) => Pred s -> IO ()
+vputcalc pr = printREPL vDict $ buildMarks pr
 
-vsavecalc fp mpr
- = do calc <- vcalc mpr
+vsavecalc fp pr
+ = do calc <- vcalc pr
       saveCalc fp calc
 
-vsimp :: (Show s, Ord s) => MPred s -> (String, MPred s)
-vsimp mpr
-  = (what,mpr')
-  where (_,what,mpr') = simplify vDict 42 mpr
-vsimp2 :: (Show s, Ord s) => (String, MPred s) -> (String, MPred s)
+vsimp :: (Show s, Ord s) => Pred s -> (String, Pred s)
+vsimp pr
+  = case simplify vDict 42 $ buildMarks pr of
+     Nothing               ->  ("", pr)
+     Just (_,what,(pr',_)) ->  (what,pr')
+vsimp2 :: (Show s, Ord s) => (String, Pred s) -> (String, Pred s)
 vsimp2 = vsimp . snd
 \end{code}
 
@@ -1179,12 +1180,12 @@ This gives us the desired reduction law above.
 \HDRc{Test Constructs}\label{hc:test-constructs}
 
 \begin{code}
-pP = pvar "P" ; pQ = pvar "Q"  -- general programs
-a = pvar "a"
-b = pvar "b"
+pP = PVar "P" ; pQ = PVar "Q"  -- general programs
+a = PVar "a"
+b = PVar "b"
 
-subII :: (Show s, Ord s) => MPred s
-subII = psub bSkip [("g",g'1),("out",lg)]
+subII :: (Show s, Ord s) => Pred s
+subII = PSub mkSkip [("g",g'1),("out",lg)]
 
 actionA = atom a
 actionB = atom b
@@ -1208,11 +1209,12 @@ Of interest are the following calculations:
 \\ && S \seq D
 }
 \begin{code}
-defvseq :: (Ord s, Show s) => [MPred s] -> Pred s
-defvseq = snd . defnVSeq (vDict :: Dict ())
-athenbBody :: (Ord s, Show s) => MPred s
-athenbBody = body
-  where (Comp _ [body]) = defvseq [actionA,actionB]
+--defvseq :: (Ord s, Show s) => [Pred s] -> Pred s
+defvseq = defnVSeq (vDict :: Dict ())
+--athenbBody :: (Ord s, Show s) => Pred s
+athenbBody = case defvseq [actionA,actionB] of
+              Just (Comp _ [body],_)  ->  body
+              _                       ->  PVar "??"
 \end{code}
 \begin{verbatim}
 D(lg) \/ X(in|lg|a|in|lg) \/ D(out) \/ X(lg|out|b|lg|out) ; D(out)
@@ -1479,16 +1481,16 @@ we can assert the slightly stronger:
 
 \HDRb{Calculations with Views}
 
-\HDRc{$atm(a)$}
+\HDRc{$Atm(a)$}
 
 \RLEQNS{
-   atm(a) &=& D(out) \lor X(in|out|a|in|out)
+   Atm(a) &=& D(out) \lor X(in|out|a|in|out)
 }
 
-\HDRc{$atm(a) \cseq atm(b)$}
+\HDRc{$Atm(a) \cseq Atm(b)$}
 
 \begin{eqnarray*}
-   \lefteqn{atm(a)[\g{:1},\ell_g/g,out] \lor atm(b)[\g{:2},\ell_g/g,in]}
+   \lefteqn{Atm(a)[\g{:1},\ell_g/g,out] \lor Atm(b)[\g{:2},\ell_g/g,in]}
 \\ &=& D(\ell_g)
        \lor X(in|\ell_g|a|in|\ell_g)
        \lor D(out)
