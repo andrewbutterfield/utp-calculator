@@ -10,6 +10,7 @@ import CalcRecogniser
 import CalcSteps
 import StdPrecedences
 import StdPredicates
+import StdUTPPredicates
 import StdUTPLaws
 import UTCPSemantics
 import Debug.Trace
@@ -72,10 +73,6 @@ defnUTCPII = mkAnd [ Equal s' s, Equal ls' ls ]
 In the calculator we do not implement the definitions
 for $;$ and $c * P$,
 as these would make the calculator far too complex.
-We do provide a quick builder:
-\begin{code}
-mkSeq pr1 pr2 = Comp "Seq" [pr1,pr2]
-\end{code}
 Instead we implement a number of judiciously chosen laws
 satisfied by certain (equally judiciously chosen) combinations
 of these and other predicate constructs.

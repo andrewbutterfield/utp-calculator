@@ -329,6 +329,15 @@ All other cases are as simple as can be, considering\ldots
 simplify _ _ _ = Nothing
 \end{code}
 
+SOmetimes we want to simply a Pred without any fuss:
+\begin{code}
+psimp :: (Ord s, Show s) => Dict s -> Pred s -> Pred s
+psimp d pr
+ = case simplify d 0 $ buildMarks pr of
+     Just (_,_,(pr',_))  ->  pr'
+     Nothing             ->  pr
+\end{code}
+
 \HDRd{Simplify ``Double-Tap''}
 
 It is often worth running simplify twice!

@@ -19,8 +19,13 @@ a number of alternative outcomes, each guarded by some predicate
 that is hard to evaluate.
 The user elects which one to use by checking the conditions manually.
 
+A result wrapper:
 \begin{code}
-creduceUTCP :: (Show s, Ord s) => CDictRWFun s
+lcred nm cmprs = Just ( nm, cmprs )
+\end{code}
+
+\begin{code}
+creduceUTCP :: (Show s, Ord s) => CRWFun s
 \end{code}
 
 \HDRc{pre- and before-substitutions}
@@ -41,17 +46,6 @@ beforeSub :: Ord s => Dict s -> Substn s -> Bool
 beforeSub d = all (beforeSublet d)
 \end{code}
 
-\HDRc{Predicate Simplifier}
- Sometimes we want to simplify a predicate without fuss
-(marking or comment):
-\begin{code}
-psimp :: (Ord s, Show s)
-      => Dict s -> MPred s -> Pred s
-psimp d = snd . thd . simplify d startm
-
-thd (_,_,z) = z
-\end{code}
-
 
 \HDRc{Atomic Enablement}
 
@@ -66,15 +60,17 @@ thd (_,_,z) = z
     = \false
 }
 \begin{code}
-creduceUTCP d (_,PSub (_,Comp "PAtm" [pA])
+creduceUTCP d (PSub (Comp "PAtm" [pA])
                       [("in",l0),("out",l1),("ls",ns)] )
- = lcred "atm-substn" [doA,nowt]
+ = lcred "Atm-substn" [doA,nowt]
  where
-   nsl0 = atm $ subset l0 ns
+   nsl0 = Atm $ subset l0 ns
    doA  = ( psimp d nsl0
-          , bAnd [pA, equal ls' $ sswap ns l0 l1 ] )
-   nowt = ( psimp d $ bNot nsl0
-          , false )
+          , mkAnd [pA, Equal ls' $ sswap ns l0 l1 ]
+          , diff )
+   nowt = ( psimp d $ mkNot nsl0
+          , F
+          , diff )
 \end{code}
 
 \HDRc{Before-Var Iteration substitution}
@@ -120,15 +116,17 @@ Provided that $\vec x \subseteq in\alpha P$
    (c * P)[\vec e/\vec x] = \Skip[\vec e/\vec x]
 }
 \begin{code}
-creduceUTCP d (_,PSub w@(_,Comp "Iter" [c,p]) sub)
+creduceUTCP d (PSub w@(Comp "Iter" [c,p]) sub)
  | isCondition c && beforeSub d sub
  = lcred "loop-substn" [ctrue,cfalse]
  where
-   csub = psub c sub
+   csub = PSub c sub
    ctrue  = ( psimp d csub
-            , bSeq (psub p sub) w )
-   cfalse = ( psimp d $ bNot csub
-            , psub bSkip sub )
+            , mkSeq (PSub p sub) w
+            , diff )
+   cfalse = ( psimp d $ mkNot csub
+            , PSub mkSkip sub
+            , diff )
 \end{code}
 
 \HDRc{Before-Var Condition substitution}
@@ -143,23 +141,25 @@ Provided that $\vec x$ are undashed:
    (P \cond c Q)[\vec e/\vec x] = Q[\vec e/\vec x]
 }
 \begin{code}
-creduceUTCP d (_,PSub (_,Comp "Cond" [c,p,q]) sub)
+creduceUTCP d (PSub (Comp "Cond" [c,p,q]) sub)
  | isCondition c && preSub sub
  = lcred "cond-substn" [ctrue,cfalse]
  where
-   csub = psub c sub
+   csub = PSub c sub
    ctrue  = ( psimp d csub
-            , psub p sub)
-   cfalse = ( psimp d $ bNot csub
-            , psub q sub )
+            , PSub p sub
+            , diff )
+   cfalse = ( psimp d $ mkNot csub
+            , PSub q sub
+            , diff )
 \end{code}
 
 \HDRc{Boolean followed by iteration}
 
 Provided $\fv{b'} \subseteq \setof{s',ls'}$, $x'$ is an observation, and $k$ is ground
 \begin{code}
-creduceUTCP d mpr@(_,Comp "Seq" [ a@(_,Comp "And" prs)
-                                , w@(_,Comp "Iter" [c,pB]) ])
+creduceUTCP d mpr@(Comp "Seq" [ a@(Comp "And" prs)
+                                , w@(Comp "Iter" [c,pB]) ])
  | isCondition c
 
 \end{code}
@@ -169,13 +169,15 @@ creduceUTCP d mpr@(_,Comp "Seq" [ a@(_,Comp "And" prs)
 }
 \begin{code}
    = case matchRecog (mtchDashedObsExpr d) prs of
-     Just (pre,((_,Atm e'),_),post)
+     Just (pre,((Atm e'),_),post)
       -> let
-          e = atm $ unDash e'
-          continue = ( psimp d $ bImp e c
-                     , bSeq (bSeq (bAnd (pre++post)) (bAnd [e, pB])) w)
-          stop     = ( psimp d $ bImp e (bNot c)
-                     , a )
+          e = Atm $ unDash e'
+          continue = ( psimp d $ mkImp e c
+                     , mkSeq (mkSeq (mkAnd (pre++post)) (mkAnd [e, pB])) w
+                     , diff )
+          stop     = ( psimp d $ mkImp e (mkNot c)
+                     , a
+                     , diff )
          in lcred "loop-step" [continue,stop]
 \end{code}
 \newpage
@@ -194,25 +196,25 @@ creduceUTCP d mpr@(_,Comp "Seq" [ a@(_,Comp "And" prs)
 \begin{code}
      Nothing ->
       case matchRecog (mtchAfterEqToConst d) prs of
-       Just (pre,((_,(Equal (Var x') k)),_),post)
+       Just (pre,(((Equal (Var x') k)),_),post)
         -> let
             x = init x'
-            e = equal (Var x) k
-            stop     = ( psimp d $ bImp e (bNot c)
-                       , a )
-            continue = ( psimp d $ bImp e c
-                       , bSeq a
-                             (bSeq (psub pB [(x,k)])
-                                   w ))
+            e = Equal (Var x) k
+            stop     = ( psimp d $ mkImp e (mkNot c)
+                       , a
+                       , diff )
+            continue = ( psimp d $ mkImp e c
+                       , mkSeq a
+                             (mkSeq (PSub pB [(x,k)])
+                                   w)
+                       , diff )
            in lcred "obs'-;-*-prop" [continue,stop]
-       Nothing -> lcred "" [(T,mpr)]
+       Nothing -> Nothing
 \end{code}
 
 Other cases, do nothing:
 \begin{code}
-creduceUTCP d mpr = lcred "" [(T,mpr)]
-
-lcred nm cmprs = ( nm, cmprs )
+creduceUTCP d mpr = Nothing
 \end{code}
 
 
