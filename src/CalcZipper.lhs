@@ -20,11 +20,14 @@ We go down by specifying which sub-component, if necessary,
 with components numbered from 0 upwards
 \begin{code}
 downMPZ :: Int -> MPZipper s -> MPZipper s
-downMPZ _ ( (m, PSub mpr subs), ss ) = ( mpr, PSub' m subs : ss )
-downMPZ i ( (m, Comp name mprs), ss )
- | 0 <= i && i < length mprs
-   = (  mpri, Comp' m name before after : ss )
-   where ( before, (mpri:after) ) = splitAt i mprs
+downMPZ _ ( (PSub pr subs, MT ms [smt]), ss )
+         = ( (pr, smt), (PSub' subs, MT' ms [] []) : ss )
+downMPZ i ( (Comp name prs, MT ms mts), ss )
+ | 0 <= i && i < length prs
+   = (  (pri, mi), (Comp' name before after, MT' ms mbef maft) : ss )
+   where
+     ( before, (pri:after) ) = splitAt i prs
+     ( mbef, (mi:maft) ) = splitAt i mts
 downMPZ _ mpz = mpz -- default case, do nothing
 \end{code}
 
@@ -34,9 +37,10 @@ We can plug an \texttt{MPred} into a\texttt{ MPred'} to get an \texttt{MPred},
 effectively moving up one level
 \begin{code}
 plugMPZ :: MPred' s -> MPred s -> MPred s
-plugMPZ (Comp' m name before after) mpr
-                            =  (m, Comp name (before++mpr:after))
-plugMPZ (PSub' m subs) mpr  =  (m, PSub mpr subs)
+plugMPZ (Comp' name before after, MT' ms mbef maft) (pr, mt)
+                            =  ( Comp name (before++pr:after)
+                               , MT ms (mbef++mt:maft) )
+plugMPZ (PSub' subs, MT' ms _ _) (pr, mt)  =  (PSub pr subs, MT ms [mt])
 \end{code}
 
 We then lift this to work with a zipper
