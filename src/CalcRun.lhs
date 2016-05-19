@@ -126,6 +126,9 @@ runREPL :: (Ord s, Show s)
         -> IO (CalcLog s)
 runREPL d m state@(currpr,steps)
  = do
+  if invMPred currpr
+     then return ()
+     else putStrLn "@@@@ M-Pred Invariant fails @@@@"
   if invMarks (currpr,steps,d)
    then return ()
    else putStrLn "**** Marking Invariant fails ****"

@@ -1213,8 +1213,8 @@ Of interest are the following calculations:
 defvseq = defnVSeq (vDict :: Dict ())
 --athenbBody :: (Ord s, Show s) => Pred s
 athenbBody = case defvseq [actionA,actionB] of
-              Just (Comp _ [body],_)  ->  body
-              _                       ->  PVar "??"
+              Just (_,Comp _ [body],_)  ->  body
+              _                         ->  PVar "??"
 \end{code}
 \begin{verbatim}
 D(lg) \/ X(in|lg|a|in|lg) \/ D(out) \/ X(lg|out|b|lg|out) ; D(out)
