@@ -261,11 +261,9 @@ showm i (mpr:mprs)
       showm (i+1) mprs
 
 marksOf :: MPred s -> [Mark]
-marksOf  ( ms, pr ) = ms ++ predMarks pr
+marksOf = mFlatten . snd
 
-predMarks (Comp _ mprs) = concat $ map marksOf mprs
-predMarks (PSub mpr _) = marksOf mpr
-predMarks _ = []
+mFlatten (MT ms mts) = ms ++ concat (map mFlatten mts)
 \end{code}
 
 Viewing before and after
