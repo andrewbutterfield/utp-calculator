@@ -20,15 +20,15 @@ import CalcRun
 We now define useful bits:
 The static dictionary, and some useful pre-defined variables
 \begin{code}
-a = pvar "A"; aa = patm a
-b = pvar "B"; ab = patm b
-c = Var  "c"; cp = atm  c
+a = PVar "A"; aa = patm a
+b = PVar "B"; ab = patm b
+c = Var  "c"; cp = Atm  c
 athenb = pseq [aa,ab]
 awithb = ppar [aa,ab]
 acondb = pcond [cp,aa,ab]
 doa = piter [cp,aa]
 
-p = pvar "P" ; q = pvar "Q" ; r=pvar "R"
+p = PVar "P" ; q = PVar "Q" ; r=PVar "R"
 pthenq = pseq [p,q]
 pwithq = ppar [p,q]
 pcondq = pcond [cp,p,q]

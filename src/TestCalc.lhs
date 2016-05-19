@@ -11,6 +11,7 @@ import CalcTypes
 import StdPrecedences
 import CalcPredicates
 import CalcAlphabets
+import CalcSysTypes
 import CalcSimplify
 import CalcRecogniser
 import CalcRun
@@ -26,7 +27,8 @@ import UTCPCReduce
 import UTCPCalc
 \end{code}
 
-
+\textbf{\emph{This test file is badly out of date
+and won't compile.}}
 
 \HDRb{Test Objects}
 
@@ -34,9 +36,9 @@ import UTCPCalc
 \HDRc{Test Variables}
 
 \begin{code}
-x = "x" ; vx = Var x ; px = atm vx
-y = "y" ; vy = Var y ; py = atm vy
-z = "z" ; vz = Var z ; pz = atm vz
+x = "x" ; vx = Var x ; px = Atm vx
+y = "y" ; vy = Var y ; py = Atm vy
+z = "z" ; vz = Var z ; pz = Atm vz
 \end{code}
 
 
@@ -53,58 +55,41 @@ y90 = [(y,Z 90)]
 \HDRc{Test Predicates}
 
 \begin{code}
-xandy = bAnd [px,py]
-xory = bOr [px,py]
-sub42 :: Ord s => MPred s
-sub42 = psub xandy x42
+xandy = mkAnd [px,py]
+xory = mkOr [px,py]
+sub42 :: Ord s => Pred s
+sub42 = PSub xandy x42
 
-xeqy = equal vx vy
+xeqy = Equal vx vy
 
-hasF = [px,py,false,pz]
-hasT = [py,true,pz,px]
-hasFT = [false,px,true,pz]
+hasF = [px,py,F,pz]
+hasT = [py,T,pz,px]
+hasFT = [F,px,T,pz]
 hasNone = [pz,py,px]
 
-orF = bOr hasF
-andT = bAnd hasT
-xorF = bOr [bOr hasNone,orF]
-xandT = bAnd [andT,bAnd hasNone]
-bigOr = bOr [xorF,xandT,bAnd hasFT]
-bigAnd = bAnd [xorF,xandT,bOr hasFT]
+orF = mkOr hasF
+andT = mkAnd hasT
+xorF = mkOr [mkOr hasNone,orF]
+xandT = mkAnd [andT,mkAnd hasNone]
+bigOr = mkOr [xorF,xandT,mkAnd hasFT]
+bigAnd = mkAnd [xorF,xandT,mkOr hasFT]
 \end{code}
 
-\HDRb{Test Functions}
-\begin{code}
-test ipr      = simplify stdDict 42 ipr
-rtest (_,ipr) = simplify stdDict 99 ipr
-\end{code}
-
-Marking and displaying tests:
-\begin{code}
-marked :: MPred ()
-marked = addMark 42
-       $ bAnd [ addMark 1 $ atm $ Z 1
-              , addMark 2 $ atm $ Z 2
-              , addMark 3 $ atm $ Z 3
-              , addMark 4 $ atm $ Z 4
-              ]
-mtest m = putStrLn $ pmdshow 80 stdDict (stepshow m) marked
-\end{code}
 
 \HDRb{Test Dictionaries}
 
 \HDRc{Implies-False Dictionary}
 
 First, a dictionary that defines negation, conjunction, disjunction
-and non-determinisitic choice in a layered way
+and non-deterministic choice in a layered way
 on top of implication and False.
 \RLEQNS{
     \lnot P &\defs& P \implies false
 }
 \begin{code}
-notImpFalse :: Dict s -> [MPred s] -> (String, Pred s)
-notImpFalse _ [mpr] = ( "not-ImpFalse", mkImp mpr $ noMark F )
-notImpFalse _ mprs = ( "", Comp "Not" mprs )
+notImpFalse :: Dict s -> [Pred s] -> (String, Pred s)
+notImpFalse _ [pr] = ( "not-ImpFalse", mkImp pr F )
+notImpFalse _ prs = ( "", Comp "Not" prs )
 
 notIFEntry :: (Show s, Ord s) => (String, Entry s)
 notIFEntry
@@ -115,9 +100,9 @@ notIFEntry
     P \lor Q &\defs& \lnot P \implies Q
 }
 \begin{code}
-orImpFalse :: Dict s -> [MPred s] -> (String, Pred s)
-orImpFalse _ [mp,mq]  =  ( "or-ImpFalse", mkImp (noMark $ mkNot mp) mq )
-orImpFalse _ mprs     =  ( "", Comp "Or" mprs )
+orImpFalse :: Dict s -> [Pred s] -> (String, Pred s)
+orImpFalse _ [p,q]  =  ( "or-ImpFalse", mkImp (mkNot p) q )
+orImpFalse _ prs    =  ( "", Comp "Or" prs )
 
 orIFEntry :: (Show s, Ord s) => (String, Entry s)
 orIFEntry
@@ -128,7 +113,7 @@ orIFEntry
    P \ndc Q &\defs& P \lor Q
 }
 \begin{code}
-ndcImpFalse :: Dict s -> [MPred s] -> (String, Pred s)
+ndcImpFalse :: Dict s -> [Pred s] -> (String, Pred s)
 ndcImpFalse _ [mp,mq]  =  ( "ndc-ImpFalse", mkOr [mp,mq] )
 ndcImpFalse _ mprs     =  ( "", Comp "NDC" mprs )
 
@@ -141,10 +126,10 @@ ndcIFEntry
    P \land Q &\defs& \lnot(\lnot P \lor \lnot Q)
 }
 \begin{code}
-andImpFalse :: Dict s -> [MPred s] -> (String, Pred s)
+andImpFalse :: Dict s -> [Pred s] -> (String, Pred s)
 andImpFalse _ [mp,mq]
  = ( "and-ImpFalse"
-   , mkNot $ noMark $ mkOr [noMark $ mkNot mp, noMark $ mkNot mq] )
+   , mkNot $ mkOr [mkNot mp, mkNot mq] )
 andImpFalse _ mprs     =  ( "", Comp "And" mprs )
 
 andIFEntry :: (Show s, Ord s) => (String, Entry s)
@@ -176,77 +161,77 @@ absAlfDict
 
 Now some predicates for this
 \begin{code}
-pA = noMark $ PVar "A"
-pB = noMark $ PVar "B"
+pA = PVar "A"
+pB = PVar "B"
 
-eqVV = equal (Var "v1") (Var "v2")
-eqVK = equal (Var "v1") (Z 42)
-eqMV = equal (Var "m1") (Var "v2")
-eqMK = equal (Var "m1") (Z 42)
-eqPV = equal (Var "p1") (Var "v2")
-eqPK = equal (Var "p1") (Z 42)
+eqVV = Equal (Var "v1") (Var "v2")
+eqVK = Equal (Var "v1") (Z 42)
+eqMV = Equal (Var "m1") (Var "v2")
+eqMK = Equal (Var "m1") (Z 42)
+eqPV = Equal (Var "p1") (Var "v2")
+eqPK = Equal (Var "p1") (Z 42)
 
-eqVVthenA = bSeq eqVV pA
-eqVKthenA = bSeq eqVK pA
-eqMVthenA = bSeq eqMV pA
-eqMKthenA = bSeq eqMK pA
-eqPVthenA = bSeq eqPV pA
-eqPKthenA = bSeq eqPK pA
+eqVVthenA = mkSeq eqVV pA
+eqVKthenA = mkSeq eqVK pA
+eqMVthenA = mkSeq eqMV pA
+eqMKthenA = mkSeq eqMK pA
+eqPVthenA = mkSeq eqPV pA
+eqPKthenA = mkSeq eqPK pA
 
-eqV'V = equal (Var "v1'") (Var "v2")
-eqV'K = equal (Var "v1'") (Z 42)
-eqM'V = equal (Var "m1'") (Var "v2")
-eqM'V' = equal (Var "m1'") (Var "v2'")
-eqM'K = equal (Var "m1'") (Z 42)
+eqV'V = Equal (Var "v1'") (Var "v2")
+eqV'K = Equal (Var "v1'") (Z 42)
+eqM'V = Equal (Var "m1'") (Var "v2")
+eqM'V' = Equal (Var "m1'") (Var "v2'")
+eqM'K = Equal (Var "m1'") (Z 42)
 
-eqV'VthenA = bSeq eqV'V pA
-eqV'KthenA = bSeq eqV'K pA
-eqM'VthenA = bSeq eqM'V pA
-eqM'KthenA = bSeq eqM'K pA
+eqV'VthenA = mkSeq eqV'V pA
+eqV'KthenA = mkSeq eqV'K pA
+eqM'VthenA = mkSeq eqM'V pA
+eqM'KthenA = mkSeq eqM'K pA
 
 eqDyn'KthenA
- = bSeq (bAnd $ map eqIt ["m1'","v2'","v1'","m2'"]) pA
+ = mkSeq (mkAnd $ map eqIt ["m1'","v2'","v1'","m2'"]) pA
 
 eqDuh'KthenA
- = bSeq (bAnd $ map eqIt ["m1'","v2'","m2'"]) pA
+ = mkSeq (mkAnd $ map eqIt ["m1'","v2'","m2'"]) pA
 
 aAndeqDny'KthenB
- = bSeq (bAnd $ pA : map eqIt ["m1'","v2'","m2'"]) pB
+ = mkSeq (mkAnd $ pA : map eqIt ["m1'","v2'","m2'"]) pB
 
 aAndeqDny'KthenEq
- = bSeq (bAnd $ pA : map eqIt ["m1'","v2'","m2'"]) eqM'V'
+ = mkSeq (mkAnd $ pA : map eqIt ["m1'","v2'","m2'"]) eqM'V'
 
-eqIt v' = equal (Var v') (Z 42)
+eqIt v' = Equal (Var v') (Z 42)
 \end{code}
 
 A test for atomic substitution
 \begin{code}
-asubjunk :: MPred ()
-asubjunk = psub pA [("x",Z 42),("y'",Z 666)]
-(aBefore,what,aAfter) = simplify impDict 99 asubjunk
+asubjunk :: Pred ()
+asubjunk = PSub pA [("x",Z 42),("y'",Z 666)]
 \end{code}
 
 \HDRc{Test Laws}
 
 \begin{code}
-creduceTest :: CDictRWFun s
-creduceTest d (_,Comp "Imp" [(_,ante),mconsq])
- = ( "discharge assumption"
-   , [ ( ante, mconsq )                 -- True  => P  =  P
-     , ( mkNot $ noMark ante, true ) ] )  -- False => _  =  True
-creduceTest _ mpr = ( "", [] )
+creduceTest :: CRWFun s
+creduceTest d (Comp "Imp" [ante,mconsq])
+ = Just ( "discharge assumption"
+        , [ ( ante, mconsq, diff )                 -- True  => P  =  P
+          , ( mkNot ante, T, diff ) ] )  -- False => _  =  True
+creduceTest _ mpr = Nothing
 \end{code}
 Iteration  satisfies the loop-unrolling law:
 \[
   c * P  \quad=\quad (P ; c * P ) \cond c \Skip
 \]
 \begin{code}
-unrollTst :: Ord s => DictRWFun s
-unrollTst d mw@(_,Comp "Iter"  [mc, mpr])
+unrollTst :: Ord s => RWFun s
+unrollTst d mw@(Comp "Iter"  [mc, mpr])
  | isCondition mc
-           = ( "loop-unroll"
-             , bCond (bSeq mpr mw) mc bSkip )
-unrollTst _ mpr = ("", mpr )
+           = Just ( "loop-unroll"
+                  , mkCond (mkSeq mpr mw) mc mkSkip
+                  , diff )
+unrollTst _ mpr = Nothing
 \end{code}
 
 \HDRc{Laws Dictionary}
@@ -282,16 +267,16 @@ impDict  = impFalseDict
 
 \begin{code}
 calc mpr = calcREPL utcpDict mpr
-putcalc :: (Ord s, Show s) => MPred s -> IO ()
+putcalc :: (Ord s, Show s) => Pred s -> IO ()
 putcalc mpr
   = do res <- calc mpr
        putStrLn "\n\nTRANSCRIPT:"
        putStrLn $ calcPrint res
 
-tshow :: (Show s, Ord s) => MPred s -> String
+tshow :: (Show s, Ord s) => Pred s -> String
 tshow = pmdshow 80 utcpDict noStyles
-tput :: (Show s, Ord s) => MPred s -> IO ()
+tput :: (Show s, Ord s) => Pred s -> IO ()
 tput = putStrLn . tshow
-tsimp :: (Show s, Ord s) => MPred s -> BeforeAfter s
+tsimp :: (Show s, Ord s) => Pred s -> BeforeAfter s
 tsimp = simplify utcpDict 42
 \end{code}
