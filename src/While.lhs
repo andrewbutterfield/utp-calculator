@@ -12,6 +12,7 @@ import CalcTypes
 import StdPrecedences
 import CalcPredicates
 import CalcAlphabets
+import CalcSysTypes
 import CalcSimplify
 -- import CalcRecogniser
 import CalcRun
@@ -219,7 +220,7 @@ ppDsgn d ms p mprs = pps styleRed $ ppa "invalid-|-"
 defnDsgn :: Rewrite s
 defnDsgn d [mpr1,mpr2]
  = ( "design"
-   , mkImp (bAnd [atm vok,mpr1]) (bAnd [atm vok',mpr2]) )
+   , mkImp (mkAnd [atm vok,mpr1]) (mkAnd [atm vok',mpr2]) )
 \end{code}
 
 \HDRc{Definitions for ``While''}\label{hb:While-alpha}
