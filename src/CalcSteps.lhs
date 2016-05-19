@@ -73,10 +73,10 @@ doStepSearch m cstep mpr
 We will need to lift functions from \texttt{Pred} to \texttt{MPred}:
 \begin{code}
 rwLift :: (Pred s -> RWResult s) -> MPred s -> MRWResult s
-rwLift prf (ms,pr)
+rwLift prf (pr, mt)
  = case prf pr of
      Nothing -> Nothing
-     Just (what,pr',chgd) -> Just (what,(ms,pr'),chgd)
+     Just (what,pr',chgd) -> Just (what,(pr', mt),chgd)
 \end{code}
 
 \HDRc{Search Current Focus}\label{hc:srch-focus}
@@ -98,15 +98,15 @@ We are now systematically exploring composite sub-parts:
 stepComponents :: (MPred s -> MRWResult s) -> MPZipper s -> MPZip2 s
 
 -- Substitution, simple, only 1 sub-component:
-stepComponents cstep ( (mp, PSub mpr subs), ss )
-  = stepFocus cstep ( mpr, PSub' mp subs : ss )
+stepComponents cstep ( (PSub pr subs, MT ms [smt]), ss )
+  = stepFocus cstep ( (pr, smt), (PSub' subs, MT' ms [] []) : ss )
 
 -- Composites: trickier, so start with simplest case
-stepComponents cstep ( (mp, Comp name [mpr]), ss )
- = stepFocus cstep ( mpr, Comp' mp name [] [] : ss )
+stepComponents cstep ( (Comp name [pr], MT ms [cmt]), ss )
+ = stepFocus cstep ( (pr, cmt), (Comp' name [] [], MT' ms [] []) : ss )
 
-stepComponents cstep ( (mp, Comp name (mpr:mprs)), ss )
-  = stepComp' cstep (Comp' mp name [] mprs) ss mpr
+stepComponents cstep ( (Comp name (pr:prs), MT ms (mt:mts)), ss )
+  = stepComp' cstep (Comp' name [] prs, MT' ms [] mts) ss (pr, mt)
 
 stepComponents cstep ( mpr, ss ) = ( (mpr, "", mpr), ss )
 \end{code}
@@ -122,18 +122,20 @@ stepComp' :: (MPred s -> MRWResult s)
           -> MPZip2 s
 
 -- end case, processing last components
-stepComp' cstep s@(Comp' mp name before []) ss mpr
+stepComp' cstep s@(Comp' name before [], MT' ms mbef maft) ss mpr
  = let result@( (_, what, _), _ ) = stepFocus cstep (mpr, s:ss)
    in if null what
       then ( (mpr, "", mpr), ss )
       else result
 
 -- general case, more components remaining
-stepComp' cstep s@(Comp' mp name before after@(npr:rest)) ss mpr
+stepComp' cstep s@( Comp' name before after@(npr:rest)
+                  , MT' ms mbef (mt:maft) ) ss mpr
  = let result@( (_, what, _), _ )  = stepFocus cstep (mpr, s:ss)
    in if null what
       then stepComp' cstep
-                     (Comp' mp name (before++[mpr]) rest) ss npr
+                     ( Comp' name (before++[npr]) rest
+                     , MT' ms (mbef++[mt]) maft ) ss (npr,mt)
       else result
 \end{code}
 
@@ -161,11 +163,11 @@ doStepCSearch m ccstep mpr
 We will need to lift functions from \texttt{Pred} to \texttt{MPred}:
 \begin{code}
 crwLift :: (Pred s -> CRWResult s) -> MPred s -> MCRWResult s
-crwLift prf (ms,pr)
+crwLift prf (pr, mt)
  = case prf pr of
      Nothing -> Nothing
-     Just (what,res) -> Just (what,map (cresLift ms) res)
- where cresLift ms (pcond,pres,chgd) = (pcond,(ms,pres),chgd)
+     Just (what,res) -> Just (what,map (cresLift mt) res)
+ where cresLift mt (pcond,pres,chgd) = (pcond,buildMarks pres,chgd)
 \end{code}
 
 \HDRc{Conditionally Search Current Focus}\label{hc:cond-srch-focus}
@@ -189,15 +191,18 @@ We are now systematically exploring composite sub-parts:
 stepCComponents :: (MPred s -> MCRWResult s) -> MPZipper s -> CMPZip2 s
 
 -- Substitution, simple, only 1 sub-component:
-stepCComponents ccstep ( (mp, PSub mpr subs), ss )
-  = stepCFocus ccstep ( mpr, PSub' mp subs : ss )
+stepCComponents ccstep ( (PSub pr subs, MT ms [smt]), ss )
+  = stepCFocus ccstep ( (pr, smt)
+                      , (PSub' subs, MT' ms [] []) : ss )
 
 -- Composites: trickier, so start with simplest case
-stepCComponents ccstep ( (mp, Comp name [mpr]), ss )
- = stepCFocus ccstep ( mpr, Comp' mp name [] [] : ss )
+stepCComponents ccstep ( (Comp name [pr], MT ms [smt]), ss )
+ = stepCFocus ccstep ( (pr, smt)
+                     , (Comp' name [] [], MT' ms [] []) : ss )
 
-stepCComponents ccstep ( (mp, Comp name (mpr:mprs)), ss )
-  = stepCComp' ccstep (Comp' mp name [] mprs) ss mpr
+stepCComponents ccstep ( (Comp name (pr:prs), MT ms (mt:mts)), ss )
+  = stepCComp' ccstep ( Comp' name [] prs
+                      , MT' ms [] mts ) ss (pr, mt)
 
 stepCComponents ccstep ( mpr, ss ) = ( (mpr, "", [(T,mpr)]), ss )
 \end{code}
@@ -213,18 +218,20 @@ stepCComp' :: (MPred s -> MCRWResult s)
           -> CMPZip2 s
 
 -- end case, processing last components
-stepCComp' ccstep s@(Comp' mp name before []) ss mpr
+stepCComp' ccstep s@(Comp' name before [], MT' ms mbef []) ss mpr
  = let result@((_, what, _), _) = stepCFocus ccstep (mpr, s:ss)
    in if null what
       then ( (mpr, "", [(T,mpr)]), ss )
       else result
 
 -- general case, more components remaining
-stepCComp' ccstep s@(Comp' mp name before after@(npr:rest)) ss mpr
+stepCComp' ccstep s@( Comp' name before after@(npr:rest)
+                    , MT' ms mbef maft@(nmt:mrest) ) ss mpr@(pr,mt)
  = let result@((_, what, _), _) = stepCFocus ccstep (mpr, s:ss)
    in if null what
       then stepCComp' ccstep
-                   (Comp' mp name (before++[mpr]) rest) ss npr
+                   ( Comp' name (before++[pr]) rest
+                   , MT' ms (mbef++[mt]) mrest ) ss (npr, nmt)
       else result
 \end{code}
 
@@ -236,11 +243,11 @@ expandDefn :: (Ord s, Show s) => Dict s -> Mark
 expandDefn d m mpr  = doStepSearch m (expDefs d) mpr
 
 expDefs :: Dict s -> MPred s -> MRWResult s
-expDefs d mpr@(ms, Comp name mprs )
+expDefs d mpr@(Comp name prs, mt)
  = case plookup name d of
     Just pd@(PredEntry _ _ _ pdef _)
-      -> case pdef d $ map snd mprs of
-          Just (what,pr',chgd) -> Just (what, (ms,pr'), chgd)
+      -> case pdef d prs of
+          Just (what,pr',chgd) -> Just (what, (pr', mt), chgd)
           _ -> Nothing
     _ -> Nothing
 expDefs _ _ = Nothing
