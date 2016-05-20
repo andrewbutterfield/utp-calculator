@@ -87,55 +87,55 @@ on top of implication and False.
     \lnot P &\defs& P \implies false
 }
 \begin{code}
-notImpFalse :: Dict s -> [Pred s] -> (String, Pred s)
-notImpFalse _ [pr] = ( "not-ImpFalse", mkImp pr F )
-notImpFalse _ prs = ( "", Comp "Not" prs )
+notImpFalse :: Dict s -> [Pred s] -> RWResult s
+notImpFalse _ [pr] = lred "not-ImpFalse" $ mkImp pr F
+notImpFalse _ _ = Nothing
 
 notIFEntry :: (Show s, Ord s) => (String, Entry s)
 notIFEntry
  = ( "Not"
-   , PredEntry True ppNot [] notImpFalse simpNot )
+   , PredEntry subAny ppNot [] notImpFalse simpNot)
 \end{code}
 \RLEQNS{
     P \lor Q &\defs& \lnot P \implies Q
 }
 \begin{code}
-orImpFalse :: Dict s -> [Pred s] -> (String, Pred s)
-orImpFalse _ [p,q]  =  ( "or-ImpFalse", mkImp (mkNot p) q )
-orImpFalse _ prs    =  ( "", Comp "Or" prs )
+orImpFalse :: Dict s -> [Pred s] -> RWResult s
+orImpFalse _ [p,q]  =  lred "or-ImpFalse" $ mkImp (mkNot p) q
+orImpFalse _ _ = Nothing
 
 orIFEntry :: (Show s, Ord s) => (String, Entry s)
 orIFEntry
  = ( "Or"
-   , PredEntry True ppOr [] orImpFalse simpOr )
+   , PredEntry subAny ppOr [] orImpFalse simpOr )
 \end{code}
 \RLEQNS{
    P \ndc Q &\defs& P \lor Q
 }
 \begin{code}
-ndcImpFalse :: Dict s -> [Pred s] -> (String, Pred s)
-ndcImpFalse _ [mp,mq]  =  ( "ndc-ImpFalse", mkOr [mp,mq] )
-ndcImpFalse _ mprs     =  ( "", Comp "NDC" mprs )
+ndcImpFalse :: Dict s -> [Pred s] -> RWResult s
+ndcImpFalse _ [mp,mq]  =  lred "ndc-ImpFalse" $  mkOr [mp,mq]
+ndcImpFalse _ _ = Nothing
 
 ndcIFEntry :: (Show s, Ord s) => (String, Entry s)
 ndcIFEntry
  = ( "NDC"
-   , PredEntry True ppNDC [] ndcImpFalse simpNDC )
+   , PredEntry subAny ppNDC [] ndcImpFalse simpNDC )
 \end{code}
 \RLEQNS{
    P \land Q &\defs& \lnot(\lnot P \lor \lnot Q)
 }
 \begin{code}
-andImpFalse :: Dict s -> [Pred s] -> (String, Pred s)
+andImpFalse :: Dict s -> [Pred s] -> RWResult s
 andImpFalse _ [mp,mq]
- = ( "and-ImpFalse"
-   , mkNot $ mkOr [mkNot mp, mkNot mq] )
-andImpFalse _ mprs     =  ( "", Comp "And" mprs )
+ = lred "and-ImpFalse"
+     $ mkNot $ mkOr [mkNot mp, mkNot mq]
+andImpFalse _ _ = Nothing
 
 andIFEntry :: (Show s, Ord s) => (String, Entry s)
 andIFEntry
  = ( "And"
-   , PredEntry True ppAnd [] andImpFalse simpAnd )
+   , PredEntry subAny ppAnd [] andImpFalse simpAnd )
 \end{code}
 
 \begin{code}
@@ -225,13 +225,13 @@ Iteration  satisfies the loop-unrolling law:
   c * P  \quad=\quad (P ; c * P ) \cond c \Skip
 \]
 \begin{code}
-unrollTst :: Ord s => RWFun s
-unrollTst d mw@(Comp "Iter"  [mc, mpr])
+unrollTst :: Ord s => String -> RWFun s
+unrollTst _ d mw@(Comp "Iter"  [mc, mpr])
  | isCondition mc
            = Just ( "loop-unroll"
                   , mkCond (mkSeq mpr mw) mc mkSkip
                   , diff )
-unrollTst _ mpr = Nothing
+unrollTst _ _ _ = Nothing
 \end{code}
 
 \HDRc{Laws Dictionary}
@@ -266,17 +266,27 @@ impDict  = impFalseDict
 \HDRc{Test Calculator Top-Level}
 
 \begin{code}
-calc mpr = calcREPL utcpDict mpr
-putcalc :: (Ord s, Show s) => Pred s -> IO ()
-putcalc mpr
-  = do res <- calc mpr
+calc :: (Ord s, Show s) => Dict s -> Pred s -> IO (CalcLog s)
+calc d pr = calcREPL d $ buildMarks pr
+putcalc :: (Ord s, Show s) => Dict s -> Pred s -> IO ()
+putcalc d pr
+  = do res <- calc d pr
        putStrLn "\n\nTRANSCRIPT:"
        putStrLn $ calcPrint res
 
+ucalc, icalc :: (Ord s, Show s) => Pred s -> IO (CalcLog s)
+uput,  iput  :: (Ord s, Show s) => Pred s -> IO ()
+
+ucalc = calc utcpDict
+uput = putcalc utcpDict
+
+icalc = calc impDict
+iput = putcalc impDict
+
 tshow :: (Show s, Ord s) => Pred s -> String
-tshow = pmdshow 80 utcpDict noStyles
+tshow = pmdshow 80 utcpDict noStyles . buildMarks
 tput :: (Show s, Ord s) => Pred s -> IO ()
 tput = putStrLn . tshow
-tsimp :: (Show s, Ord s) => Pred s -> BeforeAfter s
-tsimp = simplify utcpDict 42
+tsimp :: (Show s, Ord s) => Pred s -> Maybe (BeforeAfter s)
+tsimp = simplify utcpDict 42 . buildMarks
 \end{code}
