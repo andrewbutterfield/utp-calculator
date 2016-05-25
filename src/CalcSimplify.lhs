@@ -8,10 +8,10 @@ import CalcPredicates
 import CalcSysTypes
 \end{code}
 
-%\begin{code}
-%import Debug.Trace
-%dbg str x = trace (str++show x) x
-%\end{code}
+\begin{code}
+import Debug.Trace
+dbg str x = trace (str++show x) x
+\end{code}
 
 
 \HDRb{Introduction}
@@ -264,7 +264,7 @@ make a distinction between predicate variables and nullary composites
 on the one hand,
 and composites of at least one component on the other.
 \begin{code}
-simplify d m mpr@(spr@(PSub _ subs), mt@(MT ms [smt]))
+simplify d m mpr@(PSub spr subs, mt@(MT ms [smt]))
  = sbstsimp (ssimp d subs) spr
  where
 \end{code}
@@ -307,11 +307,11 @@ we simplify both predicate and substitution parts,
 and combine
 \begin{code}
   sbstsimp (subschgd,subs') spr
-   = case simplify d m mpr of
+   = case simplify d m (dbg "spr=" spr,smt) of
       Nothing -> assemble spr mpr mpr subs' subschgd False
       Just (before,what,after)
        -> let (topchgd,(npr',_)) = psubst m d subs' after
-          in assemble npr' before after subs'
+          in assemble (dbg "npr'=" npr') before after subs'
                                  (subschgd||topchgd) topchgd
    where
     assemble _ _ _ _ False _ = Nothing

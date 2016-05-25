@@ -840,7 +840,7 @@ defnIter d [c,p]
 piterEntry :: (Show s, Ord s) => (String, Entry s)
 piterEntry
  = ( nPIter
-   , PredEntry [] ppPIter [] defnAtomic (pNoChg nPIter) )
+   , PredEntry [] ppPIter [] defnIter (pNoChg nPIter) )
 \end{code}
 
 
