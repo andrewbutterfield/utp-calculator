@@ -302,6 +302,11 @@ Nullary composites are treated the same:
                    , mt ) )
       _ -> Nothing
 \end{code}
+
+\emph{Non-nullary composites require us to simplify sub-parts
+and then drve substitiob in if the comp is substitutable
+(need to call \texttt{psubst} a bit more than we do)}
+
 In the general case,
 we simplify both predicate and substitution parts,
 and combine
