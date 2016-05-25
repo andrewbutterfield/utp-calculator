@@ -52,6 +52,8 @@ invMPred (PSub pr _, MT _ mts)
 invMPred (_, MT _ mts) = null mts
 \end{code}
 
+We really should prove \texttt{invMPred (buildMarks pr)} !
+
 
 We provide a HOF to make changes `under' markings:
 \begin{code}

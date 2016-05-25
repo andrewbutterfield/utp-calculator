@@ -41,6 +41,9 @@ noMark = buildMarks
 unMark :: MPred s -> MPred s
 unMark (pr, MT _ mts) = (pr, MT [] mts)
 
+topMark :: Marks -> MPred s -> MPred s
+topMark ms (pr, MT _ mts) = (pr, MT ms mts)
+
 addMark :: Mark -> MPred s -> MPred s
 addMark m (pr, MT ms mts) = (pr, MT (m:ms) mts)
 

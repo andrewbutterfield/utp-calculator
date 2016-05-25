@@ -195,7 +195,7 @@ calcStep d m stepf st@(currpr,steps)
                 let st' = stUpdate (comment,before) after st
                 runREPL d (nextm m) st'
 
-stUpdate :: (String, MPred s) ->  MPred s -> State s -> State s
+stUpdate :: Show s => (String, MPred s) ->  MPred s -> State s -> State s
 stUpdate wbefore after ( _, steps) = ( after, wbefore:steps)
 \end{code}
 

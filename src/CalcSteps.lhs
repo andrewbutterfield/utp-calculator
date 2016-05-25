@@ -73,10 +73,11 @@ doStepSearch m cstep mpr
 We will need to lift functions from \texttt{Pred} to \texttt{MPred}:
 \begin{code}
 rwLift :: (Pred s -> RWResult s) -> MPred s -> MRWResult s
-rwLift prf (pr, mt)
+rwLift prf (pr, MT ms _)
  = case prf pr of
      Nothing -> Nothing
-     Just (what,pr',chgd) -> Just (what,(pr', mt),chgd)
+     Just (what,pr',chgd)
+      -> Just (what,topMark ms $ buildMarks pr',chgd)
 \end{code}
 
 \HDRc{Search Current Focus}\label{hc:srch-focus}
@@ -87,8 +88,8 @@ only recursing in deeper if that fails:
 stepFocus :: (MPred s -> MRWResult s) -> MPZipper s -> MPZip2 s
 stepFocus cstep mpz@( mpr, ss )
  = case cstep mpr of
-     Nothing                 ->  stepComponents cstep mpz
      Just ( what, mpr', _ )  ->  ((mpr, what, mpr'), ss)
+     Nothing                 ->  stepComponents cstep mpz
 \end{code}
 
 \HDRc{Search Sub-Components}\label{hc:srch-sub-comp}
@@ -96,6 +97,7 @@ stepFocus cstep mpz@( mpr, ss )
 We are now systematically exploring composite sub-parts:
 \begin{code}
 stepComponents :: (MPred s -> MRWResult s) -> MPZipper s -> MPZip2 s
+
 
 -- Substitution, simple, only 1 sub-component:
 stepComponents cstep ( (PSub pr subs, MT ms [smt]), ss )
@@ -122,7 +124,7 @@ stepComp' :: (MPred s -> MRWResult s)
           -> MPZip2 s
 
 -- end case, processing last components
-stepComp' cstep s@(Comp' name before [], MT' ms mbef maft) ss mpr
+stepComp' cstep s@(Comp' name before [], MT' ms mbef []) ss mpr
  = let result@( (_, what, _), _ ) = stepFocus cstep (mpr, s:ss)
    in if null what
       then ( (mpr, "", mpr), ss )
@@ -130,12 +132,12 @@ stepComp' cstep s@(Comp' name before [], MT' ms mbef maft) ss mpr
 
 -- general case, more components remaining
 stepComp' cstep s@( Comp' name before after@(npr:rest)
-                  , MT' ms mbef (mt:maft) ) ss mpr
+                  , MT' ms mbef (mnxt:maft) ) ss mpr@(pr,mt)
  = let result@( (_, what, _), _ )  = stepFocus cstep (mpr, s:ss)
    in if null what
       then stepComp' cstep
-                     ( Comp' name (before++[npr]) rest
-                     , MT' ms (mbef++[mt]) maft ) ss (npr,mt)
+                     ( Comp' name (before++[pr]) rest
+                     , MT' ms (mbef++[mt]) maft ) ss (npr,mnxt)
       else result
 \end{code}
 
@@ -243,11 +245,12 @@ expandDefn :: (Ord s, Show s) => Dict s -> Mark
 expandDefn d m mpr  = doStepSearch m (expDefs d) mpr
 
 expDefs :: Dict s -> MPred s -> MRWResult s
-expDefs d mpr@(Comp name prs, mt)
+expDefs d mpr@(Comp name prs, MT ms mts)
  = case plookup name d of
     Just pd@(PredEntry _ _ _ pdef _)
       -> case pdef d prs of
-          Just (what,pr',chgd) -> Just (what, (pr', mt), chgd)
+          Just (what,pr',chgd) 
+            -> Just (what, topMark ms $ buildMarks pr', chgd)
           _ -> Nothing
     _ -> Nothing
 expDefs _ _ = Nothing
