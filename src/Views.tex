@@ -20,7 +20,7 @@ An atomic action $A(E|a|N)$ is enabled if $E$ is contained
 in the global label-set ($ls(E)$)
 and results in $E$ being removed from that set, and new labels
 $N$ being added ($ls'=(ls\setminus E)\cup N$).
-We need a way to reason about containment is such an $ls'$
+We need a way to reason about containment in such an $ls'$
 in terns of $E$ and $N$, and to compute sequential compositions
 of such forms, which will take the more general form $X(E|a|R|A)$.
 
@@ -149,7 +149,7 @@ We do the proofs in ``classical'' set notation
 
 \HDRb{Basic Actions}
 
-We first by defining a basic operation form that is closed
+We define a basic operation form that is closed
 under sequential composition, modulo some `ground' side-conditions.
 \RLEQNS{
    X(E|a|R|A)
@@ -333,20 +333,42 @@ by generated labels.
 
 \HDRc{Nested Invariants}
 
-\NOTE{
+
 All of these comments above are true if the invariant is just about disjointness.
 It is not true in general when we consider exclusivity.
 For example in parallel execution it is perfectly reasonable to have both
 $\ell_{g1}$ and $\ell_{g2:}$ (or $\ell_{g2}$) together in the label-set,
 but not both $\ell_{g1}$ and $\ell_{g1:}$
 or both $\ell_{g2}$ and $\ell_{g2:}$.
-}
 
-
-\NOTE{Need to talk about
+Notationally, we can represent this as follows:
 $$
-[in|(\ell_{g1}|\ell_{g1:}),(\ell_{g2}|\ell_{g2:})|out].
-$$}
+[in \mid [\ell_{g1}|\ell_{g1:}],[\ell_{g2}|\ell_{g2:}] \mid out].
+$$
+In effect this declares, at the top, that we have
+$$
+[in \mid \ell_{g1},\ell_{g1:},\ell_{g2},\ell_{g2:} \mid out]
+$$
+with finer grained details for the generated labels,
+where a comma is a form of set union,
+so we can have something from 
+either or both of $[\ell_{g1}|\ell_{g1:}]$ and $[\ell_{g2}|\ell_{g2:}]$
+but within each of these we have mutual exclusion.
+
+In effect we have a tree-like structure with ``$|$''-branches
+and ``$,$``-branches, and labels as leaves.
+We should be able to flatten cases where a subnode has the same branch type,
+so
+\RLEQNS{
+   [L_1 \mid [L_{21}|L_{22}] \mid L_3]
+   &=&
+   [L_1|L_{21}|L_{22}|L_3]
+\\ L_1 , ( L_{21}, L_{22})  , L_3
+   &=&
+   L_1,L_{21},L_{22},L_3
+} 
+
+
 
 Invariants are based on the following general construct:
 \RLEQNS{
@@ -381,6 +403,10 @@ We need full information, so the following is required:
    EXC(A,B) \land EXC(B,C) \land EXC(A,C) &=& EXC(A,B,C)
 }
 This works
+
+Not sure interpreting $[L|M]$ or $EX(L,M)$ as predicates is helpful.
+It might be better being viewed as a tree and defining a satisfaction relation
+between it an a label-set.
 
 
 \HDRc{Using $A$ with invariants}
@@ -825,7 +851,8 @@ So, we go as far as $Q^2$:
 \\   & & atm(a)[g_{1::},\ell_{g1},\ell_{g1:}/g,in,out] \lor
          atm(b)[g_{2::},\ell_{g2},\ell_{g2:}/g,in,out]
 \\
-\\ I &=& [in|\ell_{g1},\ell_{g2}|\ell_{g1:},\ell_{g2:}|out]
+\\ I &=& [in\mid[\ell_{g1}|\ell_{g1:}],[\ell_{g2}|\ell_{g2:}]\mid out]
+\\ && \mbox{Note the new complicated invariant!}
 }
 
 \RLEQNS{
