@@ -173,12 +173,12 @@ split4 :: G -> (G, G, G, G)
 split4 (L _) = error "can't split a label!"
 split4 g = (L g, N g, S1 g, S2 g)
 
-g = V
-(lg,g',g1,g2)     = split4 g
-(lg',g'',g'1,g'2) = split4 g'
-(lg'1,g'1',g'11,g'12) = split4 g'1
-(lg1,g1',g11,g12) = split4 g1
-(lg2,g2',g21,g22) = split4 g2
+-- g = V
+-- (lg,g',g1,g2)     = split4 g
+-- (lg',g'',g'1,g'2) = split4 g'
+-- (lg'1,g'1',g'11,g'12) = split4 g'1
+-- (lg1,g1',g11,g12) = split4 g1
+-- (lg2,g2',g21,g22) = split4 g2
 \end{code}
 
 \newpage
@@ -248,3 +248,140 @@ prop (X occs)
         1  ->  return True 
         _  ->  fail "not-exclusive"
 \end{code}
+
+Put it all together:
+\begin{code}
+sat :: Eq t => I t -> [t] -> Bool
+sat inv ls
+ = case prop $ occ ls inv of
+    Nothing -> False
+    _       -> True
+\end{code}
+
+Parallel composition invariant:
+\[
+  \otimes(in,\cup(\otimes(\ell_{g1},\ell_{g1:})
+                  ,\otimes(\ell_{g2},\ell_{g2:})),out)
+\]
+\begin{code}
+inp  =  1
+out  =  2
+lg1  =  3
+lg1' =  4
+lg2  =  5
+lg2' =  6
+inv  =  X [ I inp
+          , U [ X [ I lg1, I lg1' ]
+              , X [ I lg2, I lg2' ] 
+              ]
+          , I out 
+          ]
+lgen :: [a] -> [[a]]
+lgen [] = [[]]
+lgen (x:xs)
+ = xs' ++ map (x:) xs'
+ where xs' = lgen xs
+ 
+par6 = lgen [1..6]
+par7 = lgen [1..7]
+
+apply ls = (inv `sat` ls,ls)
+
+res6 = map apply par6
+res7 = map apply par7
+
+showres [] = return ()
+showres ((b,ls):rest)
+  = do if b then putStr "OK   "
+            else putStr "FAIL "
+       putStrLn $ show ls
+       showres rest
+       
+split [] = ([],[])
+split (l:r:rest) = (l:left,r:right)
+ where (left,right) = split rest
+ 
+irrelevant7 = (map fst left == map fst right)
+ where (left,right) = split res7
+\end{code}
+
+\newpage
+If we do \texttt{showres res6} we get:
+
+
+\begin{verbatim}
+     [ 1 |  ([ 3 | 4 ],[ 5 | 6 ]) | 2 ]
+
+OK   []  yes
+OK   [6]  yes
+OK   [5]  yes
+FAIL [5,6]  yes
+OK   [4]  yes
+OK   [4,6]  yes
+OK   [4,5]  yes
+FAIL [4,5,6]  yes
+OK   [3]  yes
+OK   [3,6]  yes
+OK   [3,5]  yes
+FAIL [3,5,6]  yes
+FAIL [3,4]  yes
+FAIL [3,4,6]  yes
+FAIL [3,4,5]  yes
+FAIL [3,4,5,6]  yes
+OK   [2]  yes
+FAIL [2,6]  yes
+FAIL [2,5]  yes
+FAIL [2,5,6]  yes
+FAIL [2,4]  yes
+FAIL [2,4,6]  yes
+FAIL [2,4,5]  yes
+FAIL [2,4,5,6]  yes
+FAIL [2,3]  yes
+FAIL [2,3,6]  yes
+FAIL [2,3,5]  yes
+FAIL [2,3,5,6]  yes
+FAIL [2,3,4]  yes
+FAIL [2,3,4,6]  yes
+FAIL [2,3,4,5]  yes
+FAIL [2,3,4,5,6]  yes
+\end{verbatim}
+\newpage
+\begin{verbatim}
+     [ 1 |  ([ 3 | 4 ],[ 5 | 6 ]) | 2 ]
+-- all OK below
+OK   [1]
+FAIL [1,6]
+FAIL [1,5]
+FAIL [1,5,6]
+FAIL [1,4]
+FAIL [1,4,6]
+FAIL [1,4,5]
+FAIL [1,4,5,6]
+FAIL [1,3]
+FAIL [1,3,6]
+FAIL [1,3,5]
+FAIL [1,3,5,6]
+FAIL [1,3,4]
+FAIL [1,3,4,6]
+FAIL [1,3,4,5]
+FAIL [1,3,4,5,6]
+FAIL [1,2]
+FAIL [1,2,6]
+FAIL [1,2,5]
+FAIL [1,2,5,6]
+FAIL [1,2,4]
+FAIL [1,2,4,6]
+FAIL [1,2,4,5]
+FAIL [1,2,4,5,6]
+FAIL [1,2,3]
+FAIL [1,2,3,6]
+FAIL [1,2,3,5]
+FAIL [1,2,3,5,6]
+FAIL [1,2,3,4]
+FAIL [1,2,3,4,6]
+FAIL [1,2,3,4,5]
+FAIL [1,2,3,4,5,6]
+\end{verbatim}
+
+
+
