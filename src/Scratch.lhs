@@ -180,3 +180,71 @@ g = V
 (lg1,g1',g11,g12) = split4 g1
 (lg2,g2',g21,g22) = split4 g2
 \end{code}
+
+\newpage
+\HDRb{Label-Set Invariants}
+
+\RLEQNS{
+   i \in I_\tau &::=& \tau \mid \otimes(i,\ldots,i) \mid \cup (i,\ldots,i)
+}
+\begin{code}
+data I t = I t | U [I t] | X [I t] deriving Show
+\end{code}
+
+We shall assume labels are integers.
+We want to takes an invariant over labels
+and a label-set to get the same structure over booleans.
+This is the label occupancy structure:
+\RLEQNS{
+   occ &:& \power \Int \fun I_\Int \fun I_\Bool
+\\ occ_L~\ell &\defs& \ell \in ls
+\\ occ_L~\otimes(i_1,\ldots,i_n)
+   &\defs&
+   \otimes(occ_L~i_1,\ldots,occ_L~i_n)
+\\ occ_L~\cup(i_1,\ldots,i_n)
+   &\defs&
+   \cup(occ_L~i_1,\ldots,occ_L~i_n)
+}
+\begin{code}
+occ :: Eq t => [t] -> I t -> I Bool
+occ ls (I ell) = I (ell `elem`ls)
+occ ls (U invs) = U $ map (occ ls) invs
+occ ls (X invs) = X $ map (occ ls) invs
+\end{code}
+
+We now take a $I_\Bool$ and reduce it to a boolean
+that asserts satisfaction.
+In effect we look for failures 
+(can only come from $\oplus$)
+and propagate these up.
+\RLEQNS{
+   prop &:& I_\Bool \fun (\setof{ok,fail}\times \Bool)
+\\ prop(b) &\defs& (ok,true)
+\\ prop(\cup(i_1,\ldots,i_n))
+   &\defs&
+   (fail,\_), 
+   \textbf{ if }\exists j @ prop(i_j) = (fail,\_)
+\\ && (ok,b_1 \lor \dots \lor b_n), 
+   \textbf{ if }\forall j @ prop(i_j) = (ok,b_j)
+\\ prop(\otimes(i_1,\ldots,i_n))
+   &\defs&
+   (fail,\_),
+   \textbf{ if }\exists j @ prop(i_j) = (fail,\_)
+\\&& (fail,\_) \mbox{ if more than one $(ok,true)$}
+\\&& (ok,false) \mbox{ if all are $(ok,false)$}
+\\&& (ok,true) \mbox{ if  exactly one $(ok,true)$}
+}
+\begin{code}
+prop :: I Bool -> Maybe Bool
+prop (I b) = Just b
+prop (U occs)
+ = do ps <- sequence $ map prop occs
+      return $ any id ps
+prop (X occs) 
+ = do ps <- sequence $ map prop occs
+      let ps' = filter id ps
+      case length ps' of
+        0  ->  return False
+        1  ->  return True 
+        _  ->  fail "not-exclusive"
+\end{code}
