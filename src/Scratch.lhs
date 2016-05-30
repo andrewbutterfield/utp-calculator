@@ -2,6 +2,7 @@
 \begin{code}
 module Scratch where -- we rapidly prototype stuff
 import Data.List
+import Data.Maybe
 \end{code}
 
 \HDRb{Generator Syntax}
@@ -192,12 +193,12 @@ data I t = I t | U [I t] | X [I t] deriving Show
 \end{code}
 
 We shall assume labels are integers.
-We want to takes an invariant over labels
+We want to take an invariant over labels
 and a label-set to get the same structure over booleans.
 This is the label occupancy structure:
 \RLEQNS{
    occ &:& \power \Int \fun I_\Int \fun I_\Bool
-\\ occ_L~\ell &\defs& \ell \in ls
+\\ occ_L~\ell &\defs& \ell \in L
 \\ occ_L~\otimes(i_1,\ldots,i_n)
    &\defs&
    \otimes(occ_L~i_1,\ldots,occ_L~i_n)
@@ -214,7 +215,7 @@ occ ls (X invs) = X $ map (occ ls) invs
 
 We now take a $I_\Bool$ and reduce it to a boolean
 that asserts satisfaction.
-In effect we look for failures 
+In effect we look for failures
 (can only come from $\oplus$)
 and propagate these up.
 \RLEQNS{
@@ -222,9 +223,9 @@ and propagate these up.
 \\ prop(b) &\defs& (ok,true)
 \\ prop(\cup(i_1,\ldots,i_n))
    &\defs&
-   (fail,\_), 
+   (fail,\_),
    \textbf{ if }\exists j @ prop(i_j) = (fail,\_)
-\\ && (ok,b_1 \lor \dots \lor b_n), 
+\\ && (ok,b_1 \lor \dots \lor b_n),
    \textbf{ if }\forall j @ prop(i_j) = (ok,b_j)
 \\ prop(\otimes(i_1,\ldots,i_n))
    &\defs&
@@ -240,26 +241,28 @@ prop (I b) = Just b
 prop (U occs)
  = do ps <- sequence $ map prop occs
       return $ any id ps
-prop (X occs) 
+prop (X occs)
  = do ps <- sequence $ map prop occs
       let ps' = filter id ps
       case length ps' of
         0  ->  return False
-        1  ->  return True 
+        1  ->  return True
         _  ->  fail "not-exclusive"
 \end{code}
 
+\newpage
 Put it all together:
 \begin{code}
 sat :: Eq t => I t -> [t] -> Bool
-sat inv ls
- = case prop $ occ ls inv of
-    Nothing -> False
-    _       -> True
+sat inv ls = isJust $ prop $ occ ls inv
 \end{code}
 
 Parallel composition invariant:
 \[
+  [in|[\ell_{g1}|\ell_{g1:}],[\ell_{g2}|\ell_{g2:}]|out]
+\quad
+\mbox{ using new notation}
+\quad
   \otimes(in,\cup(\otimes(\ell_{g1},\ell_{g1:})
                   ,\otimes(\ell_{g2},\ell_{g2:})),out)
 \]
@@ -272,16 +275,16 @@ lg2  =  5
 lg2' =  6
 inv  =  X [ I inp
           , U [ X [ I lg1, I lg1' ]
-              , X [ I lg2, I lg2' ] 
+              , X [ I lg2, I lg2' ]
               ]
-          , I out 
+          , I out
           ]
 lgen :: [a] -> [[a]]
 lgen [] = [[]]
 lgen (x:xs)
  = xs' ++ map (x:) xs'
  where xs' = lgen xs
- 
+
 par6 = lgen [1..6]
 par7 = lgen [1..7]
 
@@ -296,11 +299,11 @@ showres ((b,ls):rest)
             else putStr "FAIL "
        putStrLn $ show ls
        showres rest
-       
+
 split [] = ([],[])
 split (l:r:rest) = (l:left,r:right)
  where (left,right) = split rest
- 
+
 irrelevant7 = (map fst left == map fst right)
  where (left,right) = split res7
 \end{code}
@@ -382,6 +385,3 @@ FAIL [1,2,3,4,6]
 FAIL [1,2,3,4,5]
 FAIL [1,2,3,4,5,6]
 \end{verbatim}
-
-
-

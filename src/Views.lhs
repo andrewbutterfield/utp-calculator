@@ -554,6 +554,27 @@ The definitions, using the new shorthands:
 \end{eqnarray*}
 
 \newpage
+\HDRc{Coding Label-Set Invariants}
+
+\RLEQNS{
+   i \in I_\tau &::=& \tau \mid \otimes(i,\ldots,i) \mid \cup (i,\ldots,i)
+}
+We refer to these three variants as IElem, IDisj and IJoin:
+\begin{code}
+nIElem = "IElem"
+nIDisj = "IDIsj"
+nIJoin = "IJoin"
+
+isLSInv (Comp n _)
+ | n==nIElem || n==nIDisj || n==nIJoin  =  True
+isLSInv _ = False
+
+isIElem (Comp n [_])   | n==nIElem = True; isIElem _ = False
+isIDisj (Comp n (_:_)) | n==nIDisj = True; isIDisj _ = False
+isIJoin (Comp n (_:_)) | n==nIJoin = True; isIJoin _ = False
+\end{code}
+
+\newpage
 \HDRc{Coding Atomic Semantics}
 
 \RLEQNS{
@@ -914,8 +935,8 @@ vReduce vd (Comp ns [ (Comp nx1 [ (Atm e1)     -- X(E1
 \end{eqnarray*}
 \begin{code}
 vReduce d (Comp na [ pr, (Comp no prs) ])
- | na == nAnd && no == nOr  
-      =  lred "and-or-distr" $ mkOr $ map f prs 
+ | na == nAnd && no == nOr
+      =  lred "and-or-distr" $ mkOr $ map f prs
  where f pr' = mkAnd [pr , pr']
 \end{code}
 
@@ -925,7 +946,7 @@ vReduce d (Comp na [ pr, (Comp no prs) ])
 \begin{code}
 vReduce d (Comp ns [ pr, (Comp no prs) ])
  | ns == nSeq && no == nOr
-      =  lred ";-or-distr" $  mkOr $ map f prs 
+      =  lred ";-or-distr" $  mkOr $ map f prs
  where f pr' = mkSeq pr pr'
 \end{code}
 
@@ -934,8 +955,8 @@ vReduce d (Comp ns [ pr, (Comp no prs) ])
 \end{eqnarray*}
 \begin{code}
 vReduce d (Comp ns [ (Comp no prs), pr ])
- | ns == nSeq && no == nOr 
-      =  lred "or-;-distr" $ mkOr $ map f prs 
+ | ns == nSeq && no == nOr
+      =  lred "or-;-distr" $ mkOr $ map f prs
  where f pr' = mkSeq pr' pr
 \end{code}
 
