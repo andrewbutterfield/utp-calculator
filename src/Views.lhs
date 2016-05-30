@@ -559,7 +559,8 @@ The definitions, using the new shorthands:
 \RLEQNS{
    i \in I_\tau &::=& \tau \mid \otimes(i,\ldots,i) \mid \cup (i,\ldots,i)
 }
-We refer to these three variants as IElem, IDisj and IJoin:
+We refer to these three variants as
+ \texttt{IElem}, \texttt{IDisj} and \texttt{IJoin}:
 \begin{code}
 nIElem = "IElem"
 nIDisj = "IDIsj"
