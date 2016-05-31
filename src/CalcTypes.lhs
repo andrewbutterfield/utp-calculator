@@ -311,6 +311,7 @@ instance Show (Entry s) where
     = "Laws, #red="++show (length r)
       ++ ", #cred="++show (length c)
       ++ ", #loop="++show (length u)
+ show (InvEntry inv) = "Invariants Entry"
 
 seplist _ [] = []
 seplist _ [xs] = xs
