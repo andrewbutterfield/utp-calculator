@@ -605,7 +605,98 @@ vIJoinEntry
    , PredEntry anyVars ppIJoin vStatic (pNoChg nIJoin) (pNoChg nIJoin) )
 \end{code}
 
+\newpage
 Now, we need to define the invariant entry.
+Our invariant applies to $A$ and $X$ atomic actions:
+\RLEQNS{
+   A(E|a|N) \textbf{ sat } I
+   &\defs&
+   E \textbf{ lsat } I \land N \textbf{ lsat } I
+\\ X(E|a|R|A)  \textbf{ sat } I
+   &\defs&
+   E \textbf{ lsat } I \land A \textbf{ lsat } I
+}
+\begin{code}
+labelSetInv d inv pr@(Comp nm [Atm e,_,Atm n])
+ | nm == nA = if e `lsat` inv && n `lsat` inv
+              then Just ( "inv-sat", pr, True )
+              else Just ( "inv-not-sat", F, True )
+labelSetInv d inv pr@(Comp nm [Atm e,_,_,Atm a])
+ | nm == nX = if e `lsat` inv && a `lsat` inv
+              then Just ( "inv-sat", pr, True )
+              else Just ( "inv-not-sat", F, True )
+labelSetInv _ _ _ = Nothing
+
+vInvEntry = ( invariants, InvEntry labelSetInv )
+\end{code}
+
+Now we have to code up \textbf{lsat}:
+\RLEQNS{
+}
+\begin{code}
+lsat :: Expr s -> Pred s -> Bool
+ls `lsat` inv = isJust $ lprop $ locc ls inv
+ where locc ls inv = True ; lprop x = Just x
+\end{code}
+
+We want to take an invariant over labels
+and a label-set to get the same structure over booleans.
+This is the label occupancy structure:
+\RLEQNS{
+   occ &:& \power \Int \fun I_\Int \fun I_\Bool
+\\ occ_L~\ell &\defs& \ell \in L
+\\ occ_L~\otimes(i_1,\ldots,i_n)
+   &\defs&
+   \otimes(occ_L~i_1,\ldots,occ_L~i_n)
+\\ occ_L~\cup(i_1,\ldots,i_n)
+   &\defs&
+   \cup(occ_L~i_1,\ldots,occ_L~i_n)
+}
+\begin{code}
+-- occ :: Eq t => [t] -> I t -> I Bool
+-- occ ls (I ell) = I (ell `elem`ls)
+-- occ ls (U invs) = U $ map (occ ls) invs
+-- occ ls (X invs) = X $ map (occ ls) invs
+\end{code}
+
+\newpage
+We now take a $I_\Bool$ and reduce it to a boolean
+that asserts satisfaction.
+In effect we look for failures
+(can only come from $\oplus$)
+and propagate these up.
+\RLEQNS{
+   prop &:& I_\Bool \fun (\setof{ok,fail}\times \Bool)
+\\ prop(b) &\defs& (ok,true)
+\\ prop(\cup(i_1,\ldots,i_n))
+   &\defs&
+   (fail,\_),
+   \textbf{ if }\exists j @ prop(i_j) = (fail,\_)
+\\ && (ok,b_1 \lor \dots \lor b_n),
+   \textbf{ if }\forall j @ prop(i_j) = (ok,b_j)
+\\ prop(\otimes(i_1,\ldots,i_n))
+   &\defs&
+   (fail,\_),
+   \textbf{ if }\exists j @ prop(i_j) = (fail,\_)
+\\&& (fail,\_) \mbox{ if more than one $(ok,true)$}
+\\&& (ok,false) \mbox{ if all are $(ok,false)$}
+\\&& (ok,true) \mbox{ if  exactly one $(ok,true)$}
+}
+\begin{code}
+-- prop :: I Bool -> Maybe Bool
+-- prop (I b) = Just b
+-- prop (U occs)
+--  = do ps <- sequence $ map prop occs
+--       return $ any id ps
+-- prop (X occs)
+--  = do ps <- sequence $ map prop occs
+--       let ps' = filter id ps
+--       case length ps' of
+--         0  ->  return False
+--         1  ->  return True
+--         _  ->  fail "not-exclusive"
+\end{code}
+
 
 \newpage
 \HDRc{Coding Atomic Semantics}
@@ -847,6 +938,7 @@ dictVP = makeDict [ vXEntry
                   , vIElemEntry
                   , vIDisjEntry
                   , vIJoinEntry
+                  , vInvEntry
                   , vAtmEntry
                   , vSkipEntry
                   , vSeqEntry

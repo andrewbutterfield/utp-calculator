@@ -136,6 +136,7 @@ dictVersion vtxt = entry version $ AlfEntry [vtxt]
 
 version = "Version"
 laws = "laws" -- for "the" LawEntry
+invariants = "invariants" -- for "the" InvEntry
 \end{code}
 
 When we merge dictionary entries
