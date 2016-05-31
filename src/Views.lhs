@@ -573,7 +573,39 @@ isLSInv _ = False
 isIElem (Comp n [_])   | n==nIElem = True; isIElem _ = False
 isIDisj (Comp n (_:_)) | n==nIDisj = True; isIDisj _ = False
 isIJoin (Comp n (_:_)) | n==nIJoin = True; isIJoin _ = False
+
+ielem e          =  Comp nIElem [Atm e]
+idisj prs@(_:_)  =  Comp nIDisj prs
+ijoin prs@(_:_)  =  Comp nIJoin prs
+
+ppIElem sCP d p [pr@(Atm e)] = sCP 0 1 pr
+ppIElem _ _ _ _ = pps styleRed $ ppa ("invalid-"++nIElem)
+
+precInv = -1
+
+ppIDisj sCP d p prs = ppclosed "[" "]" "|" $ map (sCP precInv 1) prs
+
+ppIJoin sCP d p prs
+ = paren p precInv
+     $ ppopen  "," $ ppwalk 1 (sCP precInv) prs
+
+vIElemEntry :: (Show s, Ord s) => (String, Entry s)
+vIElemEntry
+ = ( nIElem
+   , PredEntry anyVars ppIElem vStatic (pNoChg nIElem) (pNoChg nIElem) )
+
+vIDisjEntry :: (Show s, Ord s) => (String, Entry s)
+vIDisjEntry
+ = ( nIDisj
+   , PredEntry anyVars ppIDisj vStatic (pNoChg nIDisj) (pNoChg nIDisj) )
+
+vIJoinEntry :: (Show s, Ord s) => (String, Entry s)
+vIJoinEntry
+ = ( nIJoin
+   , PredEntry anyVars ppIJoin vStatic (pNoChg nIJoin) (pNoChg nIJoin) )
 \end{code}
+
+Now, we need to define the invariant entry.
 
 \newpage
 \HDRc{Coding Atomic Semantics}
@@ -593,6 +625,8 @@ ppAtom _ _ _ _ = pps styleRed $ ppa ("invalid-"++nAtom)
 
 defnAtom d [a]
  = ldefn nAtom $ wp $ mkA inp a out
+
+invAtom = idisj [ielem inp, ielem out]
 
 wp x = Comp "W" [x]
 
@@ -626,6 +660,8 @@ ppVSkip d ms p mprs = pps styleRed $ ppa ("invalid-"++nSkip)
 defnVSkip d [a]
  = ldefn nVSkip $ wp $ mkA inp ii out
 
+invVSkip = idisj [ielem inp, ielem out]
+
 vSkipEntry :: (Show s, Ord s) => (String, Entry s)
 vSkipEntry
  = ( nVSkip
@@ -646,6 +682,7 @@ ii = PVar nii
    C \cseq D
    &\defs&
    \W(C[g_{:1},\ell_g/g,out] \lor D[g_{:2},\ell_g/g,in])
+   \land [in|\ell_g|out]
 }
 \begin{code}
 nVSeq = "VSeq"
@@ -671,6 +708,8 @@ g' = new2 g
 g'1 = split1 g'
 g'2 = split2 g'
 
+invVSeq = idisj[ielem inp, ielem lg, ielem out]
+
 vSeqEntry :: (Show s, Ord s) => (String, Entry s)
 vSeqEntry
  = ( nVSeq
@@ -689,6 +728,7 @@ vSeqEntry
                      X(in|\emptyset|ii|in|\ell_{g2})
 \\ && \qquad {} \lor
    C[g_{1:},\ell_{g1}/g,in] \lor D[g_{2:},\ell_{g2}/g,in]~)
+\\ && {} \lor  [in|\ell_{g1}|\ell_{g2}|out]
 }
 \begin{code}
 nVChc = "VChc"
@@ -720,6 +760,8 @@ lg2 = new1 g2
 g1' = new2 g1
 g2' = new2 g2
 
+invVChc = idisj [ielem inp, ielem lg1, ielem lg2, ielem out]
+
 vChcEntry :: (Show s, Ord s) => (String, Entry s)
 vChcEntry
  = ( nVChc
@@ -739,6 +781,7 @@ vChcEntry
    \lor D[g_{2::},\ell_{g2},\ell_{g2:}/g,in,out]
 \\ && \qquad {}\lor
    X(\ell_{g1:},\ell_{g2:}|\emptyset|ii|\ell_{g1:},\ell_{g2:}|out)~)
+\\&& {} \land [in \mid [\ell_{g1}|\ell_{g1:}],[\ell_{g2}|\ell_{g2:}] \mid out]
 }
 \begin{code}
 nVPar = "VPar"
@@ -769,6 +812,13 @@ g1'' = new2 g1'
 g2'' = new2 g2'
 s12' = set [lg1',lg2']
 
+invVPar = idisj [ ielem inp
+                , ijoin [ idisj [ ielem lg1, ielem lg1' ]
+                        , idisj [ ielem lg2, ielem lg2' ]
+                        ]
+                , ielem out
+                ]
+
 vParEntry :: (Show s, Ord s) => (String, Entry s)
 vParEntry
  = ( nVPar
@@ -784,6 +834,7 @@ vParEntry
    \W(\quad  \phlor X(in|\emptyset|ii|in|out)
 \\ && \qquad {}\lor X(in|\emptyset|ii|in|\ell_g)
 \\ && \qquad {}\lor C[g_{:},\ell_g,in/g,in,out]~)
+\\ && {} \land [in|\ell_g|out]
 }
 
 
@@ -793,6 +844,9 @@ vParEntry
 dictVP :: (Ord s, Show s) => Dict s
 dictVP = makeDict [ vXEntry
                   , vAEntry
+                  , vIElemEntry
+                  , vIDisjEntry
+                  , vIJoinEntry
                   , vAtmEntry
                   , vSkipEntry
                   , vSeqEntry

@@ -279,7 +279,16 @@ are invoked in the calculator.
 The reduction steps are tried in order, from \m{r_1} to \m{r_m},
 or \m{cr_1} to \m{cr_n} or \m{u_1} to \m{u_p}, as appropriate.
 
+\HDRc{Invariant Entry}\label{hc:inv-entry}
 
+\begin{code}
+ | InvEntry { -- current invariant
+     invariant :: Dict s
+               -> Pred s      -- invariant predicate
+               -> Pred s      -- test predicte
+               -> RWResult s
+   }
+\end{code}
 
 \HDRcstar{Entry Complete}
 

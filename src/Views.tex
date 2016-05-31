@@ -351,7 +351,7 @@ $$
 $$
 with finer grained details for the generated labels,
 where a comma is a form of set union,
-so we can have something from 
+so we can have something from
 either or both of $[\ell_{g1}|\ell_{g1:}]$ and $[\ell_{g2}|\ell_{g2:}]$
 but within each of these we have mutual exclusion.
 
@@ -366,7 +366,7 @@ so
 \\ L_1 , ( L_{21}, L_{22})  , L_3
    &=&
    L_1,L_{21},L_{22},L_3
-} 
+}
 
 
 
@@ -499,7 +499,7 @@ $[L_1|L_3|\dots]$ and $[L_2|L_4|\dots]$
 \\&& ~~
        C[g_{1::},\ell_{g1},\ell_{g1:}/g,in,out] \lor
        D[g_{2::},\ell_{g2},\ell_{g2:}/g,in,out] ~)
-\\&& {} \land [in|\ell_{g1},\ell_{g2}|\ell_{g1:},\ell_{g2:}|out]
+\\&& {} \land [in \mid [\ell_{g1}|\ell_{g1:}],[\ell_{g2}|\ell_{g2:}] \mid out]
 \\
 \\ C^*
    &\defs&
