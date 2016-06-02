@@ -131,20 +131,23 @@ runREPL d m state@(currpr,steps,(ichk,inv))
    then return ()
    else putStrLn "**** Marking Invariant fails ****"
   putStr ( pmdshow 80 d noStyles currpr
-         ++ "\n\n ?,d,r,l,s,c,u,x :- " )
+         ++ "\n\n ?,d,r,l,s,c,u,x,I :- " )
   ln <- getLine
   case ln of
-   ('?':_) -> calcHelp d m state
-   ('s':_) -> calcStep d m (simplify2 d $ nextm m) state
-   ('u':_) -> calcUndo d m state
-   ('d':_) -> calcStep d m (expandDefn d $ nextm m) state
-   ('r':_) -> calcStep d m (doReduce   d $ nextm m) state
-   ('c':_) -> calcCStep d m (doCReduce d $ nextm m) state
+   ('?':_) -> calcHelp  d m state
+   ('s':_) -> calcStep  d m (simplify2  d $ nextm m) state
+   ('u':_) -> calcUndo  d m state
+   ('d':_) -> calcStep  d m (expandDefn d $ nextm m) state
+   ('r':_) -> calcStep  d m (doReduce   d $ nextm m) state
+   ('c':_) -> calcCStep d m (doCReduce  d $ nextm m) state
    ('l':s) -> calcStep  d m (doUnroll s d $ nextm m) state
-   ('x':_) -> return ((currpr,steps,(ichk,inv)),d)
+   ('i':_) -> calcStep  d m
+               (chkInvariant (ichk d inv) $ nextm m) state
+   ('I':_) -> displayInv d m state
    ('M':_) -> showMarks d m state
    ('B':_) -> viewBefore d m state
    ('A':_) -> viewAfter d m state
+   ('x':_) -> return ((currpr,steps,(ichk,inv)),d)
    _ -> do putStrLn ("unrecognised command : '"++ln++"'")
            runREPL d m state
 \end{code}
@@ -171,10 +174,18 @@ calcHelp d m st
        , "r - reduction law application"
        , "l[n] - loop unrolling - n: optional depth"
        , "c - conditional reduction step"
+       , "I - show invariant"
        , "M - show marks (DEBUG)"
        , "B - view before (DEBUG)"
        , "A - view after (DEBUG)"
        ]
+      runREPL d m st
+\end{code}
+
+Displaying the invariant
+\begin{code}
+displayInv d m st@(_,_,(_,inv))
+ = do putStrLn ("Invariant:  "++pdshow 80 d inv)
       runREPL d m st
 \end{code}
 

@@ -1383,7 +1383,14 @@ subII = PSub mkSkip [("g",g'1),("out",lg)]
 actionA = atom a
 actionB = atom b
 
+
 athenb = actionA `vseq` actionB
+
+-- an invariant that always fails
+noGood _ _ _ = Just False
+
+xcalc :: (Ord s, Show s) => Pred s -> IO ()
+xcalc = printREPL vDict (noGood, F) . buildMarks
 \end{code}
 
 \HDRd{Loops---alternative approach}

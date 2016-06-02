@@ -473,3 +473,53 @@ substitutable d (Comp name _,_)
     _                                ->  False
 substitutable _ _ = True
 \end{code}
+
+\HDRb{Invariant Checking}\label{hb:inv-check}
+
+We explore the current predicate,
+bottom-up, like simplify,
+except we have a fixed simplification function
+and we don't enter expressions or go under substitutions.
+\begin{code}
+chkInvariant :: (Ord s, Show s)
+             => (Pred s -> Maybe Bool)
+             -> Mark
+             -> MPred s
+             -> Maybe (BeforeAfter s)
+
+chkInvariant chk m mpr@(pr@(Comp name prs), mt@(MT ms mts))
+ = let
+    (subchgs,befores,afters) = subchk same [] [] $ zip prs mts
+    pr' = Comp name $ map fst afters
+   in case chk pr' of
+    Nothing -> Nothing
+    Just True
+     -> assemble "inv-chk : TRUE" pr'
+                 (unzip befores) (unzip afters)
+                 True True
+    Just False
+     -> assemble "inv-chk : FALSE" F
+                 (unzip befores) ([],[])
+                 True True
+ where
+
+   subchk chgd befores afters []
+    = ( chgd, reverse befores, reverse afters )
+   subchk chgd befores afters  (mpr:mprs)
+    =  case chkInvariant chk m mpr of
+        Nothing -> subchk chgd (mpr:befores) (mpr:afters)  mprs
+        Just (before,what,after)
+         -> subchk diff (before:befores) (after:afters) mprs
+
+   assemble _ _ _ _ False _ = Nothing
+   assemble what top' (befores, mbef) (afters, maft) _ False
+    = Just ( (Comp name befores, MT ms mbef)
+           , what
+           , (Comp name afters, MT ms maft) )
+   assemble what top' (befores, mbef) (afters, maft) _ True
+    = Just ( addMark m (Comp name befores, MT ms mbef)
+           , what
+           , addMark m (top', MT ms maft) )
+
+chkInvariant chk m mpr = Nothing
+\end{code}

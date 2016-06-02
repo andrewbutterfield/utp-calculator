@@ -89,12 +89,6 @@ data Entry s =
    , creduce :: [CRWFun s]           -- conditional reductions
    , unroll  :: [String -> RWFun s]  -- loop unrollers
    }
- | InvEntry { -- current invariant
-     invariant :: Dict s
-               -> Pred s      -- invariant predicate
-               -> Pred s      -- test predicte
-               -> RWResult s
-   }
 \end{code}
 
 \begin{code}
@@ -102,7 +96,11 @@ type Recogniser s = Pred s -> Maybe [Pred s]
 \end{code}
 
 \begin{code}
-type InvChecker s = Dict s -> Pred s -> Pred s -> Maybe Bool
+type InvChecker s
+ = Dict s
+   -> Pred s     -- invariant
+   -> Pred s     -- test predicate
+   -> Maybe Bool
 type InvState s
  = ( InvChecker s  -- inv check function
    , Pred s )      -- invariant predicate
