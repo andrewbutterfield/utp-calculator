@@ -101,6 +101,13 @@ data Entry s =
 type Recogniser s = Pred s -> Maybe [Pred s]
 \end{code}
 
+\begin{code}
+type InvChecker s = Dict s -> Pred s -> Pred s -> Maybe Bool
+type InvState s
+ = ( InvChecker s  -- inv check function
+   , Pred s )      -- invariant predicate
+\end{code}
+
 
 \newpage
 \HDRb{System Types}
@@ -186,7 +193,13 @@ type CMPZip2 s = ( BeforeAfters s, [MPred' s] )
 \end{code}
 
 \begin{code}
-type CalcLog s = ( MPred s      -- initial predicate (pe1)
-                 , [(String, MPred s)] -- steps, most recent first
-                 , Dict s )     -- final dictionary
+type Step s
+ = ( String        -- step justification
+   , MPred s )     -- prev predicate
+type State s
+ = ( MPred s       -- current goal predicate
+   , [Step s]      -- calc steps so far
+   , InvState s )  -- invariant
+type CalcLog s = ( State s   -- final state
+                 , Dict s )  -- final dictionary
 \end{code}

@@ -295,11 +295,21 @@ we return a list of \texttt{Pred},\texttt{MPred} pairs:
 type CMPZip2 s = ( BeforeAfters s, [MPred' s] )
 \end{code}
 
+First, the REPL state:
+\begin{code}
+type Step s
+ = ( String        -- step justification
+   , MPred s )     -- prev predicate
+type State s
+ = ( MPred s       -- current goal predicate
+   , [Step s]      -- calc steps so far
+   , InvState s )  -- invariant
+\end{code}
+
 A calculation log records all pertinent data regarding a calculation
 \begin{code}
-type CalcLog s = ( MPred s      -- initial predicate (pe1)
-                 , [(String, MPred s)] -- steps, most recent first
-                 , Dict s )     -- final dictionary
+type CalcLog s = ( State s   -- final state
+                 , Dict s )  -- final dictionary
 \end{code}
 The dictionary is included as it is required, for example,
 to pretty-print the predicates.
@@ -307,7 +317,7 @@ to pretty-print the predicates.
 It can help to be able to see all the gory details.
 \begin{code}
 viewcalc :: Show s => CalcLog s -> IO ()
-viewcalc (currpr,steps,_)
+viewcalc ((currpr,steps,_),_)
  = vc 0 $ reverse (("QED",currpr):steps)
  where
    vc _ [] = return ()

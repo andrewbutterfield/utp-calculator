@@ -95,16 +95,17 @@ Because the others are in fact paired with a string ($w_k$) identifying the step
 \newpage
 \HDRb{Calculator REPL}
 
+
 For now we define a simple REPL.
 First, some top-level setup:
 \begin{code}
 calcREPL :: (Ord s, Show s)
-         => Dict s ->  MPred s
+         => Dict s -> InvState s -> MPred s
          -> IO (CalcLog s)
-calcREPL d mpr
+calcREPL d invst mpr
  = do putStrLn ""
       putStrLn $ versionShow d'
-      runREPL d' startm (mpr,[])
+      runREPL d' startm (mpr,[],invst)
  where d' = dictMrg d $ dictVersion calcVersion
 
 calcVersion = "UTP-Calc v0.0.1"
@@ -118,18 +119,15 @@ versionShow d
 
 Now, the main REPL loop:
 \begin{code}
-type Step s = (String, MPred s)
-type State s = (MPred s, [Step s])
-
 runREPL :: (Ord s, Show s)
         => Dict s -> Mark -> State s
         -> IO (CalcLog s)
-runREPL d m state@(currpr,steps)
+runREPL d m state@(currpr,steps,(ichk,inv))
  = do
   if invMPred currpr
      then return ()
      else putStrLn "@@@@ M-Pred Invariant fails @@@@"
-  if invMarks (currpr,steps,d)
+  if invMarks (state,d)
    then return ()
    else putStrLn "**** Marking Invariant fails ****"
   putStr ( pmdshow 80 d noStyles currpr
@@ -143,19 +141,19 @@ runREPL d m state@(currpr,steps)
    ('r':_) -> calcStep d m (doReduce   d $ nextm m) state
    ('c':_) -> calcCStep d m (doCReduce d $ nextm m) state
    ('l':s) -> calcStep  d m (doUnroll s d $ nextm m) state
-   ('x':_) -> return (currpr,steps,d)
+   ('x':_) -> return ((currpr,steps,(ichk,inv)),d)
    ('M':_) -> showMarks d m state
    ('B':_) -> viewBefore d m state
    ('A':_) -> viewAfter d m state
-   _ -> do putStrLn ("'"++ln++"' ??")
-           runREPL d m (currpr,steps)
+   _ -> do putStrLn ("unrecognised command : '"++ln++"'")
+           runREPL d m state
 \end{code}
 
 Undoing
 \begin{code}
-calcUndo d m st@(_,[]) = runREPL d m st
-calcUndo d m (n_k,(_,q):steps)
-                = runREPL d (prevm m) (q',steps)
+calcUndo d m st@(_,[],_) = runREPL d m st
+calcUndo d m (n_k,(_,q):steps,is)
+                = runREPL d (prevm m) (q',steps,is)
                 where q' = stripMark m q
 \end{code}
 
@@ -187,7 +185,7 @@ calcStep :: (Ord s, Show s)
          => Dict s -> Mark -> (MPred s -> Maybe (BeforeAfter s))
          -> State s
          -> IO (CalcLog s)
-calcStep d m stepf st@(currpr,steps)
+calcStep d m stepf st@(currpr,steps,is)
  = do case stepf currpr of
        Nothing  ->  runREPL d m st
        Just ( before,comment, after )
@@ -196,7 +194,7 @@ calcStep d m stepf st@(currpr,steps)
                 runREPL d (nextm m) st'
 
 stUpdate :: Show s => (String, MPred s) ->  MPred s -> State s -> State s
-stUpdate wbefore after ( _, steps) = ( after, wbefore:steps)
+stUpdate wbefore after ( _, steps, is) = ( after, wbefore:steps, is)
 \end{code}
 
 Apply a given conditional step:
@@ -205,7 +203,7 @@ calcCStep :: (Ord s, Show s)
           => Dict s -> Mark -> (MPred s -> Maybe(BeforeAfters s))
           -> State s
           -> IO (CalcLog s)
-calcCStep d m cstepf st@(currpr,steps)
+calcCStep d m cstepf st@(currpr,steps,_)
  = case cstepf currpr of
     Nothing  ->  runREPL d m st
     Just( before, comment, afters' )
@@ -254,7 +252,7 @@ showMarks :: (Ord s, Show s)
           => Dict s -> Mark
           -> State s
           -> IO (CalcLog s)
-showMarks d m state@(currpr,steps)
+showMarks d m state@(currpr,steps,_)
  = do showm (1::Int) $ reverse (currpr:map snd steps)
       runREPL d m state
 
@@ -271,14 +269,14 @@ mFlatten (MT ms mts) = ms ++ concat (map mFlatten mts)
 
 Viewing before and after
 \begin{code}
-viewAfter d m state@(currpr,steps)
+viewAfter d m state@(currpr,steps,_)
  = do putView currpr
       runREPL d m state
 
-viewBefore d m state@(currpr,[])
+viewBefore d m state@(currpr,[],_)
  = do putView currpr
       runREPL d m state
-viewBefore d m state@(currpr,(_,prevpr):_)
+viewBefore d m state@(currpr,(_,prevpr):_,_)
  = do putView prevpr
       runREPL d m state
 \end{code}
@@ -286,8 +284,8 @@ viewBefore d m state@(currpr,(_,prevpr):_)
 \CALCINV
 \begin{code}
 invMarks :: CalcLog s -> Bool
-invMarks (n_0, [],_) =  null $ marksOf n_0
-invMarks (n_k, ps,_)
+invMarks ((n_0, [],_),_) =  null $ marksOf n_0
+invMarks ((n_k, ps,_),_)
  = invMarksNE k n_k
    && all invPE (zip [1..] $ reverse ps)
  where
@@ -320,7 +318,7 @@ stepshow s m
 Now, rendering the results to look pretty:
 \begin{code}
 calcPrint :: (Ord s, Show s) => CalcLog s -> String
-calcPrint ( currpr, steps, d )
+calcPrint ( (currpr, steps, _), d )
  = unlines ( "" : versionShow d : ""
              : (stepPrint d 0 $ reverse steps)
                ++ [pmdshow 80 d (stepshow $ length steps) currpr])
@@ -335,13 +333,13 @@ stepPrint d s ((comment,mpr):rest)
 
 
 outcome :: CalcLog s -> MPred s
-outcome (mpr, _, _)  =  mpr
+outcome ((mpr, _, _),_)  =  mpr
 \end{code}
 
 Calculation and prettiness all in one go:
 \begin{code}
-printREPL d mpr
-  = do res <- calcREPL d mpr
+printREPL d invstate mpr
+  = do res <- calcREPL d invstate mpr
        putStrLn "\n\nTRANSCRIPT:"
        putStrLn $ calcPrint res
 \end{code}

@@ -612,7 +612,7 @@ vIJoinEntry
 \end{code}
 
 \newpage
-Now, we need to define the invariant entry.
+Now, we need to define invariant satisfaction.
 Our invariant applies to $A$ and $X$ atomic actions:
 \RLEQNS{
    A(E|a|N) \textbf{ sat } I
@@ -623,14 +623,15 @@ Our invariant applies to $A$ and $X$ atomic actions:
    E \textbf{ lsat } I \land A \textbf{ lsat } I
 }
 \begin{code}
+labelSetInv :: (Ord s, Show s) => InvChecker s
 labelSetInv d inv pr@(Comp nm [Atm e,_,Atm n])
  | nm == nA = if lsat d e inv && lsat d n inv
-              then Just ( "inv-sat", pr, True )
-              else Just ( "inv-not-sat", F, True )
+              then Just True
+              else Just False
 labelSetInv d inv pr@(Comp nm [Atm e,_,_,Atm a])
  | nm == nX = if lsat d e inv && lsat d a inv
-              then Just ( "inv-sat", pr, True )
-              else Just ( "inv-not-sat", F, True )
+              then Just True
+              else Just False
 labelSetInv _ _ _ = Nothing
 \end{code}
 
@@ -1270,9 +1271,16 @@ vshow = pmdshow 80 vDict noStyles . buildMarks
 vput :: (Show s, Ord s) => Pred s -> IO ()
 vput = putStrLn . vshow
 
-vcalc pr = calcREPL vDict $ buildMarks pr
+vcalc pr = calcREPL vDict noInvariant $ buildMarks pr
+
+ivcalc inv pr
+ = calcREPL vDict (labelSetInv, inv) $ buildMarks pr
+
 vputcalc :: (Ord s, Show s) => Pred s -> IO ()
-vputcalc pr = printREPL vDict $ buildMarks pr
+vputcalc pr = printREPL vDict noInvariant $ buildMarks pr
+
+ivputc inv pr
+ = printREPL vDict (labelSetInv, inv) $ buildMarks pr
 
 vsavecalc fp pr
  = do calc <- vcalc pr

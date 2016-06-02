@@ -333,3 +333,31 @@ a ``under construction'' law name:
 \begin{code}
 rUC = "RuleUnderConstruction!!!"
 \end{code}
+
+\HDRb{Invariants}\label{hc:invarants}
+
+An invariant satisfaction checker takes an invariant predicate
+and a test predicate
+and checks if it satisfies that invariant.
+It returns \texttt{Nothing} if not applicable.
+otherwise Just False if it can
+If it can be shown that the predicate does \emph{not} satisfy the
+invariant, then the outcome \texttt{Just F} should be returned,
+otherwise the result should be \texttt{Just T}.
+IN an invariant state, we pair a checker with an invariant predicate.
+\begin{code}
+type InvChecker s = Dict s
+                 -> Pred s  -- invariant
+                 -> Pred s  -- test
+                 -> Maybe Bool
+type InvState s
+ = ( InvChecker s  -- inv check function
+   , Pred s )      -- invariant predicate
+\end{code}
+
+We define a invariant state that does nothing,
+and whose use won't appear as a calculation step
+\begin{code}
+noInvariant :: InvState s
+noInvariant = ( \_ _ _ -> Nothing, T )
+\end{code}

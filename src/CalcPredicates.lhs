@@ -70,9 +70,10 @@ cleanMarks :: MPred s -> MPred s
 cleanMarks (pr, _) = buildMarks pr
 
 cleanCalc :: CalcLog s -> CalcLog s
-cleanCalc (currpr, steps, d)
- = ( cleanMarks currpr
-   , mapsnd cleanMarks steps
+cleanCalc ((currpr, steps, is),d)
+ = ( (cleanMarks currpr
+     , mapsnd cleanMarks steps
+     , is )
    , d )
 \end{code}
 
