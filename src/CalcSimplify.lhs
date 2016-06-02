@@ -309,7 +309,7 @@ Nullary composites are treated the same:
 \end{code}
 
 \emph{Non-nullary composites require us to simplify sub-parts
-and then drve substitiob in if the comp is substitutable
+and then drive substition in if the comp is substitutable
 (need to call \texttt{psubst} a bit more than we do)}
 
 In the general case,
@@ -321,19 +321,19 @@ and combine
      in assemble mpr' (spr,smt) mpr' subs'
                  (subschgd||topchgd) topchgd
    where
-    assemble _ _ _ _ False _ = Nothing
+    assemble _ _ _ _ False _ = dbg "@@@@ assemble " Nothing
     assemble top' (before, mbef) (after, maft) subs' _ False
-     = Just ( (mkPSub before subs', MT ms [mbef])
+     = dbg "@@@@ assemble old-top" $ Just ( (mkPSub before subs', MT ms [mbef])
             , simplified
             , (mkPSub after subs', MT ms [maft]) )
     assemble top' (before, mbef) (after, maft) subs'  _ True
-     = Just ( addMark m (mkPSub before subs', MT ms [mbef])
+     = dbg "@@@@ assemble new-top" $ Just ( addMark m (mkPSub before subs', MT ms [mbef])
             , simplified
-            , addMark m top' )
+            , addMark m $ dbg "@@@@ @@@@ top'\n" top' )
 \end{code}
 All other cases are as simple as can be, considering\ldots
 \begin{code}
-simplify _ _ _ = Nothing
+simplify _ _ _ = dbg "$$$$ simplify fell through " Nothing
 \end{code}
 
 SOmetimes we want to simply a Pred without any fuss:
@@ -428,19 +428,19 @@ psubst _ d sub (Atm e, mt)
  = let (ediff, e') = esubst sub e
    in  (ediff, (Atm e', mt))
 
-psubst m d sub mpr@(Comp name prs, MT ms mts)
- | canSub sub d name
-    = let (chgd,mprs') = pssubst m d sub $ zip prs mts
+psubst m d sub mpr@(pr@(Comp name prs), MT ms mts)
+ | dbg "*** canSub=" $ canSub sub d $ dbg "*** psubst Comp " name
+    = let (chgd,mprs') = pssubst m d sub $ zip (dbg "** ** psubst prs\n" prs) mts
           (prs',mts')  = unzip mprs'
-      in (diff, addMark m ( Comp name prs', MT ms mts' ) )
-
+      in (chgd, addMark m ( Comp name $ dbg "** ** psubst prs'\n" prs', MT ms mts' ) )
+ | otherwise = (same, (dbg "**!** PSub:" $! PSub pr sub, MT ms mts))
 -- we need subcomp here, unlike in expression substitution,
 -- because psubst can return a PSub
 psubst m d sub (PSub pr sub', MT ms [smt])
- = psubst m d (subcomp sub sub') (pr, smt)
+ = psubst m d (dbg "*** subcomp = " $ subcomp sub sub') (pr, smt)
 
 -- -- the rest are non-substitutable (n.s.)
-psubst m d sub (pr, mt)  =  (same, (mkPSub pr sub, MT [] [mt]))
+psubst m d sub (pr, mt)  =  (same, (dbg "*** n.s. yields: " $! mkPSub pr sub, MT [] [mt]))
 \end{code}
 Handling lists of predicates:
 \begin{code}
