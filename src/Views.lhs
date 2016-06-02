@@ -500,11 +500,55 @@ vAEntry
    , PredEntry vStatic ppA vObs defnA simpA )
 \end{code}
 
+\HDRc{Wheels within Wheels}\label{hc:WwW}
+\begin{eqnarray*}
+   \W(C) &\defs& \true * (\Skip \lor C)
+\\       &=& \bigvee_{i\in 0\dots} \Skip\seq C^i
+\\ ii &\defs& s'=s
+\end{eqnarray*}
+\begin{code}
+nW = "W"
+isW (Comp n [_]) | n==nW = True; isW _ = False
+
+mkW pr  = Comp nW [pr]
+
+ppW sCP vd p [pr]
+ = ppclosed "W(" ")" "" [ sCP 0 1 pr ]
+ppW _ _ _ _ = pps styleRed $ ppa ("invalid-"++nW)
+
+-- we don't want to expand the definition of this, or simplify it
+defnW = pNoChg nW
+simpW = pNoChg nW
+
+vWEntry :: (Show s, Ord s) => (String, Entry s)
+vWEntry
+ = ( nW
+   , PredEntry [] ppW vObs defnW simpW )
+\end{code}
+
 \NOTE{
 Redo this to handle $\W(P) = \true * (\Skip \lor P)$
 }
 \begin{code}
 wUnroll :: Ord s => String -> RWFun s
+wUnroll arg d wpr@(Comp nw [pr])
+ | nw == nW 
+   = case numfrom arg of
+      0 -> Just ( "W-unroll"
+                , mkSeq (mkOr [mkSkip, pr]) wpr , True )
+      n -> Just ( "W-unroll."++arg
+                ,  wunroll n
+                , True )
+
+ where
+   numfrom "" = 0
+   numfrom (c:_) | isDigit c = digitToInt c
+                 | otherwise = 42
+                 
+   wunroll n = mkOr (mkSkip : dupPr pr n)
+   dupPr dups 0 = []
+   dupPr dups n = dups : dupPr (mkSeq dups pr) (n-1)
+
 wUnroll _ _ _ = Nothing
 \end{code}
 
@@ -954,6 +998,7 @@ vParEntry
 dictVP :: (Ord s, Show s) => Dict s
 dictVP = makeDict [ vXEntry
                   , vAEntry
+                  , vWEntry
                   , vIElemEntry
                   , vIDisjEntry
                   , vIJoinEntry

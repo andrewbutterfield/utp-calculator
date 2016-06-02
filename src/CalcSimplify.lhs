@@ -509,7 +509,7 @@ chkInvariant chk m mpr@(pr@(Comp name prs), mt@(MT ms mts))
    subchk chgd befores afters []
     = ( chgd, reverse befores, reverse afters )
    subchk chgd befores afters  (mpr:mprs)
-    =  case dbg "subchk cI result : " $ chkInvariant chk m $ dbg "subchk mpr = " mpr of
+    =  case chkInvariant chk m mpr of
         Nothing -> subchk chgd (mpr:befores) (mpr:afters)  mprs
         Just (before,what,after)
          -> subchk diff (before:befores) (after:afters) mprs
