@@ -25,8 +25,8 @@ import UTCPCReduce
 \end{code}
 
 \begin{code}
-import Debug.Trace
-dbg str x = trace (str++show x) x
+-- import Debug.Trace
+-- dbg str x = trace (str++show x) x
 \end{code}
 
 We do a quick run-down of the Commands\cite{conf/popl/Dinsdale-YoungBGPY13}.
@@ -660,19 +660,19 @@ This is the label occupancy structure:
 -- occ :: Eq t => [t] -> I t -> I Bool
 locc :: (Ord s, Show s) => Dict s -> Expr s -> Pred s -> I Bool
 
--- occ ls (I ell) = I (ell `elem`ls)
+-- occ ls (I ell) = I (ell `elem` ls)
 locc d lset (Comp nm [Atm ell])
  | nm == nIElem
-   = case  esimp d $ subset ell lset of
+   = case esimp d $ subset ell lset of
       (_,B b)  ->  I b
       _        ->  I False -- no occupancy!
 
 -- occ ls (U invs) = U $ map (occ ls) invs
 locc d lset (Comp nm prs)
- | nm == nIJoin  =  U $ map (locc d ls) prs
+ | nm == nIJoin  =  U $ map (locc d lset) prs
 
 -- occ ls (X invs) = X $ map (occ ls) invs
- | nm == nIDisj  =  X $ map (locc d ls) prs
+ | nm == nIDisj  =  X $ map (locc d lset) prs
 
 locc d lset pr  = I False -- no occupancy
 \end{code}
