@@ -560,6 +560,11 @@ The definitions, using the new shorthands:
 \RLEQNS{
    i \in I_\tau &::=& \tau \mid \otimes(i,\ldots,i) \mid \cup (i,\ldots,i)
 }
+We shall code this structure directly in Haskell
+as it eases invariant satisfaction calculation.
+\begin{code}
+data I t = I t | U [I t] | X [I t] deriving Show
+\end{code}
 We refer to these three variants as
  \texttt{IElem}, \texttt{IDisj} and \texttt{IJoin}:
 \begin{code}
@@ -619,25 +624,22 @@ Our invariant applies to $A$ and $X$ atomic actions:
 }
 \begin{code}
 labelSetInv d inv pr@(Comp nm [Atm e,_,Atm n])
- | nm == nA = if e `lsat` inv && n `lsat` inv
+ | nm == nA = if lsat d e inv && lsat d n inv
               then Just ( "inv-sat", pr, True )
               else Just ( "inv-not-sat", F, True )
 labelSetInv d inv pr@(Comp nm [Atm e,_,_,Atm a])
- | nm == nX = if e `lsat` inv && a `lsat` inv
+ | nm == nX = if lsat d e inv && lsat d a inv
               then Just ( "inv-sat", pr, True )
               else Just ( "inv-not-sat", F, True )
 labelSetInv _ _ _ = Nothing
-
-vInvEntry = ( invariants, InvEntry labelSetInv )
 \end{code}
 
 Now we have to code up \textbf{lsat}:
 \RLEQNS{
 }
 \begin{code}
-lsat :: Expr s -> Pred s -> Bool
-ls `lsat` inv = isJust $ lprop $ locc ls inv
- where locc ls inv = True ; lprop x = Just x
+lsat :: (Ord s, Show s) => Dict s -> Expr s -> Pred s -> Bool
+lsat d ls inv = isJust $ loccChk $ locc d ls inv
 \end{code}
 
 We want to take an invariant over labels
@@ -655,47 +657,62 @@ This is the label occupancy structure:
 }
 \begin{code}
 -- occ :: Eq t => [t] -> I t -> I Bool
+locc :: (Ord s, Show s) => Dict s -> Expr s -> Pred s -> I Bool
+
 -- occ ls (I ell) = I (ell `elem`ls)
+locc d lset (Comp nm [Atm ell])
+ | nm == nIElem
+   = case  esimp d $ subset ell lset of
+      (_,B b)  ->  I b
+      _        ->  I False -- no occupancy!
+
 -- occ ls (U invs) = U $ map (occ ls) invs
+locc d lset (Comp nm prs)
+ | nm == nIJoin  =  U $ map (locc d ls) prs
+
 -- occ ls (X invs) = X $ map (occ ls) invs
+ | nm == nIDisj  =  X $ map (locc d ls) prs
+
+locc d lset pr  = I False -- no occupancy
 \end{code}
 
 \newpage
-We now take a $I_\Bool$ and reduce it to a boolean
-that asserts satisfaction.
+We now take a $I_\Bool$ and check that occupancy
+satisfies the constraints in order
+to reduce it to a boolean.
 In effect we look for failures
 (can only come from $\oplus$)
 and propagate these up.
 \RLEQNS{
-   prop &:& I_\Bool \fun (\setof{ok,fail}\times \Bool)
-\\ prop(b) &\defs& (ok,true)
-\\ prop(\cup(i_1,\ldots,i_n))
+   occChk &:& I_\Bool \fun (\setof{ok,fail}\times \Bool)
+\\ occChk(b) &\defs& (ok,true)
+\\ occChk(\cup(i_1,\ldots,i_n))
    &\defs&
    (fail,\_),
-   \textbf{ if }\exists j @ prop(i_j) = (fail,\_)
+   \textbf{ if }\exists j @ occChk(i_j) = (fail,\_)
 \\ && (ok,b_1 \lor \dots \lor b_n),
-   \textbf{ if }\forall j @ prop(i_j) = (ok,b_j)
-\\ prop(\otimes(i_1,\ldots,i_n))
+   \textbf{ if }\forall j @ occChk(i_j) = (ok,b_j)
+\\ occChk(\otimes(i_1,\ldots,i_n))
    &\defs&
    (fail,\_),
-   \textbf{ if }\exists j @ prop(i_j) = (fail,\_)
+   \textbf{ if }\exists j @ occChk(i_j) = (fail,\_)
 \\&& (fail,\_) \mbox{ if more than one $(ok,true)$}
 \\&& (ok,false) \mbox{ if all are $(ok,false)$}
 \\&& (ok,true) \mbox{ if  exactly one $(ok,true)$}
 }
 \begin{code}
--- prop :: I Bool -> Maybe Bool
--- prop (I b) = Just b
--- prop (U occs)
---  = do ps <- sequence $ map prop occs
---       return $ any id ps
--- prop (X occs)
---  = do ps <- sequence $ map prop occs
---       let ps' = filter id ps
---       case length ps' of
---         0  ->  return False
---         1  ->  return True
---         _  ->  fail "not-exclusive"
+loccChk :: I Bool -> Maybe Bool
+loccChk (I b) = Just b
+loccChk (U occs) -- we go all monadic !!!
+ = do ps <- sequence $ map loccChk occs
+      return $ any id ps
+loccChk (X occs)
+ = do ps <- sequence $ map loccChk occs
+      let ps' = filter id ps
+      case length ps' of
+        0  ->  return False
+        1  ->  return True
+        _  ->  fail "not-exclusive"
 \end{code}
 
 
@@ -939,7 +956,6 @@ dictVP = makeDict [ vXEntry
                   , vIElemEntry
                   , vIDisjEntry
                   , vIJoinEntry
-                  , vInvEntry
                   , vAtmEntry
                   , vSkipEntry
                   , vSeqEntry
