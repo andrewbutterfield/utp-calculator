@@ -492,7 +492,10 @@ chkInvariant chk m mpr@(pr@(Comp name prs), mt@(MT ms mts))
     (subchgs,befores,afters) = subchk same [] [] $ zip prs mts
     pr' = Comp name $ map fst afters
    in case chk pr' of
-    Nothing -> Nothing
+    Nothing
+     -> assemble "inv-chk : TRUE" pr'
+                 (unzip befores) (unzip afters)
+                 subchgs False
     Just True
      -> assemble "inv-chk : TRUE" pr'
                  (unzip befores) (unzip afters)
@@ -506,7 +509,7 @@ chkInvariant chk m mpr@(pr@(Comp name prs), mt@(MT ms mts))
    subchk chgd befores afters []
     = ( chgd, reverse befores, reverse afters )
    subchk chgd befores afters  (mpr:mprs)
-    =  case chkInvariant chk m mpr of
+    =  case dbg "subchk cI result : " $ chkInvariant chk m $ dbg "subchk mpr = " mpr of
         Nothing -> subchk chgd (mpr:befores) (mpr:afters)  mprs
         Just (before,what,after)
          -> subchk diff (before:befores) (after:afters) mprs
