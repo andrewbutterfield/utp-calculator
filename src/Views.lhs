@@ -357,6 +357,7 @@ vAlfDict
 
 vStatic = ["g","in","out"]
 vDynamic = ["ls","ls'","s","s'"]
+vObs = vDynamic ++ vStatic
 \end{code}
 
 \newpage
@@ -467,7 +468,7 @@ simpX = pNoChg nX
 vXEntry :: (Show s, Ord s) => (String, Entry s)
 vXEntry
  = ( nX
-   , PredEntry vStatic ppX [] defnX simpX )
+   , PredEntry vStatic ppX vObs defnX simpX )
 \end{code}
 
 \begin{eqnarray*}
@@ -496,7 +497,7 @@ simpA = pNoChg nA
 vAEntry :: (Show s, Ord s) => (String, Entry s)
 vAEntry
  = ( nA
-   , PredEntry vStatic ppA [] defnA simpA )
+   , PredEntry vStatic ppA vObs defnA simpA )
 \end{code}
 
 \NOTE{
