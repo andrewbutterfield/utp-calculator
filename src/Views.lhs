@@ -532,7 +532,7 @@ Redo this to handle $\W(P) = \true * (\Skip \lor P)$
 \begin{code}
 wUnroll :: Ord s => String -> RWFun s
 wUnroll arg d wpr@(Comp nw [pr])
- | nw == nW 
+ | nw == nW
    = case numfrom arg of
       0 -> Just ( "W-unroll"
                 , mkSeq (mkOr [mkSkip, pr]) wpr , True )
@@ -544,7 +544,7 @@ wUnroll arg d wpr@(Comp nw [pr])
    numfrom "" = 0
    numfrom (c:_) | isDigit c = digitToInt c
                  | otherwise = 42
-                 
+
    wunroll n = mkOr (mkSkip : dupPr pr n)
    dupPr dups 0 = []
    dupPr dups n = dups : dupPr (mkSeq dups pr) (n-1)
@@ -1460,6 +1460,19 @@ defvseq = defnVSeq (vDict :: Dict ())
 athenbBody = case defvseq [actionA,actionB] of
               Just (_,Comp _ [body],_)  ->  body
               _                         ->  PVar "??"
+              
+testpr = PSub (mkOr [pr, mkSeq pr pr]) [("in",lg)] 
+ where pr = mkA inp ii out
+ 
+disp Nothing = putStrLn "\nNo change"
+disp (Just (before,_,after))
+ = do putStrLn ""
+      vput $ fst before
+      putStrLn "\n\tbecomes\n"
+      vput $ fst after
+
+test :: Maybe (BeforeAfter ())
+test = simplify vDict 42 $ buildMarks testpr
 \end{code}
 \begin{verbatim}
 D(lg) \/ X(in|lg|a|in|lg) \/ D(out) \/ X(lg|out|b|lg|out) ; D(out)

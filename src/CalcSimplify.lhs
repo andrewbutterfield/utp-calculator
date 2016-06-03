@@ -317,23 +317,24 @@ we simplify both predicate and substitution parts,
 and combine
 \begin{code}
   sbstsimp (subschgd,subs') smt spr
-   = let (topchgd,mpr'@(npr',nmt')) = psubst m d subs' (spr,smt)
+   = let (topchgd,mpr'@(npr',nmt'))
+           = psubst m d subs' (spr,smt)
      in assemble mpr' (spr,smt) mpr' subs'
                  (subschgd||topchgd) topchgd
    where
-    assemble _ _ _ _ False _ = dbg "@@@@ assemble " Nothing
+    assemble _ _ _ _ False _ = Nothing
     assemble top' (before, mbef) (after, maft) subs' _ False
-     = dbg "@@@@ assemble old-top" $ Just ( (mkPSub before subs', MT ms [mbef])
+     = Just ( (mkPSub before subs', MT ms [mbef])
             , simplified
             , (mkPSub after subs', MT ms [maft]) )
     assemble top' (before, mbef) (after, maft) subs'  _ True
-     = dbg "@@@@ assemble new-top" $ Just ( addMark m (mkPSub before subs', MT ms [mbef])
+     = Just ( addMark m (mkPSub before subs', MT ms [mbef])
             , simplified
-            , addMark m $ dbg "@@@@ @@@@ top'\n" top' )
+            , addMark m top' )
 \end{code}
 All other cases are as simple as can be, considering\ldots
 \begin{code}
-simplify _ _ _ = dbg "$$$$ simplify fell through " Nothing
+simplify _ _ _ = Nothing
 \end{code}
 
 SOmetimes we want to simply a Pred without any fuss:
@@ -429,18 +430,18 @@ psubst _ d sub (Atm e, mt)
    in  (ediff, (Atm e', mt))
 
 psubst m d sub mpr@(pr@(Comp name prs), MT ms mts)
- | dbg "*** canSub=" $ canSub sub d $ dbg "*** psubst Comp " name
-    = let (chgd,mprs') = pssubst m d sub $ zip (dbg "** ** psubst prs\n" prs) mts
+ | canSub sub d name
+    = let (chgd,mprs') = pssubst m d sub $ zip (prs) mts
           (prs',mts')  = unzip mprs'
-      in (chgd, addMark m ( Comp name $ dbg "** ** psubst prs'\n" prs', MT ms mts' ) )
- | otherwise = (same, (dbg "**!** PSub:" $! PSub pr sub, MT ms mts))
+      in (chgd, addMark m ( Comp name prs', MT ms mts' ) )
+ | otherwise = (same, (PSub pr sub, MT ms mts))
 -- we need subcomp here, unlike in expression substitution,
 -- because psubst can return a PSub
 psubst m d sub (PSub pr sub', MT ms [smt])
- = psubst m d (dbg "*** subcomp = " $ subcomp sub sub') (pr, smt)
+ = psubst m d (subcomp sub sub') (pr, smt)
 
 -- -- the rest are non-substitutable (n.s.)
-psubst m d sub (pr, mt)  =  (same, (dbg "*** n.s. yields: " $! mkPSub pr sub, MT [] [mt]))
+psubst m d sub (pr, mt)  =  (same, (mkPSub pr sub, MT [] [mt]))
 \end{code}
 Handling lists of predicates:
 \begin{code}
@@ -451,7 +452,7 @@ pssubst m d _ [] = (same,[])
 pssubst m d sub (mpr:mprs)
  = let
     (pdiff, mpr') = psubst m d sub mpr
-    mpr'' = if pdiff then addMark m mpr' else mpr
+    mpr'' = if pdiff then addMark m mpr' else mpr'
     (psdiff, mprs') = pssubst m d sub mprs
    in (pdiff||psdiff, mpr'':mprs')
 \end{code}
