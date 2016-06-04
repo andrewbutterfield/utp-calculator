@@ -399,7 +399,7 @@ skipEntry' -- in stdUTPDict
 \begin{code}
 vStdUTPDict :: (Show s, Ord s) => Dict s
 vStdUTPDict
-  = makeDict [ skipEntry'
+  = makeDict [ skipEntry -- don't want to expand such defns
              ] `dictMrg` stdUTPDict
 \end{code}
 
@@ -1338,6 +1338,10 @@ vsimp pr
      Just (_,what,(pr',_)) ->  (what,pr')
 vsimp2 :: (Show s, Ord s) => (String, Pred s) -> (String, Pred s)
 vsimp2 = vsimp . snd
+
+vcsave fp inv pr
+ = do calc <- ivcalc inv pr
+      saveCalc fp calc
 \end{code}
 
 
@@ -1460,10 +1464,10 @@ defvseq = defnVSeq (vDict :: Dict ())
 athenbBody = case defvseq [actionA,actionB] of
               Just (_,Comp _ [body],_)  ->  body
               _                         ->  PVar "??"
-              
-testpr = PSub (mkOr [pr, mkSeq pr pr]) [("in",lg)] 
+
+testpr = PSub (mkOr [pr, mkSeq pr pr]) [("in",lg)]
  where pr = mkA inp ii out
- 
+
 disp Nothing = putStrLn "\nNo change"
 disp (Just (before,_,after))
  = do putStrLn ""
