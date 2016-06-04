@@ -126,7 +126,11 @@ runREPL d m state@(currpr,steps,(ichk,inv))
  = do
   if invMPred currpr
      then return ()
-     else putStrLn "@@@@ M-Pred Invariant fails @@@@"
+     else do putStrLn "\n============================"
+             putStrLn "@@@@ M-Pred Invariant fails @@@@"
+             putStrLn $ viewPred currpr
+             putStrLn "\n============================"
+            
   if invMarks (state,d)
    then return ()
    else putStrLn "**** Marking Invariant fails ****"

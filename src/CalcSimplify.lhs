@@ -251,7 +251,7 @@ Assembling the result:
    assemble top' (befores, mbef) (afters, maft) _ True
     = Just ( addMark m (Comp name befores, MT ms mbef)
            , simplified
-           , addMark m (top', MT ms maft) )
+           , addMark m $ buildMarks top' )
 \end{code}
 
 \newpage
@@ -429,12 +429,12 @@ psubst _ d sub (Atm e, mt)
  = let (ediff, e') = esubst sub e
    in  (ediff, (Atm e', mt))
 
-psubst m d sub mpr@(pr@(Comp name prs), MT ms mts)
+psubst m d sub mpr@(pr@(Comp name prs), mt@(MT ms mts))
  | canSub sub d name
     = let (chgd,mprs') = pssubst m d sub $ zip (prs) mts
           (prs',mts')  = unzip mprs'
       in (chgd, addMark m ( Comp name prs', MT ms mts' ) )
- | otherwise = (same, (PSub pr sub, MT ms mts))
+ | otherwise = (same, (PSub pr sub, MT [] [mt]))
 -- we need subcomp here, unlike in expression substitution,
 -- because psubst can return a PSub
 psubst m d sub (PSub pr sub', MT ms [smt])
