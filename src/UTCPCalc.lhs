@@ -8,10 +8,13 @@ import Data.Maybe
 import Debug.Trace
 import PrettyPrint
 import CalcTypes
+import CalcSysTypes
 import CalcPredicates
 import CalcSteps
 import StdPredicates
-import UTCPSemantics
+import StdLaws
+--import StdUTPPredicates
+--import StdUTPLaws
 import UTCPLaws
 import UTCPCReduce
 import CalcRun
@@ -42,6 +45,7 @@ Our theory:
 dictUTCP :: (Eq s, Ord s, Show s) => Dict s
 dictUTCP
  = foldl1 dictMrg [ makeDict [(version,AlfEntry [versionUTCP])]
+                  , stdDict
                   , alfUTCPDict
                   , setUTCPDict
                   , genUTCPDict
@@ -49,5 +53,8 @@ dictUTCP
                   , lawsUTCPDict
                   ]
 
-showUTCP (_,pr)  = pdshow 80 dictUTCP pr
+showUTCP pr = pdshow 80 dictUTCP pr
+
+calc :: (Ord s, Show s) => Pred s -> IO (CalcLog s)
+calc = calcREPL dictUTCP noInvariant . buildMarks
 \end{code}

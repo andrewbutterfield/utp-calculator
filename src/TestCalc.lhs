@@ -267,7 +267,7 @@ impDict  = impFalseDict
 
 \begin{code}
 calc :: (Ord s, Show s) => Dict s -> Pred s -> IO (CalcLog s)
-calc d pr = calcREPL d $ buildMarks pr
+calc d pr = calcREPL d noInvariant $ buildMarks pr
 putcalc :: (Ord s, Show s) => Dict s -> Pred s -> IO ()
 putcalc d pr
   = do res <- calc d pr

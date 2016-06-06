@@ -821,7 +821,7 @@ isPIter (Comp n [_,_]) | n==nPIter = True; isPIter _ = False
 
 piter = Comp "PIter"
 
-shPIter = "??"
+shPIter = "**"
 ppPIter sCP d p [pr1,pr2]
  = paren p precPIter
      $ ppopen  (pad shPIter) [ sCP precPIter 1 pr1

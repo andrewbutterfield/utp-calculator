@@ -124,16 +124,16 @@ runREPL :: (Ord s, Show s)
         -> IO (CalcLog s)
 runREPL d m state@(currpr,steps,(ichk,inv))
  = do
-  if invMPred currpr
-     then return ()
-     else do putStrLn "\n============================"
-             putStrLn "@@@@ M-Pred Invariant fails @@@@"
-             putStrLn $ viewPred currpr
-             putStrLn "\n============================"
-            
-  if invMarks (state,d)
-   then return ()
-   else putStrLn "**** Marking Invariant fails ****"
+--   if invMPred currpr
+--      then return ()
+--      else do putStrLn "\n============================"
+--              putStrLn "@@@@ M-Pred Invariant fails @@@@"
+--              putStrLn $ viewPred currpr
+--              putStrLn "\n============================"
+--
+--   if invMarks (state,d)
+--    then return ()
+--    else putStrLn "**** Marking Invariant fails ****"
   putStr ( pmdshow 80 d noStyles currpr
          ++ "\n\n ?,d,r,l,s,c,u,x,I :- " )
   ln <- getLine
