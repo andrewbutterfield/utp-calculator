@@ -340,11 +340,10 @@ An invariant satisfaction checker takes an invariant predicate
 and a test predicate
 and checks if it satisfies that invariant.
 It returns \texttt{Nothing} if not applicable.
-otherwise Just False if it can
 If it can be shown that the predicate does \emph{not} satisfy the
 invariant, then the outcome \texttt{Just F} should be returned,
 otherwise the result should be \texttt{Just T}.
-IN an invariant state, we pair a checker with an invariant predicate.
+In an invariant state, we pair a checker with an invariant predicate.
 \begin{code}
 type InvChecker s = Dict s
                  -> Pred s  -- invariant

@@ -79,7 +79,7 @@ ppNDC sCP d p prs
      $ ppopen " |~| "
      $ ppwalk 1 (sCP precNDC) prs
 
-simpNDC d mprs  = sLattice "|~|-simplify" mkNDC mkBot mkTop mprs
+simpNDC d mprs  = sLattice d "|~|-simplify" mkNDC mkBot mkTop mprs
 
 ndcEntry :: (Show s, Ord s) => (String, Entry s)
 ndcEntry

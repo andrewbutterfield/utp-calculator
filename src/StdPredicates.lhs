@@ -54,17 +54,18 @@ this embodies the following laws:
 \\ 1 \otimes x & = x = & x \otimes 1
 }
 \begin{code}
-sLattice :: Eq s
-         => String
+sLattice :: (Ord s, Show s)
+         => Dict s
+         -> String
          -> ([Pred s] -> Pred s)
          -> Pred s
          -> Pred s
          -> [Pred s]
          -> RWResult s
-sLattice tag op zero unit prs
+sLattice d tag op zero unit prs
  = ret tag $ zcheck $ filter (/= unit) prs
  where
-   zcheck mprs
+   zcheck prs
     | any (==zero) prs  =  [zero]
     | otherwise = prs
    ret tag prs'
@@ -144,7 +145,7 @@ ppAnd sCP d p prs
      $ ppopen " /\\ "
      $ ppwalk 1 (sCP precAnd) prs
 
-simpAnd d prs  = sLattice "/\\-simplify" mkAnd F T prs
+simpAnd d prs  = sLattice d "/\\-simplify" mkAnd F T prs
 
 andEntry :: (Show s, Ord s) => (String, Entry s)
 andEntry
@@ -173,7 +174,7 @@ ppOr sCP d p prs
      $ ppopen " \\/ "
      $ ppwalk 1 (sCP precOr) prs
 
-simpOr d prs  = sLattice "\\/-simplify" mkOr T F prs
+simpOr d prs  = sLattice d "\\/-simplify" mkOr T F prs
 
 orEntry :: (Show s, Ord s) => (String, Entry s)
 orEntry

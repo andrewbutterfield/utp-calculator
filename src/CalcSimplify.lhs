@@ -319,7 +319,7 @@ and combine
   sbstsimp (subschgd,subs') smt spr
    = let (topchgd,mpr'@(npr',nmt'))
            = psubst m d subs' (spr,smt)
-     in assemble mpr' (spr,smt) mpr' subs'
+     in assemble npr' (spr,smt) mpr' subs'
                  (subschgd||topchgd) topchgd
    where
     assemble _ _ _ _ False _ = Nothing
@@ -330,14 +330,14 @@ and combine
     assemble top' (before, mbef) (after, maft) subs'  _ True
      = Just ( addMark m (mkPSub before subs', MT ms [mbef])
             , simplified
-            , addMark m top' )
+            , addMark m $ buildMarks top' )
 \end{code}
 All other cases are as simple as can be, considering\ldots
 \begin{code}
 simplify _ _ _ = Nothing
 \end{code}
 
-SOmetimes we want to simply a Pred without any fuss:
+Sometimes we want to simply a \texttt{Pred} without any fuss:
 \begin{code}
 psimp :: (Ord s, Show s) => Dict s -> Pred s -> Pred s
 psimp d pr
@@ -494,7 +494,7 @@ chkInvariant chk m mpr@(pr@(Comp name prs), mt@(MT ms mts))
     pr' = Comp name $ map fst afters
    in case chk pr' of
     Nothing
-     -> assemble "inv-chk : TRUE" pr'
+     -> assemble "inv-chk : applicable deeper" pr'
                  (unzip befores) (unzip afters)
                  subchgs False
     Just True
@@ -516,14 +516,14 @@ chkInvariant chk m mpr@(pr@(Comp name prs), mt@(MT ms mts))
          -> subchk diff (before:befores) (after:afters) mprs
 
    assemble _ _ _ _ False _ = Nothing
-   assemble what top' (befores, mbef) (afters, maft) _ False
+   assemble what _ (befores, mbef) (afters, maft) _ False
     = Just ( (Comp name befores, MT ms mbef)
            , what
            , (Comp name afters, MT ms maft) )
    assemble what top' (befores, mbef) (afters, maft) _ True
     = Just ( addMark m (Comp name befores, MT ms mbef)
            , what
-           , addMark m (top', MT ms maft) )
+           , addMark m $ buildMarks top' )
 
 chkInvariant chk m mpr = Nothing
 \end{code}

@@ -669,14 +669,14 @@ Our invariant applies to $A$ and $X$ atomic actions:
 \begin{code}
 labelSetInv :: (Ord s, Show s) => InvChecker s
 labelSetInv d inv pr@(Comp nm [Atm e,_,Atm n])
- | nm == nA = if lsat d e inv && lsat d n inv
-              then Just True
-              else Just False
+ | nm == nA = labelSetReport( lsat d e inv
+                            , lsat d n inv )
 labelSetInv d inv pr@(Comp nm [Atm e,_,_,Atm a])
- | nm == nX = if lsat d e inv && lsat d a inv
-              then Just True
-              else Just False
+ | nm == nX = labelSetReport( lsat d e inv
+                            , lsat d a inv )
 labelSetInv _ _ _ = Nothing
+
+labelSetReport (rep1, rep2)  =  Just (rep1 && rep2)
 \end{code}
 
 Now we have to code up \textbf{lsat}:
@@ -793,6 +793,21 @@ vAtmEntry
    , PredEntry ["s","s'"] ppAtom [] defnAtom (pNoChg nAtom) )
 \end{code}
 
+Running the calculator on atom a results in the following:
+\begin{verbatim}
+II \/ A(in|a|out)
+\end{verbatim}
+So we add a variant dictionary entry:
+\begin{code}
+defnAtomCalc d [a]
+ = ldefn (nAtom++" calculation") $ mkOr [mkSkip, mkA inp a out]
+
+vAtmCalcEntry :: (Show s, Ord s) => (String, Entry s)
+vAtmCalcEntry
+ = ( nAtom
+   , PredEntry ["s","s'"] ppAtom [] defnAtomCalc (pNoChg nAtom) )
+\end{code}
+
 
 \newpage
 \HDRc{Coding Skip}
@@ -804,14 +819,14 @@ vAtmEntry
 }
 \begin{code}
 nVSkip = "VSkip" -- internal abstract name
-isVSkip (_,Comp n [_]) | n==nVSkip = True; isVSkip _ = False
+isVSkip (_,Comp n []) | n==nVSkip = True; isVSkip _ = False
 
-vskip mpr = Comp nVSkip [mpr]
+vskip  = Comp nVSkip []
 
-ppVSkip d ms p [mpr] = ppa "<skip>"
-ppVSkip d ms p mprs = pps styleRed $ ppa ("invalid-"++nSkip)
+ppVSkip d ms p [] = ppa "<skip>"
+ppVSkip d ms p mprs = pps styleRed $ ppa ("invalid-"++nVSkip)
 
-defnVSkip d [a]
+defnVSkip d []
  = ldefn nVSkip $ wp $ mkA inp ii out
 
 invVSkip = idisj [ielem inp, ielem out]
@@ -825,6 +840,22 @@ vSkipEntry
 nii= "ii"
 ii = PVar nii
 \end{code}
+The calculation of atom a also leads us to the following calculation
+for \verb"<skip>":
+\begin{verbatim}
+II \/ A(in|ii|out)
+\end{verbatim}
+So we add a variant dictionary entry:
+\begin{code}
+defnVSkipCalc d []
+ = ldefn (nVSkip++" calculation") $ mkOr [mkSkip, mkA inp ii out]
+
+vSkipCalcEntry :: (Show s, Ord s) => (String, Entry s)
+vSkipCalcEntry
+ = ( nVSkip
+   , PredEntry ["s","s'"] ppVSkip [] defnVSkipCalc (pNoChg nAtom) )
+\end{code}
+
 
 
 
@@ -995,7 +1026,7 @@ vParEntry
 \HDRc{The Predicate Dictionary}\label{hc:WWW-pred-dict}
 
 \begin{code}
-dictVP :: (Ord s, Show s) => Dict s
+dictVP, dictVPCalc :: (Ord s, Show s) => Dict s
 dictVP = makeDict [ vXEntry
                   , vAEntry
                   , vWEntry
@@ -1008,6 +1039,10 @@ dictVP = makeDict [ vXEntry
                   , vChcEntry
                   , vParEntry
                   ]
+
+dictVPCalc = makeDict [ vAtmCalcEntry
+                      , vSkipCalcEntry
+                      ]
 \end{code}
 
 
@@ -1288,12 +1323,14 @@ vLoopEntry = entry laws $ LawEntry [] [] [wUnroll,vUnroll]
 \end{code}
 
 
-\HDRb{Dictionary for WWW}\label{hb:WWW-laws}
+\HDRb{Dictionary for Views}\label{hb:View-Dict}
 
 \begin{code}
 vDict :: (Ord s, Show s) => Dict s
 vDict
- =  dictVersion "WWW 0.1"
+ =  dictVersion "Views 0.2"
+     -- supersede dictVP below as calcs rollout
+    `dictMrg` dictVPCalc
     `dictMrg` vAlfDict
     `dictMrg` dictVE
     `dictMrg` dictVP

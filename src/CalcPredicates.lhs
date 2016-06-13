@@ -78,18 +78,6 @@ cleanCalc ((currpr, steps, is),d)
 \end{code}
 
 
-\begin{code}
--- build a basic predicate at the MPred level
--- true, false :: MPred s
--- true           =  noMark T
--- false          =  noMark F
--- pvar str       =  noMark $ PVar str
--- equal e1 e2    =  noMark $ Equal e1 e2
--- atm e          =  noMark $ Atm e
--- comp str mprs  =  noMark $ Comp str mprs
--- psub mpr subs  =  noMark $ mkPSub mpr subs
-\end{code}
-
 \HDRb{Dictionary}\label{hb:DataDict}
 
 \HDRc{Dictionary query}
@@ -292,4 +280,12 @@ ppwalk i sCS (arg:args)  =  (sCS i arg) : ppwalk (i+1) sCS args
 showp :: (Ord s, Show s)
       => Dict s -> MarkStyle -> Int -> Pred s -> PP
 showp d ms p pr = mshowp d ms p $ buildMarks pr
+\end{code}
+
+\HDRb{Debugging Aids}
+
+\begin{code}
+dbg str x = trace (str++show x) x
+cdbg d str pr = trace (str++pdshow 80 d pr) pr
+csdbg d str prs = trace (str++unlines (map (pdshow 80 d) prs)) prs
 \end{code}
