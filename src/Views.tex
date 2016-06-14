@@ -260,6 +260,33 @@ This is a consequence of the following easy law:
  (ls \cup A) \setminus (R \setminus A)
 \]
 
+Following on, we can pre-compute mixed combinations:
+\RLEQNS{
+  && X(E_1|a|R_1|A_1) \seq A(E_2|b|N_2)
+\EQ{defn $A$}
+\\&& X(E_1|a|R_1|A_1) \seq X(E_2|b|E_2|N_2)
+\EQ{law for $X$ above}
+\\&& X(E_1 \cup (E_2 \setminus A_1)
+      | a\seq b
+      | R_1 \cup E_2
+      | A_1 \setminus E_2 \cup N_2)
+     \land
+     (E_2 \setminus A_1) \cap R_1 = \emptyset
+}
+and flipped:
+\RLEQNS{
+  && A(E_1|a|N_1) \seq X(E_2|b|R_2|A_2)
+\EQ{defn $A$}
+\\&& X(E_1|a|E_1|N_1) \seq X(E_2|b|R_2|A_2)
+\EQ{law for $X$ above}
+\\&& X(E_1 \cup (E_2 \setminus N_1)
+      | a\seq b
+      | E_1 \cup R_2
+      | N_1 \setminus R_2 \cup A_2)
+     \land
+     (E_2 \setminus N_1) \cap E_1 = \emptyset
+}
+
 \HDRc{Laws of Actions}
 Here we summarise the main results:
 \RLEQNS{

@@ -1106,6 +1106,7 @@ vReduce vd (Comp ns [ (Comp na1 [ (Atm e1)    -- A(E1
    n'  = snd $ esimp vd ((n1 `sdiff` e2) `u` n2)
 \end{code}
 
+
 \newpage
 \HDRd{$X$ then $A$}
 
@@ -1138,6 +1139,41 @@ vReduce vd (Comp ns [ (Comp nx1 [ (Atm e1)    -- X(E1
    r'  = snd $ esimp vd (r1 `u` e2)
    a'  = snd $ esimp vd ((a1 `sdiff` e2) `u` n2)
 \end{code}
+
+\newpage
+\HDRd{$A$ then $X$}
+
+\RLEQNS{
+  && A(E_1|a|N_1) \seq X(E_2|b|R_2|A_2)
+\EQ{proof in Views.tex}
+\\&& X(E_1 \cup (E_2 \setminus N_1)
+      | a\seq b
+      | E_1 \cup R_2
+      | N_1 \setminus R_2 \cup A_2)
+     \land
+     (E_2 \setminus N_1) \cap E_1 = \emptyset
+}
+\begin{code}
+vReduce vd (Comp ns [ (Comp na1 [ (Atm e1)    -- A(E1
+                                , as          --  |a
+                                , (Atm n1) ]) --  |N1)
+                    , (Comp nx2 [ (Atm e2)    -- A(E2
+                                , bs          --  |b
+                                , (Atm r2)    --  |R2
+                                , (Atm a2) ]) --  |A2)
+                    ])
+ | ns == nSeq && na1 == nA && nx2 == nX
+   =  lred "A-then-X"
+        $mkAnd [ mkX e' abs r' a'
+               , Equal (e2ln1 `i` e1) emp]
+ where
+   e2ln1 = snd $ esimp vd (e2 `sdiff` n1)
+   e'  = snd $ esimp vd (e1 `u` e2ln1)
+   abs = mkSeq as bs
+   r'  = snd $ esimp vd (e1 `u` r2)
+   a'  = snd $ esimp vd ((n1 `sdiff` r2) `u` a2)
+\end{code}
+
 
 \newpage
 \HDRd{$X$ then $X$}
@@ -1382,82 +1418,9 @@ vcsave fp inv pr
 \end{code}
 
 
-\HDRb{Building the Theory}\label{hb:building-WWW}
+\HDRb{Test Constructs}\label{hB:test-constructs}
 
-We need to establish the laws we need for easy calculation
-in this theory.
-We start with the calculation of the expansion of $\A(B)$%
-\footnote{Noting that the full expansion may just become
-a single reduction step}%
-:
-\RLEQNS{
-  && \A(B)
-\EQ{\texttt{'d'},defn. $\A$}
-\\&& \W(ls(in) \land B \land ls'=ls\ominus(in|out))
-\EQ{\texttt{'d'}, defn. $\W$}
-\\&&\lnot ls(out) * (ls(in) \land B \land ls'=ls\ominus(in|out))
-\EQ{\texttt{'l'}, loop unroll, obvious fold as shorthand}
-\\&& (ls(in) \land B \land ls'=ls\ominus(in|out) ; \W(\_))
-     \cond{\lnot ls(out)} \Skip
-\EQ{\texttt{'d'}, defn. $\cond{}$}
-\\&& \lnot ls(out) \land ls(in) \land B \land ls'=ls\ominus(in|out) ; \W(\_)
-\\&\lor& ls(out) \land \Skip
-\EQ{\texttt{'r'}, \ref{hd:prop-new-labels}}
-\\&& \lnot ls(out) \land ls(in) \land B \land ls'=ls\ominus(in|out)
-     ; ls(out) \land \W(\_)
-\\&\lor& ls(out) \land \Skip
-\EQ{\texttt{'r'}, $ls(out)\land\W(\_) = ls(out)\land \Skip$, or $c\land(\lnot c * P) = c \land \Skip$}
-\\&& \lnot ls(out) \land ls(in) \land B \land ls'=ls\ominus(in|out)
-     ; ls(out) \land \Skip)
-\\&\lor& ls(out) \land \Skip
-\EQ{\texttt{'r'} doing \ref{hd:prop-new-labels} backwards}
-\\&& \lnot ls(out) \land ls(in) \land B \land ls'=ls\ominus(in|out)
-     ; \Skip
-\\&\lor& ls(out) \land \Skip
-\EQ{\texttt{'r'} $P;\Skip = P$}
-\\&& \lnot ls(out) \land ls(in) \land B \land ls'=ls\ominus(in|out)
-\\&\lor& ls(out) \land \Skip
-}
-
-
-\HDRd{Propagate New Labels}\label{hd:prop-new-labels}
-
-Reduction Law:
-\RLEQNS{
-   P \land ls'=ls\ominus(L_1|L_2) ; Q
-   &=&
-P \land ls'=ls\ominus(L_1|L_2) ; ls(L_2) \land Q,
-\\ &&\textbf{ provided } L_2 \textbf{ is ground}
-}
-
-\textbf{Motivation/Justification:}
-We want $P \land ls'=ls\ominus(in|out) ; Q$
-to propagate the fact that $ls$ has been updated to $Q$.
-
-Some known laws:
-\RLEQNS{
-   P \land x'=e ; Q &=& P \land x'=e ; Q[e/x]
-      ,\textbf{ given } e \textbf{ is ground }
-}
-We find the above law only works if $e = e[O_m/O]$ which can only happen
-if $e$ is ground, i.e., contains no dynamic (pre-)observations.
-What we really want is:
-\RLEQNS{
-   P \land ls'=ls\ominus(in|out) ; Q
-   &=&
-   P \land ls'=ls\ominus(in|out) ; ls(out) \land Q
-}
-We have a key property of $\ominus$ we can exploit:
-\RLEQNS{
-   S' = S \ominus (T|V) &\implies& S'(V)
-}
-so the remaining general law we need is
-$P \land S'(V) ; Q = P \land S'(V) ; S(V) \land Q$,
-provided $V$ is ground.
-This gives us the desired reduction law above.
-
-\HDRc{Test Constructs}\label{hc:test-constructs}
-
+\HDRc{Ab Initio}
 \begin{code}
 pP = PVar "P" ; pQ = PVar "Q"  -- general programs
 a = PVar "a"
@@ -1479,21 +1442,39 @@ xcalc :: (Ord s, Show s) => Pred s -> IO ()
 xcalc = printREPL vDict (noGood, F) . buildMarks
 \end{code}
 
-\HDRd{Loops---alternative approach}
 
-We note the following result:
-\RLEQNS{
-   c*P &=& \lim_{n \rightarrow \infty}\bigvee_0^n S^n \seq D
-\\ && \textbf{where}
-\\ S &=& c \land P
-\\ D &=& \lnot c \land \Skip
-}
-Of interest are the following calculations:
-\RLEQNS{
-   &&  S^n \seq D
-\\ && S \seq S
-\\ && S \seq D
-}
+\HDRc{Calculation Results}
+
+Given the idiom $\true * (\Skip \lor Q)$
+we look for pre-computed $Q$-cores.
+
+\begin{verbatim}
+Q(athenb) = A(in|a|lg) \/ A(lg|b|out)
+\end{verbatim}
+\begin{code}
+q_athenb
+  = mkOr [ mkA inp a  lg
+         , mkA lg  b out ]
+\end{code}
+
+\begin{verbatim}
+q_athenb^2 = X(in|a;b|in,lg|out)
+\end{verbatim}
+\begin{code}
+q_athenb_2
+  = mkX inp (mkSeq a b) (set [inp,lg]) out
+\end{code}
+
+\begin{verbatim}
+q_athenb^3 = false
+\end{verbatim}
+\begin{code}
+v_athenb
+ = mkOr [ mkSkip
+        , q_athenb
+        , q_athenb_2 ]
+\end{code}
+
 \begin{code}
 --defvseq :: (Ord s, Show s) => [Pred s] -> Pred s
 defvseq = defnVSeq (vDict :: Dict ())
@@ -1515,283 +1496,3 @@ disp (Just (before,_,after))
 test :: Maybe (BeforeAfter ())
 test = simplify vDict 42 $ buildMarks testpr
 \end{code}
-\begin{verbatim}
-D(lg) \/ X(in|lg|a|in|lg) \/ D(out) \/ X(lg|out|b|lg|out) ; D(out)
- = "..."
-D(out,lg) \/ X(in,out|lg|a|in|lg) \/ D(out) \/ X(lg|out|b|lg|out)
-\end{verbatim}
-
-\begin{verbatim}
-   D(lg) \/ X(in|lg|a|in|lg) \/ D(out) \/ X(lg|out|b|lg|out)
- ; D(lg) \/ X(in|lg|a|in|lg) \/ D(out) \/ X(lg|out|b|lg|out)
- = "..."
-    D(lg) \/ X(in|lg|a|in|lg) \/ D(out,lg)
- \/ X(in,out|lg|a|in|lg) \/ X(in,lg|out|b ; a|in|out,lg)
- \/ D(out,lg) \/ X(in,out|lg|a|in|lg) \/ D(out) \/ X(lg|out|b|lg|out)
- \/ X(lg|out|b|lg|out) \/ X(in|out,lg|a ; b|in,lg|out)
- = "by hand, rearrange"
-    D(out) \/ D(lg) \/ D(out,lg)
- \/ X(in|lg|a|in|lg) \/ X(in,out|lg|a|in|lg)
- \/ X(lg|out|b|lg|out)
- \/ X(in|out,lg|a ; b|in,lg|out)
- \/ X(in,lg|out|b ; a|in|out,lg)
- = "absorption --- see below, also X-norm"
-    D(out) \/ D(lg)
- \/ X(in|lg|a|in|lg)
- \/ X(lg|out|b|lg|out)
- \/ X(in|out,lg|a ; b|in|out)
- \/ X(in,lg|out|b ; a|in|out,lg) -- shouldn't arise
-\end{verbatim}
-\RLEQNS{
-   X(E|D|a|R|A) \lor X(E\cup F|D|a|R|A)&=& X(E|D|a|R|A)
-\\ D(E) \lor D(E \cup F) &=& D(E)
-}
-
-The  $X(in,\ell_g|out|b \seq a|in|out,\ell_g)$ case should not arise
-because there is no path from $ls(in)$ and $ls(\B{\ell_g})$
-that leads to $ls(in,\ell_g)$.
-
-
-\newpage
-\HDRb{Required Laws}
-
-Need reductions of the form:
-\begin{eqnarray*}
-   \lnot ls(L_1) \land A(I,O,\dots)
-   &=&
-   L_1 \cap I = \emptyset \land A(I,O\cup L_1,\dots)
-\\ A(I,O,a,R,A,L') \seq A(I,O,a,R,A,L') &=& \false?
-\\ A(I,O,a,I,O,O) \seq A(I,O,a,I,O,O) &=& \false
-\end{eqnarray*}
-
-We note the strongest inference we can make regarding $L'$
-\begin{eqnarray*}
-   A(I,O,a,R,A,L') &\implies& ls'(I\setminus R \cup A \cup L')
-\end{eqnarray*}
-
-Remembering:
-\begin{eqnarray*}
-  && A(I_1,O_1,as,R_1,A_1,L_1) \seq A(I_2,O_2,bs,R_2,A_2,L_2)
-\EQ{Defn. of $A$, lots of steps\dots}
-\\&& (L_1 \cup I_2)\setminus A_1 \cap R_1 = \emptyset
-     \land O_2 \cap A_1 = \emptyset
-\\&& {}\land A( I_1 \cup I_2\setminus A_1
-              , O_1 \cup O_2\setminus R_1
-              , (as\!\seq\! bs)
-              , R_1 \cup R_2
-              , A_1\setminus R_2 \cup A_2
-              , L_2 )
-\end{eqnarray*}
-
-
-\newpage
-
-\HDRb{Proofs}
-
-
-
-
-\begin{eqnarray*}
-  && A(I_1,O_1,as,R_1,A_1,L_1) \seq A(I_2,O_2,bs,R_2,A_2,L_2)
-\EQ{Defn $A$, twice}
-\\&& ls(I_1) \land ls(\B{O_1}) \land \ado{as}
-     \land \lupd{R_1}{A_1} \land ls'(L_1)
-\\&& {} \seq
-     ls(I_2) \land ls(\B{O_2}) \land \ado{bs}
-     \land \lupd{R_2}{A_2} \land ls'(L_2)
-\EQ{Defn $\seq$.}
-\\&& \exists s_m,ls_m \bullet
-\\&& \qquad ls(I_1) \land ls(\B{O_1}) \land \ado{as}[s_m/s']
-     \land ls_m = ls\ominus(R_1|A_1) \land ls_m(L_1)
-\\&& \quad {} \land
-     ls_m(I_2) \land ls_m(\B{O_2}) \land \ado{bs}[s_m/s]
-     \land ls' = ls_m\ominus(R_2|A_2) \land ls'(L_2)
-\EQ{$A \subseteq S \land B \subseteq S = (A \cup B) \subseteq S$, re-arrange}
-\\&& \exists s_m,ls_m \bullet
-\\&& \qquad ls(I_1) \land ls(\B{O_1}) \land ls_m = ls\ominus(R_1|A_1)
-     \land ls_m(L_1 \cup I_2)
-\\&& \quad {}\land ls_m(\B{O_2}) \land ls' = ls_m\ominus(R_2|A_2) \land ls'(L_2)
-     \land \ado{as}[s_m/s'] \land \ado{bs}[s_m/s]
-\EQ{One-point, $ls_m = ls\ominus(R_1|A_1)$}
-\\&& \exists s_m \bullet ls(I_1) \land ls(\B{O_1})
-     \land (ls\ominus(R_1|A_1))(L_1 \cup I_2)
-\\&& \qquad {}\land (ls\ominus(R_1|A_1))(\B{O_2})
-      \land ls' = (ls\ominus(R_1|A_1))\ominus(R_2|A_2) \land ls'(L_2)
-\\&& \qquad {} \land \ado{as}[s_m/s'] \land \ado{bs}[s_m/s]
-\EQ{Push quantifier in}
-\\&& ls(I_1)  \land ls(\B{O_1})
-     \land (ls\ominus(R_1|A_1))(L_1 \cup I_2)
-\\&& {}\land (ls\ominus(R_1|A_1))(\B{O_2})
-      \land ls' = (ls\ominus(R_1|A_1))\ominus(R_2|A_2) \land ls'(L_2)
-\\&& {}\land \exists s_m \bullet \ado{as}[s_m/s'] \land \ado{bs}[s_m/s]
-\EQ{Defn. of $\seq$ for atomic $as$,$bs$.}
-\\&& ls(I_1)  \land ls(\B{O_1})
-     \land (ls\ominus(R_1|A_1))(L_1 \cup I_2)
-\\&& {}\land (ls\ominus(R_1|A_1))(\B{O_2})
-      \land ls' = (ls\ominus(R_1|A_1))\ominus(R_2|A_2) \land ls'(L_2)
-\\&& {}\land (\ado{as \seq bs})
-\end{eqnarray*}
-We now take stock, and seek to simplify some stuff.
-
-\begin{eqnarray*}
-  && (ls\ominus(R|A))(L)
-\\&=& L \subseteq (ls \setminus R) \cup A
-\\&=&  L \setminus ((ls \setminus R) \cup A) = \emptyset
-\\&=&  L \setminus (A \cup (ls \setminus R)) = \emptyset
-\\&=&  (L \setminus A) \setminus (ls \setminus R) = \emptyset
-\EQ{$A\setminus(B\setminus C) = A\setminus B \cup A\cap C$}
-\\&&  (L \setminus A) \setminus ls
-      \cup
-     (L \setminus A) \cap R = \emptyset
-\\&=&  (L \setminus A) \setminus ls = \emptyset
-      \land
-     (L \setminus A) \cap R = \emptyset
-\\&=&  (L \setminus A) \subseteq ls
-      \land
-     (L \setminus A) \cap R = \emptyset
-\end{eqnarray*}
-
-\begin{eqnarray*}
-  && (ls\ominus(R_1|A_1))(\B{O_2})
-\\&=& O_2 \cap ((ls \setminus R_1) \cup A_1) = \emptyset
-\\&=& O_2 \cap (ls \setminus R_1)  = \emptyset
-      \land
-      O_2 \cap A_1 = \emptyset
-\\&=& ls \cap (O_2 \setminus R_1)  = \emptyset
-      \land
-      O_2 \cap A_1 = \emptyset
-\\&=& ls(\B{O_2 \setminus R_1})
-      \land
-      O_2 \cap A_1 = \emptyset
-\end{eqnarray*}
-
-\begin{eqnarray*}
-  && (ls\ominus(R_1|A_1))\ominus(R_2|A_2)
-\EQ{defn. $\ominus$, twice}
-\\&& (((ls \setminus R_1) \cup A_1) \setminus R_2) \cup A_1
-\EQ{$(A \cup B) \setminus C = (A\setminus C) \cup (B \setminus C)$}
-\\&& (((ls \setminus R_1)\setminus R_2) \cup (A_1\setminus R_2) )\cup A_1
-\EQ{$(A \setminus B) \setminus C = A \setminus (B \cup C)$}
-\\&& (ls \setminus (R_1 \cup R_2)) \cup (A_1\setminus R_2) \cup A_1
-\EQ{Defn $\ominus$, fold}
-\\&& (ls \ominus  (R_1 \cup R_2|(A_1\setminus R_2) \cup A_1)
-\end{eqnarray*}
-
-Now, back into the fray\dots
-\begin{eqnarray*}
-  && ls(I_1)  \land ls(\B{O_1})
-\\&& {}\land (ls\ominus(R_1|A_1))(L_1 \cup I_2)
-\\&& {}\land (ls\ominus(R_1|A_1))(\B{O_2})
-\\&& {}\land ls' = (ls\ominus(R_1|A_1))\ominus(R_2|A_2) \land ls'(L_2)
-\\&& {}\land (\ado{as \seq bs})
-\EQ{three calculations above}
-\\&& ls(I_1)  \land ls(\B{O_1})
-\\&& {}\land ls((L_1 \cup I_2)\setminus A_1)
-       \land (L_1 \cup I_2)\setminus A_1 \cap R_1 = \emptyset
-\\&& {}\land ls(\B{O_2\setminus R_1})
-       \land O_2 \cap A_1 = \emptyset
-\\&& {}\land ls' = ls\ominus(R_1 \cup R_2| A_1\setminus R_2 \cup A_2)
-       \land ls'(L_2)
-\\&& {}\land (\ado{as \seq bs})
-\EQ{re-group}
-\\&& (L_1 \cup I_2)\setminus A_1 \cap R_1 = \emptyset
-     \land O_2 \cap A_1 = \emptyset
-\\&& {}\land ls(I_1)
-       \land ls((L_1 \cup I_2)\setminus A_1)
-\\&& {}\land ls(\B{O_1})
-       \land ls(\B{O_2\setminus R_1})
-\\&& {}\land (\ado{as \seq bs})
-\\&& {}\land ls' = ls\ominus(R_1 \cup R_2| A_1\setminus R_2 \cup A_2)
-       \land ls'(L_2)
-\EQ{merge  and simplify $ls$ assertions}
-\\&& (L_1 \cup I_2)\setminus A_1 \cap R_1 = \emptyset
-     \land O_2 \cap A_1 = \emptyset
-\\&& {}\land ls(I_1 \cup I_2\setminus A_1)
-\\&& {}\land ls(\B{O_1 \cup O_2\setminus R_1})
-\\&& {}\land (\ado{as \seq bs})
-\\&& {}\land ls' = ls\ominus(R_1 \cup R_2| A_1\setminus R_2 \cup A_2)
-       \land ls'(L_2)
-\EQ{Defn. of $A$, fold}
-\\&& (L_1 \cup I_2)\setminus A_1 \cap R_1 = \emptyset
-     \land O_2 \cap A_1 = \emptyset
-\\&& {}\land A( I_1 \cup I_2\setminus A_1
-              , O_1 \cup O_2\setminus R_1
-              , (as\!\seq\! bs)
-              , R_1 \cup R_2
-              , A_1\setminus R_2 \cup A_2
-              , L_2 )
-\end{eqnarray*}
-
-Hmmmm\dots
-We may need to assume explicit false-avoiding and minimalist conditions,
-e.g. for
-\[
-   A(I,O,as,R,A,L)
-\]
-the false avoiding conditions are
-$I \cap O = \emptyset$
-and $L \cap (R \setminus A) = \emptyset$,
-while the minimalist condition is $R \cap A = \emptyset$.
-
-The basic atomic action $a$ has semantics
-\[
-  D(out) \lor A(in,\emptyset,a,in,out,out)
-\]
-But since $in$ and $out$ are always local,
-thanks to the way label generators are used,
-we can assert the slightly stronger:
-\[
-  D(out) \lor A(in,out,a,in,out,out)
-\]
-
-\newpage
-\HDRb{Results}
-
-\HDRc{$a$}
-
-\begin{eqnarray*}
-  a
-   & =  & D(out)
-\\ &\lor& A(in,out,a,in,out,out)
-\end{eqnarray*}
-
-\HDRc{$a \cseq b$}
-
-\begin{eqnarray*}
-  a \cseq b
-   & =  & D(out)
-\\ &\lor& A(in,out,a,in,\ell_g,\setof{out,\ell_g})
-\\ &\lor& A(\ell_g,out,b,\ell_g,out,out)
-\\ &\lor& A(in,out,a;b,\setof{in,\ell_g},out,out)
-\end{eqnarray*}
-
-\HDRc{$a + b$}
-
-\begin{eqnarray*}
-  a + b
-   & =  & D(out)
-\\ &\lor& A(in,\setof{out,\ell_{g1},\ell_{g2}},ii,\setof{in,\ell_{g2}},\ell_{g1},\setof{out,\ell_{g1}})
-\\ &\lor& A(in,\setof{out,\ell_{g1},\ell_{g2}},ii,\setof{in,\ell_{g1}},\ell_{g2},\setof{out,\ell_{g2}})
-\\ &\lor& A(in,\setof{out,\ell_{g1},\ell_{g2}},ii ; a,\setof{in,\ell_{g1},\ell_{g2}},out,out)
-\\ &\lor& A(in,\setof{out,\ell_{g1},\ell_{g2}},ii ; b,\setof{in,\ell_{g1},\ell_{g2}},out,out)
-\\ &\lor& A(\ell_{g1},out,a,\ell_{g1},out,out)
-\\ &\lor& A(\ell_{g2},out,b,\ell_{g2},out,out)
-\end{eqnarray*}
-
-\HDRb{Calculations with Views}
-
-\HDRc{$Atm(a)$}
-
-\RLEQNS{
-   Atm(a) &=& D(out) \lor X(in|out|a|in|out)
-}
-
-\HDRc{$Atm(a) \cseq Atm(b)$}
-
-\begin{eqnarray*}
-   \lefteqn{Atm(a)[\g{:1},\ell_g/g,out] \lor Atm(b)[\g{:2},\ell_g/g,in]}
-\\ &=& D(\ell_g)
-       \lor X(in|\ell_g|a|in|\ell_g)
-       \lor D(out)
-       \lor X(\ell_g|out|b|\ell_g|out)
-\end{eqnarray*}
