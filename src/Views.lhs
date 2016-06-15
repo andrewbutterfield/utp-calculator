@@ -593,7 +593,7 @@ The definitions, using the new shorthands:
 \\ C^*
    &\defs&
    \W(\quad  \phlor A(in|ii|out)
-\\ && \qquad {}\lor X(in|ii|\ell_g)
+\\ && \qquad {}\lor A(in|ii|\ell_g)
 \\ && \qquad {}\lor C[g_{:},\ell_g,in/g,in,out]~)
 \\&& {} \land [in|\ell_g|out]
 \end{eqnarray*}
@@ -1016,13 +1016,47 @@ vParEntry
 \RLEQNS{
    C^*
    &\defs&
-   \W(\quad  \phlor X(in|\emptyset|ii|in|out)
-\\ && \qquad {}\lor X(in|\emptyset|ii|in|\ell_g)
+   \W(\quad  \phlor A(in|ii|out)
+\\ && \qquad {}\lor A(in|ii|\ell_g)
 \\ && \qquad {}\lor C[g_{:},\ell_g,in/g,in,out]~)
-\\ && {} \land [in|\ell_g|out]
+\\&& {} \land [in|\ell_g|out]
 }
+\begin{code}
+nVIter = "VIter"
+isVIter (Comp n [_]) | n==nVIter = True; isVIter _ = False
+--
+viter p = Comp nVIter [p]
+--
+shVIter = "*"
+ppVIter sCP d p [pr]
+ = paren p precVIter
+     $ ppclosed  "(" ")*" "" [sCP 0 1 pr]
+
+ppVIter _ _ _ _ = pps styleRed $ ppa ("invalid-"++shVIter)
+--
+defnVIter d [p]
+ = ldefn shVIter $ wp
+    $ mkOr [ mkA inp ii out
+           , mkA inp ii lg
+           , PSub p sub
+           ]
+ where
+   sub = [("g",g'),("in",lg),("out",inp)]
+
+invVIter = idisj [ ielem inp
+                 , ielem lg
+                 , ielem out
+                 ]
+
+vIterEntry :: (Show s, Ord s) => (String, Entry s)
+vIterEntry
+ = ( nVIter
+   , PredEntry [] ppVIter [] defnVIter (pNoChg nVIter) )
+\end{code}
 
 
+
+\newpage
 \HDRc{The Predicate Dictionary}\label{hc:WWW-pred-dict}
 
 \begin{code}
@@ -1038,6 +1072,7 @@ dictVP = makeDict [ vXEntry
                   , vSeqEntry
                   , vChcEntry
                   , vParEntry
+                  , vIterEntry
                   ]
 
 dictVPCalc = makeDict [ vAtmCalcEntry
@@ -1657,6 +1692,8 @@ q_awithb^3
    \/ X(lg1,lg2|a ; b|lg1:,lg1,lg2|out)
 \end{verbatim}
 We do the same tidy-up.
+The assymetry here (why \texttt{ii;a;b} and \texttt{a;b} but not \texttt{a;b;ii}?)
+is an artefact of the earlier tidy-up we did for \verb"q_awithb_2".
 \begin{code}
 q_awithb_3
  = mkOr [ mkA inp (mkSeq b a) $ set [lg1',lg2']
