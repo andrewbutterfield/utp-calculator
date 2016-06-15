@@ -960,13 +960,13 @@ vChcEntry
 \RLEQNS{
    C \parallel D
    &\defs&
-   \W(\quad\phlor X(in|\emptyset|ii|in|\ell_{g1},\ell_{g2})
+   \W(\quad\phlor A(in|ii|\ell_{g1},\ell_{g2})
 \\ && \qquad {}\lor
    C[g_{1::},\ell_{g1},\ell_{g1:}/g,in,out]
    \lor D[g_{2::},\ell_{g2},\ell_{g2:}/g,in,out]
 \\ && \qquad {}\lor
-   X(\ell_{g1:},\ell_{g2:}|\emptyset|ii|\ell_{g1:},\ell_{g2:}|out)~)
-\\&& {} \land [in \mid [\ell_{g1}|\ell_{g1:}],[\ell_{g2}|\ell_{g2:}] \mid out]
+   A(\ell_{g1:},\ell_{g2:}|ii|out)~)
+\\&& {} \land [in|(\ell_{g1}|\ell_{g1:}),(\ell_{g2}|\ell_{g2:})|out]
 }
 \begin{code}
 nVPar = "VPar"
@@ -983,10 +983,10 @@ ppVPar _ _ _ _ = pps styleRed $ ppa ("invalid-"++shVPar)
 --
 defnVPar d [p,q]
  = ldefn shVPar $ wp
-    $ mkOr [ mkX inp ii inp (set [lg1,lg2])
+    $ mkOr [ mkA inp ii (set [lg1,lg2])
            , PSub p sub1
            , PSub q sub2
-           , mkX s12' ii s12' out ]
+           , mkA s12' ii out ]
  where
    sub1 = [("g",g1''),("in",lg1),("out",lg1')]
    sub2 = [("g",g2''),("in",lg2),("out",lg2')]
@@ -1462,7 +1462,13 @@ test = simplify vDict 42 $ buildMarks testpr
 \HDRb{Calculation Results}
 
 Given the idiom $\true * (\Skip \lor Q)$
-we look for pre-computed $Q$-cores.
+we look for pre-computed $Q$-cores,
+noting that our final semantics will have the form
+\[
+  I \land ( \Skip \lor Q \lor Q^2 \lor \dots Q^k)
+\]
+where $I$ is the label-set invariant
+and $Q^i = \false$ for all $i > k$.
 
 \HDRc{Atomic Actions}
 
@@ -1492,7 +1498,9 @@ v_actionB
         , q_actionB ]
 \end{code}
 \begin{verbatim}
-v_actionA = II \/ A(in|a|out)
+v_actionA
+ = [in|out] /\
+   ( II \/ A(in|a|out) )
 \end{verbatim}
 
 \newpage
@@ -1531,7 +1539,9 @@ v_athenb
         , q_athenb_2 ]
 \end{code}
 \begin{verbatim}
-v_athenb = II \/ A(in|a|lg) \/ A(lg|b|out) \/ X(in|a ; b|in,lg|out)
+v_athenb
+ = [in|lg|out] /\
+   ( II \/ A(in|a|lg) \/ A(lg|b|out) \/ X(in|a ; b|in,lg|out) )
 \end{verbatim}
 
 
@@ -1581,8 +1591,94 @@ v_aorb
         , q_aorb_2 ]
 \end{code}
 \begin{verbatim}
-v_aorb = II
- \/ A(in|ii|lg1) \/ A(in|ii|lg2)
- \/ A(lg1|a|out) \/ A(lg2|b|out)
- \/ A(in|a|out)  \/ A(in|b|out)
+v_aorb
+ = [in|lg1|lg2|out] /\
+   ( II \/ A(in|ii|lg1) \/ A(in|ii|lg2)
+        \/ A(lg1|a|out) \/ A(lg2|b|out)
+        \/ A(in|a|out)  \/ A(in|b|out) )
+\end{verbatim}
+
+
+
+\newpage
+\HDRc{Parallel Composition}
+
+\begin{verbatim}
+invVPar = [in|[lg1|lg1:],[lg2|lg2:]|out]
+\end{verbatim}
+\begin{code}
+awithb = actionA `vpar` actionB
+\end{code}
+\begin{verbatim}
+Q(awithb)
+  =    A(in|ii|lg1,lg2)
+    \/ A(lg1|a|lg1:) \/ A(lg2|b|lg2:)
+    \/ A(lg1:,lg2:|ii|out)
+\end{verbatim}
+\begin{code}
+q_awithb
+  = mkOr [ mkA inp ii $ set [lg1,lg2]
+         , mkA lg1 a lg1'
+         , mkA lg2 b lg2'
+         , mkA (set [lg1',lg2']) ii out ]
+\end{code}
+
+\begin{verbatim}
+q_awithb^2
+ =    X(in|ii ; a|in,lg1|lg1:,lg2)
+   \/ X(lg1,lg2|b ; a|lg1,lg2|lg1:,lg2:)
+   \/ X(in|ii ; b|in,lg2|lg2:,lg1)
+   \/ X(lg1,lg2|a ; b|lg1,lg2|lg1:,lg2:)
+   \/ X(lg2:,lg1|a ; ii|lg1:,lg2:,lg1|out)
+   \/ X(lg1:,lg2|b ; ii|lg1:,lg2:,lg2|out)
+\end{verbatim}
+We manually note that \texttt{ii;a = a} and if \texttt{in} is in \texttt{ls},
+then the invariant ensures that \texttt{lg1} (or \texttt{lg2}) is not,
+and so the removal of \texttt{in,lg1}
+can be replaced by \texttt{in}, and so we can use the A-form:
+\begin{verbatim}
+X(in|ii;a|in,lg1|lg1:,lg2) = A(in|a|lg1:,lg2)
+\end{verbatim}
+\begin{code}
+q_awithb_2
+  = mkOr [ mkA inp a $ set [lg1',lg2]
+         , mkA (set [lg1,lg2]) (mkSeq b a) $ set [lg1',lg2']
+         , mkA inp b $ set [lg2',lg1]
+         , mkA (set [lg1,lg2]) (mkSeq a  b) $ set [lg1',lg2']
+         , mkA (set [lg2',lg1]) a out
+         , mkA (set [lg1',lg2]) b out ]
+\end{code}
+
+\begin{verbatim}
+q_awithb_1_2
+ =    X(in|ii ; b ; a|in,lg1,lg2|lg1:,lg2:)
+   \/ X(in|ii ; a ; b|in,lg1,lg2|lg1:,lg2:)
+   \/ X(lg1,lg2|b ; a|lg2:,lg1,lg2|out)
+   \/ X(lg1,lg2|a ; b|lg1:,lg1,lg2|out)
+\end{verbatim}
+If we compute other way around we get the following (also curious) result.
+\begin{verbatim}
+q_awithb_2_1
+ =    X(in|ii ; b ; a|in,lg1,lg2|lg1:,lg2:)
+   \/ X(in|ii ; a ; b|in,lg1,lg2|lg1:,lg2:)
+   \/ X(lg1,lg2|b ; a|lg2:,lg1,lg2|out)
+   \/ X(lg1,lg2|a ; b|lg1:,lg1,lg2|out)
+\end{verbatim}
+We do the same tidy-up.
+\begin{code}
+q_awithb_3
+ = mkOr [ mkA inp (mkSeq b a) $ set [lg1',lg2']
+        , mkA inp (mkSeq a b) $ set [lg1',lg2']
+        , mkA (set [lg1,lg2]) (mkSeq b a) out
+        , mkA (set [lg1,lg2]) (mkSeq a b) out ]
+\end{code}
+\begin{code}
+v_awithb
+ = mkOr [ mkSkip
+        ]
+\end{code}
+\begin{verbatim}
+v_awithb
+ = [in|[lg1|lg1:],[lg2|lg2:]|out] /\
+   ( II \/  )
 \end{verbatim}
