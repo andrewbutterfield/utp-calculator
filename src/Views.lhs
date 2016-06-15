@@ -908,12 +908,12 @@ vSeqEntry
 \RLEQNS{
    C + D
    &\defs&
-   \W(\quad {}\phlor X(in|\emptyset|ii|in|\ell_{g1})
+   \W(\quad {}\phlor A(in|ii|\ell_{g1})
 \\ && \qquad {} \lor
-                     X(in|\emptyset|ii|in|\ell_{g2})
+                     A(in|ii|\ell_{g2})
 \\ && \qquad {} \lor
    C[g_{1:},\ell_{g1}/g,in] \lor D[g_{2:},\ell_{g2}/g,in]~)
-\\ && {} \lor  [in|\ell_{g1}|\ell_{g2}|out]
+\\&& {} \land [in|\ell_{g1}|\ell_{g2}|out]
 }
 \begin{code}
 nVChc = "VChc"
@@ -930,8 +930,8 @@ ppVChc _ _ _ _ = pps styleRed $ ppa ("invalid-"++shVChc)
 
 defnVChc d [p,q]
  = ldefn shVChc $ wp
-    $ mkOr [ mkX inp ii inp lg1
-           , mkX inp ii inp lg2
+    $ mkOr [ mkA inp ii lg1
+           , mkA inp ii lg2
            , PSub p sub1
            , PSub q sub2 ]
  where
@@ -1429,12 +1429,6 @@ b = PVar "b"
 subII :: (Show s, Ord s) => Pred s
 subII = PSub mkSkip [("g",g'1),("out",lg)]
 
-actionA = atom a
-actionB = atom b
-
-
-athenb = actionA `vseq` actionB
-
 -- an invariant that always fails
 noGood _ _ _ = Just False
 
@@ -1442,12 +1436,74 @@ xcalc :: (Ord s, Show s) => Pred s -> IO ()
 xcalc = printREPL vDict (noGood, F) . buildMarks
 \end{code}
 
+\begin{code}
+--defvseq :: (Ord s, Show s) => [Pred s] -> Pred s
+defvseq = defnVSeq (vDict :: Dict ())
+--athenbBody :: (Ord s, Show s) => Pred s
+athenbBody = case defvseq [actionA,actionB] of
+              Just (_,Comp _ [body],_)  ->  body
+              _                         ->  PVar "??"
 
-\HDRc{Calculation Results}
+testpr = PSub (mkOr [pr, mkSeq pr pr]) [("in",lg)]
+ where pr = mkA inp ii out
+
+disp Nothing = putStrLn "\nNo change"
+disp (Just (before,_,after))
+ = do putStrLn ""
+      vput $ fst before
+      putStrLn "\n\tbecomes\n"
+      vput $ fst after
+
+test :: Maybe (BeforeAfter ())
+test = simplify vDict 42 $ buildMarks testpr
+\end{code}
+
+\newpage
+\HDRb{Calculation Results}
 
 Given the idiom $\true * (\Skip \lor Q)$
 we look for pre-computed $Q$-cores.
 
+\HDRc{Atomic Actions}
+
+\begin{verbatim}
+invAtom = [in|out]
+\end{verbatim}
+\begin{code}
+actionA = atom a
+actionB = atom b
+\end{code}
+\begin{verbatim}
+Q(actionA) = A(in|a|out)
+\end{verbatim}
+\begin{code}
+q_actionA = mkA inp a out
+q_actionB = mkA inp b out
+\end{code}
+\begin{verbatim}
+q_actionA^2 = false
+\end{verbatim}
+\begin{code}
+v_actionA
+ = mkOr [ mkSkip
+        , q_actionA ]
+v_actionB
+ = mkOr [ mkSkip
+        , q_actionB ]
+\end{code}
+\begin{verbatim}
+v_actionA = II \/ A(in|a|out)
+\end{verbatim}
+
+\newpage
+\HDRc{Sequential Composition}
+
+\begin{verbatim}
+invVSeq = [in|lg|out]
+\end{verbatim}
+\begin{code}
+athenb = actionA `vseq` actionB
+\end{code}
 \begin{verbatim}
 Q(athenb) = A(in|a|lg) \/ A(lg|b|out)
 \end{verbatim}
@@ -1474,25 +1530,59 @@ v_athenb
         , q_athenb
         , q_athenb_2 ]
 \end{code}
+\begin{verbatim}
+v_athenb = II \/ A(in|a|lg) \/ A(lg|b|out) \/ X(in|a ; b|in,lg|out)
+\end{verbatim}
 
+
+\newpage
+\HDRc{Non-deterministic Choice}
+
+\begin{verbatim}
+invVChc = [in|lg1|lg2|out]
+\end{verbatim}
 \begin{code}
---defvseq :: (Ord s, Show s) => [Pred s] -> Pred s
-defvseq = defnVSeq (vDict :: Dict ())
---athenbBody :: (Ord s, Show s) => Pred s
-athenbBody = case defvseq [actionA,actionB] of
-              Just (_,Comp _ [body],_)  ->  body
-              _                         ->  PVar "??"
-
-testpr = PSub (mkOr [pr, mkSeq pr pr]) [("in",lg)]
- where pr = mkA inp ii out
-
-disp Nothing = putStrLn "\nNo change"
-disp (Just (before,_,after))
- = do putStrLn ""
-      vput $ fst before
-      putStrLn "\n\tbecomes\n"
-      vput $ fst after
-
-test :: Maybe (BeforeAfter ())
-test = simplify vDict 42 $ buildMarks testpr
+aorb = actionA `vchc` actionB
 \end{code}
+\begin{verbatim}
+Q(aorb) = A(in|ii|lg1) \/ A(in|ii|lg2) \/ A(lg1|a|out) \/ A(lg2|b|out)
+\end{verbatim}
+\begin{code}
+q_aorb
+  = mkOr [ mkA inp ii lg1
+         , mkA inp ii lg2
+         , mkA lg1  a out
+         , mkA lg2  b out ]
+\end{code}
+
+\begin{verbatim}
+q_aorb^2 = X(in|ii ; a|in,lg1|out) \/ X(in|ii ; b|in,lg2|out)
+\end{verbatim}
+We manually note that \texttt{ii;a = a} and if \texttt{in} is in \texttt{ls},
+then the invariant ensures that \texttt{lg1} (or \texttt{lg2}) is not,
+and so the removal of \texttt{in,lg1}
+can be replaced by \texttt{in}, and so we can use the A-form:
+\begin{verbatim}
+X(in|ii;a|in,lg1|out) = A(in|a|out)
+\end{verbatim}
+\begin{code}
+q_aorb_2
+  = mkOr [ mkA inp a out
+         , mkA inp b out ]
+\end{code}
+
+\begin{verbatim}
+q_aorb^3 = false
+\end{verbatim}
+\begin{code}
+v_aorb
+ = mkOr [ mkSkip
+        , q_aorb
+        , q_aorb_2 ]
+\end{code}
+\begin{verbatim}
+v_aorb = II
+ \/ A(in|ii|lg1) \/ A(in|ii|lg2)
+ \/ A(lg1|a|out) \/ A(lg2|b|out)
+ \/ A(in|a|out)  \/ A(in|b|out)
+\end{verbatim}
