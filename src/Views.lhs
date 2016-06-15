@@ -1734,3 +1734,46 @@ v_awithb
         \/ A(lg1,lg2|b ; a|out)       \/ A(lg1,lg2|a ; b|out)
         \/ A(in|b ; a|out)            \/ A(in|a ; b|out) )
 \end{verbatim}
+
+\newpage
+\HDRc{Iteration}
+
+\begin{verbatim}
+invVIter = [in|lg|out]
+\end{verbatim}
+\begin{code}
+itera = viter actionA
+\end{code}
+\begin{verbatim}
+Q(itera) = A(in|ii|out) \/ A(in|ii|lg) \/ A(lg|a|in)
+\end{verbatim}
+\begin{code}
+q_itera
+  = mkOr [ mkA inp ii out
+         , mkA inp ii lg
+         , mkA lg  a  inp ]
+\end{code}
+\begin{verbatim}
+q_itera^2 
+  =    X(lg|a ; ii|in,lg|out) 
+    \/ X(lg|a ; ii|in,lg|lg) 
+    \/ X(in|ii ; a|in,lg|in)
+\end{verbatim}
+We can simplify to use $A$:
+\begin{code}
+q_itera_2
+ = mkOr [ mkA lg  a out
+        , mkA lg  a lg
+        , mkA inp a inp ]
+\end{code}
+\begin{code}
+v_itera
+ = mkOr [ mkSkip
+        ]
+\end{code}
+\begin{verbatim}
+v_actionA
+ = [in|lg|out] /\
+   ( II \/ ... )
+\end{verbatim}
+
