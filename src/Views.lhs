@@ -1650,15 +1650,7 @@ q_awithb_2
 \end{code}
 
 \begin{verbatim}
-q_awithb_1_2
- =    X(in|ii ; b ; a|in,lg1,lg2|lg1:,lg2:)
-   \/ X(in|ii ; a ; b|in,lg1,lg2|lg1:,lg2:)
-   \/ X(lg1,lg2|b ; a|lg2:,lg1,lg2|out)
-   \/ X(lg1,lg2|a ; b|lg1:,lg1,lg2|out)
-\end{verbatim}
-If we compute other way around we get the following (also curious) result.
-\begin{verbatim}
-q_awithb_2_1
+q_awithb^3
  =    X(in|ii ; b ; a|in,lg1,lg2|lg1:,lg2:)
    \/ X(in|ii ; a ; b|in,lg1,lg2|lg1:,lg2:)
    \/ X(lg1,lg2|b ; a|lg2:,lg1,lg2|out)
@@ -1672,13 +1664,36 @@ q_awithb_3
         , mkA (set [lg1,lg2]) (mkSeq b a) out
         , mkA (set [lg1,lg2]) (mkSeq a b) out ]
 \end{code}
+\begin{verbatim}
+q_awithb^4
+ = X(in|ii ; b ; a|in,lg1,lg2|out) \/ X(in|ii ; a ; b|in,lg1,lg2|out)
+\end{verbatim}
+Tidy up
+\begin{code}
+q_awithb_4
+ = mkOr [ mkA inp (mkSeq b a) out
+        , mkA inp (mkSeq a b) out ]
+\end{code}
+\begin{verbatim}
+q_awithb^5 = false
+\end{verbatim}
 \begin{code}
 v_awithb
  = mkOr [ mkSkip
-        ]
+        , q_awithb
+        , q_awithb_2
+        , q_awithb_3
+        , q_awithb_4 ]
 \end{code}
 \begin{verbatim}
 v_awithb
  = [in|[lg1|lg1:],[lg2|lg2:]|out] /\
-   ( II \/  )
+   ( II \/ A(in|ii|lg1,lg2)           \/ A(lg1:,lg2:|ii|out)
+        \/ A(lg1|a|lg1:)              \/ A(lg2|b|lg2:)
+        \/ A(in|a|lg1:,lg2)           \/ A(in|b|lg2:,lg1)
+        \/ A(lg1,lg2|b ; a|lg1:,lg2:) \/ A(lg1,lg2|a ; b|lg1:,lg2:)
+        \/ A(lg2:,lg1|a|out)          \/ A(lg1:,lg2|b|out)
+        \/ A(in|b ; a|lg1:,lg2:)      \/ A(in|a ; b|lg1:,lg2:)
+        \/ A(lg1,lg2|b ; a|out)       \/ A(lg1,lg2|a ; b|out)
+        \/ A(in|b ; a|out)            \/ A(in|a ; b|out) )
 \end{verbatim}
