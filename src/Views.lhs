@@ -1744,6 +1744,7 @@ invVIter = [in|lg|out]
 \begin{code}
 itera = viter actionA
 \end{code}
+
 \begin{verbatim}
 Q(itera) = A(in|ii|out) \/ A(in|ii|lg) \/ A(lg|a|in)
 \end{verbatim}
@@ -1753,10 +1754,11 @@ q_itera
          , mkA inp ii lg
          , mkA lg  a  inp ]
 \end{code}
+
 \begin{verbatim}
-q_itera^2 
-  =    X(lg|a ; ii|in,lg|out) 
-    \/ X(lg|a ; ii|in,lg|lg) 
+q_itera^2
+  =    X(lg|a ; ii|in,lg|out)
+    \/ X(lg|a ; ii|in,lg|lg)
     \/ X(in|ii ; a|in,lg|in)
 \end{verbatim}
 We can simplify to use $A$:
@@ -1766,14 +1768,120 @@ q_itera_2
         , mkA lg  a lg
         , mkA inp a inp ]
 \end{code}
+
+\begin{verbatim}
+q_itera^3
+  =    X(in|ii ; a|in,lg|out)
+    \/ X(in|ii ; a|in,lg|lg)
+    \/ X(lg|a ; a|in,lg|in)
+\end{verbatim}
 \begin{code}
-v_itera
- = mkOr [ mkSkip
-        ]
+q_itera_3
+ = mkOr [ mkA inp a  out
+        , mkA inp a  lg
+        , mkA lg  a2 inp ]
+a2 = mkSeq a a
+\end{code}
+
+\begin{verbatim}
+q_itera^4
+ =    X(lg|a ; a|in,lg|out)
+   \/ X(lg|a ; a|in,lg|lg)
+   \/ X(in|ii ; a ; a|in,lg|in)
+\end{verbatim}
+\begin{code}
+q_itera_4
+ = mkOr [ mkA lg  a2 out
+        , mkA lg  a2 lg
+        , mkA inp a2 inp ]
+\end{code}
+
+\begin{verbatim}
+q_itera^5
+ =    X(in|ii ; a ; a|in,lg|out)
+   \/ X(in|ii ; a ; a|in,lg|lg)
+   \/ X(lg|a ; a ; a|in,lg|in)
+\end{verbatim}
+\begin{code}
+q_itera_5
+ = mkOr [ mkA inp a2 out
+        , mkA inp a2 lg
+        , mkA lg  a3 inp ]
+a3 = mkSeq a2 a
+\end{code}
+
+\begin{verbatim}
+ q_itera^6
+  =    X(lg|a ; a ; a|in,lg|out)
+    \/ X(lg|a ; a ; a|in,lg|lg)
+    \/ X(in|ii ; a ; a ; a|in,lg|in)
+\end{verbatim}
+\begin{code}
+q_itera_6
+ = mkOr [ mkA lg  a3 out
+        , mkA lg  a3 lg
+        , mkA inp a3 inp ]
+\end{code}
+
+We notice that we are getting Q pairs of the following form:
+\begin{verbatim}
+q_2itera i  -- i in 0..
+ =    A(in|a^i|out)   \/ A(in|a^i|lg)   \/ A(lg|a^i+1|in)
+   \/ A(lg|a^i+1|out) \/ A(lg|a^i+1|lg) \/ A(in|a^i+1|in)
+\end{verbatim}
+\begin{code}
+as_2itera i
+ = [ mkA inp ai  out
+   , mkA inp ai  lg
+   , mkA lg  ai' inp
+   , mkA lg  ai' out
+   , mkA lg  ai' lg
+   , mkA inp ai' inp ]
+ where
+   ai  = doa i
+   ai' = doa (i+1)
+
+doa 0 = ii
+doa n = doa' a (n-1)
+
+doa' as 0 = as
+doa' as n = doa' (mkSeq as a) (n-1)
+
+q_2itera = mkOr . as_2itera
+\end{code}
+
+\newpage
+Putting it all together\dots
+\begin{code}
+v_itera -- be lazy, be very lazy ! No calculation!
+ = mkOr (mkSkip : mk2itera 0)
+ where
+   mk2itera i = as_2itera i ++ mk2itera (i+1)
+
+v_itera_n i -- finite prefix of behaviour
+ = mkOr (mkSkip : concat (map as_2itera [0..i]))
 \end{code}
 \begin{verbatim}
 v_actionA
  = [in|lg|out] /\
-   ( II \/ ... )
+   ( II
+     \/ A(in|ii|out)
+     \/ A(in|ii|lg)
+     \/ A(lg|a|in)
+     \/ A(lg|a|out)
+     \/ A(lg|a|lg)
+     \/ A(in|a|in)
+     \/ A(in|a|out)
+     \/ A(in|a|lg)
+     \/ A(lg|a ; a|in)
+     \/ A(lg|a ; a|out)
+     \/ A(lg|a ; a|lg)
+     \/ A(in|a ; a|in)
+     \/ A(in|a ; a|out)
+     \/ A(in|a ; a|lg)
+     \/ A(lg|a ; a ; a|in)
+     \/ A(lg|a ; a ; a|out)
+     \/ A(lg|a ; a ; a|lg)
+     \/ A(in|a ; a ; a|in)
+     \/ ... )
 \end{verbatim}
-
