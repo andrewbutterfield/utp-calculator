@@ -122,7 +122,7 @@ Now, the main REPL loop:
 runREPL :: (Ord s, Show s)
         => Dict s -> Mark -> State s
         -> IO (CalcLog s)
-runREPL d m state@(currpr,steps,(ichk,inv))
+runREPL d m state@(currpr,steps,[(ichk,inv)])
  = do
 --   if invMPred currpr
 --      then return ()
@@ -151,7 +151,7 @@ runREPL d m state@(currpr,steps,(ichk,inv))
    ('M':_) -> showMarks d m state
    ('B':_) -> viewBefore d m state
    ('A':_) -> viewAfter d m state
-   ('x':_) -> return ((currpr,steps,(ichk,inv)),d)
+   ('x':_) -> return ((currpr,steps,[(ichk,inv)]),d)
    _ -> do putStrLn ("unrecognised command : '"++ln++"'")
            runREPL d m state
 \end{code}
@@ -188,7 +188,7 @@ calcHelp d m st
 
 Displaying the invariant
 \begin{code}
-displayInv d m st@(_,_,(_,inv))
+displayInv d m st@(_,_,[(_,inv)])
  = do putStrLn ("Invariant:  "++pdshow 80 d inv)
       runREPL d m st
 \end{code}

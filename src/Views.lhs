@@ -2,7 +2,7 @@
 \begin{code}
 module Views where
 import Utilities
--- import qualified Data.Map as M
+import qualified Data.Map as M
 import Data.List
 import Data.Char
 import Data.Maybe
@@ -1244,6 +1244,24 @@ vReduce vd (Comp ns [ (Comp nx1 [ (Atm e1)     -- X(E1
    a'  = snd $ esimp vd ((a1 `sdiff` r2) `u` a2)
 \end{code}
 
+\newpage
+
+If $a$ and $b$ have alphabet $\setof{s,s'}$,
+then
+$(a \seq b)[G,L,M/g,in,out) = a\seq b$.
+\begin{code}
+vReduce d (PSub ab@(Comp ns [PVar a, PVar b]) sub)
+ | ns == nSeq && isSS' a && isSS' b && isStaticSub sub
+   =  lred "a;b is static-free" ab
+ where
+   ss' = ["s","s'"]
+   isSS' nm = case M.lookup nm d of
+     Just (PredEntry _ _ alf _ _)  ->  null (alf \\ ss')
+     Just (AlfEntry alf)           ->  null (alf \\ ss')
+     _                             ->  False
+   isStaticSub sub = null (map fst sub \\ vStatic)
+\end{code}
+
 
 
 \begin{eqnarray*}
@@ -1424,16 +1442,16 @@ vshow = pmdshow 80 vDict noStyles . buildMarks
 vput :: (Show s, Ord s) => Pred s -> IO ()
 vput = putStrLn . vshow
 
-vcalc pr = calcREPL vDict noInvariant $ buildMarks pr
+vcalc pr = calcREPL vDict [noInvariant] $ buildMarks pr
 
 ivcalc inv pr
- = calcREPL vDict (labelSetInv, inv) $ buildMarks pr
+ = calcREPL vDict [(labelSetInv, inv)] $ buildMarks pr
 
 vputcalc :: (Ord s, Show s) => Pred s -> IO ()
-vputcalc pr = printREPL vDict noInvariant $ buildMarks pr
+vputcalc pr = printREPL vDict [noInvariant] $ buildMarks pr
 
 ivputc inv pr
- = printREPL vDict (labelSetInv, inv) $ buildMarks pr
+ = printREPL vDict [(labelSetInv, inv)] $ buildMarks pr
 
 vsavecalc fp pr
  = do calc <- vcalc pr
@@ -1468,7 +1486,7 @@ subII = PSub mkSkip [("g",g'1),("out",lg)]
 noGood _ _ _ = Just False
 
 xcalc :: (Ord s, Show s) => Pred s -> IO ()
-xcalc = printREPL vDict (noGood, F) . buildMarks
+xcalc = printREPL vDict [(noGood, F)] . buildMarks
 \end{code}
 
 \begin{code}

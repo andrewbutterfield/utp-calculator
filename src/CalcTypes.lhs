@@ -343,20 +343,27 @@ It returns \texttt{Nothing} if not applicable.
 If it can be shown that the predicate does \emph{not} satisfy the
 invariant, then the outcome \texttt{Just F} should be returned,
 otherwise the result should be \texttt{Just T}.
-In an invariant state, we pair a checker with an invariant predicate.
+In an invariant state, we have
+lists where each element pairs a checker with an invariant predicate.
 \begin{code}
 type InvChecker s = Dict s
                  -> Pred s  -- invariant
                  -> Pred s  -- test
                  -> Maybe Bool
-type InvState s
+type InvPair s
  = ( InvChecker s  -- inv check function
    , Pred s )      -- invariant predicate
+
+type InvState s = [InvPair s]
 \end{code}
 
-We define a invariant state that does nothing,
-and whose use won't appear as a calculation step
+We define a invariant pair that does nothing,
+and whose use won't appear as a calculation step,
+as well as an empty list.
 \begin{code}
-noInvariant :: InvState s
+noInvariant :: InvPair s
 noInvariant = ( \_ _ _ -> Nothing, T )
+
+noInvariants :: InvState s
+noInvariants = []
 \end{code}

@@ -101,15 +101,14 @@ type InvChecker s
    -> Pred s     -- invariant
    -> Pred s     -- test predicate
    -> Maybe Bool
-type InvState s
+type InvPair s
  = ( InvChecker s  -- inv check function
    , Pred s )      -- invariant predicate
+type InvState s = [InvPair s]
 \end{code}
-
 
 \newpage
 \HDRb{System Types}
-
 
 \begin{code}
 type Mark = Int
