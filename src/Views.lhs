@@ -394,6 +394,8 @@ skipEntry' -- in stdUTPDict
                       , pdefn = defnSkip } )
 \end{code}
 
+\HDRd{Updating Sequential Composition Printing}
+
 \HDRd{Updating the Standard UTP Dictionary}~
 
 \begin{code}
@@ -1561,6 +1563,9 @@ v_actionA
 
 \begin{verbatim}
 invVSeq = [in|lg|out]
+invVAtom = [in|out]
+invVAtom.a = [in|lg]
+invVatom.b = [lg|out]
 \end{verbatim}
 \begin{code}
 athenb = actionA `vseq` actionB
@@ -1577,9 +1582,11 @@ q_athenb
 \begin{verbatim}
 q_athenb^2 = X(in|a;b|in,lg|out)
 \end{verbatim}
+The invariant means that the removal of $\ell_g$ above is redundant,
+so the $X$ becomes an $A$
 \begin{code}
-q_athenb_2
-  = mkX inp (mkSeq a b) (set [inp,lg]) out
+q_athenb_2 = mkA inp ab out
+ab = mkSeq a b
 \end{code}
 
 \begin{verbatim}
@@ -1594,7 +1601,7 @@ v_athenb
 \begin{verbatim}
 v_athenb
  = [in|lg|out] /\
-   ( II \/ A(in|a|lg) \/ A(lg|b|out) \/ X(in|a ; b|in,lg|out) )
+   ( II \/ A(in|a|lg) \/ A(lg|b|out) \/ A(in|a ; b|out) )
 \end{verbatim}
 
 
@@ -1754,10 +1761,12 @@ v_awithb
 \end{verbatim}
 
 \newpage
-\HDRc{Iteration}
+\HDRc{ Atomic Iteration}
 
 \begin{verbatim}
 invVIter = [in|lg|out]
+invVAtom = [in|out]
+invVatom.a [lg|in]
 \end{verbatim}
 \begin{code}
 itera = viter actionA
@@ -1881,7 +1890,7 @@ v_itera_n i -- finite prefix of behaviour
 \end{code}
 \begin{verbatim}
 v_actionA
- = [in|lg|out] /\
+ = [in|lg|out] /\ [in|out]
    ( II
      \/ A(in|ii|out)
      \/ A(in|ii|lg)
@@ -1903,3 +1912,100 @@ v_actionA
      \/ A(in|a ; a ; a|in)
      \/ ... )
 \end{verbatim}
+
+\newpage
+\HDRc{ Sequence Iteration}
+
+\begin{verbatim}
+invVIter = [in|lg|out]
+invVSeq = [in|lg|out]
+invVAtom = [in|out]
+invVSeq.seq = [lg|lg:|in]
+invVAtom.seq.a = [lg|lg:]
+invVatom.seq.b = [lg:|in]
+\end{verbatim}
+\begin{code}
+iterseq = viter v_athenb
+inv_iterseq
+ = idisj [ ielem inp
+         , ielem lg
+         , ielem lg'
+         , ielem out ]
+lg' = new1 g'
+\end{code}
+
+\begin{verbatim}
+Q(iterseq) =    A(in|ii|out) \/ A(in|ii|lg)
+             \/ A(lg|a|lg:) \/ A(lg:|b|in) \/ A(lg|a;b|in)
+\end{verbatim}
+\begin{code}
+q_iterseq
+ = mkOr [ mkA inp ii out
+        , mkA inp ii lg
+        , mkA lg   a lg'
+        , mkA lg  ab inp
+        , mkA lg'  b inp ]  
+\end{code}
+
+\begin{verbatim}
+q_iterseq^2
+ =    X(lg:|b ; ii|in,lg:|out) \/ X(lg|a ; b ; ii|in,lg|out)
+   \/ X(lg:|b ; ii|in,lg:|lg) \/ X(lg|a ; b ; ii|in,lg|lg)
+   \/ X(in|ii ; a|in,lg|lg:)
+   \/ X(lg|a ; b|lg,lg:|in)
+   \/ X(in|ii ; a ; b|in,lg|in)
+\end{verbatim}
+\begin{code}
+q_iterseq_2
+ = mkOr [ mkA inp a  lg'
+        , mkA inp ab inp
+        , mkA lg  ab out
+        , mkA lg  ab lg
+        , mkA lg  ab inp
+        , mkA lg' b  lg
+        , mkA lg' b  out  ] 
+\end{code}
+
+\begin{verbatim}
+q_iterseq^3
+ =    X(lg|a ; b|lg,lg:|out)
+   \/ X(in|ii ; a ; b|in,lg|out)
+   \/ X(lg|a ; b|lg,lg:|lg)
+   \/ X(in|ii ; a ; b|in,lg|lg)
+   \/ X(lg:|b ; a|in,lg:|lg:) \/ X(lg|a ; b ; a|in,lg|lg:)
+   \/ X(in|ii ; a ; b|in,lg|in)
+   \/ X(lg:|b ; a ; b|in,lg:|in) \/ X(lg|a ; b ; a ; b|in,lg|in)
+\end{verbatim}
+\begin{code}
+q_iterseq_3
+ = mkOr [ mkA inp ab   out
+        , mkA inp ab   lg
+        , mkA inp ab   inp
+        , mkA lg  ab   out
+        , mkA lg  ab   lg
+        , mkA lg  aba  lg'
+        , mkA lg  abab inp
+        , mkA lg' ba   lg'
+        , mkA lg' bab  inp ]
+ba = mkSeq b a
+aba = mkSeq ab a
+bab = mkSeq ba b
+abab = mkSeq aba b
+\end{code}
+
+\begin{verbatim}
+q_iterseq^4
+ =    X(lg|a ; b ; a ; b|in,lg|out) 
+   \/ X(lg:|b ; a ; b|in,lg:|out)
+   \/ X(lg|a ; b ; a ; b|in,lg|lg) 
+   \/ X(lg:|b ; a ; b|in,lg:|lg)
+   \/ X(lg|a ; b ; a ; b|in,lg|in) 
+   \/ X(lg:|b ; a ; b|in,lg:|in)
+   \/ X(in|ii ; a ; b|in,lg|out)
+   \/ X(in|ii ; a ; b|in,lg|lg)
+   \/ X(in|ii ; a ; b ; a|in,lg|lg:)
+   \/ X(in|ii ; a ; b ; a ; b|in,lg|in)
+   \/ X(lg|a ; b ; a|lg,lg:|lg:)
+   \/ X(lg|a ; b ; a ; b|lg,lg:|in)
+\end{verbatim}
+
