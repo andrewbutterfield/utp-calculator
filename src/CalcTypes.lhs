@@ -104,7 +104,10 @@ type RWResult s
  = Maybe ( String  -- rewrite justification
          , Pred s  -- result predicate
          , Bool )  -- True if top-level modified
-type RWFun s = Dict s -> Pred s -> RWResult s
+type RWFun s = Dict s     -- dictionary
+            -> Pred s     -- invariant predicate
+            -> Pred s     -- target predicate
+            -> RWResult s
 \end{code}
 
 For convenience we give boolean values indicating if something
