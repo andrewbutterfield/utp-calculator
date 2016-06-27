@@ -533,7 +533,7 @@ Redo this to handle $\W(P) = \true * (\Skip \lor P)$
 }
 \begin{code}
 wUnroll :: Ord s => String -> RWFun s
-wUnroll arg d wpr@(Comp nw [pr])
+wUnroll arg d _ wpr@(Comp nw [pr])
  | nw == nW
    = case numfrom arg of
       0 -> Just ( "W-unroll"
@@ -551,7 +551,7 @@ wUnroll arg d wpr@(Comp nw [pr])
    dupPr dups 0 = []
    dupPr dups n = dups : dupPr (mkSeq dups pr) (n-1)
 
-wUnroll _ _ _ = Nothing
+wUnroll _ _ _ _ = Nothing
 \end{code}
 
 \newpage
@@ -1124,7 +1124,7 @@ vReduce :: (Ord s, Show s) => RWFun s
        \land (E_2\setminus N_1) \cap E_1 = \emptyset
 }
 \begin{code}
-vReduce vd (Comp ns [ (Comp na1 [ (Atm e1)    -- A(E1
+vReduce vd _ (Comp ns [ (Comp na1 [ (Atm e1)    -- A(E1
                                 , as          --  |a
                                 , (Atm n1) ]) --  |N1)
                     , (Comp na2 [ (Atm e2)    -- A(E2
@@ -1157,7 +1157,7 @@ vReduce vd (Comp ns [ (Comp na1 [ (Atm e1)    -- A(E1
        \land (E_2\setminus A_1) \cap R_1 = \emptyset
 }
 \begin{code}
-vReduce vd (Comp ns [ (Comp nx1 [ (Atm e1)    -- X(E1
+vReduce vd _ (Comp ns [ (Comp nx1 [ (Atm e1)    -- X(E1
                                 , as          --  |a
                                 , (Atm r1)    --  |R1
                                 , (Atm a1) ]) --  |A1)
@@ -1191,7 +1191,7 @@ vReduce vd (Comp ns [ (Comp nx1 [ (Atm e1)    -- X(E1
      (E_2 \setminus N_1) \cap E_1 = \emptyset
 }
 \begin{code}
-vReduce vd (Comp ns [ (Comp na1 [ (Atm e1)    -- A(E1
+vReduce vd _ (Comp ns [ (Comp na1 [ (Atm e1)    -- A(E1
                                 , as          --  |a
                                 , (Atm n1) ]) --  |N1)
                     , (Comp nx2 [ (Atm e2)    -- A(E2
@@ -1225,7 +1225,7 @@ vReduce vd (Comp ns [ (Comp na1 [ (Atm e1)    -- A(E1
        \land (E_2\setminus A_1) \cap R_1 = \emptyset
 }
 \begin{code}
-vReduce vd (Comp ns [ (Comp nx1 [ (Atm e1)     -- X(E1
+vReduce vd _ (Comp ns [ (Comp nx1 [ (Atm e1)     -- X(E1
                                 , as           --  |a
                                 , (Atm r1)     --  |R1
                                 , (Atm a1)  ]) --  |A1)
@@ -1252,7 +1252,7 @@ If $a$ and $b$ have alphabet $\setof{s,s'}$,
 then
 $(a \seq b)[G,L,M/g,in,out) = a\seq b$.
 \begin{code}
-vReduce d (PSub ab@(Comp ns [PVar a, PVar b]) sub)
+vReduce d _ (PSub ab@(Comp ns [PVar a, PVar b]) sub)
  | ns == nSeq && isSS' a && isSS' b && isStaticSub sub
    =  lred "a;b is static-free" ab
  where
@@ -1270,7 +1270,7 @@ vReduce d (PSub ab@(Comp ns [PVar a, PVar b]) sub)
    A \land (B \lor C) &=& (A \land B) \lor (A \land C)
 \end{eqnarray*}
 \begin{code}
-vReduce d (Comp na [ pr, (Comp no prs) ])
+vReduce d _ (Comp na [ pr, (Comp no prs) ])
  | na == nAnd && no == nOr
       =  lred "and-or-distr" $ mkOr $ map f prs
  where f pr' = mkAnd [pr , pr']
@@ -1280,7 +1280,7 @@ vReduce d (Comp na [ pr, (Comp no prs) ])
    A \seq (B \lor C) &=& (A \seq B) \lor (A \seq C)
 \end{eqnarray*}
 \begin{code}
-vReduce d (Comp ns [ pr, (Comp no prs) ])
+vReduce d _ (Comp ns [ pr, (Comp no prs) ])
  | ns == nSeq && no == nOr
       =  lred ";-or-distr" $  mkOr $ map f prs
  where f pr' = mkSeq pr pr'
@@ -1290,7 +1290,7 @@ vReduce d (Comp ns [ pr, (Comp no prs) ])
   (A \lor B) \seq C &=& (A \seq C) \lor (B \seq C)
 \end{eqnarray*}
 \begin{code}
-vReduce d (Comp ns [ (Comp no prs), pr ])
+vReduce d _ (Comp ns [ (Comp no prs), pr ])
  | ns == nSeq && no == nOr
       =  lred "or-;-distr" $ mkOr $ map f prs
  where f pr' = mkSeq pr' pr
@@ -1301,7 +1301,7 @@ We prefer sequential chains to associate to the left:
    A \seq (B \seq C) &=& (A \seq B) \seq C
 \end{eqnarray*}
 \begin{code}
-vReduce d (Comp ns1 [ prA, (Comp ns2 [prB, prC]) ])
+vReduce d _ (Comp ns1 [ prA, (Comp ns2 [prB, prC]) ])
  | ns1 == nSeq && ns2 == nSeq
      =  lred  ";-left-assoc" $ mkSeq (mkSeq prA prB) prC
 \end{code}
@@ -1311,7 +1311,7 @@ vReduce d (Comp ns1 [ prA, (Comp ns2 [prB, prC]) ])
 \newpage
 Default case: no change.
 \begin{code}
-vReduce _ _ = Nothing
+vReduce _ _ _ = Nothing
 \end{code}
 
 \HDRc{The Reduction Entry}\label{hc:WWW-reduce-ent}
@@ -1376,7 +1376,7 @@ But we also support several styles and degrees of unrolling:
 \end{eqnarray*}
 \begin{code}
 vUnroll :: Ord s => String -> RWFun s
-vUnroll ns d iter@(Comp nm  [c, pr])
+vUnroll ns d _ iter@(Comp nm  [c, pr])
  | nm == nIter = lred ("loop-unroll" ++ ntag ns) $ vunroll n
  where
 
@@ -1403,7 +1403,7 @@ vUnroll ns d iter@(Comp nm  [c, pr])
    loopstep 1 = mkAnd [c, pr]
    loopstep n = mkSeq (loopstep (n-1)) (loopstep 1)
 
-vUnroll _ _ _ = Nothing
+vUnroll _ _ _ _ = Nothing
 \end{code}
 
 \HDRc{The Unroll Entry}\label{hc:WWW-reduce-ent}

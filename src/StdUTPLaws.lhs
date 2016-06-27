@@ -80,9 +80,9 @@ These laws are immediate, and their proof is left as an exercise.
 \\ P;\Skip &=& P & \elabel{$;$-r-unit}
 }
 \begin{code}
-reduceStd d (Comp "Seq" [(Comp "Skip" []), pr])
+reduceStd d _ (Comp "Seq" [(Comp "Skip" []), pr])
                                             = lred ";-lunit" pr
-reduceStd d (Comp "Seq" [pr, (Comp "Skip" [])])
+reduceStd d _ (Comp "Seq" [pr, (Comp "Skip" [])])
                                             = lred ";-runit" pr
 \end{code}
 
@@ -157,7 +157,7 @@ then we get:
 }
 We implement this latter one:
 \begin{code}
-reduceStd d
+reduceStd d _
  (Comp "Seq" [ (Comp "And" prs), pr ])
  | (all (isAfterEqToConst d) prs)
    && sort (map getLVar prs) == sort (getAlpha aDyn' d)
@@ -174,7 +174,7 @@ $x'\in Dyn'$,
 \\ A \land x'=k ; B &=& A ; x=k \land B[k/x] & \elabel{const-$;$-prop}
 }
 \begin{code}
-reduceStd d (Comp "Seq" [(Comp "And" pAs), pB])
+reduceStd d _ (Comp "Seq" [(Comp "And" pAs), pB])
 
  | isJust match1
      = lred "bool-;-switch"
@@ -205,7 +205,7 @@ We more specific laws first, more general later.
    & \ecite{$;$-$\lor$-3distr}
 }
 \begin{code}
-reduceStd d
+reduceStd d _
   (Comp "Seq" [ pA
               , (Comp "Seq" [ (Comp "Or" pBs)
                               , pC] ) ] )
@@ -221,7 +221,7 @@ reduceStd d
    & \ecite{$\lor$-$;$-distr}
 }
 \begin{code}
-reduceStd d (Comp "Seq" [(Comp "Or" pAs), pB])
+reduceStd d _ (Comp "Seq" [(Comp "Or" pAs), pB])
  = lred "\\/-;-distr" $ mkOr $ map (postFixWith pB) pAs
  where
   postFixWith p q = mkSeq q p
@@ -230,7 +230,7 @@ reduceStd d (Comp "Seq" [(Comp "Or" pAs), pB])
 
 That's all folks!
 \begin{code}
-reduceStd d mpr = lred "" mpr
+reduceStd d _ mpr = lred "" mpr
 \end{code}
 
 Now, the standard reduction dictionary entry:
@@ -247,12 +247,12 @@ Iteration  satisfies the loop-unrolling law:
 \]
 \begin{code}
 unrollStd :: Ord s => String -> RWFun s
-unrollStd ns d w@(Comp nm  [c, pr])
+unrollStd ns d _ w@(Comp nm  [c, pr])
  | nm== nIter && isCondition c
            = Just( "std-loop-unroll"
                  , mkCond (mkSeq pr w) c mkSkip
                  , diff )
-unrollStd _ _ _ = Nothing
+unrollStd _ _ _ _ = Nothing
 \end{code}
 
 Now, the standard unroll dictionary entry:

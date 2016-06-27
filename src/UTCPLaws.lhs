@@ -91,9 +91,9 @@ These laws are immediate, and their proof is left as an exercise.
 \\ P;\Skip &=& P & \elabel{$;$-r-unit}
 }
 \begin{code}
-reduceUTCP d (Comp "Seq"
+reduceUTCP d _ (Comp "Seq"
                [(Comp "Skip" []), pr])  =  lred ";-lunit" pr
-reduceUTCP d (Comp "Seq"
+reduceUTCP d _ (Comp "Seq"
                [pr, (Comp "Skip" [])])  =  lred ";-runit" pr
 \end{code}
 
@@ -103,10 +103,10 @@ In the special case of atomic actions ($\alpha A = \setof{s,s'}$), we have:
 \\ A ; s'=s &=& A & \elabel{atomic-;-r-unit}
 }
 \begin{code}
-reduceUTCP d (Comp "Seq" [ (Equal (Var s1) (Var s2))
+reduceUTCP d _ (Comp "Seq" [ (Equal (Var s1) (Var s2))
                          , pA@(PVar a) ])
  | isIdleSeqAtom d s1 s2 a  =  lred "atomic-;-lunit" pA
-reduceUTCP d (Comp "Seq" [ pA@(PVar a)
+reduceUTCP d _ (Comp "Seq" [ pA@(PVar a)
                          , (Equal (Var s1) (Var s2)) ])
  | isIdleSeqAtom d s1 s2 a  =  lred "atomic-;-runit" pA
 \end{code}
@@ -173,12 +173,12 @@ In our case, given that $Dyn' = \setof{s',ls'}$ we obtain:
    & \elabel{$s'$-$ls'$-$;$-prop}
 }
 \begin{code}
-reduceUTCP d (Comp "Seq"
+reduceUTCP d _ (Comp "Seq"
                 [ (Comp "And" [ (Equal (Var "s'") e)
                               , (Equal (Var "ls'") f) ])
                 , pA ])
  = lred "s'ls'-;-prop" $ PSub pA [("s",e),("ls",f)]
-reduceUTCP d (Comp "Seq"
+reduceUTCP d _ (Comp "Seq"
                 [ (Comp "And" [ (Equal (Var ls'@"ls'") f)
                               , (Equal (Var s'@"s'") e) ])
                 , pA])
@@ -196,7 +196,7 @@ We more specific laws first, more general later.
    & \ecite{$;$-$\lor$-3distr}
 }
 \begin{code}
-reduceUTCP d (Comp "Seq" [ pA
+reduceUTCP d _ (Comp "Seq" [ pA
                          , (Comp "Seq" [ (Comp "Or" pBs)
                                        , pC ]) ])
  = lred ";-\\/-3distr"
@@ -212,7 +212,7 @@ reduceUTCP d (Comp "Seq" [ pA
    & \ecite{$\lor$-$;$-distr}
 }
 \begin{code}
-reduceUTCP d (Comp "Seq" [(Comp "Or" pAs), pB])
+reduceUTCP d _ (Comp "Seq" [(Comp "Or" pAs), pB])
  = lred "\\/-;-distr" $ mkOr $ map (postFixWith pB) pAs
  where
   postFixWith p q = q `mkSeq` p
@@ -230,7 +230,7 @@ are ground:
    & \elabel{$ls'$-cleanup}
 }
 \begin{code}
-reduceUTCP d pr@(Comp "Seq" [ (Comp "And" pAs)
+reduceUTCP d _ pr@(Comp "Seq" [ (Comp "And" pAs)
                             , (Comp "And" pBs)])
  = case isSafeLSDash d ls' ls' pAs of
     Nothing -> lred "" pr
@@ -263,7 +263,7 @@ Assuming that $\fv{e'} \subseteq \setof{s',ls'}$, $x'\in\setof{s',ls'}$ and $\fv
 \\ A \land x'=k ; B &=& A ; x=k \land B[k/x] & \elabel{const-$;$-prop}
 }
 \begin{code}
-reduceUTCP d pr@(Comp "Seq" [(Comp "And" pAs), pB])
+reduceUTCP d _ pr@(Comp "Seq" [(Comp "And" pAs), pB])
  = case matchRecog (mtchDashedObsExpr d) pAs of
    Just (pre,((Atm e'),_),post)
     -> lred "bool-;-switch"
@@ -284,5 +284,5 @@ reduceUTCP d pr@(Comp "Seq" [(Comp "And" pAs), pB])
 
 That's all folks!
 \begin{code}
-reduceUTCP d mpr = lred "" mpr
+reduceUTCP d _ mpr = lred "" mpr
 \end{code}
