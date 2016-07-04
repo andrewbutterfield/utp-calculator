@@ -97,6 +97,16 @@ eqSet d es1 es2
       else Nothing
 \end{code}
 
+We want some code to check and analyse both forms of singleton sets:
+\begin{code}
+isSingleton (App ns es)  =  ns == setn && length es == 1
+isSingleton _ = True
+
+-- assumes isSingleton above
+theSingleton (App _ es)  =  head es
+theSingleton e           =  e
+\end{code}
+
 
 \HDRd{Set Membership/Subset}\label{hd:membership}~
 
@@ -762,6 +772,20 @@ loccChk (X occs)
         _  ->  fail "not-exclusive"
 \end{code}
 
+\newpage
+\HDRc{Invariant Trimming}
+
+We can use the invariant to trim removal sets,
+given an enabling label or label-set
+\begin{code}
+invTrims :: (Ord s, Show s)
+         => Dict s
+         -> Pred s  -- Invariant
+         -> Expr s  -- enable label being removed
+         -> Expr s  -- other label being removed
+         -> Bool
+invTrims d inv ena other = not $ lsat d (set [ena,other]) inv
+\end{code}
 
 \newpage
 \HDRc{Coding Atomic Semantics}
@@ -1106,7 +1130,10 @@ mtchLabelSetSSwap _      =  Nothing
 
 \begin{code}
 vReduce :: (Ord s, Show s) => RWFun s
-        -- Dict s -> Pred s -> Maybe (String, Pred s, Bool)
+        -- Dict s
+        -- -> Pred s    -- Invariant
+        -- -> Pred s    -- Target Predicate
+        -- -> Maybe (String, Pred s, Bool)
 \end{code}
 
 
@@ -1225,7 +1252,7 @@ vReduce vd _ (Comp ns [ (Comp na1 [ (Atm e1)    -- A(E1
        \land (E_2\setminus A_1) \cap R_1 = \emptyset
 }
 \begin{code}
-vReduce vd _ (Comp ns [ (Comp nx1 [ (Atm e1)     -- X(E1
+vReduce vd _ (Comp ns [ (Comp nx1 [ (Atm e1)   -- X(E1
                                 , as           --  |a
                                 , (Atm r1)     --  |R1
                                 , (Atm a1)  ]) --  |A1)
@@ -1247,6 +1274,32 @@ vReduce vd _ (Comp ns [ (Comp nx1 [ (Atm e1)     -- X(E1
 \end{code}
 
 \newpage
+\HDRd{$I$ collapses $X$ back to $A$}
+\RLEQNS{
+  [\dots|E|L|\dots]
+  &\implies&  X(E|a|E,L|N) = A(E|a|N)
+}
+\begin{code}
+vReduce vd inv (Comp nx [ Atm ee               -- X(E
+                        , as                   --  |a
+                        , Atm (App ns [l1,l2]) --  | E,L or L,E
+                        , Atm en               --  |N)
+                        ])
+ | nx == nX && ns == setn && isSingleton ee && isSingleton en
+   && l1==e && invTrims vd inv l1 l2
+    = lred "Inv collapses X to A" equivA
+ | nx == nX && ns == setn && isSingleton ee && isSingleton en
+   && l2==e && invTrims vd inv l2 l1
+    = lred "Inv collapses X to A" equivA
+ where
+   e = theSingleton ee
+   n = theSingleton en
+   equivA = mkA e as n
+\end{code}
+
+
+\newpage
+\HDRd{General Stuff}~
 
 If $a$ and $b$ have alphabet $\setof{s,s'}$,
 then
@@ -1944,7 +1997,7 @@ q_iterseq
         , mkA inp ii lg
         , mkA lg   a lg'
         , mkA lg  ab inp
-        , mkA lg'  b inp ]  
+        , mkA lg'  b inp ]
 \end{code}
 
 \begin{verbatim}
@@ -1963,7 +2016,7 @@ q_iterseq_2
         , mkA lg  ab lg
         , mkA lg  ab inp
         , mkA lg' b  lg
-        , mkA lg' b  out  ] 
+        , mkA lg' b  out  ]
 \end{code}
 
 \begin{verbatim}
@@ -1995,11 +2048,11 @@ abab = mkSeq aba b
 
 \begin{verbatim}
 q_iterseq^4
- =    X(lg|a ; b ; a ; b|in,lg|out) 
+ =    X(lg|a ; b ; a ; b|in,lg|out)
    \/ X(lg:|b ; a ; b|in,lg:|out)
-   \/ X(lg|a ; b ; a ; b|in,lg|lg) 
+   \/ X(lg|a ; b ; a ; b|in,lg|lg)
    \/ X(lg:|b ; a ; b|in,lg:|lg)
-   \/ X(lg|a ; b ; a ; b|in,lg|in) 
+   \/ X(lg|a ; b ; a ; b|in,lg|in)
    \/ X(lg:|b ; a ; b|in,lg:|in)
    \/ X(in|ii ; a ; b|in,lg|out)
    \/ X(in|ii ; a ; b|in,lg|lg)
@@ -2008,4 +2061,3 @@ q_iterseq^4
    \/ X(lg|a ; b ; a|lg,lg:|lg:)
    \/ X(lg|a ; b ; a ; b|lg,lg:|in)
 \end{verbatim}
-
