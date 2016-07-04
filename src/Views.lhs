@@ -776,7 +776,12 @@ loccChk (X occs)
 \HDRc{Invariant Trimming}
 
 We can use the invariant to trim removal sets,
-given an enabling label or label-set
+given an enabling label or label-set.
+\RLEQNS{
+   I \textbf{ invTrims } X(E|a|E,L|A)
+   &\defs&
+   \lnot(\setof{E,L} \textbf{ lsat } I)
+}
 \begin{code}
 invTrims :: (Ord s, Show s)
          => Dict s
@@ -1274,10 +1279,10 @@ vReduce vd _ (Comp ns [ (Comp nx1 [ (Atm e1)   -- X(E1
 \end{code}
 
 \newpage
-\HDRd{$I$ collapses $X$ back to $A$}
+\HDRd{$I$ collapses $X$ to $A$}
 \RLEQNS{
-  [\dots|E|L|\dots]
-  &\implies&  X(E|a|E,L|N) = A(E|a|N)
+   \lnot(\setof{E,L} \textbf{ lsat } I)
+   &\implies&  X(E|a|E,L|N) = A(E|a|N)
 }
 \begin{code}
 vReduce vd inv (Comp nx [ Atm ee               -- X(E
