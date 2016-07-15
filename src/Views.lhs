@@ -742,7 +742,7 @@ In effect we look for failures
 and propagate these up.
 \RLEQNS{
    occChk &:& I_\Bool \fun (\setof{ok,fail}\times \Bool)
-\\ occChk(b) &\defs& (ok,true)
+\\ occChk(b) &\defs& (ok,b)
 \\ occChk(\cup(i_1,\ldots,i_n))
    &\defs&
    (fail,\_),
