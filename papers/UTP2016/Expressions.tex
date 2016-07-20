@@ -79,6 +79,10 @@ dosubset d es1 es2 -- is es1 a subset of es2 ?
 It is basically a Haskell function definition with three alternatives,
 tested in order.
 
+\DRAFT{We need a better explanation here - why is the type wrong?
+Also, show how we give results if we can, otherwise signal that there was no change
+possible.}
+
 The second test sees if all elements remaining are ``ground'',
 i.e. do not contain any dynamic observation variables.
 Static parameter variables are considered ground,
@@ -135,7 +139,7 @@ in that entry, is used to render the construct.
 
 As far as expressions are concerned,
 they become strings, and so are viewed as atomic
-by the predicate pretty-printer (see Sect. \ref{sec:Predicates}.
+by the predicate pretty-printer (see Sect. \ref{sec:Predicates}).
 So far there has been no real need to extend full layout control
 down into expressions,
 mainly because of the shorthands that have been defined
@@ -167,7 +171,7 @@ Here \texttt{edshow} uses a dictionary to render an expression as a string.
 In contrast to the way that the subset predicate
 is captured as an expression above,
 the notion of expression equality is hardwired in,
-as part of the predicate abstract syntax (see Sect\ref{sec:Predicates}).
+as part of the predicate abstract syntax (see Sect. \ref{sec:Predicates}).
 The simplifier will look at the two expression
 arguments of that construct,
 and if they are both instances of \texttt{App} with the same name,
@@ -180,8 +184,8 @@ Dict s -> [Expr s] -> [Expr s] -> Maybe Bool
 \end{verbatim}
 Such a function takes a dictionary and the two expression
 lists from the two \texttt{App} instances
-and either returns Nothing, if it cannot establish
-
+and either returns \texttt{Nothing}, 
+if it cannot establish the truth or falsity of the equality.
 Suitable code for \verb$"set"$ is the following
 \begin{code}
 eqSet d es1 es2

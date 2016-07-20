@@ -6,28 +6,11 @@ of the datatypes to represent predicates.
 \begin{verbatim}
 data Pred s
   = T | F | PVar String | Equal (Expr s) (Expr s) | Atm (Expr s)
-  | Comp String [MPred s] | PSub (MPred s) (Substn s) | PUndef
-
-type MPred s = (Marks, Pred s)
+  | Comp String [Pred s] | PSub (Pred s) (Substn s)
 \end{verbatim}
-  \caption{Predicate Datatypes (\texttt{CalcTypes.lhs})}
+  \caption{Predicate Datatype (\texttt{CalcTypes.lhs})}
   \label{fig:pred-types}
 \end{figure}
-We have two mutually recursive types,
-with \texttt{Pred} giving the basic structure,
-while \texttt{MPred} bundles a \texttt{Pred}
-with a \texttt{Marks} datatype.
-All references from a \texttt{Pred} to a sub-component invoke
-the \texttt{MPred} form.
-At the top-level we use an \texttt{MPred} to represent a complete predicate.
-In effect this allows any part of a predicate to be marked
-in order to facilitate better transcript production,
-mainly to provide a way to highlight modified parts
-around each step.
-This marking is managed under the hood,
-and the only impact on the user of the calculator
-is the need to be aware of the mutual recursion
-when writing patterns.
 
 Similar to expressions we have basic values such as true (\texttt{T})
 and false (\texttt{F}),
@@ -39,8 +22,7 @@ One (\texttt{Atm}) lifts an expression, which should be boolean-valued
 into an (atomic) predicate,
 while the other is an explicit representation (\texttt{Equal})
 for expression equality.
-We can also substitute over predicates (\texttt{PSub})
-and we have an undefined predicate (\texttt{PUndef}).
+We can also substitute over predicates (\texttt{PSub}).
 
 In many ways,
 we define our predicates of interest
@@ -84,15 +66,10 @@ where $A$ is a predicate whose alphabet is restricted to $s$ and $s'$.
 
 We want to define a composite, called "A" (representing $\A$),
 as a marked predicate.
-We make use of a built-in function that builds
-a marked composite, with a null marking
-\begin{verbatim}
-comp :: String -> [MPred s] -> MPred s
-\end{verbatim}
-We then define a function that takes a single predicate argument
+We  define a function that takes a single predicate argument
 and applies $\A$ to it
 \begin{code}
-patm mpr = comp "A" [mpr] -- we assume mpr has only s, s' free
+patm pr = Comp "A" [pr] -- we assume pr has only s, s' free
 \end{code}
 We can now code up its definition,
 which takes a dictionary, and a list of its subcomponents
@@ -114,12 +91,14 @@ ls'eqlsinout = equal ls' lsinout
 Here \texttt{equal} is to \texttt{Equal} as \texttt{comp} is to \texttt{Comp}:
 it produces an \texttt{MPred} with a null marking.
 The function \texttt{mkAnd} is a smart builder from \texttt{StdPredicates}
-that does some optimisations on the fly (e.g. \verb$mkAnd [mpr] = mpr$).
+that does some optimisations on the fly (e.g. \verb$mkAnd [pr] = pr$).
 Here \texttt{"sswap"} names the ternary operation $\_\ominus(\_,\_)$.
+
+\DRAFT{Need to rewrite the following part carefully}
 
 The rendering of \texttt{App} expressions used a dictionary and list of its
 sub-expressions to produce a string.
-For Comp predicates, we are going to generate an instance
+For \texttt{Comp} predicates, we are going to generate an instance
 of the pretty-printer type \texttt{PP}, using a dictionary
 and list of sub-predicates,
 with two additonal arguments:
@@ -127,33 +106,47 @@ one of type \texttt{MarkStyle} which describes how markings should be rendered,
 and one of type \texttt{Int} which gives a precedence level.
 The type signature is
 \begin{verbatim}
-Dict s -> MarkStyle -> Int -> [MPred s] -> PP
+SubCompPrint s -> Dict s -> Int -> [Pred s] -> PP
 \end{verbatim}
-As far as user-written rendering code is concerned,
-the \texttt{MarkStyle} argument is simply passed into any pretty-printing
-function that needs it---its handling is done in the pretty-printing
+The first argument is a function,
+and it is a bit of Haskell higher-order programming designed
+to make it easier to track predicate contexts in order
+to facilitating the generation of highlighting.
+The user does not need to write this,
+as it is supplied as the first argument by the pretty-printing
 infrastructure.
-The most useful and such function is \texttt{mshowp} of type
+What the user should do is use it in any recursive call
+to pretty-print a sub-predicate.
 \begin{verbatim}
-(Ord s, Show s) => Dict s -> MarkStyle -> Int -> MPred s -> PP
+type SubCompPrint s
+ = Int       -- precedence level for sub-component
+   -> Int    -- sub-component number, starts at 1
+   -> Pred s -- sub-component
+   -> PP 
 \end{verbatim}
-It prettyprints its \texttt{MPred} argument, using dictionary lookups
-to find user defined code.
+It takes two integer arguments to begin.
+The first is the precedence level to be used to render the
+sub-component,
+while the secound should denote the position of the sub-component
+in the sub-component list, counting from 1.
+
 Such code, for example, would be like the following code
 to render our atomic construct:
 \begin{code}
-ppPAtm d ms p [mpr]
+ppPAtm sCP d p [pr]
  = pplist [ ppa "A"
-          , ppbracket "(" (mshowp d ms 0 mpr) ")"]
+          , ppbracket "(" (sCP 0 1 pr) ")"]
 \end{code}
 The functions \texttt{pplist}, \texttt{ppa} and \texttt{ppbracket}
 build instances of \texttt{PP} respectively,
 that represent lists of \texttt{PP},
 atomic strings,
 and an occurence of \texttt{PP} surrounded by the designated brackets.
-Note that the \texttt{MarkStyle} argument (\texttt{ms})
-is just passed into \texttt{mshowp},
-and the precedence is set to zero as it is bracketed.
+Note that the \texttt{SubCompPrint} argument (\texttt{sCP})
+is applied to \texttt{pr},
+with the precedence is set to zero as it is bracketed,
+and the sub-component numer set to one as \texttt{pr} is the first
+(and only) sub-component.
 
 
 
@@ -161,10 +154,10 @@ We will show how the pretty-printing for
 sequential composition  ($\lseq$) in UTCP is defined,
 just to show how easy support for infix notation is.
 \begin{code}
-ppPSeq d ms p [mpr1,mpr2]
- = paren p precPSeq -- parenthesise if precedence requires it
-     $ ppopen  (pad ";;") [ mshowp d ms precPSeq mpr1
-                          , mshowp d ms precPSeq mpr2 ]
+ppPSeq sCP d  p [pr1,pr2]
+ = paren p precPSeq
+     $ ppopen  (pad ";;") [ sCP precPSeq 1 pr1
+                          , sCP precPSeq 2 pr2 ]
 \end{code}
 Here \texttt{pad} puts spaces around its argument,
 and so is equivalent to \verb$ppa " ;; "$,
@@ -176,18 +169,29 @@ number is greater than the second.
 The variable \texttt{precPSeq} is the precedence level of sequential composition,
 here defined to be tighter than disjunction,
 but looser than conjunction, as defined in module \texttt{StdPrecedences}.
+Note once more, the use of sCP, and how the 2nd integer argument
+corresponds to the position of the sub-predicate involved.
 
 \subsubsection{The Predicate Entry}~
 
 The dictionary entry for predicates has the following form:
 \begin{verbatim}
-  | PredEntry
-    { pcansub :: [String]
-    , pprint :: Dict s -> MarkStyle -> Int -> [MPred s] -> PP
-    , alfa :: [String]
-    , pdefn  :: Dict s -> [MPred s] -> (String, Pred s)
-    , prsimp :: Dict s -> [MPred s] -> (String, Pred s) }
+ | PredEntry 
+   { pcansub :: [String]
+   , pprint  :: SubCompPrint s -> Dict s -> Int -> [Pred s] -> PP
+   , alfa :: [String]
+   , pdefn   :: Rewrite s
+   , prsimp  :: Rewrite s
+   }
+type Rewrite s = Dict s -> [Pred s] -> RWResult s
+type RWResult s
+ = Maybe ( String  -- rewrite justification
+         , Pred s  -- result predicate
+         , Bool )  -- True if top-level modified
 \end{verbatim}
+
+\DRAFT{FIX ALL THIS FOLLOWING STUFF}
+
 Fields \texttt{pcansub} and \texttt{prsimp} are the predicate analoges
 of \texttt{ecansub} and \texttt{eval} in the expression entry.
 Here \texttt{pprint} plays the same role as eprint,
