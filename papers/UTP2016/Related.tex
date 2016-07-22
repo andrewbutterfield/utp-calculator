@@ -30,9 +30,6 @@ how to achieve the ability to do rapid calculation
 with a high degree of ease in proof-reading its
 output.
 
-In addition to our own work on theorem proving for UTP \cite{DBLP:conf/utp/Butterfield10},
-there is also work on embedding UTP into Isabelle/HOL\cite{DBLP:conf/utp/FosterZW14}.
-
 Within the UTP community,
 there has been considerable work using Proof{\-}Power-Z
 such as deep embedding into Z of an imperative language whose semantics
@@ -43,11 +40,18 @@ the hierarchical nature of UTP theory building \cite{journals/entcs/ZeydaC09}.
 %can be found as extensions implemented in the Community Z Tools project
 %\cite{conf/zum/MalikU05}.
 %
-Whilst all of good pedigree, CoQ, Isabelle/HOL, ProofPower-Z and PVS
+There is also work on embedding UTP into Isabelle/HOL\cite{DBLP:conf/utp/FosterZW14}.
+This contains a considerable amount of infrastructure to support UTP's
+alphabetised predicates in a general way, with UTP forming a third
+sub-syntax in addition to Isabelle/HOLs inner and outer syntaxes.
+It continues to undergo continuous improvement\cite{DBLP:series/natosec/FosterW15}.
+
+Like all high-quality state-of-the-art tools, CoQ, Isabelle/HOL, ProofPower-Z and PVS
 all have in common that they work best when used in the manner
 for which they were designed%
 ---in none of these cases does this manner match the way
-we wish to work in UTP, as described in the introduction.
+we wish to work in UTP, as described in the introduction,
+without at least a steep learning curve.
 
 
 
@@ -55,12 +59,17 @@ we wish to work in UTP, as described in the introduction.
 
 We briefly considered using the \UTP2 theorem prover
 \cite{DBLP:conf/utp/Butterfield10,DBLP:conf/utp/Butterfield12},
-but it would have required a lot of setup effort,
-and it is currently not in an ideal state%
-\footnote{The issue has to do with difficulties installing
-the relevant software libraries
-on more recent versions of Haskell.}
-.
+which does support both equational reasoning,
+plus a mode in which calculations can be from a starting predicate,
+as we require.
+However, it would have required a lot of setup effort,
+in particular to build the support theories about sets and labels
+and generators.
+Also, it is currently not in an ideal state,
+due to difficulties installing
+the relevant third-party software libraries
+on more recent versions of Haskell.
+
 However, as part of other ongoing work,
 we had developed a parser and some initial analysis tools
 in Haskell\cite{Haskell2010},
@@ -73,3 +82,5 @@ In particular,
 the key inspiration was the observation,
 that the pattern of each calculation was very uniform and similar.
 So a decision was taken to construct the calculator described in this paper.
+It also had the advantage that it runs on standard Haskell,
+and hence it much easier to future-proof.

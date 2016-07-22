@@ -1,12 +1,5 @@
 \section{Dictionaries}\label{sec:Dictionaries}
 
-\begin{figure}
-  \centering
-%\begin{verbatim}
-\texttt{Alf Obs Obs' Mdl Mdl' Scr Scr' Dyn Dyn' Stc laws}
-%\end{verbatim}
-  \caption{Reserved Dictionary Names}\label{fig:rsvd-names}
-\end{figure}
 
 The dictionary datatype (\texttt{Dict s}),
 parameterised with a generic type \texttt{s},
@@ -29,6 +22,14 @@ data Entry s = AlfEntry .. | ExprEntry .. | PredEntry .. | LawEntry ..
 For simplicity, there is only one namespace involved,
 and some names are reserved for special purposes.
 These are listed in Fig. \ref{fig:rsvd-names}.
+\begin{figure}[t]
+  \centering
+%\begin{verbatim}
+\texttt{Alf Obs Obs' Mdl Mdl' Scr Scr' Dyn Dyn' Stc laws}
+%\end{verbatim}
+  \caption{Reserved Dictionary Names}\label{fig:rsvd-names}
+\end{figure}
+
 There are ten names that describe different
 (overlapping)
 parts of the theory alphabet (Fig. \ref{fig:rsvd-names}).
@@ -59,7 +60,7 @@ i.e, just lists of the relevant variables.
 There are two important utility functions,
 one that builds dictionaries from lists of string/entry pairs,
 and another that merges two dictionaries, resolving conflicts
-by merging entries if possible, other wise favouring the
+by merging entries if possible, otherwise favouring the
 second dictionary:
 \begin{verbatim}
 makeDict :: [(String, Entry s)] -> Dict s

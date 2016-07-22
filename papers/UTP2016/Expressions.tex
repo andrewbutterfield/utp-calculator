@@ -20,9 +20,11 @@ all with one piece of code.
 We provide booleans (\texttt{B}),
 integers (\texttt{Z}),
 values of the parameter type (\texttt{St}),
-named function application(\texttt{App})
-and a substitution (\texttt{Sub}), which pairs an expression
-with a substitution (\texttt{Substn}) which is a list of variable/expression pairs, each denoting the replacement of all free
+named function application (\texttt{App}).
+We also have substitution (\texttt{Sub}), which pairs an expression
+with a substitution (\texttt{Substn}).
+This is a list of variable/expression pairs,
+each denoting the replacement of all free
 occurrences of the variable by the corresponding expression.
 The \texttt{deriving} clause for \texttt{Expr} enables the Haskell default notions
 of equality, ordering and display for the type.
@@ -55,58 +57,41 @@ Dict s -> [Expr s] -> (String, Expr s)
 \end{verbatim}
 The first argument, of type \texttt{Dict},
 is the dictionary currently in use.
-The second argument is the list of sub-expression of
+The second argument is the list of sub-expressiosn of
 the \texttt{App} construct for which the simplifier is intended.
 The result is a pair consisting of a string and an expression.
 If the simplification succeeds, then the string is non-empty
-and gives some indication
-of what was simplified,
-while the expression component is the simplified result.
+and gives some indication for the user
+of what was simplified.
+In this case the expression component is the simplified result.
 If the simplification has no effect, then the string is empty,
-and the expression return is not defined.
+and the expression returned is not defined.
 
-The following code defines a simplifier for subset
-(with not quite the right type):
+The following code defines a simplifier for subset,
+which expects it to have precisely two set components:
+\begin{code}
+evalSubset d [App "set" s1,App "set" s2] = dosubset d s1 s2
+evalSubset _ _ = none -- predefined shorthand for ("",Undef)
+\end{code}
+The two underscores in the second line are pattern matching
+wildcards, so this catches all other possibilities.
+It makes use of the following helper,
+which gets the two lists of expressions associated with each set:
 \begin{code}
 dosubset d es1 es2 -- is es1 a subset of es2 ?
   | null es1lesses2  =  ( "subset", B True )
   | all (isGround d) (es1lesses2 ++ es2)
                      =  ( "subset", B False )
   | otherwise        =  none
-  where
-    es1lesses2 = es1 \\ es2
+  where es1lesses2 = es1 \\ es2
 \end{code}
-It is basically a Haskell function definition with three alternatives,
-tested in order.
-
-\DRAFT{We need a better explanation here - why is the type wrong?
-Also, show how we give results if we can, otherwise signal that there was no change
-possible.}
-
+It computes the difference,
+and if this is null then asserts a true result.
 The second test sees if all elements remaining are ``ground'',
-i.e. do not contain any dynamic observation variables.
-Static parameter variables are considered ground,
-for reasons beyond the scope of this paper.
-The function \texttt{isGround} takes a dictionary,
-and an expression, and checks to see if the expression is ground.
-It uses the dictionary to get information about the status
-of any variables it may find, by using the \verb$"Stc"$ key
-(Fig. \ref{fig:rsvd-names}) to identify the static variables.
-
-For the simplifier, we need a list of expressions,
-rather than two as arguments, after the dictionary argument.
-We use \texttt{evalSubset} to pattern match on the expression list
-associated with an instance of subset,
-and then to call \texttt{dosubset} as appropriate.
-We expect the expression list to be of length 2,
-each entry denoting a set.
-\begin{code}
-evalSubset d [App "set" s1,App "set" s2] = dosubset d s1 s2
-evalSubset _ _ = none
-\end{code}
-The first line above matches the case when both sets are enumerations.
-The last line is a catch-all with wildcard patterns that matches
-any other case, returning none.
+i.e., contain no variables.
+If they are all ground, then we can assert the subset relation
+to be false.
+Otherwise, we cannot infer anything, so return \texttt{none}.
 
 Note that there is no notion of general type-checking
 in the calculator---it would introduce far too much complexity,
@@ -118,14 +103,14 @@ for the type of work for which this calculator has been designed.
 The UTCP theory definitions and calculations
 involve a lot of reasoning about sets,
 leading to quite complicated expressions.
-To avoid long set expressions a number of shorthand notations are desirable,
+To avoid complex set expressions that are hard to parse visually,
+a number of simplifying notations are desirable,
 so that a singleton set $\setof x$ is rendered as $x$
 and the very common idiom $S \subseteq ls$
 is rendered as $ls(S)$,
 so that for example, $ls(in)$ is short for $\setof{in} \subseteq ls$.
-We also introduce $S \ominus (T,U)$ as shorthand for $(S \setminus T) \cup U$
-(from\cite{DBLP:conf/icfem/WoodcockH02}).
-These shrinks the expressions to a much more readable form/
+This shrinks the expressions to a much more readable form,
+mainly by reducing the number of infix operators and set brackets.
 
 
 When rendering expressions,
@@ -134,7 +119,7 @@ is looked up in the dictionary.
 If an \texttt{ExprEntry} is not found, then the default rendering is used,
 in which \verb$App "f" [e1,e2,..,en]$
 is converted into \verb$f(e1,e2,..,en)$.
-Otherwise, a functionof type \verb$Dict s -> [Expr s] -> String$,
+Otherwise, a function of type \verb$Dict s -> [Expr s] -> String$,
 in that entry, is used to render the construct.
 
 As far as expressions are concerned,
@@ -151,20 +136,23 @@ by defining:
 showSet d [elm] = edshow d elm   -- drop {,} from singleton
 showSet d elms = "{" ++ dlshow d "," elms ++ "}"
 \end{code}
-Here \texttt{dlshow} (dictionary-list-show) displays the expressions
-in its 3rd argument separated by the 2nd,
+Here \texttt{edshow} (expression-dict-show)
+uses its first dictionary argument
+to display its second expression argument,
+while \texttt{dlshow} (dictionary-list-show) displays the expressions
+in its 3rd argument separated by the 2nd argument string,
 using its first dictionary argument.
 
-Similar code can be written for the subset application.
-\begin{code}
-showSubSet d [App "set" elms,App "set" [set]]
- = edshow d set ++ "(" ++ dlshow d "," elms ++ ")"
-showSubSet d [App "set" elms,set]
- = edshow d set ++ "(" ++ dlshow d "," elms ++ ")"
-showSubSet d [e,set]
- = edshow d set ++ "(" ++ edshow d e ++ ")"
-\end{code}
-Here \texttt{edshow} uses a dictionary to render an expression as a string.
+Similar tricks are used to code a very compact rendering
+of a mechanism that involves unique label generator expressions
+that involve very deep nesting, such as:
+\[
+ \pi_2(new(\pi_1(new(\pi_2(split(\pi_1(new(g))))))))
+\]
+This can be displayed as \texttt{lg:2:},
+using a very compact shorthand described in \cite{conf/tase/BMN16}
+which we do not explain here.
+
 
 \subsection{Expression Equality}
 
@@ -177,15 +165,23 @@ arguments of that construct,
 and if they are both instances of \texttt{App} with the same name,
 will do a dictionary lookup, to see if there
 is an entry, from
-which an equality checking function can be obtained.
+which an equality checking function can be obtained (\texttt{isEqual} component).
 This has the following signature:
 \begin{verbatim}
 Dict s -> [Expr s] -> [Expr s] -> Maybe Bool
 \end{verbatim}
-Such a function takes a dictionary and the two expression
+The \texttt{Maybe} type constructor is standard Haskell, defined as
+\begin{verbatim}
+data Maybe t = Nothing | Just t
+\end{verbatim}
+It converts a type \texttt{t} into one which is now ``optional'',
+or equivalently has a undefined value added.
+
+The equality testing functiomn takes a dictionary and the two expression
 lists from the two \texttt{App} instances
-and either returns \texttt{Nothing}, 
-if it cannot establish the truth or falsity of the equality.
+and either returns \texttt{Nothing},
+if it cannot establish the truth or falsity of the equality,
+or \texttt{Just} the appropriate result.
 Suitable code for \verb$"set"$ is the following
 \begin{code}
 eqSet d es1 es2
@@ -195,19 +191,12 @@ eqSet d es1 es2
       then Just (ns1==ns2)
       else Nothing
 \end{code}
-The standard function nub removes duplicates,
-and so if both lists are ground we just do an equality comparison
-and return it. Otherwise, we return nothing.
+The standard function \texttt{nub} removes duplicates,
+which we do after we \texttt{sort}.
+If both lists are ground we just do an equality comparison
+and return \texttt{Just} it. Otherwise, we return \texttt{Nothing}.
 
 
-Similar tricks are used to code a very compact rendering
-of a mechanism that involves unique label generators
-that can also be split, so that an expression like
-\[
- \pi_2(new(\pi_1(new(\pi_1(split(\pi_1(new(g))))))))
-\]
-can be displayed as $\ell_{g:1:}$, or,
-within the calculator, as \texttt{lg:1:} .
 
 
 \subsection{The Expression Entry}~
@@ -267,6 +256,10 @@ The righthand side of the definition is what should be returned
 by the \texttt{eval} component.
 If we want to state that any substitution is safe,
 then we use the ``wildcard'' form: \texttt{["*"]}.
+We choose to list the substitutable variables
+rather than those that are non-substitutable,
+because the former is always easy to determine,
+whereas the latter can be very open ended.
 
 Given all of the above,
 we can define dictionary entries for set and subset as
@@ -276,4 +269,4 @@ setUTCPDict
     [ ("set",(ExprEntry ["*"] showSet evalSet eqSet))
     , ("subset",(ExprEntry ["*"] showSubSet evalSubset noEq)) ]
 \end{code}
-Here \texttt{noEq} is a function that always returns \texttt{Nothing}.
+Here \texttt{noEq} is an equality test function that always returns \texttt{Nothing}.
