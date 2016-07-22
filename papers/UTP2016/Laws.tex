@@ -9,11 +9,20 @@ to the behaviour of either the simplifier or definition expansion.
 Instead the reserved dictionary key \verb$"laws"$ is used
 to lookup a special dictionary entry
 \begin{verbatim}
-LawEntry {
-   reduce  :: [Dict s -> MPred s -> (String, MPred s)]
- , creduce :: [Dict s -> MPred s -> CRWResult s]
- , unroll  :: [String -> Dict s -> MPred s -> (String, MPred s)]}
-type CRWResult s = ( String, [ (Pred s, MPred s) ] )
+ | LawEntry {  -- about useful laws
+     reduce  :: [RWFun s]            -- reduction laws
+   , creduce :: [CRWFun s]           -- conditional reductions
+   , unroll  :: [String -> RWFun s]  -- loop unrollers }
+type RWFun s = Dict s     -- dictionary
+            -> Pred s     -- invariant predicate
+            -> Pred s     -- target predicate
+            -> RWResult s
+type CRWResult s
+ = Maybe ( String      -- justification
+         , [( Pred s   -- side-condition to be discharged
+            , Pred s   -- modified predicate
+            , Bool)])  -- True if top-level modified
+type CRWFun s = Dict s -> Pred s -> CRWResult s
 \end{verbatim}
 A list of functions implementing the desired law class laws is then extracted.
 The calculator then does a top-down, left-to-right search,
@@ -37,36 +46,37 @@ This is a direct match for how Haskell pattern-matching works.
 So for UTCP we have a function called \texttt{reduceUTCP},
 structured as follows:
 \begin{verbatim}
-reduceUTCP (...1st law pattern...) = 1st outcome
-reduceUTCP (...2nd law pattern...) = 2nd outcome
+reduceUTCP ... (...1st law pattern...) = 1st outcome
+reduceUTCP ... (...2nd law pattern...) = 2nd outcome
 ...
-reduceUTCP d mpr = ("", mpr)  -- catch-all at end, no change
+reduceUTCP _ _ _ = Nothing  -- catch-all at end, no change
 \end{verbatim}
 The last clause matches any predicate
 and simply returns it with a null string,
 indicating no change took place.
 
+These reduce functions have an additional predicate argument,
+which is provided as a means to supply context-dependent invariants.
+The non-compositional UTCP variant described here does not need this
+information, but more recent work on a fully compositional variant does.
+We consider its use outside the scope of this paper.
+
+
 A simple example of such a pattern is the following encoding
 of $\Skip;P = P$ :
 \begin{code}
-reduceUTCP d
- (_,Comp "Seq" [(_,Comp "Skip" []), mpr]) = lred ";-lunit" mpr
+reduceUTCP d _ -- ignore invariant pred.
+ (Comp "Seq" [(Comp "Skip" []), pr]) = lred ";-lunit" pr
 \end{code}
-The second argument has type marked-predicate (\texttt{MPred})
-which is a marking/predicate pair.
-We are not interested in the markings
-so we use the wildcard pattern '\verb"_"'
-for the first pair component.
-The sub-pattern in the second pair component,
-\verb'Comp "Seq" [(_,Comp "Skip" []), mpr])',
+The pattern
 matches a composite called ``Seq'',
-with a argument list containing two (marked) predicates.
-The first argument predicate pattern \verb'(_,Comp "Skip" [])'
-matches a ``Skip'' composite with no further subarguments.
-The second argument pattern \verb'mpr' matches an arbitrary predicate
+with a argument list containing two predicates.
+The first predicate pattern
+matches a ``Skip'' composite with no further sub-arguments.
+The second argument pattern matches an arbitrary predicate
 ($P$ in the law above).
-The righthand-side returns the application \verb'lred ";-lunit" mpr'
-which simply constructs a string/predicate pair,
+The righthand-side returns the application \verb'lred ";-lunit" pr'
+which simply constructs a \texttt{RWResult} return value,
 with the string being a justification note that says a reduction-step
 using a law called ``$;$-lunit'' was applied.
 
@@ -75,7 +85,7 @@ using a law called ``$;$-lunit'' was applied.
 
 A conditional reduce law is an equation as per reduce,
 but with conditional outcomes, e.g. $P = Q_1 \cond{C} Q_2$.
-Matching an instance of $P$ with return a list of two pairs,
+Matching an instance of $P$ will return a list of two pairs,
 the first being $(C,Q_1)$, the second $(\lnot C,Q_2)$.
 No attempt is made to evaluate $C$, but instead the REPL
 asks the user to choose.
@@ -87,7 +97,7 @@ Given the scope and purpose of this calculator is is
 much more effective to let the user choose.
 
 For an example,
-here is one pattern of the condtional reduce
+here is one pattern of the conditional reduce
 function for UTCP, that handles the following useful laws:
 Provided that $\vec x \subseteq in\alpha P$
  (which in this case is $\setof{s,ls}$):
@@ -100,16 +110,15 @@ Provided that $\vec x \subseteq in\alpha P$
    (c * P)[\vec e/\vec x] = \Skip[\vec e/\vec x]
 }
 \begin{code}
-creduceUTCP d (_,PSub w@(_,Comp "Iter" [c,p]) sub)
- | isCondition c        -- true if expr c is a UTP 'condition'
-   && beforeSub d sub   -- true if subst-vars are all undashed
- = ("loop-substn" [ctrue,cfalse])
+creduceUTCP d (PSub w@(Comp "Iter" [c,p]) sub)
+ | isCondition c && beforeSub d sub
+ = lcred "loop-substn" [ctrue,cfalse]
  where
-   csub = psub c sub            --  psub builds a substitution
-   ctrue  = ( psimp d csub          -- psimp runs a simplifier
-            , bSeq (psub p sub) w ) -- bSeq a b builds a;b
-   cfalse = ( psimp d $ bNot csub
-            , psub bSkip sub )
+   csub = PSub c sub
+   ctrue  = ( psimp d csub -- psimp runs the simplifier directly
+            , mkSeq (PSub p sub) w, diff )
+   cfalse = ( psimp d $ mkNot csub
+            , PSub mkSkip sub, diff )
 \end{code}
 
 
@@ -152,8 +161,9 @@ but looser than $\land$):
 \\ &=& \ldots
 }
 The implementation of unroll used for UTCP
-took the simple command `\texttt{l}' to produce the conational form,
-and a command \verb@"ln"@, with n a digit, to unroll the disjunctive form $n$ times.
+took the simple command `\texttt{l}' to produce the conditional form,
+and a command \verb@"ln"@, with \texttt{n} a digit,
+to unroll the disjunctive form $n$ times.
 
 This latter facility was not used with the UTCP theory,
 but is being applied to further work that seeks a more compostional
@@ -208,7 +218,7 @@ defined in \texttt{CalcPredicates}, to merge them together.
 \begin{code}
 dictUTCP = foldl1 dictMrg [ alfUTCPDict, ..., lawsUTCPDict]
 \end{code}
-The main method of working with dictionaries is constrcut small ones
+The main method of working with dictionaries is construct small ones
 focussed on some specific area of interest.
 These can then be combined in different ways to provide a number of complete
 dictionaries that can vary in the order in which things are tried.

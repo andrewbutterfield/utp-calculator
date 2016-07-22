@@ -132,7 +132,7 @@ we concatenate \texttt{AlfEntry} and \texttt{LawEntry},
 but otherwise take the first:
 \begin{code}
 mergeEntry :: Entry s -> Entry s -> Entry s
-mergeEntry (AlfEntry a1) (AlfEntry a2)       = AlfEntry (a1++a2)
+mergeEntry (AlfEntry a1) (AlfEntry a2)  =  AlfEntry (a1++a2)
 mergeEntry (LawEntry r1 cr1 u1) (LawEntry r2 cr2 u2)
                          = LawEntry (r1++r2) (cr1++cr2) (u1++u2)
 mergeEntry e _ = e
@@ -150,7 +150,7 @@ noEq _ _ _ = Nothing
 subAny =["*"]
 
 pNoChg :: String -> Rewrite s
-pNoChg name d mprs = Nothing
+pNoChg _ _ _ = Nothing
 
 -- labelling definitions
 ldefn :: String -> Pred s -> RWResult s

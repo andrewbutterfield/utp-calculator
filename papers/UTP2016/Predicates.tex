@@ -122,7 +122,7 @@ type SubCompPrint s
  = Int       -- precedence level for sub-component
    -> Int    -- sub-component number, starts at 1
    -> Pred s -- sub-component
-   -> PP 
+   -> PP
 \end{verbatim}
 It takes two integer arguments to begin.
 The first is the precedence level to be used to render the
@@ -130,7 +130,7 @@ sub-component,
 while the secound should denote the position of the sub-component
 in the sub-component list, counting from 1.
 
-Such code, for example, would be like the following code
+Such code, for example, would be like the following
 to render our atomic construct:
 \begin{code}
 ppPAtm sCP d p [pr]
@@ -169,14 +169,14 @@ number is greater than the second.
 The variable \texttt{precPSeq} is the precedence level of sequential composition,
 here defined to be tighter than disjunction,
 but looser than conjunction, as defined in module \texttt{StdPrecedences}.
-Note once more, the use of sCP, and how the 2nd integer argument
+Note once more, the use of \texttt{sCP}, and how the 2nd integer argument
 corresponds to the position of the sub-predicate involved.
 
 \subsubsection{The Predicate Entry}~
 
 The dictionary entry for predicates has the following form:
 \begin{verbatim}
- | PredEntry 
+ | PredEntry
    { pcansub :: [String]
    , pprint  :: SubCompPrint s -> Dict s -> Int -> [Pred s] -> PP
    , alfa :: [String]
@@ -206,6 +206,16 @@ command from the REPL.
 The calculator searches top-down, left-right
     for the first \texttt{Comp} whose \texttt{pdefn} function
     returns a changed outcome.
+
+A \texttt{RWResult} can be \texttt{Nothing},
+in which case this definition expansion or simplifier
+was unable to make any changes.
+If it was able to change its target then it returns
+\texttt{Just(reason,newPred,isTopLevel)}.
+The string \texttt{reason} is used to display the justification for the
+calculation step to the user.
+The \texttt{isTopLevel} flag is a hint to the change highlighting facilities
+of the pretty-printer infrastructure.
 
 
 The dictionary entry for our atomic semantics is then:
