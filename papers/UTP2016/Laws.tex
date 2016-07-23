@@ -179,7 +179,7 @@ but looser than $\land$):
 The loop unroll functions are like those for reduce
 but have an extra string argument.
 \begin{verbatim}
-   , unroll  :: [String -> RWFun s]
+    unroll  :: [String -> RWFun s]
 \end{verbatim}
 When the user enters a command of the form \verb@"lsss"@,
 the loop unroll facility is activated,
@@ -238,7 +238,8 @@ defined in \texttt{CalcPredicates}, to merge them together.
 \begin{code}
 dictUTCP = foldl1 dictMrg [ alfUTCPDict, ..., lawsUTCPDict]
 \end{code}
-The main method of working with dictionaries is construct small ones
+The main method of working with dictionaries 
+is to construct small ones
 focussed on some specific area of interest.
 These can then be combined in different ways to provide a number of complete
 dictionaries that can vary in the order in which things are tried.

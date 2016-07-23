@@ -10,37 +10,69 @@ but instead to act as a rapid-prototype tool to help smoke out problems
 with a developing theory. This approach relies on the  developer
 to be checking and scrutinising everything.
 
+\subsection{Costs vs. Benefits}
 
 As far as the development of the UTCP theory is concerned,
 and the ongoing work to develop a fully composition UTP theory
 of shared-state concurrency that does not require $run$,
 the costs of developing and customising the calculator
-have been well worth the benefits.
-
+have been rewarded by the benefits we encountered.
 We note a few observations based on our experience
-using the calculator:
-\begin{itemize}
-  \item
-   First-come, first-served, just works.
-   The approach of giving a blunt specification of what is to be done
-   and then let the calculator do a top-down, left-to-right search
-   for the first applicable location,
-   has proven to be surprisingly effective.
-   One reason why this has turned out to be the case,
-   is that the kind of calculations that are needed for UTPC
-   and related theories unfold very effectively with this strategy.
-  \item
-   The main idea is find a suitable collection of patterns,
+using the calculator.
+
+
+   The ``first-come, first-served'' approach
+   used by the calculator is surprisingly effective.
+   There are two reasons for this: one general,
+   the other more specific.
+   The general reason is that we support a system of equational reasoning
+   were reductions and definitions replace predicates with ones that
+   are equal.
+   In effect this means that the order in which most of these steps
+   take place is immaterial.
+   Some care needs to be taken when several rules apply to one construct,
+   but this an be manage by re-arranging the order in which various
+   patters and their side-conditions can be checked.
+   The specific reason is that the kind of calculations
+   that are needed for the UTPC theory
+   end up having a regular structure with lots of independence between
+   calculation steps. Most of these involve predicates $Q$ that are
+   a disjunction of basic atomic actions,
+   and we are calculating $Q;Q$, $Q;Q;Q$ and so on.
+
+
+   The main idea in using the calculator
+   is to find a suitable collection of patterns,
    in the right order,
    to be most effective in performing calculations.
-   The best way to determine this is start with none,
+   The best way to determine this is to start with none,
    run the calculator and when it stalls
    (no change is happening for any command),
    see what law would help make progress, and encode it.
-   This leads to an unexpected side-effect of calculator,
+   This leads to an unexpected side-effect of this calculator,
    in that we learnt what laws we needed,
    rather than what we thought we would need.
-  \item
+
+ 
+
+
+    Effective use of the calculator results in an inexorable
+    push towards algebras. By this we do not mean the Kleene algebras,
+    or similar, that might characterise the language being formalised.
+    Rather we mean that the most effective use of the calculator results
+    when we define predicate functions that encapsulate some simple
+    behaviour, and demonstrate, by proofs done without the calculator,
+    some laws they obey, 
+    particularly with respect to sequential composition.
+    In fact, one of the `algebras' under development for the fully
+    compositional theory, is so effective, 
+    that many of the test calculations
+    can actually be done manually.
+    However some, most notably involving parallel,
+    still require the calculator to be feasible.
+
+\subsection{Correctness}
+
     An issue that can be raised,
     given the customisation and lack of soundness guarantees,
     is how well has the calculator been tested?
@@ -50,32 +82,21 @@ using the calculator:
     Such failures lead to a post-mortem to identify the reason.
     Early in the calculator development,
     the reason would be traced to a bug in the calculator infrastructure.
-    The next phase has failures that can be attributed to bugs in the encoding
-    of laws in Haskell, or poor ordering in the dictionary.
+    The next phase has failures that can be attributed
+    to bugs in the encoding of laws in Haskell,
+    or poor ordering in the dictionary.
     What makes the above tolerable is that the time taken to identify
     and fix each code problem is relatively short,
     often a matter of five to ten minutes.
     The final phase is where calculation failures arise because of errors
-    the proposed theory---this is the real payback.
+    the proposed theory---this is the real payback,
+    as this is the intended purpose of the tool.
+    The outcome of all of this iterative development
+    is a high degree of confidence in the end result.
     In the author's experience,
     the cost of all the above failures
-    is considerably outweighed by the cost of tryimg to do the check calculations
-    manually.
-  \item
-    Effective use of the calculator results in an inexorable
-    push towards algebras. By this we do not mean the Kleene algebras,
-    or similar, that might characterise the language being formalised.
-    Rather we mean that the most effective use of the calculator results
-    when we define predicate functions that encapsulate some simple
-    behaviour, and demonstrate, by proofs done without the calculator,
-    some laws they obey, particularly with respect to sequential composition.
-    In fact, one of the `algebras' under development for the fully
-    compositional theory, is so effective, that many of the test calculations
-    can be done manually
-    (however some, most notably involving parallel,
-    still require the calculator).
-\end{itemize}
-
+    is considerably outweighed by the cost of
+    trying to do the check calculations manually.
 
 There are no guarantees of soundness.
 But working on a theory by hand faces exactly the same issues
@@ -110,6 +131,7 @@ and a good working knowledge of Haskell.
 %finding the ``sweet spot'' between the use of definition
 %expansion, and hard-coded laws based on by-hand proofs.
 
+\subsection{Future Work}
 
 We plan a formal release of this calculator as a Haskell package.
 A key part of this would be comprehensive
