@@ -13,60 +13,61 @@ to lookup a special dictionary entry
      reduce  :: [RWFun s]            -- reduction laws
    , creduce :: [CRWFun s]           -- conditional reductions
    , unroll  :: [String -> RWFun s]  -- loop unrollers }
+\end{verbatim}
+
+\subsection{Reduce}
+
+The reduce entry is a list of \texttt{RWFun},
+which are defined as follows:
+\begin{verbatim}
 type RWFun s = Dict s     -- dictionary
             -> Pred s     -- invariant predicate
             -> Pred s     -- target predicate
             -> RWResult s
-type CRWResult s
- = Maybe ( String      -- justification
-         , [( Pred s   -- side-condition to be discharged
-            , Pred s   -- modified predicate
-            , Bool)])  -- True if top-level modified
-type CRWFun s = Dict s -> Pred s -> CRWResult s
 \end{verbatim}
-A list of functions implementing the desired law class laws is then extracted.
-The calculator then does a top-down, left-to-right search,
-where at each point it tries all the laws in its list, in order.
-It terminates at the point of first success.
+The first predicate argument is used to supply an invariant
+assertion for those reduction rules that require one.
+It is a recent new feature of the calculator, 
+not required for this UTCP theory,
+and its use is beyond the scope of this paper.
 
 
-\subsection{Reduce}
 
+When asked to do a reduce,
+the calculator then does a top-down, left-to-right search,
+where at each point it tries all the laws in its reduce list, in order,
+with the current composite being passed in as the second predicate
+argument.
+It terminates at the point of first success (a non-\texttt{Nothing} outcome).
 A reduce law is an equation of the form $P = Q$,
 where we search for instances of $P$ and replace them with the
 corresponding instance of $Q$.
 The idea is that we pattern-match on predicate syntax
+with the second predicate argument,
 to see if a law is applicable (we have its lefthand-side),
 and if so,
 we then build an appropriate instance of the righthand-side.
 The plan is that we gather all these pattern/outcome pairs
 in one function definition,
 which will try them in order.
-This is a direct match for how Haskell pattern-matching works.
+This is in direct correspondence with Haskell pattern-matching.
 So for UTCP we have a function called \texttt{reduceUTCP},
 structured as follows:
 \begin{verbatim}
-reduceUTCP ... (...1st law pattern...) = 1st outcome
-reduceUTCP ... (...2nd law pattern...) = 2nd outcome
+reduceUTCP d inv (...1st law pattern...) = 1st-outcome
+reduceUTCP d inv (...2nd law pattern...) = 2nd-outcome
 ...
 reduceUTCP _ _ _ = Nothing  -- catch-all at end, no change
 \end{verbatim}
-The last clause matches any predicate
+The last clause matches any predicate.
 and simply returns it with a null string,
 indicating no change took place.
-
-These reduce functions have an additional predicate argument,
-which is provided as a means to supply context-dependent invariants.
-The non-compositional UTCP variant described here does not need this
-information, but more recent work on a fully compositional variant does.
-We consider its use outside the scope of this paper.
-
 
 A simple example of such a pattern is the following encoding
 of $\Skip;P = P$ :
 \begin{code}
-reduceUTCP d _ -- ignore invariant pred.
- (Comp "Seq" [(Comp "Skip" []), pr]) = lred ";-lunit" pr
+reduceUTCP d inv (Comp "Seq" [(Comp "Skip" []), pr])
+   =  Just ( ";-lunit", pr, True )
 \end{code}
 The pattern
 matches a composite called ``Seq'',
@@ -75,14 +76,26 @@ The first predicate pattern
 matches a ``Skip'' composite with no further sub-arguments.
 The second argument pattern matches an arbitrary predicate
 ($P$ in the law above).
-The righthand-side returns the application \verb'lred ";-lunit" pr'
-which simply constructs a \texttt{RWResult} return value,
+The righthand-side constructs a \texttt{RWResult} return value,
 with the string being a justification note that says a reduction-step
-using a law called ``$;$-lunit'' was applied.
+using a law called ``$;$-lunit'' was applied,
+and noting that the top-level composite (the ``Seq'') was modified.
 
 
 \subsection{Conditional Reduce}
 
+A \texttt{CRWResult} is a \texttt{RWResult} that has been adapted,
+so that instead of returning one result if successful,
+it returns a list of possible results,
+each paired with a side-condition predicate.
+\begin{verbatim}
+type CRWResult s
+ = Maybe ( String      -- justification
+         , [( Pred s   -- side-condition to be discharged
+            , Pred s   -- modified predicate
+            , Bool)])  -- True if top-level modified
+type CRWFun s = Dict s -> Pred s -> CRWResult s
+\end{verbatim}
 A conditional reduce law is an equation as per reduce,
 but with conditional outcomes, e.g. $P = Q_1 \cond{C} Q_2$.
 Matching an instance of $P$ will return a list of two pairs,
@@ -98,9 +111,11 @@ much more effective to let the user choose.
 
 For an example,
 here is one pattern of the conditional reduce
-function for UTCP, that handles the following useful laws:
-Provided that $\vec x \subseteq in\alpha P$
- (which in this case is $\setof{s,ls}$):
+function for UTCP.
+Given $\vec x$ a list of unique variables,
+and $\vec e$ a list of the same length of expressions,
+with $\vec x \subseteq \setof{s,ls}$
+we have:
 \RLEQNS{
    c[\vec e/\vec x]
    &\implies&
@@ -112,18 +127,19 @@ Provided that $\vec x \subseteq in\alpha P$
 \begin{code}
 creduceUTCP d (PSub w@(Comp "Iter" [c,p]) sub)
  | isCondition c && beforeSub d sub
- = lcred "loop-substn" [ctrue,cfalse]
+ = Just( "loop-substn", [ctrue,cfalse] )
  where
    csub = PSub c sub
-   ctrue  = ( psimp d csub -- psimp runs the simplifier directly
-            , mkSeq (PSub p sub) w, diff )
-   cfalse = ( psimp d $ mkNot csub
-            , PSub mkSkip sub, diff )
+   ctrue  = (       csub, mkSeq (PSub p sub) w, diff )
+   cfalse = ( mkNot csub, PSub mkSkip sub, diff )
 \end{code}
+Here \texttt{mkSeq}, \texttt{mkNot} and \texttt{mkSkip} build sequential composition,
+negations and standard UTP skip ($\Skip$) respectively.
 
 
 
 \subsection{Loop Unroll}
+
 
 Iteration is typically defined in UTP as the least fixed point
 w.r.t to the refinement ordering
@@ -160,14 +176,18 @@ but looser than $\land$):
        \lor c \land P \seq c \land P \seq c * P
 \\ &=& \ldots
 }
-The implementation of unroll used for UTCP
-took the simple command `\texttt{l}' to produce the conditional form,
-and a command \verb@"ln"@, with \texttt{n} a digit,
-to unroll the disjunctive form $n$ times.
-
-This latter facility was not used with the UTCP theory,
-but is being applied to further work that seeks a more compostional
-theory of the same language.
+The loop unroll functions are like those for reduce
+but have an extra string argument.
+\begin{verbatim}
+   , unroll  :: [String -> RWFun s]
+\end{verbatim}
+When the user enters a command of the form \verb@"lsss"@,
+the loop unroll facility is activated,
+and the string \verb@"sss"@ is passed as the first argument to the functions
+above. It is up to the user to decide how to interpret
+these strings---but the most useful is to treat them as specifying
+the number of unrollings to do.
+We won't give an example here of the use of unrolling.
 %\begin{code}
 %wUnroll :: Ord s => String -> DictRWFun s
 %wUnroll ns d mw@(_,Comp nm [mpr])

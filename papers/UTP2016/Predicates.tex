@@ -46,7 +46,7 @@ differ from expressions:
     Such entries will be looked up when certain
     side-conditions are being checked.
   \item
-    We distinguish between have a definition associated with a \texttt{Comp},
+    We distinguish between having a definition associated with a \texttt{Comp},
     and having a way to simplify one.
   \item
     Rendering predicates involves the pretty printer
@@ -62,10 +62,15 @@ Formally, using our shorthand notations, we define atomic behaviour as:
 \[
     \A(A) \defs ls(in) \land A \land ls'=ls\ominus(in,out)
 \]
-where $A$ is a predicate whose alphabet is restricted to $s$ and $s'$.
+where $A$ is a predicate whose alphabet is restricted to $s$ and $s'$,
+$\A(\_)$ lifts this to the full alphabet,
+and $S\ominus(T,V)$ is notation from \cite{DBLP:conf/icfem/WoodcockH02}
+that stands for $(S\setminus T)\cup V$.
 
-We want to define a composite, called "A" (representing $\A$),
-as a marked predicate.
+
+\subsubsection{Coding a Definition}
+
+We want to define a composite, called "A" (representing $\A$).
 We  define a function that takes a single predicate argument
 and applies $\A$ to it
 \begin{code}
@@ -77,28 +82,35 @@ and returns a string/predicate pair,
 interpreted in the same manner as the string/expression pair
 returned by the expression simplifier.
 
-We code this up as follows:
+One way to code this is as follows.
+First define our variables and expressions,
+because these get used in a variety of places.
 \begin{code}
-defnAtomic d [a] = ("A",mkAnd [lsin,a,ls'eqlsinout])
--- globally defined useful fragments:
-ls = Var "ls"
+ls = Var "ls" ; ls' = Var "ls'"
 inp = Var "in" -- 'in' is a Haskell keyword
 out = Var "out"
-lsin = atm $ App "subset" [inp,ls]
 lsinout = App "sswap" [ls,inp,out]
-ls'eqlsinout = equal ls' lsinout
 \end{code}
-Here \texttt{equal} is to \texttt{Equal} as \texttt{comp} is to \texttt{Comp}:
-it produces an \texttt{MPred} with a null marking.
-The function \texttt{mkAnd} is a smart builder from \texttt{StdPredicates}
+Here, \verb@"sswap"@ is our name for $\ominus$,
+and note that Haskell identifiers can contain
+the prime (\verb@'@) character.
+We then define our atomic predicates ($ls(in)$ and $ls'=ls\ominus(in,out)$)
+\begin{code}
+lsin = Atm $ App "subset" [inp,ls]
+ls'eqlsinout = Equal ls' lsinout
+\end{code}
+Finally we can define $\A(a)$ as their conjunction,
+where \texttt{mkAnd} is a smart constructor for \verb@Comp "And"@,
+defined in \texttt{StdPredicates.lhs},
 that does some optimisations on the fly (e.g. \verb$mkAnd [pr] = pr$).
-Here \texttt{"sswap"} names the ternary operation $\_\ominus(\_,\_)$.
+\begin{code}
+defnAtomic d [a] = Just ("A",mkAnd [lsin,a,ls'eqlsinout],True)
+\end{code}
+Here \texttt{a} represents the single ($A$) argument we expect.
 
-\DRAFT{Need to rewrite the following part carefully}
+\subsubsection{Coding for Pretty Printing}
 
-The rendering of \texttt{App} expressions used a dictionary and list of its
-sub-expressions to produce a string.
-For \texttt{Comp} predicates, we are going to generate an instance
+For rendering \texttt{Comp} predicates, we are going to generate an instance
 of the pretty-printer type \texttt{PP}, using a dictionary
 and list of sub-predicates,
 with two additonal arguments:
@@ -145,14 +157,14 @@ and an occurence of \texttt{PP} surrounded by the designated brackets.
 Note that the \texttt{SubCompPrint} argument (\texttt{sCP})
 is applied to \texttt{pr},
 with the precedence is set to zero as it is bracketed,
-and the sub-component numer set to one as \texttt{pr} is the first
+and the sub-component number set to one as \texttt{pr} is the first
 (and only) sub-component.
 
 
 
 We will show how the pretty-printing for
 sequential composition  ($\lseq$) in UTCP is defined,
-just to show how easy support for infix notation is.
+to illustrate the support for infix notation.
 \begin{code}
 ppPSeq sCP d  p [pr1,pr2]
  = paren p precPSeq
@@ -160,7 +172,7 @@ ppPSeq sCP d  p [pr1,pr2]
                           , sCP precPSeq 2 pr2 ]
 \end{code}
 Here \texttt{pad} puts spaces around its argument,
-and so is equivalent to \verb$ppa " ;; "$,
+and so its user here is equivalent to \verb$ppa " ;; "$,
 while \texttt{ppopen} uses its first argument as a
 separator between all the elements of its second list argument.
 The \texttt{paren} function takes two precedence values,
@@ -189,9 +201,6 @@ type RWResult s
          , Pred s  -- result predicate
          , Bool )  -- True if top-level modified
 \end{verbatim}
-
-\DRAFT{FIX ALL THIS FOLLOWING STUFF}
-
 Fields \texttt{pcansub} and \texttt{prsimp} are the predicate analoges
 of \texttt{ecansub} and \texttt{eval} in the expression entry.
 Here \texttt{pprint} plays the same role as eprint,
@@ -220,8 +229,6 @@ of the pretty-printer infrastructure.
 
 The dictionary entry for our atomic semantics is then:
 \begin{code}
-patmEntry
- = ( "A"
-   , PredEntry [] ppPAtm [] defnAtomic (pNoChg "A") )
+patmEntry=("A",PredEntry [] ppPAtm [] defnAtomic (pNoChg "A"))
 \end{code}
-The function \texttt{pNoChg} creates a simplifer that does nothing.
+The function \texttt{pNoChg} creates a simplifer that returns \texttt{Nothing}.
