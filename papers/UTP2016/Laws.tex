@@ -9,10 +9,8 @@ to the behaviour of either the simplifier or definition expansion.
 Instead the reserved dictionary key \verb$"laws"$ is used
 to lookup a special dictionary entry
 \begin{verbatim}
- | LawEntry {  -- about useful laws
-     reduce  :: [RWFun s]            -- reduction laws
-   , creduce :: [CRWFun s]           -- conditional reductions
-   , unroll  :: [String -> RWFun s]  -- loop unrollers }
+ LawEntry { reduce  :: [RWFun s]
+          , creduce :: [CRWFun s], unroll  :: [String -> RWFun s] }
 \end{verbatim}
 
 \subsection{Reduce}
@@ -20,18 +18,13 @@ to lookup a special dictionary entry
 The reduce entry is a list of \texttt{RWFun},
 which are defined as follows:
 \begin{verbatim}
-type RWFun s = Dict s     -- dictionary
-            -> Pred s     -- invariant predicate
-            -> Pred s     -- target predicate
-            -> RWResult s
+type RWFun s = Dict s -> Pred s -> Pred s -> RWResult s
 \end{verbatim}
 The first predicate argument is used to supply an invariant
 assertion for those reduction rules that require one.
-It is a recent new feature of the calculator, 
+It is a recent new feature of the calculator,
 not required for this UTCP theory,
 and its use is beyond the scope of this paper.
-
-
 
 When asked to do a reduce,
 the calculator then does a top-down, left-to-right search,
@@ -59,9 +52,6 @@ reduceUTCP d inv (...2nd law pattern...) = 2nd-outcome
 ...
 reduceUTCP _ _ _ = Nothing  -- catch-all at end, no change
 \end{verbatim}
-The last clause matches any predicate.
-and simply returns it with a null string,
-indicating no change took place.
 
 A simple example of such a pattern is the following encoding
 of $\Skip;P = P$ :
@@ -89,12 +79,8 @@ so that instead of returning one result if successful,
 it returns a list of possible results,
 each paired with a side-condition predicate.
 \begin{verbatim}
-type CRWResult s
- = Maybe ( String      -- justification
-         , [( Pred s   -- side-condition to be discharged
-            , Pred s   -- modified predicate
-            , Bool)])  -- True if top-level modified
-type CRWFun s = Dict s -> Pred s -> CRWResult s
+type CRWResult s  =  Maybe ( String, [( Pred s, Pred s, Bool)] )
+type CRWFun s     =  Dict s -> Pred s -> CRWResult s
 \end{verbatim}
 A conditional reduce law is an equation as per reduce,
 but with conditional outcomes, e.g. $P = Q_1 \cond{C} Q_2$.
@@ -171,16 +157,11 @@ but looser than $\land$):
 \\ &=& \lnot c \land \Skip
        \lor c \land P \seq c \land \Skip
        \lor c \land P \seq c * P
-\\ &=& \lnot c \land \Skip
-       \lor c \land P \seq c \land P \seq c \land \Skip
-       \lor c \land P \seq c \land P \seq c * P
 \\ &=& \ldots
 }
 The loop unroll functions are like those for reduce
-but have an extra string argument.
-\begin{verbatim}
-    unroll  :: [String -> RWFun s]
-\end{verbatim}
+but have an extra string argument: 
+\verb"unroll  :: [String -> RWFun s]".
 When the user enters a command of the form \verb@"lsss"@,
 the loop unroll facility is activated,
 and the string \verb@"sss"@ is passed as the first argument to the functions
@@ -238,7 +219,7 @@ defined in \texttt{CalcPredicates}, to merge them together.
 \begin{code}
 dictUTCP = foldl1 dictMrg [ alfUTCPDict, ..., lawsUTCPDict]
 \end{code}
-The main method of working with dictionaries 
+The main method of working with dictionaries
 is to construct small ones
 focussed on some specific area of interest.
 These can then be combined in different ways to provide a number of complete

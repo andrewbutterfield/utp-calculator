@@ -8,29 +8,24 @@ data Expr s
   = St s | B Bool | Z Int | Var String
   | App String [Expr s] | Sub (Expr s) (Substn s) | Undef
   deriving (Eq, Ord, Show)
-
 type Substn s = [(String,Expr s)]
 \end{verbatim}
   \caption{Expression and Substitution Datatypes (\texttt{CalcTypes.lhs})}
   \label{fig:expr-types}
 \end{figure}
 Both types are parameterised on a generic state type \texttt{s},
-which allows us to be able to reason independently of any particular type, or with a specific concrete type in mind,
-all with one piece of code.
+which allows us to be able to reason independently
+of any particular notion of state.
 We provide booleans (\texttt{B}),
 integers (\texttt{Z}),
-values of the parameter type (\texttt{St}),
+values of the generic state type (\texttt{St}),
 named function application (\texttt{App}).
 We also have substitution (\texttt{Sub}), which pairs an expression
-with a substitution (\texttt{Substn}).
-This is a list of variable/expression pairs,
-each denoting the replacement of all free
-occurrences of the variable by the corresponding expression.
-The \texttt{deriving} clause for \texttt{Expr} enables the Haskell default notions
+with a substitution (\texttt{Substn}),
+which is a list of variable/expression pairs.
+The \texttt{deriving} clause for \texttt{Expr} 
+enables the Haskell default notions
 of equality, ordering and display for the type.
-Functions are identifer by a name (\texttt{String})
-and missing are any binding constructs, such as lambda expressions,
-or the ability to curry functions.
 
 \subsection{Set Expressions}
 
@@ -79,24 +74,16 @@ It makes use of the following helper,
 which gets the two lists of expressions associated with each set:
 \begin{code}
 dosubset d es1 es2 -- is es1 a subset of es2 ?
-  | null es1lesses2  =  ( "subset", B True )
-  | all (isGround d) (es1lesses2 ++ es2)
-                     =  ( "subset", B False )
-  | otherwise        =  none
-  where es1lesses2 = es1 \\ es2
+  | null (es1 \\ es2)  =  ( "subset", B True )
+  | all (isGround d) ((es1 \\ es2) ++ es2)
+                       =  ( "subset", B False )
+  | otherwise          =  none
 \end{code}
-It computes the difference,
-and if this is null then asserts a true result.
-The second test sees if all elements remaining are ``ground'',
-i.e., contain no variables.
-If they are all ground, then we can assert the subset relation
-to be false.
+If the result of removing \texttt{es2} from \texttt{es1} is null 
+it then returns true.
+If not, then if all elements remaining are ``ground'',
+i.e., contain no variables, returns false.
 Otherwise, we cannot infer anything, so return \texttt{none}.
-
-Note that there is no notion of general type-checking
-in the calculator---it would introduce far too much complexity,
-with very little gain,
-for the type of work for which this calculator has been designed.
 
 \subsection{Rendering Expressions}
 
@@ -125,11 +112,6 @@ in that entry, is used to render the construct.
 As far as expressions are concerned,
 they become strings, and so are viewed as atomic
 by the predicate pretty-printer (see Sect. \ref{sec:Predicates}).
-So far there has been no real need to extend full layout control
-down into expressions,
-mainly because of the shorthands that have been defined
-that keep expressions short.
-
 So, we could show singleton sets without enclosing braces
 by defining:
 \begin{code}
@@ -137,21 +119,18 @@ showSet d [elm] = edshow d elm   -- drop {,} from singleton
 showSet d elms = "{" ++ dlshow d "," elms ++ "}"
 \end{code}
 Here \texttt{edshow} (expression-dict-show)
-uses its first dictionary argument
-to display its second expression argument,
+displays its \texttt{elm} argument,
 while \texttt{dlshow} (dictionary-list-show) displays the expressions
-in its 3rd argument separated by the 2nd argument string,
-using its first dictionary argument.
-
-Similar tricks are used to code a very compact rendering
-of a mechanism that involves unique label generator expressions
-that involve very deep nesting, such as:
-\[
- \pi_2(new(\pi_1(new(\pi_2(split(\pi_1(new(g))))))))
-\]
-This can be displayed as \texttt{lg:2:},
-using a very compact shorthand described in \cite{conf/tase/BMN16}
-which we do not explain here.
+in \texttt{elms} separated by the \verb@","@ string.
+%Similar tricks are used to code a very compact rendering
+%of a mechanism that involves unique label generator expressions
+%that involve very deep nesting, such as:
+%\[
+% \pi_2(new(\pi_1(new(\pi_2(split(\pi_1(new(g))))))))
+%\]
+%This can be displayed as \texttt{lg:2:},
+%using a very compact shorthand described in \cite{conf/tase/BMN16}
+%which we do not explain here.
 
 
 \subsection{Expression Equality}
@@ -177,7 +156,7 @@ data Maybe t = Nothing | Just t
 It converts a type \texttt{t} into one which is now ``optional'',
 or equivalently has a undefined value added.
 
-The equality testing functiomn takes a dictionary and the two expression
+The equality testing function takes a dictionary and the two expression
 lists from the two \texttt{App} instances
 and either returns \texttt{Nothing},
 if it cannot establish the truth or falsity of the equality,
@@ -185,11 +164,9 @@ or \texttt{Just} the appropriate result.
 Suitable code for \verb$"set"$ is the following
 \begin{code}
 eqSet d es1 es2
- = let ns1 = nub $ sort $ es1
-       ns2 = nub $ sort $ es2
+ = let ns1 = nub $ sort $ es1 ; ns2 = nub $ sort $ es2
    in if all (isGround d) (ns1++ns2)
-      then Just (ns1==ns2)
-      else Nothing
+      then Just (ns1==ns2) else Nothing
 \end{code}
 The standard function \texttt{nub} removes duplicates,
 which we do after we \texttt{sort}.
@@ -203,13 +180,11 @@ and return \texttt{Just} it. Otherwise, we return \texttt{Nothing}.
 
 The dictionary entry for expressions has the following form:
 \begin{verbatim}
-Entry s
-  = ExprEntry
+ExprEntry
     { ecansub :: [String]
     , eprint :: Dict s -> [Expr s] -> String
     , eval :: Dict s -> [Expr s] -> (String, Expr s)
     , isEqual :: Dict s -> [Expr s] -> [Expr s] -> Maybe Bool}
-  | ...
 \end{verbatim}
 One big win in using a functional language like Haskell,
 in which functions are first class data values,
@@ -231,29 +206,16 @@ consider the following shorthand definition for an expression:
 \]
 in a context where we know that $L$ is a set expression defined
 only over variables $g$, $in$ and $out$.
-Now, consider the following instance, with a substitution,
-and two attempts to calculate a full expansion:
-\[\begin{array}{l@{\qquad}l}
-   D(\setof{out})[\setof{\ell_1},\ell_2/ls,out]
- & D(\setof{out})[\setof{\ell_1},\ell_2/ls,out]
-\\ {} = (\setof{out} \subseteq ls)[\setof{\ell_1},\ell_2/ls,out]
- & {}= D(\setof{\ell_2})
-\\ {} = \setof{\ell_2} \subseteq \setof{\ell_1}
- & {} = \setof{\ell_2} \subseteq ls
-\end{array}\]
-The lefthand calculation is correct, the righthand is not.
-The substitution refers to variables (e.g. $ls$)
-that are hidden when the $D$ shorthand is used.
+The variable $ls$ is not free in the lhs,
+but does occur in the rhs.
+A substitution of the form $[E/ls]$ say,
+would leave the lhs unchanged, but alter the rhs to $L \subseteq E$.
+For this reason the entry for $D$ would need to disallow substitution
+for $ls$.
 The \texttt{ecansub} entry lists the variables for which substitution
 is safe with the expression as-is.
 With the definition above, the value of this entry
  should be \texttt{["g","in","out"]}.
-Given that entry, the calculator would simplify (correctly) as follows:
-\[
-  D(\setof{\ell_2})[\setof{\ell_1}/ls]
-\]
-The righthand side of the definition is what should be returned
-by the \texttt{eval} component.
 If we want to state that any substitution is safe,
 then we use the ``wildcard'' form: \texttt{["*"]}.
 We choose to list the substitutable variables
@@ -264,9 +226,8 @@ whereas the latter can be very open ended.
 Given all of the above,
 we can define dictionary entries for set and subset as
 \begin{code}
-setUTCPDict
- = makeDict
-    [ ("set",(ExprEntry ["*"] showSet evalSet eqSet))
-    , ("subset",(ExprEntry ["*"] showSubSet evalSubset noEq)) ]
+setUTCPDict = makeDict
+ [ ("set",(ExprEntry ["*"] showSet evalSet eqSet))
+ , ("subset",(ExprEntry ["*"] showSubSet evalSubset noEq)) ]
 \end{code}
 Here \texttt{noEq} is an equality test function that always returns \texttt{Nothing}.

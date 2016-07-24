@@ -17,80 +17,59 @@ by adapting the work of the  UTP semantics for Unifying Theories
 of Parallel Programming (UTPP) \cite{DBLP:conf/icfem/WoodcockH02}.
 We have reworked it to use a system for generating unique labels,
 in order to give a slight improvement to the compositionality
-of the semantics. This we call a Unifying Theory of Concurrent Programming
-(UTCP) and some details of this were recently published\cite{conf/tase/BMN16}.
+of the semantics. This we call a Unifying Theory of Concurrent Programming (UTCP){conf/tase/BMN16}.
 
-We give a very brief overview here of this theory.
-The language assumes atomic actions ($A$) that modify a generic state,
-and four composition operators: sequential ($\lseq$), parallel ($\parallel$),
-non-deterministic choice ($\pcond$) and non-deterministic iterations ($\piter{}$)
-\[
-   P ::= A \mid P \pseq P \mid P \parallel P \mid P \pcond P \mid \piter P
-\]
-Note that this is essentially the same as the baseline ``Command'' language
-in the Views paper\cite{conf/popl/Dinsdale-YoungBGPY13}.
+We illustrate the calculator here
+with, as a running example,
+the definition of the UTP semantics of an atomic action.
+We assume basic atomic actions $A,B$ which modify the
+shared global state (program variables), represented by observation variables $s,s'$.
+The concurrent flow of control is managed by using labels
+associated with language constructs, which are added to and removed
+from a global label-set as execution proceeds.
+We represent this label-set using observations $ls,ls'$.
+Our main change to the original UTPP theory
+is to provide a mechanism to create unique labels,
+to be associated with both the beginning and end of each language
+construct. This results in three static observables, generator $g$,
+and begin and end labels $in$ and $out$.
 So our UTCP theory is based on a non-homogeneous relation
 with alphabet $s$, $s'$, $ls$, $ls'$, $g$, $in$, and $out$.
-Observations $s$ and $ls$ (and dashed counterparts)
-represent the shared state and the global label-set used for control flow.
-Observations $g$, $in$ and $out$ are static parameters that do not change
-at run time.
+See \cite{conf/tase/BMN16} for details.
 
+Our running example is the need to calculate the outcome
+of sequentially composing ($\pseq$)
+two basic atomic actions ($A,B$),
+that are lifted $(\A(\_))$ to the full alphabet by adding control-flow,
+and are then $run$ in order to see their dynamic behavour:
+\[
+  run(\A(A) \pseq \A(B))
+\]
+We hope that the final result would be
+\[
+  (A \seq B) \land ls' = \setof{\ell_{g:}}
+\]
+We have the standard UTP sequential composition of $A$ and $B$ defined on $s,s'$,
+and an assertion that the termination label $\ell_{g:}$ is the sole member of the final label-set.
 
 The theory with its somewhat unusual arrangement of observation variables
 did \emph{not} emerge as an immediate and obvious solution,
 but as a result of many trial calculations.
 These trial calculations exposed two problems:
-The first problem was relatively minor
----a lot of the semantics talks about the presence of various
-labels in the global label-set, or alternatively, their  absence,
-and of modifications to that set.
-This resulted in very wide expressions,
-so some shorthand notations with pretty-printing support were introduced.
-
-The second problem was more serious.
-It often took long painstaking calculations to discover problems
-with a proposed version of the theory,
-typically when trying to calculate outcomes associated with
-$A \pseq B$ and then  $A \parallel B$
-(400 lines of \LaTeX\,7 full pages of output)
-With choice and iteration to be covered,
-it was becoming very clear that a better way was required
-for checking semantic outcomes.
+one was the difficulty in reading very long complex
+set-based expressions in order to assess their correctness.
+The second was the sheer length and drudgery of these calculations,
+often involving many repetitions of very similar steps.
 
 To be specific, the calculator described in this paper
 is intended to be used for \emph{calculation}, and not \emph{theorem proving}.
-In particular, it is designed to help solve the following problem:
-Given a predicate, typically containing some simple
-atomic actions connected using the composite constructs,
-try to reduce this down
-using equational reasoning,
-to a predicate over the observation
-variables of the theory without any explicit occurrence of the language constructs.
-This can then be inspected to see if the assertions made about the observables
-are correct.
-For example, in the UTCP theory as presented in \cite{conf/tase/BMN16},
-our starting predicate might be
-\[
-  run(\A(A) \pseq \A(B))
-\]
-where $A$ and $B$ are atomic actions that only mention $s$ and $s'$,
-while $\A(\_)$ lifts those to full program behaviour over the full alphabet.
-The predicate transformer $run$ effectively drives the execution
-of the program predicate given as its argument.
-What we would hope to result from the test calculation would be
-something of the form
-\[
-  (A \seq B) \land ls' = \setof{\ell_{g:}}
-\]
-We have the standard UTP sequential composition of $A$ and $B$ defined on $s,s'$,
-and an assertion that the termination label $\ell_{g:}$ is in the final label-set.
+In particular, it is designed to help solve the problem
+just described above.
 Both the starting predicate and the final result have free variables
-and are not theorems
----they need to be both falsifiable and satisfiable.
-What matters is precisely when it is one or the other.
-That means the use of tautology checkers or counter-example discovery tools
-is not helpful.
+and are not theorems.
+That means counter-example generators
+like Nitpick or Alloy 
+are not helpful.
 
 
 If we consider the reasoning processes used in the development

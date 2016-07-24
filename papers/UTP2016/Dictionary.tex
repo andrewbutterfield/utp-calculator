@@ -1,6 +1,13 @@
 \section{Dictionaries}\label{sec:Dictionaries}
 
-
+The approach taken is to provide a dictionary that maps names
+to entries that supply extra information.
+The names can be those of expression or predicate composites,
+or correspond to variables, and a few other features of note.
+All of the main calculator functions are driven by this
+dictionary,
+and the correct definition of dictionary entries
+is the primary way for users to set up calculations.
 The dictionary datatype (\texttt{Dict s}),
 parameterised with a generic type \texttt{s},
 is critical to the functioning of the calculator.
@@ -29,7 +36,6 @@ These are listed in Fig. \ref{fig:rsvd-names}.
 %\end{verbatim}
   \caption{Reserved Dictionary Names}\label{fig:rsvd-names}
 \end{figure}
-
 There are ten names that describe different
 (overlapping)
 parts of the theory alphabet (Fig. \ref{fig:rsvd-names}).
@@ -39,7 +45,7 @@ so a function is provided to construct all these entries
 from three basic pieces of information:
 program variable names (`script', \texttt{Scr});
 auxiliary variable names (`model',\texttt{Mdl}),
-e.g. variables like $ok$ or $tr$ that don't represent variable values,
+e.g. variables like $ls$ that don't represent variable values,
 but instead some other observable program property of interest);
 and static parameter variable names (\texttt{Stc}).
 \begin{verbatim}
@@ -56,7 +62,6 @@ i.e, just lists of the relevant variables.
 \begin{verbatim}
    AlfEntry { avars  :: [String]}
 \end{verbatim}
-
 There are two important utility functions,
 one that builds dictionaries from lists of string/entry pairs,
 and another that merges two dictionaries, resolving conflicts

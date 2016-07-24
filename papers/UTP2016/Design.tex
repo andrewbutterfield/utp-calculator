@@ -38,15 +38,9 @@ the following regarding the calculation steps that would be supported:
     Instead the tool would use a systematic sweep through the predicate
     to find the first applicable calculation step of the requested kind,
     and apply that.
+    Our subsequent experience with the calculator indicates
+    that this was a good choice.
 \end{itemize}
-The last requirement above was an initial gamble,
-to keep things simple.
-However, most calculations turn out to be exhaustive,
-in the sense that every applicable rule gets applied,
-and the order of application of most of these rules has no effect
-on the final outcome.
-The effect of this was that this simplistic approach was retained
-as there was never any case when it prevented us completing a calculation.
 
 
 \subsection{The Calculator REPL}
@@ -54,12 +48,6 @@ as there was never any case when it prevented us completing a calculation.
 The way the calculator is designed to be used is
 that a function implementing a calculator Read-Execute-Print-Loop (REPL)
 is given a dictionary and starting predicate as inputs.
-It then offers the user the opportunity to invoke various
-commands to perform calculation steps.
-The user can then indicate when they are finished,
-at which point the calculator function returns
-a data-structure that logs the complete calculation outcome.
-
 Calculator commands include an ability to undo previous steps ('\texttt{u}'),
 request help ('\texttt{?}'),
 and to signal an exit from the calculator ('\texttt{x}').
@@ -77,11 +65,6 @@ function returns a changed result.
 Here is where we have a reduced degree of control,
 which simplifies the REPL dramatically,
 but has turns out to be effective in practice.
-This is because these kinds of semantic ``smoke-test'' calculations
-tend to go in phases: expand all definitions; simplify; reduce; simplify;
-perhaps unroll a loop a bit; etc...
-See Sect.\ref{sec:Laws} for more detail.
-
 
 Here is a sample run obtained when calculating the effect of
 the $run(\A(A) \pseq \A(B))$, from the introduction.
@@ -95,6 +78,7 @@ while \texttt{pseq} and \texttt{patm} are convenient functions we wrote
 to build instances
 of $\pseq$ and $\A(\_)$ respectively.
 We then invoked the calculator as follows,
+where \texttt{dictUTCP} is the dictionary for this theory:
 \begin{verbatim}
 calcREPL dictUTCP (run athenb)
 \end{verbatim}
@@ -169,29 +153,19 @@ An example of such pretty-printing in action is
 %}
 \noindent
 The top-level structure of this is
-\[D(out) \lor ( (\lnot ls(out) \land \dots) ; W(\dots) )\]
+$D(out) \lor ( (\lnot ls(out) \land \dots) ; W(\dots) )$
+where the precedence ordering from tightest to loosest is $\land,\seq,\lor$.
 
 \noindent
 The pretty printing support can be found in \texttt{PrettyPrint.lhs},
 which was written from scratch, but inspired by writings of
 Hughes\cite{HughesJohn1995c} and Wadler\cite{wadler-pp}
 on the subject.
-
 In addition to the layout management aspects of pretty-printing
 as just illustrated above,
 there is also a need for a support for shorthand notations.
 We illustrate this in Sect.\ref{sec:Expressions}.
 
-\subsection{Dictionaries}\label{ssec:dict}
-
-The approach taken is to implement a dictionary that maps names
-to entries that supply extra information.
-The names can be those of expression or predicate composites,
-or correspond to variables, and a few other features of note.
-All of the main calculator functions are driven by this
-dictionary,
-and the correct definition of dictionary entries
-is the primary way for users to set up calculations.
 
 %The standard approach is that the calculator
 %will seek information regarding some name that is

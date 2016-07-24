@@ -4,9 +4,8 @@ In Fig. \ref{fig:pred-types} we show the Haskell declarations
 of the datatypes to represent predicates.
 \begin{figure}[tb]
 \begin{verbatim}
-data Pred s
-  = T | F | PVar String | Equal (Expr s) (Expr s) | Atm (Expr s)
-  | Comp String [Pred s] | PSub (Pred s) (Substn s)
+data Pred s = T | F | PVar String | Equal (Expr s) (Expr s) | Atm (Expr s) 
+                | Comp String [Pred s] | PSub (Pred s) (Substn s)
 \end{verbatim}
   \caption{Predicate Datatype (\texttt{CalcTypes.lhs})}
   \label{fig:pred-types}
@@ -46,7 +45,7 @@ differ from expressions:
     Such entries will be looked up when certain
     side-conditions are being checked.
   \item
-    We distinguish between having a definition associated with a \texttt{Comp},
+    We distinguish between having a definition/expansion associated with a \texttt{Comp},
     and having a way to simplify one.
   \item
     Rendering predicates involves the pretty printer
@@ -58,12 +57,12 @@ differ from expressions:
 
 \subsection{Coding Atomic Semantics}
 
-Formally, using our shorthand notations, we define atomic behaviour as:
+Formally, using our shorthand notations, 
+we define atomic behaviour as in UTCP as:
 \[
     \A(A) \defs ls(in) \land A \land ls'=ls\ominus(in,out)
 \]
-where $A$ is a predicate whose alphabet is restricted to $s$ and $s'$,
-$\A(\_)$ lifts this to the full alphabet,
+where $A$ and $\A(\_)$ are as in the introduction,
 and $S\ominus(T,V)$ is notation from \cite{DBLP:conf/icfem/WoodcockH02}
 that stands for $(S\setminus T)\cup V$.
 
@@ -101,53 +100,40 @@ ls'eqlsinout = Equal ls' lsinout
 \end{code}
 Finally we can define $\A(a)$ as their conjunction,
 where \texttt{mkAnd} is a smart constructor for \verb@Comp "And"@,
-defined in \texttt{StdPredicates.lhs},
-that does some optimisations on the fly (e.g. \verb$mkAnd [pr] = pr$).
+defined in \texttt{StdPredicates.lhs}.
 \begin{code}
 defnAtomic d [a] = Just ("A",mkAnd [lsin,a,ls'eqlsinout],True)
 \end{code}
-Here \texttt{a} represents the single ($A$) argument we expect.
 
 \subsubsection{Coding for Pretty Printing}
 
-For rendering \texttt{Comp} predicates, we are going to generate an instance
+For rendering \texttt{Comp} predicates, 
+we are going to generate an instance
 of the pretty-printer type \texttt{PP}, using a dictionary
 and list of sub-predicates,
 with two additonal arguments:
-one of type \texttt{MarkStyle} which describes how markings should be rendered,
+one of type \texttt{SubCompPrint} which 
+is a function to render sub-components,
 and one of type \texttt{Int} which gives a precedence level.
 The type signature is
 \begin{verbatim}
 SubCompPrint s -> Dict s -> Int -> [Pred s] -> PP
 \end{verbatim}
-The first argument is a function,
-and it is a bit of Haskell higher-order programming designed
-to make it easier to track predicate contexts in order
-to facilitating the generation of highlighting.
-The user does not need to write this,
-as it is supplied as the first argument by the pretty-printing
-infrastructure.
-What the user should do is use it in any recursive call
-to pretty-print a sub-predicate.
+The function type is
 \begin{verbatim}
-type SubCompPrint s
- = Int       -- precedence level for sub-component
-   -> Int    -- sub-component number, starts at 1
-   -> Pred s -- sub-component
-   -> PP
+type SubCompPrint s  =  Int -> Int -> Pred s -> PP
 \end{verbatim}
 It takes two integer arguments to begin.
 The first is the precedence level to be used to render the
 sub-component,
 while the secound should denote the position of the sub-component
 in the sub-component list, counting from 1.
-
-Such code, for example, would be like the following
-to render our atomic construct:
+The third argument is the sub-predicate to be printed.
+To render our atomic construct we can define the pretty-printer
+as follws:
 \begin{code}
 ppPAtm sCP d p [pr]
- = pplist [ ppa "A"
-          , ppbracket "(" (sCP 0 1 pr) ")"]
+       = pplist [ ppa "A" , ppbracket "(" (sCP 0 1 pr) ")"]
 \end{code}
 The functions \texttt{pplist}, \texttt{ppa} and \texttt{ppbracket}
 build instances of \texttt{PP} respectively,
@@ -156,14 +142,11 @@ atomic strings,
 and an occurence of \texttt{PP} surrounded by the designated brackets.
 Note that the \texttt{SubCompPrint} argument (\texttt{sCP})
 is applied to \texttt{pr},
-with the precedence is set to zero as it is bracketed,
+with the precedence set to zero as it is bracketed,
 and the sub-component number set to one as \texttt{pr} is the first
 (and only) sub-component.
-
-
-
 We will show how the pretty-printing for
-sequential composition  ($\lseq$) in UTCP is defined,
+sequential composition ($\lseq$) in UTCP is defined,
 to illustrate the support for infix notation.
 \begin{code}
 ppPSeq sCP d  p [pr1,pr2]
@@ -188,18 +171,12 @@ corresponds to the position of the sub-predicate involved.
 
 The dictionary entry for predicates has the following form:
 \begin{verbatim}
- | PredEntry
-   { pcansub :: [String]
-   , pprint  :: SubCompPrint s -> Dict s -> Int -> [Pred s] -> PP
-   , alfa :: [String]
-   , pdefn   :: Rewrite s
-   , prsimp  :: Rewrite s
-   }
-type Rewrite s = Dict s -> [Pred s] -> RWResult s
-type RWResult s
- = Maybe ( String  -- rewrite justification
-         , Pred s  -- result predicate
-         , Bool )  -- True if top-level modified
+PredEntry
+ { pcansub :: [String]
+ , pprint  :: SubCompPrint s -> Dict s -> Int -> [Pred s] -> PP
+ , alfa :: [String], pdefn   :: Rewrite s, prsimp  :: Rewrite s}
+type Rewrite s   =  Dict s -> [Pred s] -> RWResult s
+type RWResult s  =  Maybe ( String, Pred s, Bool ) 
 \end{verbatim}
 Fields \texttt{pcansub} and \texttt{prsimp} are the predicate analoges
 of \texttt{ecansub} and \texttt{eval} in the expression entry.
