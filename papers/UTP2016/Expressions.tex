@@ -23,7 +23,7 @@ named function application (\texttt{App}).
 We also have substitution (\texttt{Sub}), which pairs an expression
 with a substitution (\texttt{Substn}),
 which is a list of variable/expression pairs.
-The \texttt{deriving} clause for \texttt{Expr} 
+The \texttt{deriving} clause for \texttt{Expr}
 enables the Haskell default notions
 of equality, ordering and display for the type.
 
@@ -79,7 +79,7 @@ dosubset d es1 es2 -- is es1 a subset of es2 ?
                        =  ( "subset", B False )
   | otherwise          =  none
 \end{code}
-If the result of removing \texttt{es2} from \texttt{es1} is null 
+If the result of removing \texttt{es2} from \texttt{es1} is null
 it then returns true.
 If not, then if all elements remaining are ``ground'',
 i.e., contain no variables, returns false.
@@ -122,15 +122,15 @@ Here \texttt{edshow} (expression-dict-show)
 displays its \texttt{elm} argument,
 while \texttt{dlshow} (dictionary-list-show) displays the expressions
 in \texttt{elms} separated by the \verb@","@ string.
-%Similar tricks are used to code a very compact rendering
-%of a mechanism that involves unique label generator expressions
-%that involve very deep nesting, such as:
-%\[
-% \pi_2(new(\pi_1(new(\pi_2(split(\pi_1(new(g))))))))
-%\]
-%This can be displayed as \texttt{lg:2:},
-%using a very compact shorthand described in \cite{conf/tase/BMN16}
-%which we do not explain here.
+Similar tricks are used to code a very compact rendering
+of a mechanism that involves unique label generator expressions
+that involve very deep nesting, such as:
+\[
+ \pi_2(new(\pi_1(new(\pi_2(split(\pi_1(new(g))))))))
+\]
+This can be displayed as \texttt{lg:2:},
+using a very compact shorthand described in \cite{conf/tase/BMN16}
+which we do not explain here.
 
 
 \subsection{Expression Equality}

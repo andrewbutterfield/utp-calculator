@@ -23,9 +23,7 @@ using the calculator.
 
    The ``first-come, first-served'' approach
    used by the calculator is surprisingly effective.
-   There are two reasons for this: one general,
-   the other more specific.
-   The general reason is that we support a system of equational reasoning
+   We support a system of equational reasoning
    were reductions and definitions replace predicates with ones that
    are equal.
    In effect this means that the order in which most of these steps
@@ -33,12 +31,6 @@ using the calculator.
    Some care needs to be taken when several rules apply to one construct,
    but this an be manage by re-arranging the order in which various
    patters and their side-conditions can be checked.
-   The specific reason is that the kind of calculations
-   that are needed for the UTPC theory
-   end up having a regular structure with lots of independence between
-   calculation steps. Most of these involve predicates $Q$ that are
-   a disjunction of basic atomic actions,
-   and we are calculating $Q;Q$, $Q;Q;Q$ and so on.
 
 
    The main idea in using the calculator
@@ -53,7 +45,7 @@ using the calculator.
    in that we learnt what laws we needed,
    rather than what we thought we would need.
 
- 
+
 
 
     Effective use of the calculator results in an inexorable
@@ -62,13 +54,13 @@ using the calculator.
     Rather we mean that the most effective use of the calculator results
     when we define predicate functions that encapsulate some simple
     behaviour, and demonstrate, by proofs done without the calculator,
-    some laws they obey, 
+    some laws they obey,
     particularly with respect to sequential composition.
     In fact, one of the `algebras' under development for the fully
-    compositional theory, is so effective, 
+    compositional theory, is so effective,
     that many of the test calculations
     can actually be done manually.
-    However some, most notably involving parallel,
+    However some, most notably involving parallel composition,
     still require the calculator to be feasible.
 
 \subsection{Correctness}
@@ -89,7 +81,7 @@ using the calculator.
     and fix each code problem is relatively short,
     often a matter of five to ten minutes.
     The final phase is where calculation failures arise because of errors
-    the proposed theory---this is the real payback,
+    in the proposed theory---this is the real payback,
     as this is the intended purpose of the tool.
     The outcome of all of this iterative development
     is a high degree of confidence in the end result.
