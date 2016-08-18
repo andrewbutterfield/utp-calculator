@@ -138,20 +138,13 @@ The key principle was to ensure that whenever a predicate
 had to split over multiple lines,
 that the breaks are always around the top-most operator or composition
 symbol, with sub-components indented in, both after and \emph{before}.
-An example of such pretty-printing in action is
-
-\noindent
-\includegraphics[scale=0.155]{pprint-xmpl.eps}
-
-%{\small
-%\begin{verbatim}
-%    D(out)
-% \/ (      ~ls(out)
-%        /\ (D(lg) \/ A(in,lg,a,in,lg,lg) \/ D(out) \/ A(lg,out,b,lg,out,out))
-%     ; W(D(lg) \/ A(in,lg,a,in,lg,lg) \/ D(out) \/ A(lg,out,b,lg,out,out)))
-%\end{verbatim}
-%}
-\noindent
+An example of such pretty-printing in action is shown in Fig.\ref{fig:pp-out}
+\begin{figure}
+  \centering
+  % Requires \usepackage{graphicx}
+  \includegraphics[scale=0.155]{pprint-xmpl.eps}
+  \caption{Pretty-printer output}\label{fig:pp-out}
+\end{figure}
 The top-level structure of this is
 $D(out) \lor ( (\lnot ls(out) \land \dots) ; W(\dots) )$
 where the precedence ordering from tightest to loosest is $\land,\seq,\lor$.
