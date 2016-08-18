@@ -15,7 +15,7 @@ to lookup a special dictionary entry
 
 \subsection{Reduce}
 
-The reduce entry is a list of \texttt{RWFun},
+The \texttt{reduce} component of the \texttt{LawEntry} is a list of \texttt{RWFun},
 which are defined as follows:
 \begin{verbatim}
 type RWFun s = Dict s -> Pred s -> Pred s -> RWResult s
@@ -37,7 +37,7 @@ where we search for instances of $P$ and replace them with the
 corresponding instance of $Q$.
 The idea is that we pattern-match on predicate syntax
 with the second predicate argument,
-to see if a law is applicable (we have its lefthand-side),
+to see if a law is applicable (we have its lefthand side),
 and if so,
 we then build an appropriate instance of the righthand-side.
 The plan is that we gather all these pattern/outcome pairs
@@ -66,7 +66,7 @@ The first predicate pattern
 matches a ``Skip'' composite with no further sub-arguments.
 The second argument pattern matches an arbitrary predicate
 ($P$ in the law above).
-The righthand-side constructs a \texttt{RWResult} return value,
+The righthand side constructs a \texttt{RWResult} return value,
 with the string being a justification note that says a reduction-step
 using a law called ``$;$-lunit'' was applied,
 and noting that the top-level composite (the ``Seq'') was modified.
@@ -92,7 +92,7 @@ This is a key design decision for the calculator.
 A general purpose predicate evaluator requires implementing
 lots of theories about numbers, sets, lists,
 and whatever else might be present.
-Given the scope and purpose of this calculator is is
+Given the scope and purpose of this calculator it is
 much more effective to let the user choose.
 
 For an example,
@@ -117,10 +117,12 @@ creduceUTCP d (PSub w@(Comp "Iter" [c,p]) sub)
  where
    csub = PSub c sub
    ctrue  = (       csub, mkSeq (PSub p sub) w, diff )
-   cfalse = ( mkNot csub, PSub mkSkip sub, diff )
+   cfalse = ( mkNot csub, PSub mkSkip sub,      diff )
 \end{code}
 Here \texttt{mkSeq}, \texttt{mkNot} and \texttt{mkSkip} build sequential composition,
 negations and standard UTP skip ($\Skip$) respectively.
+Both \texttt{isCondition} and \texttt{beforeSub}
+ensure that their arguments contain no dashed variables.
 
 
 
@@ -128,7 +130,7 @@ negations and standard UTP skip ($\Skip$) respectively.
 
 
 Iteration is typically defined in UTP as the least fixed point
-w.r.t to the refinement ordering
+w.r.t. the refinement ordering
 that also involves sequential composition,
 which itself is defined using existential quantification,
 and $\Skip$.
@@ -160,7 +162,7 @@ but looser than $\land$):
 \\ &=& \ldots
 }
 The loop unroll functions are like those for reduce
-but have an extra string argument: 
+but have an extra string argument:
 \verb"unroll  :: [String -> RWFun s]".
 When the user enters a command of the form \verb@"lsss"@,
 the loop unroll facility is activated,

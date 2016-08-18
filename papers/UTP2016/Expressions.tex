@@ -19,7 +19,7 @@ of any particular notion of state.
 We provide booleans (\texttt{B}),
 integers (\texttt{Z}),
 values of the generic state type (\texttt{St}),
-named function application (\texttt{App}).
+and named function application (\texttt{App}).
 We also have substitution (\texttt{Sub}), which pairs an expression
 with a substitution (\texttt{Substn}),
 which is a list of variable/expression pairs.
@@ -52,7 +52,7 @@ Dict s -> [Expr s] -> (String, Expr s)
 \end{verbatim}
 The first argument, of type \texttt{Dict},
 is the dictionary currently in use.
-The second argument is the list of sub-expressiosn of
+The second argument is the list of sub-expressions of
 the \texttt{App} construct for which the simplifier is intended.
 The result is a pair consisting of a string and an expression.
 If the simplification succeeds, then the string is non-empty
@@ -62,7 +62,7 @@ In this case the expression component is the simplified result.
 If the simplification has no effect, then the string is empty,
 and the expression returned is not defined.
 
-The following code defines a simplifier for subset,
+The following code defines a simplifier for ``subset'',
 which expects it to have precisely two set components:
 \begin{code}
 evalSubset d [App "set" s1,App "set" s2] = dosubset d s1 s2
@@ -82,7 +82,7 @@ dosubset d es1 es2 -- is es1 a subset of es2 ?
 If the result of removing \texttt{es2} from \texttt{es1} is null
 it then returns true.
 If not, then if all elements remaining are ``ground'',
-i.e., contain no variables, returns false.
+i.e., contain no variables, it returns false.
 Otherwise, we cannot infer anything, so return \texttt{none}.
 
 \subsection{Rendering Expressions}
@@ -164,7 +164,8 @@ or \texttt{Just} the appropriate result.
 Suitable code for \verb$"set"$ is the following
 \begin{code}
 eqSet d es1 es2
- = let ns1 = nub $ sort $ es1 ; ns2 = nub $ sort $ es2
+ = let ns1 = nub (sort es1)
+       ns2 = nub (sort es2)
    in if all (isGround d) (ns1++ns2)
       then Just (ns1==ns2) else Nothing
 \end{code}

@@ -15,7 +15,7 @@ is critical to the functioning of the calculator.
 type Dict s = M.Map String (Entry s)
 -- M is the renamed import of Data.Map
 \end{verbatim}
-It is the basic way in which the user of calculator
+It is the basic way in which the user of the calculator
 describes the alphabet, definitions and laws associated with their theory.
 
 The dictionary uses the Haskell \texttt{String} datatype for keys,
@@ -39,7 +39,7 @@ These are listed in Fig. \ref{fig:rsvd-names}.
 There are ten names that describe different
 (overlapping)
 parts of the theory alphabet (Fig. \ref{fig:rsvd-names}).
-While is is possible to define these individually,
+While it is possible to define these individually,
 this can be quite error-prone,
 so a function is provided to construct all these entries
 from three basic pieces of information:

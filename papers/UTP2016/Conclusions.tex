@@ -2,8 +2,8 @@
 
 We have presented a description of a calculator written in Haskell,
 that allows the encoding of an UTP theory under development,
-in order to be able to rapidly perform test calculations
-in order to check that predictions of the theory match expectations.
+in order to be able to rapidly perform test calculations.
+This helps to check that predictions of the theory match expectations.
 The tool was not designed to be a complete and sound theory development
 system,
 but instead to act as a rapid-prototype tool to help smoke out problems
@@ -13,10 +13,10 @@ to be checking and scrutinising everything.
 \subsection{Costs vs. Benefits}
 
 As far as the development of the UTCP theory is concerned,
-and the ongoing work to develop a fully composition UTP theory
-of shared-state concurrency that does not require $run$,
 the costs of developing and customising the calculator
-have been rewarded by the benefits we encountered.
+have been well compensated for by the benefits we encountered.
+This also applies to ongoing work to develop a fully compositional UTP theory
+of shared-state concurrency that does not require $run$.
 We note a few observations based on our experience
 using the calculator.
 
@@ -24,13 +24,13 @@ using the calculator.
    The ``first-come, first-served'' approach
    used by the calculator is surprisingly effective.
    We support a system of equational reasoning
-   were reductions and definitions replace predicates with ones that
+   where reductions and definitions replace predicates with ones that
    are equal.
    In effect this means that the order in which most of these steps
    take place is immaterial.
    Some care needs to be taken when several rules apply to one construct,
-   but this an be manage by re-arranging the order in which various
-   patters and their side-conditions can be checked.
+   but this can be managed by re-arranging the order in which various
+   patterns and their side-conditions can be checked.
 
 
    The main idea in using the calculator
@@ -61,7 +61,7 @@ using the calculator.
     that many of the test calculations
     can actually be done manually.
     However some, most notably involving parallel composition,
-    still require the calculator to be feasible.
+    still require the calculator in order to be feasible.
 
 \subsection{Correctness}
 
@@ -91,7 +91,7 @@ using the calculator.
     trying to do the check calculations manually.
 
 There are no guarantees of soundness.
-But working on a theory by hand faces exactly the same issues
+But working on any theory by hand faces exactly the same issues
 --- a proof or calculation by hand always raises the issue
 of the correctness of a law, or the validity of a ``proof-step''
 that is really a number of simpler steps all rolled into one.
@@ -137,9 +137,8 @@ that include better transcript rendering options
 Also of interest would be finding
 a way of connecting the calculator
 to either the \UTP2 theorem-prover\cite{DBLP:conf/utp/Butterfield10}
-or the Isabelle/UPT encoding\cite{DBLP:conf/utp/FosterZW14}
+or the Isabelle/UTP encoding\cite{DBLP:conf/utp/FosterZW14}
 in order to be able to validate the dictionary entries.
-
 All the code described here is available online
 at
 \\\url{https://bitbucket.org/andrewbutterfield/utp-calculator.git}

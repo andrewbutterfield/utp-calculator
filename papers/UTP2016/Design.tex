@@ -11,7 +11,7 @@ on four initial design decisions:
   \item The expression and predicate datatype declarations
    would be very simple, with only equality being singled out.
   \item Provide a good way to pretty-print long predicates
-    that made it easy to see their overall structure
+    that made it easy to see their overall structure.
   \item Rely on a dictionary based system to
     make it easy to customise how specific constructs
     were to be handled.
@@ -64,10 +64,10 @@ the first sub-component for which the relevant dictionary calculator
 function returns a changed result.
 Here is where we have a reduced degree of control,
 which simplifies the REPL dramatically,
-but has turns out to be effective in practice.
+but has turned out to be effective in practice.
 
 Here is a sample run obtained when calculating the effect of
-the $run(\A(A) \pseq \A(B))$, from the introduction.
+ $run(\A(A) \pseq \A(B))$, from the introduction.
 For convenience we predefined the predicate $\A(A) \pseq \A(B)$ in Haskell as
 \begin{verbatim}
 athenb = pseq [patm (PVar "A"),patm (PVar "B")]
@@ -77,14 +77,14 @@ Here \texttt{PVar} is a constructor of the predicate datatype \texttt{Pred}
 while \texttt{pseq} and \texttt{patm} are convenient functions we wrote
 to build instances
 of $\pseq$ and $\A(\_)$ respectively.
-We then invoked the calculator as follows,
+We invoked the calculator as follows,
 where \texttt{dictUTCP} is the dictionary for this theory:
 \begin{verbatim}
 calcREPL dictUTCP (run athenb)
 \end{verbatim}
-and proceed to interact
-(here the prompt  ``\texttt{ ?,d,r,l,s,c,u,x :-}''
-shows the available commands)
+We then proceeded to interact
+(he prompt  ``\texttt{ ?,d,r,l,s,c,u,x :-}''
+shows the available commands):
 
 \begin{lstlisting}[basicstyle=\ttfamily, numbers=left, numberstyle=\tiny, numbersep=5pt]
 run(A(A) ;; A(B))
@@ -162,7 +162,6 @@ which was written from scratch, but inspired by writings of
 Hughes\cite{HughesJohn1995c} and Wadler\cite{wadler-pp}
 on the subject.
 In addition to the layout management aspects of pretty-printing
-as just illustrated above,
 there is also a need for a support for shorthand notations.
 We illustrate this in Sect.\ref{sec:Expressions}.
 
