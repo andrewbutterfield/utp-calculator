@@ -513,11 +513,18 @@ vAEntry
 \end{code}
 
 \HDRc{Wheels within Wheels}\label{hc:WwW}
-\begin{eqnarray*}
-   \W(C) &\defs& \true * (\Skip \lor C)
-\\       &=& \bigvee_{i\in 0\dots} \Skip\seq C^i
+
+We will remove the stuttering step from here,
+because it looks like it only needs to be applied to atomic actions,
+and it then propagates up.
+\RLEQNS{
+   \W(C) &\defs& \true * C
+\\       &=& \bigvee_{i\in 0\dots} \Skip\seq D^i
+     & \textbf{provided } C = \Skip \lor D \textbf{ for some } D
 \\ ii &\defs& s'=s
-\end{eqnarray*}
+}
+We hypothesis that $\W(C) = \W(\Skip \lor C)$
+for all our command constructs.
 \begin{code}
 nW = "W"
 isW (Comp n [_]) | n==nW = True; isW _ = False
@@ -568,15 +575,16 @@ wUnroll _ _ _ _ = Nothing
 \HDRb{WwW Semantic Definitions}
 
 The definitions, using the new shorthands:
-\begin{eqnarray*}
-   \W(C) &\defs& \true * (\Skip \lor C)
-\\       &=& \bigvee_{i\in 0\dots} \Skip\seq C^i
+\RLEQNS{
+   \W(C) &\defs& \true * C
+\\       &=& \bigvee_{i\in 0\dots} \Skip\seq D^i
+\\       & & \textbf{provided } C = \Skip \lor D \textbf{ for some } D
 \\ ii &\defs& s'=s
 \\
-\\ \Atm a &\defs&\W(A(in|a|out)) \land [in|out]
+\\ \Atm a &\defs&\W(\Skip \lor A(in|a|out)) \land [in|out]
 \\ \cskip
    &\defs&
-   \W(A(in|ii|out)) \land [in|out]
+   \W(\Skip \lor A(in|ii|out)) \land [in|out]
 \\
 \\ C \cseq D
    &\defs&
@@ -608,7 +616,7 @@ The definitions, using the new shorthands:
 \\ && \qquad {}\lor A(in|ii|\ell_g)
 \\ && \qquad {}\lor C[g_{:},\ell_g,in/g,in,out]~)
 \\&& {} \land [in|\ell_g|out]
-\end{eqnarray*}
+}
 
 \newpage
 \HDRc{Coding Label-Set Invariants}
@@ -796,7 +804,7 @@ invTrims d inv ena other = not $ lsat d (set [ena,other]) inv
 \HDRc{Coding Atomic Semantics}
 
 \RLEQNS{
- \Atm a &\defs&\W(A(in|a|out)) \land [in|out]
+ \Atm a &\defs&\W(\Skip \lor A(in|a|out)) \land [in|out]
 }
 
 \begin{code}
@@ -809,7 +817,7 @@ ppAtom sCP d p [pr] = ppbracket "<" (sCP 0 1 pr) ">"
 ppAtom _ _ _ _ = pps styleRed $ ppa ("invalid-"++nAtom)
 
 defnAtom d [a]
- = ldefn nAtom $ wp $ mkA inp a out
+ = ldefn nAtom $ wp $ mkOr $ [mkSkip, mkA inp a out]
 
 invAtom = idisj [ielem inp, ielem out]
 
@@ -824,7 +832,7 @@ vAtmEntry
    , PredEntry ["s","s'"] ppAtom [] defnAtom (pNoChg nAtom) )
 \end{code}
 
-Running the calculator on atom a results in the following:
+Running the calculator on $Atm(a)$ results in the following:
 \begin{verbatim}
 II \/ A(in|a|out)
 \end{verbatim}
@@ -846,7 +854,7 @@ vAtmCalcEntry
 \RLEQNS{
    \cskip
    &\defs&
-   \W(A(in|ii|out)) \land [in|out]
+   \W(\Skip \lor A(in|ii|out)) \land [in|out]
 }
 \begin{code}
 nVSkip = "VSkip" -- internal abstract name
@@ -858,7 +866,7 @@ ppVSkip d ms p [] = ppa "<skip>"
 ppVSkip d ms p mprs = pps styleRed $ ppa ("invalid-"++nVSkip)
 
 defnVSkip d []
- = ldefn nVSkip $ wp $ mkA inp ii out
+ = ldefn nVSkip $ wp $ mkOr $ [mkSkip, mkA inp ii out]
 
 invVSkip = idisj [ielem inp, ielem out]
 
@@ -871,7 +879,7 @@ vSkipEntry
 nii= "ii"
 ii = PVar nii
 \end{code}
-The calculation of atom a also leads us to the following calculation
+The calculation of $Atm(ii)$ also leads us to the following calculation
 for \verb"<skip>":
 \begin{verbatim}
 II \/ A(in|ii|out)
@@ -1477,7 +1485,7 @@ vLoopEntry = entry laws $ LawEntry [] [] [wUnroll,vUnroll]
 \begin{code}
 vDict :: (Ord s, Show s) => Dict s
 vDict
- =  dictVersion "Views 0.2"
+ =  dictVersion "Views 0.3"
      -- supersede dictVP below as calcs rollout
     `dictMrg` dictVPCalc
     `dictMrg` vAlfDict
@@ -1582,6 +1590,22 @@ noting that our final semantics will have the form
 \]
 where $I$ is the label-set invariant
 and $Q^i = \false$ for all $i > k$.
+
+When we change from:
+\RLEQNS{
+   \W(C) &\defs& \true * (\Skip \lor C)
+\\ \Atm a &\defs&\W(A(in|a|out)) \land [in|out]
+}
+\noindent
+to:
+\RLEQNS{
+   \W(C) &\defs& \true * C
+\\ \Atm a &\defs&\W(\Skip \lor A(in|a|out)) \land [in|out]
+}
+\noindent
+the calculation outcomes
+for \texttt{athenb}, \texttt{aorb}, \texttt{awithb} and \texttt{itera} are unchanged,
+and consequently so are all the other calculations.
 
 \HDRc{Atomic Actions}
 

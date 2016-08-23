@@ -135,7 +135,7 @@ runREPL d m state@(currpr,steps,[(ichk,inv)])
 --    then return ()
 --    else putStrLn "**** Marking Invariant fails ****"
   putStr ( pmdshow 80 d noStyles currpr
-         ++ "\n\n ?,d,r,l,s,c,u,x,I :- " )
+         ++ "\n\n ?,d,r,l,s,c,I,i,u,x :- " )
   ln <- getLine
   case ln of
    ('?':_) -> calcHelp  d m state
@@ -145,9 +145,9 @@ runREPL d m state@(currpr,steps,[(ichk,inv)])
    ('r':_) -> calcStep  d m (doReduce   d inv $ nextm m) state
    ('c':_) -> calcCStep d m (doCReduce  d $ nextm m) state
    ('l':s) -> calcStep  d m (doUnroll s d inv $ nextm m) state
+   ('I':_) -> displayInv d m state
    ('i':_) -> calcStep  d m
                (chkInvariant (ichk d inv) $ nextm m) state
-   ('I':_) -> displayInv d m state
    ('M':_) -> showMarks d m state
    ('B':_) -> viewBefore d m state
    ('A':_) -> viewAfter d m state
@@ -178,6 +178,7 @@ calcHelp d m st
        , "r - reduction law application"
        , "l[n] - loop unrolling - n: optional depth"
        , "c - conditional reduction step"
+       , "i - check invariant"
        , "I - show invariant"
        , "M - show marks (DEBUG)"
        , "B - view before (DEBUG)"
