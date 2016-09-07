@@ -473,10 +473,25 @@ ppX sCP vd p prs@[e,ss',r,a]
     , ppa $ pFlatShow vd a ]
 ppX _ _ _ _ = pps styleRed $ ppa ("invalid-"++nX)
 
--- we don't want to expand the definition of this, or simplify it
+-- we don't want to expand the definition of this
 defnX = pNoChg nX
-simpX = pNoChg nX
+\end{code}
 
+We do want the following simplification:
+\begin{eqnarray*}
+  X(E|a|E|N) &=& A(E|a|N)
+\end{eqnarray*}
+\begin{code}
+simpX vd [ (Atm e1)   -- E
+         , as         -- a
+         , (Atm e2)   -- E?
+         , (Atm n) ]  -- N
+  | psimp vd (Equal e1 e2) /= T  =  Nothing
+  | otherwise  =  Just ( "X-is-A", mkA e1 as n, diff )
+\end{code}
+
+Now, put it all together
+\begin{code}
 vXEntry :: (Show s, Ord s) => (String, Entry s)
 vXEntry
  = ( nX
