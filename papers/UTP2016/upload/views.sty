@@ -1,0 +1,57 @@
+\def\BS{{\char`\\}}
+
+\def\setof#1{\{#1\}}
+
+\def\Atom{\textsf{Atom}}
+\def\cskip{\texttt{skip}}
+\def\cseq{\mathbin{;\!;}}
+\def\semlbr{[\![}
+\def\semrbr{]\!]}
+\def\sem#1{\semlbr{#1}\semrbr}
+\def\fun{\rightarrow}
+\def\defs{\widehat=}
+\def\cond#1{\mathrel{\lhd{#1}\rhd}}
+\def\Skip{I\!I}
+\def\W{\mathbf{W}}
+\def\ndc{\sqcap}
+\def\seq{\mathrel{;}}
+\def\phlor{\phantom{\lor}}
+
+% semantic macros
+\def\lexc#1#2{ls\ominus(#1|#2)}
+\def\lupd#1#2{ls'=\lexc{#1}{#2}}
+\def\ss{s'=s}
+\def\atomdo#1{s' \in \sem{#1}s}
+
+% semantic shorthand macros
+\def\ado#1{\lfloor#1\rfloor}
+\def\llsbr{\langle\!|}
+\def\rlsbr{|\!\rangle}
+\def\LUPD#1#2{\llsbr#1\blacktriangleright#2\rlsbr}
+\def\LNDC#1#2#3#4{
+ \llsbr
+ #1\blacktriangleright#2
+ \ndc
+ #3\blacktriangleright#4
+ \rlsbr
+}
+\def\LS#1{\llsbr?#1\rlsbr}
+\def\LSd#1{\llsbr?#1\rlsbr'}
+\def\D{\LS{out} \land \Skip}
+\def\B#1{\overline{#1}}
+
+% proof/calculation stuff
+\def\say#1{\textrm{``#1''}}
+\def\EQ#1{\\&=&\say{#1}}
+\def\EOLC#1{\textrm{ --- ``#1''}}
+
+\def\RLEQNS#1{
+  {$$\begin{array}{rcl@{\quad}l}
+    #1
+  \end{array}$$}
+}
+\def\ltype#1{
+ {\scriptscriptstyle\langle\!\langle}
+ #1
+ {\scriptscriptstyle\rangle\!\rangle}
+}

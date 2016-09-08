@@ -1,0 +1,73 @@
+\section{Dictionaries}\label{sec:Dictionaries}
+
+The approach taken is to provide a dictionary that maps names
+to entries that supply extra information.
+The names can be those of expression or predicate composites,
+or correspond to variables, and a few other features of note.
+All of the main calculator functions are driven by this
+dictionary,
+and the correct definition of dictionary entries
+is the primary way for users to set up calculations.
+The dictionary datatype (\texttt{Dict s}),
+parameterised with a generic type \texttt{s},
+is critical to the functioning of the calculator.
+\begin{verbatim}
+type Dict s = M.Map String (Entry s)
+-- M is the renamed import of Data.Map
+\end{verbatim}
+It is the basic way in which the user of the calculator
+describes the alphabet, definitions and laws associated with their theory.
+
+The dictionary uses the Haskell \texttt{String} datatype for keys,
+and contains four different kinds of entries: alphabets,
+expressions, predicates and laws.
+{\small
+\begin{verbatim}
+data Entry s = AlfEntry .. | ExprEntry .. | PredEntry .. | LawEntry ..
+\end{verbatim}
+}
+For simplicity, there is only one namespace involved,
+and some names are reserved for special purposes.
+These are listed in Fig. \ref{fig:rsvd-names}.
+\begin{figure}[t]
+  \centering
+%\begin{verbatim}
+\texttt{Alf Obs Obs' Mdl Mdl' Scr Scr' Dyn Dyn' Stc laws}
+%\end{verbatim}
+  \caption{Reserved Dictionary Names}\label{fig:rsvd-names}
+\end{figure}
+There are ten names that describe different
+(overlapping)
+parts of the theory alphabet (Fig. \ref{fig:rsvd-names}).
+While it is possible to define these individually,
+this can be quite error-prone,
+so a function is provided to construct all these entries
+from three basic pieces of information:
+program variable names (`script', \texttt{Scr});
+auxiliary variable names (`model',\texttt{Mdl}),
+e.g. variables like $ls$ that don't represent variable values,
+but instead some other observable program property of interest);
+and static parameter variable names (\texttt{Stc}).
+\begin{verbatim}
+stdAlfDictGen :: [String] -> [String] -> [String] -> Dict s
+\end{verbatim}
+All lists contain undashed names, with dashes added when required
+by the function.
+So, the alphabet entries for the UTCP theory are defined as follows:
+\begin{code}
+dictAlpha = stdAlfDictGen ["s"] ["ls"] ["g","in","out"]
+\end{code}
+All of these entries will be of kind \texttt{AlfEntry},
+i.e, just lists of the relevant variables.
+\begin{verbatim}
+   AlfEntry { avars  :: [String]}
+\end{verbatim}
+There are two important utility functions,
+one that builds dictionaries from lists of string/entry pairs,
+and another that merges two dictionaries, resolving conflicts
+by merging entries if possible, otherwise favouring the
+second dictionary:
+\begin{verbatim}
+makeDict :: [(String, Entry s)] -> Dict s
+dictMrg :: Dict s -> Dict s -> Dict s
+\end{verbatim}

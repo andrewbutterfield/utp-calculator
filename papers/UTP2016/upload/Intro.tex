@@ -1,0 +1,103 @@
+\section{Introduction}\label{sec:Intro}
+
+\subsection{Motivation}
+
+The development of a Unifying Theory of Programming (UTP)
+can involve a number of false starts,
+as alphabet variables are chosen
+and semantics and healthiness conditions are defined.
+Typically, some calculations done to check that everything
+works end up revealing problems with the theory.
+So an iteration occurs by revising the basic definitions,
+and attempting the calculations again.
+
+We have recently started to explore using UTP
+to describe shared-variable concurrency,
+by adapting the work of the  UTP semantics for Unifying Theories
+of Parallel Programming (UTPP) \cite{DBLP:conf/icfem/WoodcockH02}.
+We have reworked it to use a system for generating unique labels,
+in order to give a slight improvement to the compositionality
+of the semantics.
+This we call a Unifying Theory of Concurrent Programming (UTCP)\cite{conf/tase/BMN16}.
+
+We illustrate the calculator here
+with, as a running example,
+the definition of the UTP semantics of an atomic action.
+We assume basic atomic actions $A,B$ which modify the
+shared global state (program variables),
+represented by observation variables $s,s'$.
+The concurrent flow of control is managed by using labels
+associated with language constructs, which are added to and removed
+from a global label-set as execution proceeds.
+We represent this label-set using observations $ls,ls'$.
+Our main change to the original UTPP theory
+is to provide a mechanism to create unique labels,
+to be associated with both the beginning and end of each language
+construct. This results in three static observables:
+a generator $g$;
+and two labels $in$ and $out$.
+So our UTCP theory is based on a non-homogeneous relation
+with alphabet $s$, $s'$, $ls$, $ls'$, $g$, $in$, and $out$.
+See \cite{conf/tase/BMN16} for details.
+
+Our running example is the need to calculate the outcome
+of sequentially composing ($\pseq$)
+two basic atomic actions ($A,B$),
+that are lifted $(\A(\_))$ to the full alphabet by adding control-flow,
+and are then $run$ in order to see their dynamic behaviour:
+\[
+  run(\A(A) \pseq \A(B))
+\]
+We hope that the final result would be
+\[
+  (A \seq B) \land ls' = \setof{\ell_{g:}}
+\]
+We have the standard UTP sequential composition of $A$ and $B$ defined on $s,s'$,
+and an assertion that the termination label $\ell_{g:}$
+is the sole member of the final label-set.
+
+The theory with its somewhat unusual arrangement of observation variables
+did \emph{not} emerge as an immediate and obvious solution,
+but as a result of many trial calculations.
+These trial calculations exposed two problems:
+one was the difficulty in reading very long complex
+set-based expressions in order to assess their correctness.
+The second was the sheer length and drudgery of these calculations,
+often involving many repetitions of very similar steps.
+
+To be specific, the calculator described in this paper
+is intended to be used for \emph{calculation}, and not \emph{theorem proving}.
+In particular, it is designed to help solve the problem
+just described above.
+Both the starting predicate and the final result have free variables
+and are not theorems.
+That means counter-example generators
+like Nitpick or Alloy
+are not helpful.
+
+
+If we consider the reasoning processes used in the development
+and deployment of a theory, we can see a spectrum ranging from informal,
+through to fully mechanised: hand calculation; simulation; proof assistant;
+and automated theorem provers.
+The level of detail, complexity,
+and rigour rises as we proceed along the spectrum.
+The calculator described here is designed
+to assist with the exploratory hand-calculation phase early on,
+by making it easier to calculate, and to manually check the outcomes.
+It is not intended to provide the soundness guarantees that are quite rightly
+expected from the tools further along the spectrum.
+
+
+\subsection{Structure of this paper}
+
+In Sect. \ref{sec:Related} we discuss related work
+to justify our decision to develop the calculator.
+The key design decisions and tool architecture is then described
+in Sect. \ref{sec:Design}.
+Three key components of the system are then discussed:
+Dictionaries (Sect. \ref{sec:Dictionaries});
+Expressions (Sect. \ref{sec:Expressions}); and
+Predicates (Sect. \ref{sec:Predicates}).
+In Sect. \ref{sec:Laws} we describe how to encode laws
+and then conclude (Sect. \ref{sec:Conc}).

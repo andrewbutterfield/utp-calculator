@@ -1,0 +1,322 @@
+\section{Laws}\label{sec:Laws}
+
+In addition to the global simplifier and definition expansion facility,
+we have three broad classes of laws that can be invoked from the REPL:
+Reduce; Conditional Reduce; and Loop Unroll.
+
+The way the latter three laws are applied is somewhat different
+to the behaviour of either the simplifier or definition expansion.
+Instead the reserved dictionary key \verb$"laws"$ is used
+to lookup a special dictionary entry
+\begin{verbatim}
+ LawEntry { reduce  :: [RWFun s]
+          , creduce :: [CRWFun s], unroll  :: [String -> RWFun s] }
+\end{verbatim}
+
+\subsection{Reduce}
+
+The \texttt{reduce} component of the \texttt{LawEntry} is a list of \texttt{RWFun},
+which are defined as follows:
+\begin{verbatim}
+type RWFun s = Dict s -> Pred s -> Pred s -> RWResult s
+\end{verbatim}
+The first predicate argument is used to supply an invariant
+assertion for those reduction rules that require one.
+It is a recent new feature of the calculator,
+not required for this UTCP theory,
+and its use is beyond the scope of this paper.
+
+When asked to do a reduce,
+the calculator then does a top-down, left-to-right search,
+where at each point it tries all the laws in its reduce list, in order,
+with the current composite being passed in as the second predicate
+argument.
+It terminates at the point of first success (a non-\texttt{Nothing} outcome).
+A reduce law is an equation of the form $P = Q$,
+where we search for instances of $P$ and replace them with the
+corresponding instance of $Q$.
+The idea is that we pattern-match on predicate syntax
+with the second predicate argument,
+to see if a law is applicable (we have its lefthand side),
+and if so,
+we then build an appropriate instance of the righthand-side.
+The plan is that we gather all these pattern/outcome pairs
+in one function definition,
+which will try them in order.
+This is in direct correspondence with Haskell pattern-matching.
+So for UTCP we have a function called \texttt{reduceUTCP},
+structured as follows:
+\begin{verbatim}
+reduceUTCP d inv (...1st law pattern...) = 1st-outcome
+reduceUTCP d inv (...2nd law pattern...) = 2nd-outcome
+...
+reduceUTCP _ _ _ = Nothing  -- catch-all at end, no change
+\end{verbatim}
+
+A simple example of such a pattern is the following encoding
+of $\Skip;P = P$ :
+\begin{code}
+reduceUTCP d inv (Comp "Seq" [(Comp "Skip" []), pr])
+   =  Just ( ";-lunit", pr, True )
+\end{code}
+The pattern
+matches a composite called ``Seq'',
+with a argument list containing two predicates.
+The first predicate pattern
+matches a ``Skip'' composite with no further sub-arguments.
+The second argument pattern matches an arbitrary predicate
+($P$ in the law above).
+The righthand side constructs a \texttt{RWResult} return value,
+with the string being a justification note that says a reduction-step
+using a law called ``$;$-lunit'' was applied,
+and noting that the top-level composite (the ``Seq'') was modified.
+
+
+\subsection{Conditional Reduce}
+
+A \texttt{CRWResult} is a \texttt{RWResult} that has been adapted,
+so that instead of returning one result if successful,
+it returns a list of possible results,
+each paired with a side-condition predicate.
+\begin{verbatim}
+type CRWResult s  =  Maybe ( String, [( Pred s, Pred s, Bool)] )
+type CRWFun s     =  Dict s -> Pred s -> CRWResult s
+\end{verbatim}
+A conditional reduce law is an equation as per reduce,
+but with conditional outcomes, e.g. $P = Q_1 \cond{C} Q_2$.
+Matching an instance of $P$ will return a list of two pairs,
+the first being $(C,Q_1)$, the second $(\lnot C,Q_2)$.
+No attempt is made to evaluate $C$, but instead the REPL
+asks the user to choose.
+This is a key design decision for the calculator.
+A general purpose predicate evaluator requires implementing
+lots of theories about numbers, sets, lists,
+and whatever else might be present.
+Given the scope and purpose of this calculator it is
+much more effective to let the user choose.
+
+For an example,
+here is one pattern of the conditional reduce
+function for UTCP.
+Given $\vec x$ a list of unique variables,
+and $\vec e$ a list of the same length of expressions,
+with $\vec x \subseteq \setof{s,ls}$
+we have:
+\RLEQNS{
+   c[\vec e/\vec x]
+   &\implies&
+   (c * P)[\vec e/\vec x] = P[\vec e/\vec x] ; c * P
+\\ \lnot c[\vec e/\vec x]
+   &\implies&
+   (c * P)[\vec e/\vec x] = \Skip[\vec e/\vec x]
+}
+\begin{code}
+creduceUTCP d (PSub w@(Comp "Iter" [c,p]) sub)
+ | isCondition c && beforeSub d sub
+ = Just( "loop-substn", [ctrue,cfalse] )
+ where
+   csub = PSub c sub
+   ctrue  = (       csub, mkSeq (PSub p sub) w, diff )
+   cfalse = ( mkNot csub, PSub mkSkip sub,      diff )
+\end{code}
+Here \texttt{mkSeq}, \texttt{mkNot} and \texttt{mkSkip} build sequential composition,
+negations and standard UTP skip ($\Skip$) respectively.
+Both \texttt{isCondition} and \texttt{beforeSub}
+ensure that their arguments contain no dashed variables.
+
+
+
+\subsection{Loop Unroll}
+
+
+Iteration is typically defined in UTP as the least fixed point
+w.r.t. the refinement ordering
+that also involves sequential composition,
+which itself is defined using existential quantification,
+and $\Skip$.
+\RLEQNS{
+   c * P &\defs& \mu L @ (P ; L) \cond c \Skip
+\\ P ; Q
+   &\defs&
+   \exists s_m,ls_m @
+     P[s_m,ls_m/s',ls']
+     \land
+     Q[s_m,ls_m/s,ls]
+\\ \Skip &\defs& s'=s \land ls'=ls
+}
+We do not want to explicitly handle quantifiers,
+or fixed-points.
+Instead we prefer to use the loop unrolling law,
+as this is much more useful for the kinds of calculations we encounter.
+\RLEQNS{
+   c * P &=& (P \seq c * P ) \cond c \Skip
+}
+Even more useful are ones that split the conditional
+and unroll a number of times ($\seq$ binds tighter than $\lor$
+but looser than $\land$):
+\RLEQNS{
+   c * P &=& \lnot c \land \Skip \lor c \land P \seq c * P
+\\ &=& \lnot c \land \Skip
+       \lor c \land P \seq c \land \Skip
+       \lor c \land P \seq c * P
+\\ &=& \ldots
+}
+The loop unroll functions are like those for reduce
+but have an extra string argument:
+\verb"unroll  :: [String -> RWFun s]".
+When the user enters a command of the form \verb@"lsss"@,
+the loop unroll facility is activated,
+and the string \verb@"sss"@ is passed as the first argument to the functions
+above. It is up to the user to decide how to interpret
+these strings---but the most useful is to treat them as specifying
+the number of unrollings to do.
+We won't give an example here of the use of unrolling.
+%\begin{code}
+%wUnroll :: Ord s => String -> DictRWFun s
+%wUnroll ns d mw@(_,Comp nm [mpr])
+% | nm == nW = ( "W-unroll" ++ ntag ns, wunroll n )
+% where
+%
+%   ntag "" = ""
+%   ntag ns = '.':ns
+%
+%   n | null ns = 0
+%     | isDigit $ head ns = digitToInt $ head ns
+%     | otherwise = 0
+%
+%   wunroll 0  =  bCond (bSeq mpr mw) (bNot lsout) bSkip
+%   wunroll 1  =  bOr [ loopdone
+%                     , bSeq (loopstep 1) mw]
+%   wunroll 2  =  bOr [ loopdone
+%                     , bSeq (loopstep 1) loopdone
+%                     , bSeq (loopstep 2) mw]
+%   wunroll 3  =  bOr [ loopdone
+%                     , bSeq (loopstep 1) loopdone
+%                     , bSeq (loopstep 2) loopdone
+%                     , bSeq (loopstep 3) mw]
+%   wunroll _  =  bCond (bSeq mpr mw) (bNot lsout) bSkip
+%
+%   loopdone = bD out
+%   loopstep 1 = bAnd [bM out, mpr]
+%   loopstep n = bSeq (loopstep (n-1)) (loopstep 1)
+%
+%wUnroll _ _ mpr = ( "", mpr )
+%\end{code}
+%It does up to 3 unrollings---we won't explain all the various bits
+%but just point out that \texttt{loopdone} is $\lnot c \land \Skip$
+%(under the hood) and \texttt{loopstep} n is $(c \land P)^n$.
+
+
+\subsection{Bringing it all together}
+
+We make these two reduction functions ``known'' to the calculator
+by adding them into a dictionary.
+\begin{code}
+lawsUTCPDict
+ = makeDict [("laws", LawEntry [reduceUTCP] [creduceUTCP] [])]
+\end{code}
+We then can take a number of partial dictionaries and use various
+dictionary functions,
+defined in \texttt{CalcPredicates}, to merge them together.
+\begin{code}
+dictUTCP = foldl1 dictMrg [ alfUTCPDict, ..., lawsUTCPDict]
+\end{code}
+The main method of working with dictionaries
+is to construct small ones
+focussed on some specific area of interest.
+These can then be combined in different ways to provide a number of complete
+dictionaries that can vary in the order in which things are tried.
+
+
+
+
+
+
+
+
+
+%\subsection{UTCP Recognisers}
+%
+%Some laws require matching that is a bit more sophisticated.
+%For example,
+%consider a useful reduction for tidying up at the end,
+%assuming that $ls' \notin A$ and $ls \notin B$, and both $k$ and $h$
+%are ground:
+%\[
+%   (A \land ls'=k) ; (B \land ls'= h)
+%   \quad\equiv\quad
+%   (A;B) \land ls'=h
+%   \qquad \elabel{$ls'$-cleanup}
+%\]
+%However, we want this law to work when both $A$
+%and $B$ are themselves conjunctions, with the $ls'=\dots$
+%as part of the same conjunction, located at some arbitrary position.
+%We can break the problem into two parts.
+%First we do a top-level pattern match
+%to see that we have a top-level sequential composition
+%of two conjunctions,
+%then we use a function that will check both conjunction predicate-lists
+%for the existence of a $ls'=\dots$ component,
+%and that everything else also satisfies the requirements regarding
+%the occurrence, or otherwise of $ls$ or $ls'$:
+%\begin{code}
+%reduceUTCP d pr@(_,Comp "Seq" [ (_,Comp "And" pAs)
+%                              , (_,Comp "And" pBs)])
+% = case isSafeLSDash d ls' ls' pAs of -- no ls' in rest of pAs
+%    Nothing -> lred "" pr
+%    Just (_,restA) ->
+%     case isSafeLSDash d ls' ls pBs of -- no ls in rest of pBs
+%      Nothing -> lred "" pr
+%      Just (eqB,restB)
+%       -> lred "ls'-cleanup" $   -- build RHS
+%             comp "And" [ comp "Seq" [ bAnd restA
+%                                     , bAnd restB ]
+%                        , eqB ]
+%\end{code}
+%The function \texttt{isSafeLSDash}
+%is designed to
+%(i) locate the $ls'=e$ conjunct and check that its rhs is a ground expression;
+%(ii) check that none of the remaining conjuncts make use of the
+%`unwanted' version of the label-set variable ($ls$ or $ls'$);
+%and (iii), if all ok, return a pair
+%whose first component is the ($ls'=\dots$) equality,
+%and whose second is the list of other conjuncts.
+%To achieve (i) above,
+%we make use of two functions provided by the \texttt{CalcRecogniser} module:
+%\begin{verbatim}
+%mtchNmdObsEqToConst :: Ord s => String -> Dict s -> Recogniser s
+%matchRecog :: (Ord s, Show s)
+%           => Recogniser s -> [MPred s]
+%           -> Maybe ([MPred s],(MPred s,[MPred s]),[MPred s])
+%\end{verbatim}
+%where
+%\begin{verbatim}
+%type Recogniser s = MPred s -> (Bool, [MPred s])
+%\end{verbatim}
+%A recogniser is a function that takes a predicate
+%and if it ``recognises'' it, returns \texttt{(True, parts)},
+%where parts are the subcomponents of the predicate in some order.
+%The recogniser \texttt{mtchNmdObsEqtoConst v d} matches a predicate of the form
+%\texttt{Equal (Var v) k}, returning a list with both parts.
+%The function \texttt{matchRecog} takes a recogniser and list of predicates
+%and looks in the list for the first predicate to satisfy
+%the recogniser, returning a triple of the form
+%(before,satisyingPred,after).
+%If the recogniser succeeds,
+%we then check the validity of the expression,
+%and the absence of the unwanted variable from the
+%rest of the conjuncts --- using boolean function
+% \texttt{dftlyNotInP} (``definitely not in $P$''),
+% so handling task (ii) above.
+%\begin{code}
+%isSafeLSDash d theLS unwanted prs
+% = case matchRecog (mtchNmdObsEqToConst theLS d) prs of
+%    Nothing -> Nothing
+%    Just (pre,(eq@(_,Equal _ k),_),post) ->
+%     if notGround d k
+%      then Nothing
+%      else if all (dftlyNotInP d unwanted) rest
+%       then Just (eq,rest)
+%       else Nothing
+%     where rest = pre++post
+%\end{code}
