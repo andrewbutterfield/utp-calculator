@@ -1,0 +1,146 @@
+\section{Conclusions}\label{sec:Conc}
+
+We have presented a description of a calculator written in Haskell,
+that allows the encoding of an UTP theory under development,
+in order to be able to rapidly perform test calculations.
+This helps to check that predictions of the theory match expectations.
+The tool was not designed to be a complete and sound theory development
+system,
+but instead to act as a rapid-prototype tool to help smoke out problems
+with a developing theory. This approach relies on the  developer
+to be checking and scrutinising everything.
+
+\subsection{Costs vs. Benefits}
+
+As far as the development of the UTCP theory is concerned,
+the costs of developing and customising the calculator
+have been well compensated for by the benefits we encountered.
+This also applies to ongoing work to develop a fully compositional UTP theory
+of shared-state concurrency that does not require $run$.
+We note a few observations based on our experience
+using the calculator.
+
+
+   The ``first-come, first-served'' approach
+   used by the calculator is surprisingly effective.
+   We support a system of equational reasoning
+   where reductions and definitions replace predicates with ones that
+   are equal.
+   In effect this means that the order in which most of these steps
+   take place is immaterial.
+   Some care needs to be taken when several rules apply to one construct,
+   but this can be managed by re-arranging the order in which various
+   patterns and their side-conditions can be checked.
+
+
+   The main idea in using the calculator
+   is to find a suitable collection of patterns,
+   in the right order,
+   to be most effective in performing calculations.
+   The best way to determine this is to start with none,
+   run the calculator and when it stalls
+   (no change is happening for any command),
+   see what law would help make progress, and encode it.
+   This leads to an unexpected side-effect of this calculator,
+   in that we learnt what laws we needed,
+   rather than what we thought we would need.
+
+
+
+
+    Effective use of the calculator results in an inexorable
+    push towards algebras. By this we do not mean the Kleene algebras,
+    or similar, that might characterise the language being formalised.
+    Rather we mean that the most effective use of the calculator results
+    when we define predicate functions that encapsulate some simple
+    behaviour, and demonstrate, by proofs done without the calculator,
+    some laws they obey,
+    particularly with respect to sequential composition.
+    In fact, one of the `algebras' under development for the fully
+    compositional theory, is so effective,
+    that many of the test calculations
+    can actually be done manually.
+    However some, most notably involving parallel composition,
+    still require the calculator in order to be feasible.
+
+\subsection{Correctness}
+
+    An issue that can be raised,
+    given the customisation and lack of soundness guarantees,
+    is how well has the calculator been tested?
+    The answer is basically that the process of using it ensures
+    that the whole system is comprehensively tested.
+    This is because calculations fail repeatedly.
+    Such failures lead to a post-mortem to identify the reason.
+    Early in the calculator development,
+    the reason would be traced to a bug in the calculator infrastructure.
+    The next phase has failures that can be attributed
+    to bugs in the encoding of laws in Haskell,
+    or poor ordering in the dictionary.
+    What makes the above tolerable is that the time taken to identify
+    and fix each code problem is relatively short,
+    often a matter of five to ten minutes.
+    The final phase is where calculation failures arise because of errors
+    in the proposed theory---this is the real payback,
+    as this is the intended purpose of the tool.
+    The outcome of all of this iterative development
+    is a high degree of confidence in the end result.
+    In the author's experience,
+    the cost of all the above failures
+    is considerably outweighed by the cost of
+    trying to do the check calculations manually.
+
+There are no guarantees of soundness.
+But working on any theory by hand faces exactly the same issues
+--- a proof or calculation by hand always raises the issue
+of the correctness of a law, or the validity of a ``proof-step''
+that is really a number of simpler steps all rolled into one.
+In either case, by hand or by calculator,
+the theory developer has a responsibility to carefully check every line.
+This is one reason why so much effort was put into pretty-printing
+and marking.
+The calculator's real benefit, and\emph{ main design purpose},
+is the ease with which
+it can produce a calculation and transcript.
+
+
+In effect, this UTP Calculator is a tool that assists
+with the validation of UTP semantic definitions,
+and is designed for use by someone with expertise
+in UTP theory building,
+and a good working knowledge of Haskell.
+
+%A key lesson learnt during the development
+%of both the calculator, and the UTCP theory,
+%is the value of the agile approach.
+%By focussing development of both on what
+%was the immediate need at any given moment,
+%we found that the calculator, and its dictionaries,
+%were prevented from excessive bloat
+%e.g., coding up a common, useful, obvious law,
+%that actually wasn't needed.
+%What was important was
+%finding the ``sweet spot'' between the use of definition
+%expansion, and hard-coded laws based on by-hand proofs.
+
+\subsection{Future Work}
+
+We plan a formal release of this calculator as a Haskell package.
+A key part of this would be comprehensive
+user documentation of the key parts of the calculator API,
+the standard built-in dictionaries,
+as well as a complete worked example of a theory encoding.
+There are many enhancements that are also being considered,
+that include better transcript rendering options
+(e.g. \LaTeX) or ways to customise the REPL
+(e.g. always do a simplify step after any other REPL command).
+Also of interest would be finding
+a way of connecting the calculator
+to either the \UTP2 theorem-prover\cite{DBLP:conf/utp/Butterfield10}
+or the Isabelle/UTP encoding\cite{DBLP:conf/utp/FosterZW14}
+in order to be able to validate the dictionary entries.
+All the code described here is available online
+at
+\\\url{https://bitbucket.org/andrewbutterfield/utp-calculator.git}
+as Literate Haskell Script files (\texttt{.lhs})
+in the \texttt{src} sub-directory.

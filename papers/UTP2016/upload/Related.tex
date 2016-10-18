@@ -1,0 +1,85 @@
+\section{Related Work}\label{sec:Related}
+
+There are lots of tools for assisting with the kinds of
+calculations we are trying to perform,
+ranging from calculators
+\cite{Bird14},
+through rewrite/transformation
+systems
+(CIP-S\cite{DBLP:books/sp/BauerEH87},
+Stratego\cite{conf/rta/Visser01},
+ASF+DSF\cite{VanDenBrand:2002:CLD}
+Maude\cite{conf/rta/ClavelDELMMT03}
+HATS\cite{conf/gttse/WinterB06})
+to full-blown theorem provers
+(Isabelle/HOL\cite{books/sp/NipkowPW02},
+CoQ\cite{bk:Coq'Art:04},
+PVS\cite{conf/fmcad/Shankar96})
+including those that support equational reasoning
+(Isabelle/ISAR\cite{man:Isabelle:Isar:Wenzel:10}).
+
+Most of the above have a considerable body of work behind them,
+both in terms of theory and tool development,
+and provide very comprehensive coverage of their problem domain,
+be it rewriting, program transformation or theorem proving.
+However many are tied to specific languages,
+or have limited ability to allow the user to customise the target language.
+In particular,
+it is not clear in any of them,
+how to achieve the ability to do rapid calculation
+with a high degree of ease in proof-reading its
+output.
+
+Within the UTP community,
+there has been considerable work using Proof{\-}Power-Z,
+such as the deep embedding into Z of an imperative language whose semantics
+were given using UTP \cite{conf/utp/NukaW06}
+and
+ re-working the mechanisation of UTP in order to better support
+the hierarchical nature of UTP theory building \cite{journals/entcs/ZeydaC09}.
+%Some support for Z-like theories from UTP (such as Circus)
+%can be found as extensions implemented in the Community Z Tools project
+%\cite{conf/zum/MalikU05}.
+%
+There is also work on embedding UTP into Isabelle/HOL\cite{DBLP:conf/utp/FosterZW14}.
+This contains a considerable amount of infrastructure to support UTP's
+alphabetised predicates in a general way, with UTP forming a third
+sub-syntax in addition to Isabelle/HOL's inner and outer syntaxes.
+It continues to undergo continuous improvement\cite{DBLP:series/natosec/FosterW15}.
+
+Like all high-quality state-of-the-art tools,
+CoQ, Isabelle/HOL, ProofPower-Z and PVS
+all have in common that they work best when used in the manner
+for which they were designed%
+---in none of these cases does this manner match the way
+we wish to work in UTP, as described in the introduction,
+without at least a steep learning curve.
+
+
+We briefly considered using the \UTP2 theorem prover
+\cite{DBLP:conf/utp/Butterfield10,DBLP:conf/utp/Butterfield12},
+which does support both equational reasoning,
+plus a mode in which calculations can be from a starting predicate,
+as we require.
+However, it would have required a lot of setup effort,
+in particular to build the support theories about sets and labels
+and generators.
+Also, it is currently not in an ideal state,
+due to difficulties installing
+the relevant third-party software libraries
+on more recent versions of Haskell.
+
+However, as part of other ongoing work,
+we had developed a parser and some initial analysis tools
+in Haskell\cite{Haskell2010},
+and this software contained abstract syntax and support
+for general predicates.
+It became really obvious that this could be quickly adapted,
+to mechanise the checking calculations, that were being performed
+during each attempt.
+In particular,
+the key inspiration was the observation,
+that the pattern of each calculation was very uniform and similar.
+So a decision was taken to construct the calculator described in this paper.
+It also has the advantage that it runs on standard Haskell,
+and hence it is much easier to future-proof.

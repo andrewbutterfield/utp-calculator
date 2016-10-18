@@ -1,0 +1,208 @@
+% PML.sty
+\def\alt{\mid}
+\def\pll{\!\parallel\!}
+\def\pllR{\! \parallel_{\ominus \; } \!}
+\def\CMPR{\! COMP_{\ominus \; } \!}
+\def\stCMPR{\! startCOMP_{\ominus \; }  \!}
+\def\ndCMPR{\! endCOMP_{\ominus \; }  \!}
+\def\sel{\mathbin{\triangleleft\!\triangleright}}
+\def\defs{\mathrel{\widehat=}}
+\def\done{\mho}
+
+
+\def\power{\mathop{\mathcal P}}
+\def\fun{\rightarrow}
+\def\pfun{\nrightarrow}
+\def\Bool{\mathbb{B}}
+\def\Nat{\mathbb{N}}
+\def\Int{\mathbb{Z}}
+\def\Rat{\mathbb{Q}}
+\def\Real{\mathbb{R}}
+\def\Cmpx{\mathbb C}
+\def\One{\mathbf 1}
+\def\Alt{\mathrel{|}}
+\def\Char{\mathbb A}
+\def\Set{\mathcal P}
+\def\Seq#1{{#1}^*}
+\def\setof#1{\{{#1}\}}
+\def\Map#1#2{{#1}\pfun{#2}}
+\def\mapof#1{\setof{#1}}
+\def\maplet#1#2{\mapof{{#1}\mapsto{#2}}}
+\def\nul{\setof{}}
+\def\seqof#1{\langle{#1}\rangle}
+\def\nil{\seqof{}}
+\def\mapof#1{\{{#1}\}}
+\def\cat{\mathbin{\frown}}
+\def\dom{\mathop{\mathrm{dom}}}
+\def\rng{\mathop{\mathrm{rng}}}
+
+\def\defs{\mathrel{\widehat=}}
+\def\cond#1{\mathrel{\lhd ~ {#1} ~ \rhd}}
+\def\false{\ensuremath{\mathbf{false}}}
+\def\true{\ensuremath{\mathbf{true}}}
+\def\alf#1{\alpha{#1}}
+\def\False{\ensuremath{\mathbf{False}}}
+\def\True{\ensuremath{\mathbf{True}}}
+
+\def\dnot#1{\overline{#1}}
+
+\def\fv{\mathsf{fv.}}
+\def\FV{\mathsf{fv}}
+
+\def\less#1{{\scriptstyle\setminus}_{#1}}
+
+\def\mathHC#1{\ensuremath{\mathbf{#1}}}
+\def\mkH#1#2{\mathHC{mk{#1}{#2}}}
+\def\isH#1#2{\mathHC{is{#1}{#2}}}
+\def\theH#1#2{\mathHC{{#1}{#2}}}
+
+\def\mkHH#1{\mkH{H}{#1}}
+\def\isHH#1{\isH{H}{#1}}
+\def\HH#1{\theH{H}{#1}}
+\def\H{\HH{}}
+
+\def\mkPP#1{\mkH{P}{#1}}
+\def\isPP#1{\isH{P}{#1}}
+\def\PP#1{\theH{P}{#1}}
+\def\PML{\theH{P}{}}
+
+\def\mkRR#1{\mkH{R}{#1}}
+\def\isRR#1{\isH{R}{#1}}
+\def\RR#1{\theH{R}{#1}}
+\def\R{\RR{}}
+
+\def\mkGG#1{\mkH{G}{#1}}
+\def\isGG#1{\isH{G}{#1}}
+\def\GG#1{\theH{G}{#1}}
+\def\G{\GG{}}
+
+\def\g#1{g_{#1}}
+
+\def\WW#1{\theH{WW}{#1}}
+
+
+%\def\mkWP#1{\mkH{WP}{#1}}
+%\def\isWP#1{\isH{WP}{#1}}
+%\def\WP#1{\theH{WP}{#1}}
+%\def\W{\WP{}}
+
+\def\demc{\sqcap}
+\def\angc{\sqcup}
+\def\ndc{\demc}
+\def\refinedby{\sqsubseteq}
+\def\refines{\sqsupseteq}
+\def\seq{\mathrel{;}}
+
+% language constructs
+
+% PML
+\def\pseq{\mathbin{\mathbf{;\!;}}}
+\def\pcond{\mathbin{\lhd\!\rhd}}
+\def\piter#1{{#1}^{\omega}}
+\def\pgrd{\mathrel{\&}}
+
+% UTCP
+\def\wdo{\circledast}
+\def\lseq{\mathrel{\mathbf{;\!;}}}
+\def\lcond#1{\mathrel{\blacktriangleleft  {#1}  \blacktriangleright}}
+\def\rplby{\mathbin{\langle\!|}}
+
+\def\then{\rightarrow}
+\def\design{\vdash}
+\def\lsembr{[\![}
+\def\rsembr{]\!]}
+\def\sem#1{\lsembr{#1}\rsembr}
+
+\def\Skip{\mathit{II}}
+
+\def\kword#1{\mathbf{#1}}
+\def\LET{\kword{let}}
+\def\IN{\kword{in}}
+\def\WHERE{\kword{where}}
+\def\WHILE{\kword{while}}
+\def\DO{\kword{do}}
+\def\IF{\kword{if}}
+\def\THEN{\kword{then}}
+\def\ELSE{\kword{else}}
+\def\ELSEIF{\kword{elseif}}
+
+\def\MATH#1{{\color{red!40!blue}{#1}}}
+\def\m#1{\ensuremath{\MATH{#1}}}
+\def\COZ#1{{\color{green!30!black}{#1}}}
+\def\START#1{\lefteqn{{\MATH{#1}}}}
+\def\coz#1{\rule[-6pt]{0pt}{18pt}\mbox{{\COZ{``{#1}''}}}}
+\def\MORE#1{\\&&\coz{#1}}
+\def\EQ#1{\\&=&\coz{#1}}
+\def\EQm#1{\\&=&\coz{$#1$}}
+\def\EQV#1{\\&\equiv&\coz{#1}}
+\def\EQVm#1{\\&\equiv&\coz{$#1$}}
+\def\IMP#1{\\&\implies&\coz{#1}}
+\def\IMPm#1{\\&\implies&\coz{$#1$}}
+\def\RBY#1{\\&\sqsubseteq&\coz{#1}}
+\def\RBYm#1{\\&\sqsubseteq&\coz{$#1$}}
+\def\THIS#1{\\&&\MATH{#1}}
+\def\OLD#1{{\underline{#1}}}
+\def\NEW#1{{\color{red}{#1}}}
+\def\qed{{\color{green!50!black}\blacksquare}}
+\def\QED{\\&\qed}
+\def\say#1{\mbox{#1}}
+
+\def\llawnamebr{\mbox{\raisebox{2pt}{${\scriptscriptstyle\langle\!\langle\cdot}$}}}
+\def\rlawnamebr{\mbox{\raisebox{2pt}{${\scriptscriptstyle\cdot\rangle\!\rangle}$}}}
+\def\mkelabel#1{\textsf{\llawnamebr{#1}\rlawnamebr}}
+\def\elab#1#2{\mkelabel{#1}\label{#2}}
+\def\elabel#1{\elab{#1}{#1}}
+\def\ecite#1{\mkelabel{#1}}
+\def\eref#1{\mkelabel{#1, p\pageref{#1}}}
+
+%\def\RLEQNS#1{
+%  \begin{eqnarray}
+%    #1
+%  \end{eqnarray}
+%}
+
+\def\RLEQNSs#1{
+  \begin{eqnarray*}
+    #1
+  \end{eqnarray*}
+}
+
+\def\ProcDecl{p \in Proc} \def\ProcDef{N~::~w}
+\def\WorkDecl{w \in Work} \def\WorkDef{t \alt w ; w \alt w \pll w \alt w \sel w \alt w^*}
+                          \def\WorkNDef{{} \alt w ;_N w \alt w \pll_N w \alt w \sel_N w \alt w^*_N}
+\def\TaskDecl{t \in Task} \def\TaskDef{N~[man \alt exe] s^*}
+\def\SpecDecl{s \in Spec} \def\SpecDef{rq \alt pr \alt ag \alt sc \alt tl}
+\def\ReqdDecl{rq \in Reqd} \def\ReqdDef{?e}
+\def\PrvdDecl{pr \in Prvd} \def\PrvdDef{!e}
+\def\AgntDecl{ag \in Agnt} \def\AgntDef{@e}
+\def\ScrpDecl{sc \in Scrp} \def\ScrpDef{``\aleph''}
+\def\ToolDecl{tl \in Tool} \def\ToolDef{\langle\aleph\rangle}
+\def\ExprDecl{e  \in Expr} \def\ExprDef{\lor,\land,\lnot,=,\neq,\le,<,\ge,> \mbox{ over } r}
+\def\ResDecl{r \in Resource} \def\ResDef{ var \alt  val}
+\def\VarDecl{var \in Variable} \def\VarDef{N \alt(N) [var]}
+\def\ValDecl{val \in Value} \def\ValDef{n \alt\aleph \alt var . N}
+\def\StrDecl{\aleph \in Str} \def\StrDef{\mbox{user string}}
+\def\NameDecl{N \in Name} \def\NameDef{\mbox{user defined}}
+\def\NumDecl{n \in Num} \def\NumDef{\mbox{number}}
+
+\def\MATHSYNTAX{
+\begin{eqnarray*}
+   \ProcDecl &::=& \ProcDef
+\\ \WorkDecl &::=& \WorkDef
+\\           &   & \WorkNDef
+\\ \TaskDecl &::=& \TaskDef
+\\ \SpecDecl &::=& \SpecDef
+\\ \ReqdDecl &::=& \ReqdDef
+\\ \PrvdDecl &::=& \PrvdDef
+\\ \AgntDecl &::=& \AgntDef
+\\ \ScrpDecl &::=& \ScrpDef
+\\ \ToolDecl &::=& \ToolDef
+\\ \ExprDecl &::=& \ExprDef
+\\ \ResDecl &::=& \ResDef
+\\ \VarDecl &::=& \VarDef
+\\ \ValDecl &::=& \ValDef
+\\ \StrDecl &::=& \StrDef
+\\ \NameDecl &::=& \NameDef
+\\ \NumDecl &::=& \NumDef
+\end{eqnarray*}
+}

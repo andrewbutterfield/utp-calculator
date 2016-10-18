@@ -1,4 +1,4 @@
-\HDRa{Views}\label{ha:Views}
+\HDRa{Root}\label{ha:Root}
 \begin{code}
 module Views where
 import Utilities
@@ -27,6 +27,76 @@ import UTCPCReduce
 \begin{code}
 -- import Debug.Trace
 -- dbg str x = trace (str++show x) x
+\end{code}
+
+This Root file is a re-work of the Views semantics
+replacing label generators by ``rooted'' label-paths.
+
+\RLEQNS{
+   S &\defs& \setof{:,1,2}
+\\ \sigma &\defs& S^*
+\\ R &::=& r | R S
+\\ R &\le& R\sigma
+\\ R1\sigma &\le& R:
+\\ R2\sigma &\le& R:
+\\ \W(P) &\defs& \bigvee_i P^i
+}
+\begin{code}
+data RootStep = Step | Split1 | Split2 deriving (Eq,Ord)
+instance Show RootStep where
+ show Step = ":"
+ show Split1 = "1"
+ show Split2 = "2"
+
+newtype RootPath = RootPath [RootStep] deriving Eq
+instance Show RootPath where
+  show (RootPath rs) = 'r':(concat (map show rs))
+instance Read RootPath where
+  readsPrec _ ('r':rest) = [readPath [] rest]
+  readsPrec _ _ = []
+
+readPath path "" = (RootPath $ reverse path,"")
+readPath path str@(c:cs)
+ | c == ':'   =  readPath (Step:path) cs
+ | c == '1'   =  readPath (Split1:path) cs
+ | c == '2'   =  readPath (Split2:path) cs
+ | otherwise  =  (RootPath $ reverse path,str)
+\end{code}
+
+We need to define a partial-order class.
+\texttt{Data.Poset} is not suitable as it ``overloads'' \texttt{Ord}.
+Others require various type/class extensions I prefer to avoid.
+The following is inspired by Wren Romano's \texttt{Data.Numbers.Ord}.
+\begin{code}
+data POrdering = PNC | PLT | PEQ | PGT deriving (Eq, Show)
+class Eq t => POrd t where
+  pcmp :: t -> t -> POrdering
+  lt :: t -> t -> Bool
+  le :: t -> t -> Bool
+  gt :: t -> t -> Bool
+  ge :: t -> t -> Bool
+
+  lt a b = pcmp a b == PLT
+  le a b = case pcmp a b of
+            PLT  ->  True
+            PEQ  ->  False
+  gt a b = pcmp a b == PGT
+  ge a b = case pcmp a b of
+            PGT  ->  True
+            PEQ  ->  False
+\end{code}
+Now for our rooted labels:
+\begin{code}
+instance POrd RootPath where
+  pcmp (RootPath rp1) (RootPath rp2) = compRP rp1 rp2
+
+compRP :: Eq a => [a] -> [a] -> POrdering
+compRP  [] [] = PEQ
+compRP [] (_:_) = PLT
+compRP (_:_) [] = PGT
+compRP (s1:ss1) (s2:ss2)
+ | s1 == s2  =  compRP ss1 ss2
+ | otherwise =  PNC
 \end{code}
 
 We do a quick run-down of the Commands\cite{conf/popl/Dinsdale-YoungBGPY13}.
