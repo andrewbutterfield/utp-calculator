@@ -72,22 +72,58 @@ replacing label generators by ``rooted'' label-paths.
 Initially we work up some stuff directly in Haskell,
 not using the \texttt{Expr} or \texttt{Pred} types.
 
+We start by defining three basic ways to transform a rooted path:
+``step'' ($:$);
+``split-one'' ($1$);
+and ``split-two'' ($2$).
 \RLEQNS{
    S &\defs& \setof{:,1,2}
 }
 \begin{code}
+showConst str _ _ = str  -- constant pretty-printer
+evalConst _ = noeval -- constant (non-)evaluator
+
+stepn   = ":" ; step   = App stepn   []
+split1n = "1" ; split1 = App split1n []
+split2n = "2" ; split2 = App split2n []
+
+stepEntry
+ = ( stepn,   ExprEntry [] (showConst stepn)   evalConst noEq )
+split1Entry
+ = ( split1n, ExprEntry [] (showConst split1n) evalConst noEq )
+split2Entry
+ = ( split2n, ExprEntry [] (showConst split2n) evalConst noEq )
+
 data RootStep = Step | Split1 | Split2 deriving (Eq,Ord)
 instance Show RootStep where
  show Step = ":"
  show Split1 = "1"
  show Split2 = "2"
 \end{code}
+
+We now define a rooted path as an expression of the form
+of the variable $r$ followed by zero or more $S$ transforms.
 \RLEQNS{
    \sigma,\varsigma &\defs& S^*
 \\ R &::=& r | R S
 \\   & = & r\sigma
 }
+These have to be expressions as we shall want to substitute for $r$
+in them.
 \begin{code}
+rootn = "r" ; root = Var rootn
+
+rpathn = "R"
+rpath rp s = App rpathn [rp, s]
+rPath [rp, s] = rpath rp s
+
+rpShow d [rp, s] = edshow d rp ++ edshow d s
+
+rpathEntry :: Show s => ( String, Entry s )
+rpathEntry
+ = ( rpathn
+   , ExprEntry subAny rpShow (justMakes rPath) noEq )
+
 newtype RootPath = RootPath [RootStep] deriving Eq
 instance Show RootPath where
   show (RootPath rs) = 'r':(concat (map show rs))
@@ -147,9 +183,20 @@ compRP (s1:ss1) (s2:ss2)
  | otherwise =  PNC
 \end{code}
 
+Build the rooted paths dictionary:
+\begin{code}
+rPathDict :: Show s => Dict s
+rPathDict
+ = makeDict
+    [ stepEntry
+    , split1Entry
+    , split2Entry
+    , rpathEntry
+    ]
+\end{code}
 
 
-
+\newpage
 \HDRc{Set Expressions}
 
 We use sets in two key ways:
@@ -352,7 +399,7 @@ vSetDict
     ]
 \end{code}
 
-
+\newpage
 \HDRc{Label Generation}
 
 Imagine that we have a mechanism for generating labels as follows:
@@ -367,6 +414,7 @@ Coding the function projections
 $new_i = \pi_i \circ new$
 and $split_i = \pi_i \circ split$.
 \begin{code}
+-- deprecated:
 new1n = "new1"
 new1 g = App new1n [g]
 gNew1 [g] = new1 g
@@ -375,13 +423,13 @@ new2n = "new2"
 new2 g = App new2n [g]
 gNew2 [g] = new2 g
 
-split1n = "split1"
-split1 g = App split1n [g]
-gSplit1 [g] = split1 g
+xxxsplit1n = "xxxsplit1"
+xxxsplit1 g = App xxxsplit1n [g]
+gSplit1 [g] = xxxsplit1 g
 
-split2n = "split2"
-split2 g = App split2n [g]
-gSplit2 [g] = split2 g
+xxxsplit2n = "xxxsplit2"
+xxxsplit2 g = App xxxsplit2n [g]
+gSplit2 [g] = xxxsplit2 g
 \end{code}
 
 \HDRd{Generator Shorthand}
@@ -407,8 +455,8 @@ vGenDict
  = makeDict
     [ (new1n,(ExprEntry subAny showGNew1 (justMakes gNew1) noEq))
     , (new2n,(ExprEntry subAny showGNew2 (justMakes gNew2) noEq))
-    , (split1n,(ExprEntry subAny showGSplit1 (justMakes gSplit1) noEq))
-    , (split2n,(ExprEntry subAny showGSplit2 (justMakes gSplit2) noEq))
+    , (xxxsplit1n,(ExprEntry subAny showGSplit1 (justMakes gSplit1) noEq))
+    , (xxxsplit2n,(ExprEntry subAny showGSplit2 (justMakes gSplit2) noEq))
     ]
 \end{code}
 
@@ -416,7 +464,7 @@ vGenDict
 
 \begin{code}
 dictVE :: (Ord s, Show s) => Dict s
-dictVE = vSetDict `dictMrg` vGenDict
+dictVE = rPathDict `dictMrg` vSetDict -- `dictMrg` vGenDict
 \end{code}
 
 
@@ -425,14 +473,15 @@ dictVE = vSetDict `dictMrg` vGenDict
 
 \begin{eqnarray*}
    s, s' &:& \mathcal S
-\\ ls, ls' &:& \mathcal P (Lbl)
-\\ g &:& Gen
-\\ in, out &:& Lbl
+\\ ls, ls' &:& \mathcal P (R)
+\\ r &:& R
 \end{eqnarray*}
 
 \begin{code}
 s   = Var "s"  ; s'  = Var "s'"
 ls  = Var "ls" ; ls' = Var "ls'"
+r   = Var "r"
+-- deprecated:
 g   = Var "g"
 inp = Var "in" -- "in" is a Haskell keyword
 out = Var "out"
@@ -440,7 +489,8 @@ out = Var "out"
 
 We define our dictionary alphabet entries,
 and also declare that the predicate variables $a$, $a$ and $a$
-will refer to atomic state-changes, and so only have alphabet $\setof{s,s'}$.
+will refer to atomic state-changes,
+and so only have alphabet $\setof{s,s'}$.
 \begin{code}
 vAlfDict
  = dictMrg dictAlpha dictAtomic
@@ -451,7 +501,7 @@ vAlfDict
                          , pvarEntry "c" ss' ]
    ss' = ["s", "s'"]
 
-vStatic = ["g","in","out"]
+vStatic = ["r"]
 vDynamic = ["ls","ls'","s","s'"]
 vObs = vDynamic ++ vStatic
 \end{code}
@@ -613,118 +663,98 @@ vAEntry
    , PredEntry vStatic ppA vObs defnA simpA )
 \end{code}
 
-\HDRc{Wheels within Wheels}\label{hc:WwW}
-
-We will remove the stuttering step from here,
-because it looks like it only needs to be applied to atomic actions,
-and it then propagates up.
-\RLEQNS{
-   \W(C) &\defs& \true * C
-\\       &=& \bigvee_{i\in 0\dots} \Skip\seq D^i
-     & \textbf{provided } C = \Skip \lor D \textbf{ for some } D
-\\ ii &\defs& s'=s
-}
-We hypothesis that $\W(C) = \W(\Skip \lor C)$
-for all our command constructs.
-\begin{code}
-nW = "W"
-isW (Comp n [_]) | n==nW = True; isW _ = False
-
-mkW pr  = Comp nW [pr]
-
-ppW sCP vd p [pr]
- = ppclosed "W(" ")" "" [ sCP 0 1 pr ]
-ppW _ _ _ _ = pps styleRed $ ppa ("invalid-"++nW)
-
--- we don't want to expand the definition of this, or simplify it
-defnW = pNoChg nW
-simpW = pNoChg nW
-
-vWEntry :: (Show s, Ord s) => (String, Entry s)
-vWEntry
- = ( nW
-   , PredEntry [] ppW vObs defnW simpW )
-\end{code}
-
-\NOTE{
-Redo this to handle $\W(P) = \true * (\Skip \lor P)$
-}
-\begin{code}
-wUnroll :: Ord s => String -> RWFun s
-wUnroll arg d _ wpr@(Comp nw [pr])
- | nw == nW
-   = case numfrom arg of
-      0 -> Just ( "W-unroll"
-                , mkSeq (mkOr [mkSkip, pr]) wpr , True )
-      n -> Just ( "W-unroll."++arg
-                ,  wunroll n
-                , True )
-
- where
-   numfrom "" = 0
-   numfrom (c:_) | isDigit c = digitToInt c
-                 | otherwise = 42
-
-   wunroll n = mkOr (mkSkip : dupPr pr n)
-   dupPr dups 0 = []
-   dupPr dups n = dups : dupPr (mkSeq dups pr) (n-1)
-
-wUnroll _ _ _ _ = Nothing
-\end{code}
-
-\newpage
-\HDRb{WwW Semantic Definitions}
-
-The definitions, using the new shorthands:
-\RLEQNS{
-   \W(C) &\defs& \bigvee_{i\in 0\dots} \Skip\seq C^i
-\\ ii &\defs& s'=s
-\\
-\\ \Atm a &\defs&\W(A(r|a|\rr:))
-\\ \cskip
-   &\defs&
-   \Atm{ii}
-\\
-\\ C \cseq D
-   &\defs&
-   \W(C \lor D[\rr:/r])
-\\
-\\ C + D
-   &\defs&
-   \W(\quad {}\phlor A(r|ii|\rr1) \lor A(r|ii|\rr2)
-\\ && \qquad {} \lor
-   C[\rr1/r] \lor D[\rr2/r]
-\\ && \qquad {} \lor A(\rr{1:}|ii|\rr:) \lor A(\rr{2:}|ii|\rr:) ~)
-\\
-\\ C \parallel D
-   &\defs&
-   \W(\quad\phlor A(r|ii|\rr1,\rr2)
-\\ && \qquad {}\lor
-   C[\rr1/r]
-   \lor D[\rr2/r]
-\\ && \qquad {}\lor
-   A(\rr{1:},\rr{2:}|ii|\rr:)~)
-\\
-\\ C^*
-   &\defs&
-   \W(\quad  \phlor A(r|ii|\rr1) \lor A(\rr1|ii|\rr:)
-\\ && \qquad {}\lor C[\rr1/r]    \lor A(\rr{1:}|ii|\rr1) ~)
-}
 
 \newpage
 \HDRc{Coding Label-Set Invariants}
 
+We have a key invariant as part of the healthiness
+condition associated with every semantic predicate,
+namely that the labels $r$ and $\rr:$ never occur in  $ls$ at
+the same time:
+\[
+ ( r \in ls \implies \rr: \notin ls )
+ \land
+ ( \rr: \in ls \implies r \notin ls )
+\]
+This is the Label Exclusivity invariant.
+
+Given the way we shall use substitution of $r$ by
+other rooted paths, for sub-components,
+we shall see that we will get a number of instances of this.
+We adopt a shorthand notation,
+so that the above invariant is simply
+\[
+  [r|\rr:]
+\]
+So we define the following general shorthand:
 \RLEQNS{
-   i \in I_\tau &::=& \tau \mid \otimes(i,\ldots,i) \mid \cup (i,\ldots,i)
+   ~[L_1|L_2|\dots|L_n]
+   &\defs&
+   \forall_{i,j \in 1\dots n}
+    @
+    i \neq j \implies
+     ( L_i \cap ls \neq \emptyset \implies L_j \cap ls = \emptyset )
+\\ \multicolumn{3}{c}{\elabel{short-lbl-exclusive}}
 }
+What needs to be kept in mind regarding this shorthand notation
+is that $ls$ is mentioned under the hood,
+and it is really all about what can be present in the global label-set
+at any instant in time.
+
 We shall code this structure directly in Haskell
 as it eases invariant satisfaction calculation.
 \begin{code}
+type LESet t = [t]
+type LEInv t = [LESet t]
+-- deprecated:
 data I t = I t | U [I t] | X [I t] deriving Show
 \end{code}
-We refer to these three variants as
- \texttt{IElem}, \texttt{IDisj} and \texttt{IJoin}:
+We refer to these two types as
+ \texttt{LESet}, and \texttt{LEInv}.
+We start with the ``LE-sets'', as expressions
 \begin{code}
+nLESet = "LESet"
+
+leSet es = App nLESet es
+
+isLESet (Comp n _)
+ | n == nLESet  =  True
+ | otherwise    =  False
+
+showLESet d [] = ""
+showLESet d [e] = edshow d e
+showLESet d (e:es) = edshow d e ++ ',':showLESet d es
+
+vLESetEntry :: Show s => (String, Entry s)
+vLESetEntry
+ = ( nLESet
+   , ExprEntry subAny showLESet (justMakes leSet) noEq )
+\end{code}
+
+We then move onto the ``LE-invariant'', as predicates
+\begin{code}
+nLEInv = "LEInv"
+
+leInv es = Comp nLEInv $ map Atm es
+
+isLEInv (Comp n es)
+ | n == nLEInv  =  all isLESet es
+ | otherwise    =  False
+
+precInv = -1
+
+ppLEInv sCP d p prs
+ = ppclosed "[" "]" "|" $ map (sCP precInv 1) prs
+
+vLEInvEntry :: (Show s, Ord s) => (String, Entry s)
+vLEInvEntry
+ = ( nLEInv
+   , PredEntry anyVars ppLEInv vStatic (pNoChg nLEInv) (pNoChg nLEInv) )
+
+\end{code}
+
+\begin{code}
+-- deprecated:
 nIElem = "IElem"
 nIDisj = "IDIsj"
 nIJoin = "IJoin"
@@ -744,7 +774,6 @@ ijoin prs@(_:_)  =  Comp nIJoin prs
 ppIElem sCP d p [pr@(Atm e)] = sCP 0 1 pr
 ppIElem _ _ _ _ = pps styleRed $ ppa ("invalid-"++nIElem)
 
-precInv = -1
 
 ppIDisj sCP d p prs = ppclosed "[" "]" "|" $ map (sCP precInv 1) prs
 
@@ -894,6 +923,111 @@ invTrims d inv ena other = not $ lsat d (set [ena,other]) inv
 \end{code}
 
 \newpage
+\HDRc{Wheels within Wheels}\label{hc:WwW}
+
+The wheels-within-wheels healthiness condition
+insists that $r$ and $\rr:$ are never simultaneously in
+the label-set $ls$,
+and that our semantic predicates are closed under mumbling.
+\RLEQNS{
+   \W(C)
+   &\defs&
+   [r|\rr:] \land \left(~\bigvee_{i\in 0\dots} C^i~\right)
+\\ ii &\defs& s'=s
+}
+\begin{code}
+nW = "W"
+isW (Comp n [_]) | n==nW = True; isW _ = False
+
+mkW pr  = Comp nW [pr]
+
+ppW sCP vd p [pr]
+ = ppclosed "W(" ")" "" [ sCP 0 1 pr ]
+ppW _ _ _ _ = pps styleRed $ ppa ("invalid-"++nW)
+
+-- we don't want to expand the definition of this, or simplify it
+defnW = pNoChg nW
+simpW = pNoChg nW
+
+vWEntry :: (Show s, Ord s) => (String, Entry s)
+vWEntry
+ = ( nW
+   , PredEntry [] ppW vObs defnW simpW )
+\end{code}
+
+\NOTE{
+Redo this to handle $\W(P) = \true * (\Skip \lor P)$
+}
+\begin{code}
+wUnroll :: Ord s => String -> RWFun s
+wUnroll arg d _ wpr@(Comp nw [pr])
+ | nw == nW
+   = case numfrom arg of
+      0 -> Just ( "W-unroll"
+                , mkSeq (mkOr [mkSkip, pr]) wpr , True )
+      n -> Just ( "W-unroll."++arg
+                ,  wunroll n
+                , True )
+
+ where
+   numfrom "" = 0
+   numfrom (c:_) | isDigit c = digitToInt c
+                 | otherwise = 42
+
+   wunroll n = mkOr (mkSkip : dupPr pr n)
+   dupPr dups 0 = []
+   dupPr dups n = dups : dupPr (mkSeq dups pr) (n-1)
+
+wUnroll _ _ _ _ = Nothing
+\end{code}
+
+\newpage
+\HDRb{WwW Semantic Definitions}
+
+The definitions, using the new shorthands:
+\RLEQNS{
+   \W(C) &\defs& [r|\rr:]
+                 \land
+                 \left(\bigvee_{i\in 0\dots} C^i\right)
+\\ ii &\defs& s'=s
+\\
+\\ \Atm a &\defs&\W(A(r|a|\rr:))
+\\
+\\ C \cseq D
+   &\defs&
+   \W(~    A(r|ii|\rr1)
+      \lor C[\rr1/r]
+      \lor A(\rr{1:}|ii|\rr2)
+      \lor D[\rr2/r]
+      \lor A(\rr{2:}|ii|\rr:) ~)
+\\
+\\ C + D
+   &\defs&
+   \W(\quad {}\phlor A(r|ii|\rr1) \lor A(r|ii|\rr2)
+\\ && \qquad {} \lor
+   C[\rr1/r] \lor D[\rr2/r]
+\\ && \qquad {} \lor A(\rr{1:}|ii|\rr:) \lor A(\rr{2:}|ii|\rr:) ~)
+\\
+\\ C \parallel D
+   &\defs&
+   \W(\quad\phlor A(r|ii|\rr1,\rr2)
+\\ && \qquad {}\lor
+   C[\rr1/r]
+   \lor D[\rr2/r]
+\\ && \qquad {}\lor
+   A(\rr{1:},\rr{2:}|ii|\rr:)~)
+\\
+\\ C^*
+   &\defs&
+   \W(\quad  \phlor A(r|ii|\rr1) \lor A(\rr1|ii|\rr:)
+\\ && \qquad {}\lor C[\rr1/r]    \lor A(\rr{1:}|ii|\rr1) ~)
+\\
+\\ \cskip
+   &\defs&
+   \Atm{ii}
+}
+
+\newpage
 \HDRc{Coding Atomic Semantics}
 
 \RLEQNS{
@@ -1022,8 +1156,8 @@ defnVSeq d [p,q]
 
 lg = new1 g
 g' = new2 g
-g'1 = split1 g'
-g'2 = split2 g'
+g'1 = xxxsplit1 g'
+g'2 = xxxsplit2 g'
 
 invVSeq = idisj[ielem inp, ielem lg, ielem out]
 
@@ -1070,8 +1204,8 @@ defnVChc d [p,q]
    sub1 = [("g",g1'),("in",lg1)]
    sub2 = [("g",g2'),("in",lg2)]
 
-g1 = split1 g
-g2 = split2 g
+g1 = xxxsplit1 g
+g2 = xxxsplit2 g
 lg1 = new1 g1
 lg2 = new1 g2
 g1' = new2 g1
@@ -1196,6 +1330,8 @@ dictVP, dictVPCalc :: (Ord s, Show s) => Dict s
 dictVP = makeDict [ vXEntry
                   , vAEntry
                   , vWEntry
+                  , vLESetEntry
+                  , vLEInvEntry
                   , vIElemEntry
                   , vIDisjEntry
                   , vIJoinEntry
