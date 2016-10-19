@@ -823,15 +823,40 @@ labelSetReport (rep1, rep2)  =  Just (rep1 && rep2)
 
 Now we have to code up \textbf{lsat}:
 \RLEQNS{
+   \textbf{lsat}_S [L_1|\dots|L_n] 
+   &\defs& 
+   \#(filter ~\textbf{lsat'}_S \seqof{L_1,\ldots,L_n}) < 2
+\\ \textbf{lsat'}_S \setof{\ell_1,\dots,\ell_n}
+  &\defs& 
+  \exists i @ \textbf{lsat''}_S \ell_i
+\\ \textbf{lsat''}_S \ell &\defs& \ell \in S
 }
 \begin{code}
 lsat :: (Ord s, Show s) => Dict s -> Expr s -> Pred s -> Bool
-lsat d ls inv = isJust $ loccChk $ locc d ls inv
+lsat d lset (Comp nm ells)
+ | nm == nLEInv
+   = case filter (lsat' d lset) ells of
+      []   ->  True
+      [_]  ->  True
+      _    ->  False
+ | otherwise  =  False
+lsat _ _ _ = False
+
+lsat' :: (Ord s, Show s) => Dict s -> Expr s -> Pred s -> Bool
+lsat' d lset (Comp nm lspr)
+ | nm == nLESet  =  any (lsat'' d lset) lspr
+ | otherwise     =  False
+lsat' _ _ _      =  False
+
+lsat'' :: (Ord s, Show s) => Dict s -> Expr s -> Pred s -> Bool
+lsat'' d lset (Atm ell)
+ = case esimp d $ subset ell lset of
+      (_,B b)  ->  b
+      _        ->  False -- no occupancy! 
+lsat'' _ _ _ = False
 \end{code}
 
-We want to take an invariant over labels
-and a label-set to get the same structure over booleans.
-This is the label occupancy structure:
+The calculation is very simple:
 \RLEQNS{
    occ &:& \power \Int \fun I_\Int \fun I_\Bool
 \\ occ_L~\ell &\defs& \ell \in L
@@ -843,6 +868,7 @@ This is the label occupancy structure:
    \cup(occ_L~i_1,\ldots,occ_L~i_n)
 }
 \begin{code}
+-- deprecated:
 -- occ :: Eq t => [t] -> I t -> I Bool
 locc :: (Ord s, Show s) => Dict s -> Expr s -> Pred s -> I Bool
 
@@ -1046,7 +1072,7 @@ ppAtom _ _ _ _ = pps styleRed $ ppa ("invalid-"++nAtom)
 defnAtom d [a]
  = ldefn nAtom $ wp $ mkOr $ [mkSkip, mkA inp a out]
 
-invAtom = idisj [ielem inp, ielem out]
+invAtom = leInv [leSet [inp], leSet [out]]
 
 wp x = Comp "W" [x]
 
