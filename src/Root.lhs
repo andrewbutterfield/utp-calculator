@@ -6,6 +6,7 @@ import qualified Data.Map as M
 import Data.List
 import Data.Char
 import Data.Maybe
+import POrd
 import PrettyPrint
 import CalcTypes
 import StdPrecedences
@@ -29,32 +30,43 @@ import UTCPCReduce
 -- dbg str x = trace (str++show x) x
 \end{code}
 
-We need to define a partial-order class.
-\texttt{Data.Poset} is not suitable as it ``overloads'' \texttt{Ord}.
-Others require various type/class extensions I prefer to avoid.
-The following is inspired by Wren Romano's \texttt{Data.Numbers.Ord}.
-\begin{code}
-data POrdering = PNC | PLT | PEQ | PGT deriving (Eq, Show)
-class Eq t => POrd t where
-  pcmp :: t -> t -> POrdering
-  lt :: t -> t -> Bool
-  le :: t -> t -> Bool
-  gt :: t -> t -> Bool
-  ge :: t -> t -> Bool
 
-  lt a b = pcmp a b == PLT
-  le a b = case pcmp a b of
-            PLT  ->  True
-            PEQ  ->  True
-            _    ->  False
-  gt a b = pcmp a b == PGT
-  ge a b = case pcmp a b of
-            PGT  ->  True
-            PEQ  ->  True
-            _    ->  False
-\end{code}
+
+
 
 \newpage
+We do a quick run-down of the Commands\cite{conf/popl/Dinsdale-YoungBGPY13}.
+
+\HDRb{Syntax}
+
+\def\Atm#1{\langle#1\rangle}
+\def\rr#1{r{\scriptstyle{#1}}}
+
+\begin{eqnarray*}
+   a &\in& \Atom
+\\ C &::=&
+ \Atm a \mid \cskip \mid C \cseq C \mid C+C \mid C \parallel C \mid C^*
+\\ g &:& Gen
+\\ \ell &:& Lbl
+\\ G &::=&  g \mid G_{:} \mid G_1 \mid G_2
+\\ L &::=& \ell_G
+\end{eqnarray*}
+
+We assign the following precedences to Views syntactical constructs,
+interleaving them among the standard predicates.
+\begin{code}
+precVChc  = 5 + precSpacer  1
+precVPar  = 5 + precSpacer  2
+precVSeq  = 5 + precSpacer  3
+precVIter = 5 + precSpacer  6
+\end{code}
+
+
+\HDRb{Domains}
+
+
+\HDRc{Rooted Paths}
+
 This Root file is a re-work of the Views semantics
 replacing label generators by ``rooted'' label-paths.
 Initially we work up some stuff directly in Haskell,
@@ -92,6 +104,7 @@ readPath path str@(c:cs)
 \end{code}
 
 \newpage
+\HDRc{Path Ordering}
 \RLEQNS{
    R &\le& R\sigma
 \\ R1\sigma &<& R\!:\!\varsigma
@@ -134,41 +147,8 @@ compRP (s1:ss1) (s2:ss2)
  | otherwise =  PNC
 \end{code}
 
-\newpage
-We do a quick run-down of the Commands\cite{conf/popl/Dinsdale-YoungBGPY13}.
-
-\HDRb{Syntax}
-
-\def\Atm#1{Atm(#1)}
-
-\begin{eqnarray*}
-   a &\in& \Atom
-\\ C &::=&
- \Atm a \mid \cskip \mid C \cseq C \mid C+C \mid C \parallel C \mid C^*
-\\ g &:& Gen
-\\ \ell &:& Lbl
-\\ G &::=&  g \mid G_{:} \mid G_1 \mid G_2
-\\ L &::=& \ell_G
-\end{eqnarray*}
-
-We assign the following precedences to Views syntactical constructs,
-interleaving them among the standard predicates.
-\begin{code}
-precVChc  = 5 + precSpacer  1
-precVPar  = 5 + precSpacer  2
-precVSeq  = 5 + precSpacer  3
-precVIter = 5 + precSpacer  6
-\end{code}
 
 
-\HDRb{Domains}
-
-\begin{eqnarray*}
-   s &\in& \mathcal S
-\\ \sem{-} &:& \Atom \fun \mathcal S \fun \mathcal P(\mathcal S)
-\\ S \ominus (T|V)
-   &\defs& (S \setminus T) \cup V
-\end{eqnarray*}
 
 \HDRc{Set Expressions}
 
@@ -697,46 +677,38 @@ wUnroll _ _ _ _ = Nothing
 
 The definitions, using the new shorthands:
 \RLEQNS{
-   \W(C) &\defs& \true * C
-\\       &=& \bigvee_{i\in 0\dots} \Skip\seq D^i
-\\       & & \textbf{provided } C = \Skip \lor D \textbf{ for some } D
+   \W(C) &\defs& \bigvee_{i\in 0\dots} \Skip\seq C^i
 \\ ii &\defs& s'=s
 \\
-\\ \Atm a &\defs&\W(\Skip \lor A(in|a|out)) \land [in|out]
+\\ \Atm a &\defs&\W(A(r|a|\rr:))
 \\ \cskip
    &\defs&
-   \W(\Skip \lor A(in|ii|out)) \land [in|out]
+   \Atm{ii}
 \\
 \\ C \cseq D
    &\defs&
-   \W(C[g_{:1},\ell_g/g,out] \lor D[g_{:2},\ell_g/g,in])
-\\&& {}\land [in|\ell_g|out]
+   \W(C \lor D[\rr:/r])
 \\
 \\ C + D
    &\defs&
-   \W(\quad {}\phlor A(in|ii|\ell_{g1})
+   \W(\quad {}\phlor A(r|ii|\rr1) \lor A(r|ii|\rr2)
 \\ && \qquad {} \lor
-                     A(in|ii|\ell_{g2})
-\\ && \qquad {} \lor
-   C[g_{1:},\ell_{g1}/g,in] \lor D[g_{2:},\ell_{g2}/g,in]~)
-\\&& {} \land [in|\ell_{g1}|\ell_{g2}|out]
+   C[\rr1/r] \lor D[\rr2/r]
+\\ && \qquad {} \lor A(\rr{1:}|ii|\rr:) \lor A(\rr{2:}|ii|\rr:) ~)
 \\
 \\ C \parallel D
    &\defs&
-   \W(\quad\phlor A(in|ii|\ell_{g1},\ell_{g2})
+   \W(\quad\phlor A(r|ii|\rr1,\rr2)
 \\ && \qquad {}\lor
-   C[g_{1::},\ell_{g1},\ell_{g1:}/g,in,out]
-   \lor D[g_{2::},\ell_{g2},\ell_{g2:}/g,in,out]
+   C[\rr1/r]
+   \lor D[\rr2/r]
 \\ && \qquad {}\lor
-   A(\ell_{g1:},\ell_{g2:}|ii|out)~)
-\\&& {} \land [in|(\ell_{g1}|\ell_{g1:}),(\ell_{g2}|\ell_{g2:})|out]
+   A(\rr{1:},\rr{2:}|ii|\rr:)~)
 \\
 \\ C^*
    &\defs&
-   \W(\quad  \phlor A(in|ii|out)
-\\ && \qquad {}\lor A(in|ii|\ell_g)
-\\ && \qquad {}\lor C[g_{:},\ell_g,in/g,in,out]~)
-\\&& {} \land [in|\ell_g|out]
+   \W(\quad  \phlor A(r|ii|\rr1) \lor A(\rr1|ii|\rr:)
+\\ && \qquad {}\lor C[\rr1/r]    \lor A(\rr{1:}|ii|\rr1) ~)
 }
 
 \newpage
