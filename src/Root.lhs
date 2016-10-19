@@ -26,8 +26,8 @@ import UTCPCReduce
 \end{code}
 
 \begin{code}
--- import Debug.Trace
--- dbg str x = trace (str++show x) x
+import Debug.Trace
+rdbg str x = trace (str++show x) x
 \end{code}
 
 
@@ -823,11 +823,11 @@ labelSetReport (rep1, rep2)  =  Just (rep1 && rep2)
 
 Now we have to code up \textbf{lsat}:
 \RLEQNS{
-   \textbf{lsat}_S [L_1|\dots|L_n] 
-   &\defs& 
+   \textbf{lsat}_S [L_1|\dots|L_n]
+   &\defs&
    \#(filter ~\textbf{lsat'}_S \seqof{L_1,\ldots,L_n}) < 2
 \\ \textbf{lsat'}_S \setof{\ell_1,\dots,\ell_n}
-  &\defs& 
+  &\defs&
   \exists i @ \textbf{lsat''}_S \ell_i
 \\ \textbf{lsat''}_S \ell &\defs& \ell \in S
 }
@@ -843,17 +843,16 @@ lsat d lset (Comp nm ells)
 lsat _ _ _ = False
 
 lsat' :: (Ord s, Show s) => Dict s -> Expr s -> Pred s -> Bool
-lsat' d lset (Comp nm lspr)
- | nm == nLESet  =  any (lsat'' d lset) lspr
+lsat' d lset (Atm (App nm lse))
+ | nm == nLESet  =  any (lsat'' d lset) lse
  | otherwise     =  False
 lsat' _ _ _      =  False
 
-lsat'' :: (Ord s, Show s) => Dict s -> Expr s -> Pred s -> Bool
-lsat'' d lset (Atm ell)
+lsat'' :: (Ord s, Show s) => Dict s -> Expr s -> Expr s -> Bool
+lsat'' d lset ell
  = case esimp d $ subset ell lset of
       (_,B b)  ->  b
-      _        ->  False -- no occupancy! 
-lsat'' _ _ _ = False
+      _        ->  False -- no occupancy!
 \end{code}
 
 The calculation is very simple:
