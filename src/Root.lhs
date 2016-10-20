@@ -701,21 +701,14 @@ is that $ls$ is mentioned under the hood,
 and it is really all about what can be present in the global label-set
 at any instant in time.
 
-We shall code this structure directly in Haskell
-as it eases invariant satisfaction calculation.
-\begin{code}
-type LESet t = [t]
-type LEInv t = [LESet t]
--- deprecated:
-data I t = I t | U [I t] | X [I t] deriving Show
-\end{code}
-We refer to these two types as
- \texttt{LESet}, and \texttt{LEInv}.
+We refer to the $L$ above as \texttt{LESet},
+and use \texttt{LEInv} to denote the full invariant.
 We start with the ``LE-sets'', as expressions
 \begin{code}
 nLESet = "LESet"
 
 leSet es = App nLESet es
+leElem e = leSet [e]
 
 isLESet (Comp n _)
  | n == nLESet  =  True
@@ -731,6 +724,7 @@ vLESetEntry
    , ExprEntry subAny showLESet (justMakes leSet) noEq )
 \end{code}
 
+\newpage
 We then move onto the ``LE-invariant'', as predicates
 \begin{code}
 nLEInv = "LEInv"
@@ -750,54 +744,8 @@ vLEInvEntry :: (Show s, Ord s) => (String, Entry s)
 vLEInvEntry
  = ( nLEInv
    , PredEntry anyVars ppLEInv vStatic (pNoChg nLEInv) (pNoChg nLEInv) )
-
 \end{code}
 
-\begin{code}
--- deprecated:
-nIElem = "IElem"
-nIDisj = "IDIsj"
-nIJoin = "IJoin"
-
-isLSInv (Comp n _)
- | n==nIElem || n==nIDisj || n==nIJoin  =  True
-isLSInv _ = False
-
-isIElem (Comp n [_])   | n==nIElem = True; isIElem _ = False
-isIDisj (Comp n (_:_)) | n==nIDisj = True; isIDisj _ = False
-isIJoin (Comp n (_:_)) | n==nIJoin = True; isIJoin _ = False
-
-ielem e          =  Comp nIElem [Atm e]
-idisj prs@(_:_)  =  Comp nIDisj prs
-ijoin prs@(_:_)  =  Comp nIJoin prs
-
-ppIElem sCP d p [pr@(Atm e)] = sCP 0 1 pr
-ppIElem _ _ _ _ = pps styleRed $ ppa ("invalid-"++nIElem)
-
-
-ppIDisj sCP d p prs = ppclosed "[" "]" "|" $ map (sCP precInv 1) prs
-
-ppIJoin sCP d p prs
- = paren p precInv
-     $ ppopen  "," $ ppwalk 1 (sCP precInv) prs
-
-vIElemEntry :: (Show s, Ord s) => (String, Entry s)
-vIElemEntry
- = ( nIElem
-   , PredEntry anyVars ppIElem vStatic (pNoChg nIElem) (pNoChg nIElem) )
-
-vIDisjEntry :: (Show s, Ord s) => (String, Entry s)
-vIDisjEntry
- = ( nIDisj
-   , PredEntry anyVars ppIDisj vStatic (pNoChg nIDisj) (pNoChg nIDisj) )
-
-vIJoinEntry :: (Show s, Ord s) => (String, Entry s)
-vIJoinEntry
- = ( nIJoin
-   , PredEntry anyVars ppIJoin vStatic (pNoChg nIJoin) (pNoChg nIJoin) )
-\end{code}
-
-\newpage
 Now, we need to define invariant satisfaction.
 Our invariant applies to $A$ and $X$ atomic actions:
 \RLEQNS{
@@ -821,6 +769,7 @@ labelSetInv _ _ _ = Nothing
 labelSetReport (rep1, rep2)  =  Just (rep1 && rep2)
 \end{code}
 
+\newpage
 Now we have to code up \textbf{lsat}:
 \RLEQNS{
    \textbf{lsat}_S [L_1|\dots|L_n]
@@ -855,79 +804,7 @@ lsat'' d lset ell
       _        ->  False -- no occupancy!
 \end{code}
 
-The calculation is very simple:
-\RLEQNS{
-   occ &:& \power \Int \fun I_\Int \fun I_\Bool
-\\ occ_L~\ell &\defs& \ell \in L
-\\ occ_L~\otimes(i_1,\ldots,i_n)
-   &\defs&
-   \otimes(occ_L~i_1,\ldots,occ_L~i_n)
-\\ occ_L~\cup(i_1,\ldots,i_n)
-   &\defs&
-   \cup(occ_L~i_1,\ldots,occ_L~i_n)
-}
-\begin{code}
--- deprecated:
--- occ :: Eq t => [t] -> I t -> I Bool
-locc :: (Ord s, Show s) => Dict s -> Expr s -> Pred s -> I Bool
 
--- occ ls (I ell) = I (ell `elem` ls)
-locc d lset (Comp nm [Atm ell])
- | nm == nIElem
-   = case esimp d $ subset ell lset of
-      (_,B b)  ->  I b
-      _        ->  I False -- no occupancy!
-
--- occ ls (U invs) = U $ map (occ ls) invs
-locc d lset (Comp nm prs)
- | nm == nIJoin  =  U $ map (locc d lset) prs
-
--- occ ls (X invs) = X $ map (occ ls) invs
- | nm == nIDisj  =  X $ map (locc d lset) prs
-
-locc d lset pr  = I False -- no occupancy
-\end{code}
-
-\newpage
-We now take a $I_\Bool$ and check that occupancy
-satisfies the constraints in order
-to reduce it to a boolean.
-In effect we look for failures
-(can only come from $\oplus$)
-and propagate these up.
-\RLEQNS{
-   occChk &:& I_\Bool \fun (\setof{ok,fail}\times \Bool)
-\\ occChk(b) &\defs& (ok,b)
-\\ occChk(\cup(i_1,\ldots,i_n))
-   &\defs&
-   (fail,\_),
-   \textbf{ if }\exists j @ occChk(i_j) = (fail,\_)
-\\ && (ok,b_1 \lor \dots \lor b_n),
-   \textbf{ if }\forall j @ occChk(i_j) = (ok,b_j)
-\\ occChk(\otimes(i_1,\ldots,i_n))
-   &\defs&
-   (fail,\_),
-   \textbf{ if }\exists j @ occChk(i_j) = (fail,\_)
-\\&& (fail,\_) \mbox{ if more than one $(ok,true)$}
-\\&& (ok,false) \mbox{ if all are $(ok,false)$}
-\\&& (ok,true) \mbox{ if  exactly one $(ok,true)$}
-}
-\begin{code}
-loccChk :: I Bool -> Maybe Bool
-loccChk (I b) = Just b
-loccChk (U occs) -- we go all monadic !!!
- = do ps <- sequence $ map loccChk occs
-      return $ any id ps
-loccChk (X occs)
- = do ps <- sequence $ map loccChk occs
-      let ps' = filter id ps
-      case length ps' of
-        0  ->  return False
-        1  ->  return True
-        _  ->  fail "not-exclusive"
-\end{code}
-
-\newpage
 \HDRc{Invariant Trimming}
 
 We can use the invariant to trim removal sets,
@@ -980,28 +857,45 @@ vWEntry
    , PredEntry [] ppW vObs defnW simpW )
 \end{code}
 
-\NOTE{
-Redo this to handle $\W(P) = \true * (\Skip \lor P)$
+\newpage
+Unrolling $\W(C)$, using $I$ for $[r|\rr:]$,
+and noting that
+$
+\bigvee_{i \in \Nat} C^i
+= \Skip \lor (C\seq\bigvee_{i \in \Nat} C^i)
+$.
+\RLEQNS{
+   \W(C) &=& I \land \bigvee C^i
+\\ &=& I \land (\Skip \lor C\seq\bigvee C^i)
+\\ &=& I \land (\Skip \lor C\seq((\Skip \lor C\seq\bigvee C^i)))
+\\ &=& I \land (\Skip \lor C \lor C^2\seq\bigvee C^i)
+\\ &=& I \land (\Skip \lor C \lor C^2\seq((\Skip \lor C\seq\bigvee C^i)))
+\\ &=& I \land (\Skip \lor C \lor C^2 \lor C^3\seq\bigvee C^i)
+\\ &\vdots&
+\\ &=& I \land (\Skip \lor C \lor \dots C^{k-1} \lor C^k\seq\bigvee C^i)
+\\ &=& I \land (~(\bigvee_{i < k} C^i) \lor (\bigvee_{i \geq k} C^i)~)
 }
+We assume $\seq$ binds tighter then $\lor$.
 \begin{code}
 wUnroll :: Ord s => String -> RWFun s
-wUnroll arg d _ wpr@(Comp nw [pr])
- | nw == nW
-   = case numfrom arg of
-      0 -> Just ( "W-unroll"
-                , mkSeq (mkOr [mkSkip, pr]) wpr , True )
-      n -> Just ( "W-unroll."++arg
-                ,  wunroll n
-                , True )
-
- where
-   numfrom "" = 0
-   numfrom (c:_) | isDigit c = digitToInt c
-                 | otherwise = 42
-
-   wunroll n = mkOr (mkSkip : dupPr pr n)
-   dupPr dups 0 = []
-   dupPr dups n = dups : dupPr (mkSeq dups pr) (n-1)
+-- to be re-done properly if ever it is required
+-- wUnroll arg d _ wpr@(Comp nw [pr])
+--  | nw == nW
+--    = case numfrom arg of
+--       0 -> Just ( "W-unroll"
+--                 , mkSeq (mkOr [mkSkip, pr]) wpr , True )
+--       n -> Just ( "W-unroll."++arg
+--                 ,  wunroll n
+--                 , True )
+--
+--  where
+--    numfrom "" = 0
+--    numfrom (c:_) | isDigit c = digitToInt c
+--                  | otherwise = 42
+--
+--    wunroll n = mkOr (mkSkip : dupPr pr n)
+--    dupPr dups 0 = []
+--    dupPr dups n = dups : dupPr (mkSeq dups pr) (n-1)
 
 wUnroll _ _ _ _ = Nothing
 \end{code}
@@ -1058,6 +952,47 @@ The definitions, using the new shorthands:
 \RLEQNS{
  \Atm a &\defs&\W(\Skip \lor A(in|a|out)) \land [in|out]
 }
+\RLEQNS{
+   \W(C) &\defs& [r|\rr:]
+                 \land
+                 \left(\bigvee_{i\in 0\dots} C^i\right)
+\\ ii &\defs& s'=s
+\\
+\\ \Atm a &\defs&\W(A(r|a|\rr:))
+\\
+\\ C \cseq D
+   &\defs&
+   \W(~    A(r|ii|\rr1)
+      \lor C[\rr1/r]
+      \lor A(\rr{1:}|ii|\rr2)
+      \lor D[\rr2/r]
+      \lor A(\rr{2:}|ii|\rr:) ~)
+\\
+\\ C + D
+   &\defs&
+   \W(\quad {}\phlor A(r|ii|\rr1) \lor A(r|ii|\rr2)
+\\ && \qquad {} \lor
+   C[\rr1/r] \lor D[\rr2/r]
+\\ && \qquad {} \lor A(\rr{1:}|ii|\rr:) \lor A(\rr{2:}|ii|\rr:) ~)
+\\
+\\ C \parallel D
+   &\defs&
+   \W(\quad\phlor A(r|ii|\rr1,\rr2)
+\\ && \qquad {}\lor
+   C[\rr1/r]
+   \lor D[\rr2/r]
+\\ && \qquad {}\lor
+   A(\rr{1:},\rr{2:}|ii|\rr:)~)
+\\
+\\ C^*
+   &\defs&
+   \W(\quad  \phlor A(r|ii|\rr1) \lor A(\rr1|ii|\rr:)
+\\ && \qquad {}\lor C[\rr1/r]    \lor A(\rr{1:}|ii|\rr1) ~)
+\\
+\\ \cskip
+   &\defs&
+   \Atm{ii}
+}
 
 \begin{code}
 nAtom = "Atom" -- internal abstract name
@@ -1108,6 +1043,47 @@ vAtmCalcEntry
    &\defs&
    \W(\Skip \lor A(in|ii|out)) \land [in|out]
 }
+\RLEQNS{
+   \W(C) &\defs& [r|\rr:]
+                 \land
+                 \left(\bigvee_{i\in 0\dots} C^i\right)
+\\ ii &\defs& s'=s
+\\
+\\ \Atm a &\defs&\W(A(r|a|\rr:))
+\\
+\\ C \cseq D
+   &\defs&
+   \W(~    A(r|ii|\rr1)
+      \lor C[\rr1/r]
+      \lor A(\rr{1:}|ii|\rr2)
+      \lor D[\rr2/r]
+      \lor A(\rr{2:}|ii|\rr:) ~)
+\\
+\\ C + D
+   &\defs&
+   \W(\quad {}\phlor A(r|ii|\rr1) \lor A(r|ii|\rr2)
+\\ && \qquad {} \lor
+   C[\rr1/r] \lor D[\rr2/r]
+\\ && \qquad {} \lor A(\rr{1:}|ii|\rr:) \lor A(\rr{2:}|ii|\rr:) ~)
+\\
+\\ C \parallel D
+   &\defs&
+   \W(\quad\phlor A(r|ii|\rr1,\rr2)
+\\ && \qquad {}\lor
+   C[\rr1/r]
+   \lor D[\rr2/r]
+\\ && \qquad {}\lor
+   A(\rr{1:},\rr{2:}|ii|\rr:)~)
+\\
+\\ C^*
+   &\defs&
+   \W(\quad  \phlor A(r|ii|\rr1) \lor A(\rr1|ii|\rr:)
+\\ && \qquad {}\lor C[\rr1/r]    \lor A(\rr{1:}|ii|\rr1) ~)
+\\
+\\ \cskip
+   &\defs&
+   \Atm{ii}
+}
 \begin{code}
 nVSkip = "VSkip" -- internal abstract name
 isVSkip (_,Comp n []) | n==nVSkip = True; isVSkip _ = False
@@ -1120,7 +1096,7 @@ ppVSkip d ms p mprs = pps styleRed $ ppa ("invalid-"++nVSkip)
 defnVSkip d []
  = ldefn nVSkip $ wp $ mkOr $ [mkSkip, mkA inp ii out]
 
-invVSkip = idisj [ielem inp, ielem out]
+invVSkip = leInv [leElem inp, leElem out]
 
 vSkipEntry :: (Show s, Ord s) => (String, Entry s)
 vSkipEntry
@@ -1160,6 +1136,47 @@ vSkipCalcEntry
    \W(C[g_{:1},\ell_g/g,out] \lor D[g_{:2},\ell_g/g,in])
    \land [in|\ell_g|out]
 }
+\RLEQNS{
+   \W(C) &\defs& [r|\rr:]
+                 \land
+                 \left(\bigvee_{i\in 0\dots} C^i\right)
+\\ ii &\defs& s'=s
+\\
+\\ \Atm a &\defs&\W(A(r|a|\rr:))
+\\
+\\ C \cseq D
+   &\defs&
+   \W(~    A(r|ii|\rr1)
+      \lor C[\rr1/r]
+      \lor A(\rr{1:}|ii|\rr2)
+      \lor D[\rr2/r]
+      \lor A(\rr{2:}|ii|\rr:) ~)
+\\
+\\ C + D
+   &\defs&
+   \W(\quad {}\phlor A(r|ii|\rr1) \lor A(r|ii|\rr2)
+\\ && \qquad {} \lor
+   C[\rr1/r] \lor D[\rr2/r]
+\\ && \qquad {} \lor A(\rr{1:}|ii|\rr:) \lor A(\rr{2:}|ii|\rr:) ~)
+\\
+\\ C \parallel D
+   &\defs&
+   \W(\quad\phlor A(r|ii|\rr1,\rr2)
+\\ && \qquad {}\lor
+   C[\rr1/r]
+   \lor D[\rr2/r]
+\\ && \qquad {}\lor
+   A(\rr{1:},\rr{2:}|ii|\rr:)~)
+\\
+\\ C^*
+   &\defs&
+   \W(\quad  \phlor A(r|ii|\rr1) \lor A(\rr1|ii|\rr:)
+\\ && \qquad {}\lor C[\rr1/r]    \lor A(\rr{1:}|ii|\rr1) ~)
+\\
+\\ \cskip
+   &\defs&
+   \Atm{ii}
+}
 \begin{code}
 nVSeq = "VSeq"
 isVSeq (Comp n [_,_]) | n==nVSeq = True; isVSeq _ = False
@@ -1184,7 +1201,7 @@ g' = new2 g
 g'1 = xxxsplit1 g'
 g'2 = xxxsplit2 g'
 
-invVSeq = idisj[ielem inp, ielem lg, ielem out]
+invVSeq = leInv[leElem inp, leElem lg, leElem out]
 
 vSeqEntry :: (Show s, Ord s) => (String, Entry s)
 vSeqEntry
@@ -1205,6 +1222,47 @@ vSeqEntry
 \\ && \qquad {} \lor
    C[g_{1:},\ell_{g1}/g,in] \lor D[g_{2:},\ell_{g2}/g,in]~)
 \\&& {} \land [in|\ell_{g1}|\ell_{g2}|out]
+}
+\RLEQNS{
+   \W(C) &\defs& [r|\rr:]
+                 \land
+                 \left(\bigvee_{i\in 0\dots} C^i\right)
+\\ ii &\defs& s'=s
+\\
+\\ \Atm a &\defs&\W(A(r|a|\rr:))
+\\
+\\ C \cseq D
+   &\defs&
+   \W(~    A(r|ii|\rr1)
+      \lor C[\rr1/r]
+      \lor A(\rr{1:}|ii|\rr2)
+      \lor D[\rr2/r]
+      \lor A(\rr{2:}|ii|\rr:) ~)
+\\
+\\ C + D
+   &\defs&
+   \W(\quad {}\phlor A(r|ii|\rr1) \lor A(r|ii|\rr2)
+\\ && \qquad {} \lor
+   C[\rr1/r] \lor D[\rr2/r]
+\\ && \qquad {} \lor A(\rr{1:}|ii|\rr:) \lor A(\rr{2:}|ii|\rr:) ~)
+\\
+\\ C \parallel D
+   &\defs&
+   \W(\quad\phlor A(r|ii|\rr1,\rr2)
+\\ && \qquad {}\lor
+   C[\rr1/r]
+   \lor D[\rr2/r]
+\\ && \qquad {}\lor
+   A(\rr{1:},\rr{2:}|ii|\rr:)~)
+\\
+\\ C^*
+   &\defs&
+   \W(\quad  \phlor A(r|ii|\rr1) \lor A(\rr1|ii|\rr:)
+\\ && \qquad {}\lor C[\rr1/r]    \lor A(\rr{1:}|ii|\rr1) ~)
+\\
+\\ \cskip
+   &\defs&
+   \Atm{ii}
 }
 \begin{code}
 nVChc = "VChc"
@@ -1236,7 +1294,7 @@ lg2 = new1 g2
 g1' = new2 g1
 g2' = new2 g2
 
-invVChc = idisj [ielem inp, ielem lg1, ielem lg2, ielem out]
+invVChc = leInv [leElem inp, leElem lg1, leElem lg2, leElem out]
 
 vChcEntry :: (Show s, Ord s) => (String, Entry s)
 vChcEntry
@@ -1258,6 +1316,47 @@ vChcEntry
 \\ && \qquad {}\lor
    A(\ell_{g1:},\ell_{g2:}|ii|out)~)
 \\&& {} \land [in|(\ell_{g1}|\ell_{g1:}),(\ell_{g2}|\ell_{g2:})|out]
+}
+\RLEQNS{
+   \W(C) &\defs& [r|\rr:]
+                 \land
+                 \left(\bigvee_{i\in 0\dots} C^i\right)
+\\ ii &\defs& s'=s
+\\
+\\ \Atm a &\defs&\W(A(r|a|\rr:))
+\\
+\\ C \cseq D
+   &\defs&
+   \W(~    A(r|ii|\rr1)
+      \lor C[\rr1/r]
+      \lor A(\rr{1:}|ii|\rr2)
+      \lor D[\rr2/r]
+      \lor A(\rr{2:}|ii|\rr:) ~)
+\\
+\\ C + D
+   &\defs&
+   \W(\quad {}\phlor A(r|ii|\rr1) \lor A(r|ii|\rr2)
+\\ && \qquad {} \lor
+   C[\rr1/r] \lor D[\rr2/r]
+\\ && \qquad {} \lor A(\rr{1:}|ii|\rr:) \lor A(\rr{2:}|ii|\rr:) ~)
+\\
+\\ C \parallel D
+   &\defs&
+   \W(\quad\phlor A(r|ii|\rr1,\rr2)
+\\ && \qquad {}\lor
+   C[\rr1/r]
+   \lor D[\rr2/r]
+\\ && \qquad {}\lor
+   A(\rr{1:},\rr{2:}|ii|\rr:)~)
+\\
+\\ C^*
+   &\defs&
+   \W(\quad  \phlor A(r|ii|\rr1) \lor A(\rr1|ii|\rr:)
+\\ && \qquad {}\lor C[\rr1/r]    \lor A(\rr{1:}|ii|\rr1) ~)
+\\
+\\ \cskip
+   &\defs&
+   \Atm{ii}
 }
 \begin{code}
 nVPar = "VPar"
@@ -1288,11 +1387,10 @@ g1'' = new2 g1'
 g2'' = new2 g2'
 s12' = set [lg1',lg2']
 
-invVPar = idisj [ ielem inp
-                , ijoin [ idisj [ ielem lg1, ielem lg1' ]
-                        , idisj [ ielem lg2, ielem lg2' ]
-                        ]
-                , ielem out
+invVPar = leInv [ leElem inp
+                , leSet [ lg1, lg1' ]
+                , leSet [ lg2, lg2' ]
+                , leElem out
                 ]
 
 vParEntry :: (Show s, Ord s) => (String, Entry s)
@@ -1311,6 +1409,47 @@ vParEntry
 \\ && \qquad {}\lor A(in|ii|\ell_g)
 \\ && \qquad {}\lor C[g_{:},\ell_g,in/g,in,out]~)
 \\&& {} \land [in|\ell_g|out]
+}
+\RLEQNS{
+   \W(C) &\defs& [r|\rr:]
+                 \land
+                 \left(\bigvee_{i\in 0\dots} C^i\right)
+\\ ii &\defs& s'=s
+\\
+\\ \Atm a &\defs&\W(A(r|a|\rr:))
+\\
+\\ C \cseq D
+   &\defs&
+   \W(~    A(r|ii|\rr1)
+      \lor C[\rr1/r]
+      \lor A(\rr{1:}|ii|\rr2)
+      \lor D[\rr2/r]
+      \lor A(\rr{2:}|ii|\rr:) ~)
+\\
+\\ C + D
+   &\defs&
+   \W(\quad {}\phlor A(r|ii|\rr1) \lor A(r|ii|\rr2)
+\\ && \qquad {} \lor
+   C[\rr1/r] \lor D[\rr2/r]
+\\ && \qquad {} \lor A(\rr{1:}|ii|\rr:) \lor A(\rr{2:}|ii|\rr:) ~)
+\\
+\\ C \parallel D
+   &\defs&
+   \W(\quad\phlor A(r|ii|\rr1,\rr2)
+\\ && \qquad {}\lor
+   C[\rr1/r]
+   \lor D[\rr2/r]
+\\ && \qquad {}\lor
+   A(\rr{1:},\rr{2:}|ii|\rr:)~)
+\\
+\\ C^*
+   &\defs&
+   \W(\quad  \phlor A(r|ii|\rr1) \lor A(\rr1|ii|\rr:)
+\\ && \qquad {}\lor C[\rr1/r]    \lor A(\rr{1:}|ii|\rr1) ~)
+\\
+\\ \cskip
+   &\defs&
+   \Atm{ii}
 }
 \begin{code}
 nVIter = "VIter"
@@ -1334,9 +1473,9 @@ defnVIter d [p]
  where
    sub = [("g",g'),("in",lg),("out",inp)]
 
-invVIter = idisj [ ielem inp
-                 , ielem lg
-                 , ielem out
+invVIter = leInv [ leElem inp
+                 , leElem lg
+                 , leElem out
                  ]
 
 vIterEntry :: (Show s, Ord s) => (String, Entry s)
@@ -1357,9 +1496,9 @@ dictVP = makeDict [ vXEntry
                   , vWEntry
                   , vLESetEntry
                   , vLEInvEntry
-                  , vIElemEntry
-                  , vIDisjEntry
-                  , vIJoinEntry
+                  -- , vIElemEntry
+                  -- , vIDisjEntry
+                  -- , vIJoinEntry
                   , vAtmEntry
                   , vSkipEntry
                   , vSeqEntry
@@ -2263,10 +2402,10 @@ invVatom.seq.b = [lg:|in]
 \begin{code}
 iterseq = viter v_athenb
 inv_iterseq
- = idisj [ ielem inp
-         , ielem lg
-         , ielem lg'
-         , ielem out ]
+ = leInv [ leElem inp
+         , leElem lg
+         , leElem lg'
+         , leElem out ]
 lg' = new1 g'
 \end{code}
 
