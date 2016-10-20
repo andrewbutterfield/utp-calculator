@@ -843,6 +843,7 @@ This is the label occupancy structure:
    \cup(occ_L~i_1,\ldots,occ_L~i_n)
 }
 \begin{code}
+----------------------------------------------------------------
 -- occ :: Eq t => [t] -> I t -> I Bool
 locc :: (Ord s, Show s) => Dict s -> Expr s -> Pred s -> I Bool
 
