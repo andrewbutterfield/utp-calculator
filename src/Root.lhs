@@ -117,6 +117,10 @@ rpathn = "R"
 rpath rp s = App rpathn [rp, s]
 rPath [rp, s] = rpath rp s
 
+rstep rp   =   rpath rp step
+rsplit1 rp  =  rpath rp split1
+rsplit2 rp  =  rpath rp split2
+
 rpShow d [rp, s] = edshow d rp ++ edshow d s
 
 rpathEntry :: Show s => ( String, Entry s )
@@ -847,6 +851,9 @@ ppW sCP vd p [pr]
  = ppclosed "W(" ")" "" [ sCP 0 1 pr ]
 ppW _ _ _ _ = pps styleRed $ ppa ("invalid-"++nW)
 
+r' = rstep r
+invWWW = leInv [leSet [r], leSet [r']]
+
 -- we don't want to expand the definition of this, or simplify it
 defnW = pNoChg nW
 simpW = pNoChg nW
@@ -950,48 +957,7 @@ The definitions, using the new shorthands:
 \HDRc{Coding Atomic Semantics}
 
 \RLEQNS{
- \Atm a &\defs&\W(\Skip \lor A(in|a|out)) \land [in|out]
-}
-\RLEQNS{
-   \W(C) &\defs& [r|\rr:]
-                 \land
-                 \left(\bigvee_{i\in 0\dots} C^i\right)
-\\ ii &\defs& s'=s
-\\
-\\ \Atm a &\defs&\W(A(r|a|\rr:))
-\\
-\\ C \cseq D
-   &\defs&
-   \W(~    A(r|ii|\rr1)
-      \lor C[\rr1/r]
-      \lor A(\rr{1:}|ii|\rr2)
-      \lor D[\rr2/r]
-      \lor A(\rr{2:}|ii|\rr:) ~)
-\\
-\\ C + D
-   &\defs&
-   \W(\quad {}\phlor A(r|ii|\rr1) \lor A(r|ii|\rr2)
-\\ && \qquad {} \lor
-   C[\rr1/r] \lor D[\rr2/r]
-\\ && \qquad {} \lor A(\rr{1:}|ii|\rr:) \lor A(\rr{2:}|ii|\rr:) ~)
-\\
-\\ C \parallel D
-   &\defs&
-   \W(\quad\phlor A(r|ii|\rr1,\rr2)
-\\ && \qquad {}\lor
-   C[\rr1/r]
-   \lor D[\rr2/r]
-\\ && \qquad {}\lor
-   A(\rr{1:},\rr{2:}|ii|\rr:)~)
-\\
-\\ C^*
-   &\defs&
-   \W(\quad  \phlor A(r|ii|\rr1) \lor A(\rr1|ii|\rr:)
-\\ && \qquad {}\lor C[\rr1/r]    \lor A(\rr{1:}|ii|\rr1) ~)
-\\
-\\ \cskip
-   &\defs&
-   \Atm{ii}
+   \Atm a &\defs&\W(A(r|a|\rr:))
 }
 
 \begin{code}
@@ -1004,14 +970,9 @@ ppAtom sCP d p [pr] = ppbracket "<" (sCP 0 1 pr) ">"
 ppAtom _ _ _ _ = pps styleRed $ ppa ("invalid-"++nAtom)
 
 defnAtom d [a]
- = ldefn nAtom $ wp $ mkOr $ [mkSkip, mkA inp a out]
-
-invAtom = leInv [leSet [inp], leSet [out]]
+ = ldefn nAtom $ wp $ mkOr $ [mkSkip, mkA r a r']
 
 wp x = Comp "W" [x]
-
-sinp = sngl inp
-sout = sngl out
 
 vAtmEntry :: (Show s, Ord s) => (String, Entry s)
 vAtmEntry
@@ -1019,14 +980,14 @@ vAtmEntry
    , PredEntry ["s","s'"] ppAtom [] defnAtom (pNoChg nAtom) )
 \end{code}
 
-Running the calculator on $Atm(a)$ results in the following:
+Running the calculator on $\Atm a$ results in the following:
 \begin{verbatim}
-II \/ A(in|a|out)
+II \/ A(r|a|r:)
 \end{verbatim}
 So we add a variant dictionary entry:
 \begin{code}
 defnAtomCalc d [a]
- = ldefn (nAtom++" calculation") $ mkOr [mkSkip, mkA inp a out]
+ = ldefn (nAtom++" calculation") $ mkOr [mkSkip, mkA r a r']
 
 vAtmCalcEntry :: (Show s, Ord s) => (String, Entry s)
 vAtmCalcEntry
