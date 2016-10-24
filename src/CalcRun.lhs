@@ -122,7 +122,7 @@ Now, the main REPL loop:
 runREPL :: (Ord s, Show s)
         => Dict s -> Mark -> State s
         -> IO (CalcLog s)
-runREPL d m state@(currpr,steps,[(ichk,inv)])
+runREPL d m state@(currpr,steps,istate)
  = do
 --   if invMPred currpr
 --      then return ()
@@ -142,18 +142,19 @@ runREPL d m state@(currpr,steps,[(ichk,inv)])
    ('s':_) -> calcStep  d m (simplify2  d $ nextm m) state
    ('u':_) -> calcUndo  d m state
    ('d':_) -> calcStep  d m (expandDefn d $ nextm m) state
-   ('r':_) -> calcStep  d m (doReduce   d inv $ nextm m) state
+   ('r':_) -> calcStep  d m (doReduce   d invs $ nextm m) state
    ('c':_) -> calcCStep d m (doCReduce  d $ nextm m) state
-   ('l':s) -> calcStep  d m (doUnroll s d inv $ nextm m) state
+   ('l':s) -> calcStep  d m (doUnroll s d invs $ nextm m) state
    ('I':_) -> displayInv d m state
    ('i':_) -> calcStep  d m
-               (chkInvariant (ichk d inv) $ nextm m) state
+               (chkInvariants d istate $ nextm m) state
    ('M':_) -> showMarks d m state
    ('B':_) -> viewBefore d m state
    ('A':_) -> viewAfter d m state
-   ('x':_) -> return ((currpr,steps,[(ichk,inv)]),d)
+   ('x':_) -> return (state,d)
    _ -> do putStrLn ("unrecognised command : '"++ln++"'")
            runREPL d m state
+  where invs = map snd istate
 \end{code}
 
 Undoing

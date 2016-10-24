@@ -818,14 +818,21 @@ given an enabling label or label-set.
    &\defs&
    \lnot(\setof{E,L} \textbf{ lsat } I)
 }
+We need a function that establishes when the invariant is not satisfies
+for at least one invariant in a supplied list.
 \begin{code}
-invTrims :: (Ord s, Show s)
+someInvFails :: (Ord s, Show s)
          => Dict s
-         -> Pred s  -- Invariant
+         -> [Pred s]  -- Invariants
          -> Expr s  -- enable label being removed
          -> Expr s  -- other label being removed
          -> Bool
-invTrims d inv ena other = not $ lsat d (set [ena,other]) inv
+someInvFails d invs ena other = findFail (set [ena,other]) invs
+ where
+   findFail lpair []          =  False
+   findFail lpair (inv:invs)
+    | not $ lsat d lpair inv  =  True
+    | otherwise               =  findFail lpair  invs
 \end{code}
 
 \newpage
@@ -969,8 +976,7 @@ atom pr = Comp nAtom [pr]
 ppAtom sCP d p [pr] = ppbracket "<" (sCP 0 1 pr) ">"
 ppAtom _ _ _ _ = pps styleRed $ ppa ("invalid-"++nAtom)
 
-defnAtom d [a]
- = ldefn nAtom $ wp $ mkOr $ [mkSkip, mkA r a r']
+defnAtom d [a] = ldefn nAtom $ wp $ mkA r a r'
 
 wp x = Comp "W" [x]
 
@@ -982,12 +988,13 @@ vAtmEntry
 
 Running the calculator on $\Atm a$ results in the following:
 \begin{verbatim}
-II \/ A(r|a|r:)
+[r|r:] /\ (II \/ A(r|a|r:))
 \end{verbatim}
 So we add a variant dictionary entry:
 \begin{code}
 defnAtomCalc d [a]
- = ldefn (nAtom++" calculation") $ mkOr [mkSkip, mkA r a r']
+ = ldefn (nAtom++" calculation")
+         $ mkAnd [invWWW, mkOr [mkSkip, mkA r a r']]
 
 vAtmCalcEntry :: (Show s, Ord s) => (String, Entry s)
 vAtmCalcEntry
@@ -1000,47 +1007,7 @@ vAtmCalcEntry
 \HDRc{Coding Skip}
 
 \RLEQNS{
-   \cskip
-   &\defs&
-   \W(\Skip \lor A(in|ii|out)) \land [in|out]
-}
-\RLEQNS{
-   \W(C) &\defs& [r|\rr:]
-                 \land
-                 \left(\bigvee_{i\in 0\dots} C^i\right)
-\\ ii &\defs& s'=s
-\\
-\\ \Atm a &\defs&\W(A(r|a|\rr:))
-\\
-\\ C \cseq D
-   &\defs&
-   \W(~    A(r|ii|\rr1)
-      \lor C[\rr1/r]
-      \lor A(\rr{1:}|ii|\rr2)
-      \lor D[\rr2/r]
-      \lor A(\rr{2:}|ii|\rr:) ~)
-\\
-\\ C + D
-   &\defs&
-   \W(\quad {}\phlor A(r|ii|\rr1) \lor A(r|ii|\rr2)
-\\ && \qquad {} \lor
-   C[\rr1/r] \lor D[\rr2/r]
-\\ && \qquad {} \lor A(\rr{1:}|ii|\rr:) \lor A(\rr{2:}|ii|\rr:) ~)
-\\
-\\ C \parallel D
-   &\defs&
-   \W(\quad\phlor A(r|ii|\rr1,\rr2)
-\\ && \qquad {}\lor
-   C[\rr1/r]
-   \lor D[\rr2/r]
-\\ && \qquad {}\lor
-   A(\rr{1:},\rr{2:}|ii|\rr:)~)
-\\
-\\ C^*
-   &\defs&
-   \W(\quad  \phlor A(r|ii|\rr1) \lor A(\rr1|ii|\rr:)
-\\ && \qquad {}\lor C[\rr1/r]    \lor A(\rr{1:}|ii|\rr1) ~)
-\\
+   ii &\defs& s'=s
 \\ \cskip
    &\defs&
    \Atm{ii}
@@ -1054,8 +1021,7 @@ vskip  = Comp nVSkip []
 ppVSkip d ms p [] = ppa "<skip>"
 ppVSkip d ms p mprs = pps styleRed $ ppa ("invalid-"++nVSkip)
 
-defnVSkip d []
- = ldefn nVSkip $ wp $ mkOr $ [mkSkip, mkA inp ii out]
+defnVSkip d [] = ldefn nVSkip $ wp $ mkA r ii r'
 
 invVSkip = leInv [leElem inp, leElem out]
 
@@ -1068,15 +1034,16 @@ vSkipEntry
 nii= "ii"
 ii = PVar nii
 \end{code}
-The calculation of $Atm(ii)$ also leads us to the following calculation
+The calculation of $\Atm{ii}$ also leads us to the following calculation
 for \verb"<skip>":
 \begin{verbatim}
-II \/ A(in|ii|out)
+[r|r:] /\ (II \/ A(r|ii|r:))
 \end{verbatim}
 So we add a variant dictionary entry:
 \begin{code}
 defnVSkipCalc d []
- = ldefn (nVSkip++" calculation") $ mkOr [mkSkip, mkA inp ii out]
+ = ldefn (nVSkip++" calculation")
+         $ mkAnd [ invWWW,mkOr [mkSkip, mkA r ii r']]
 
 vSkipCalcEntry :: (Show s, Ord s) => (String, Entry s)
 vSkipCalcEntry
@@ -1094,49 +1061,11 @@ vSkipCalcEntry
 \RLEQNS{
    C \cseq D
    &\defs&
-   \W(C[g_{:1},\ell_g/g,out] \lor D[g_{:2},\ell_g/g,in])
-   \land [in|\ell_g|out]
-}
-\RLEQNS{
-   \W(C) &\defs& [r|\rr:]
-                 \land
-                 \left(\bigvee_{i\in 0\dots} C^i\right)
-\\ ii &\defs& s'=s
-\\
-\\ \Atm a &\defs&\W(A(r|a|\rr:))
-\\
-\\ C \cseq D
-   &\defs&
    \W(~    A(r|ii|\rr1)
       \lor C[\rr1/r]
       \lor A(\rr{1:}|ii|\rr2)
       \lor D[\rr2/r]
       \lor A(\rr{2:}|ii|\rr:) ~)
-\\
-\\ C + D
-   &\defs&
-   \W(\quad {}\phlor A(r|ii|\rr1) \lor A(r|ii|\rr2)
-\\ && \qquad {} \lor
-   C[\rr1/r] \lor D[\rr2/r]
-\\ && \qquad {} \lor A(\rr{1:}|ii|\rr:) \lor A(\rr{2:}|ii|\rr:) ~)
-\\
-\\ C \parallel D
-   &\defs&
-   \W(\quad\phlor A(r|ii|\rr1,\rr2)
-\\ && \qquad {}\lor
-   C[\rr1/r]
-   \lor D[\rr2/r]
-\\ && \qquad {}\lor
-   A(\rr{1:},\rr{2:}|ii|\rr:)~)
-\\
-\\ C^*
-   &\defs&
-   \W(\quad  \phlor A(r|ii|\rr1) \lor A(\rr1|ii|\rr:)
-\\ && \qquad {}\lor C[\rr1/r]    \lor A(\rr{1:}|ii|\rr1) ~)
-\\
-\\ \cskip
-   &\defs&
-   \Atm{ii}
 }
 \begin{code}
 nVSeq = "VSeq"
@@ -1151,18 +1080,28 @@ ppVSeq sCP d p [pr1,pr2]
                             , sCP precVSeq 2 pr2 ]
 ppVSeq _ _ _ _ = pps styleRed $ ppa ("invalid-"++shVSeq)
 
-defnVSeq d [p,q]
- = ldefn shVSeq $ wp $ mkOr [PSub p sub1, PSub q sub2]
- where
-   sub1 = [("g",g'1),("out",lg)]
-   sub2 = [("g",g'2),("in",lg)]
+r1 = rsplit1 r
+r1' = rstep r1
+r2 = rsplit2 r
+r2' = rstep r2
+
+pSeq p q
+ = mkOr [ mkA r ii r1
+        , PSub p [("r",r1)]
+        , mkA r1' ii r2
+        , PSub q [("r",r2)]
+        , mkA r2' ii r' ]
+
+defnVSeq d [p,q] = ldefn shVSeq $ wp $ pSeq p q
 
 lg = new1 g
 g' = new2 g
 g'1 = xxxsplit1 g'
+
 g'2 = xxxsplit2 g'
 
-invVSeq = leInv[leElem inp, leElem lg, leElem out]
+invVSeq1 = leInv [leSet [r1], leSet [r1']]
+invVSeq2 = leInv [leSet [r2], leSet [r2']]
 
 vSeqEntry :: (Show s, Ord s) => (String, Entry s)
 vSeqEntry
@@ -1647,16 +1586,16 @@ vReduce vd _ (Comp ns [ (Comp nx1 [ (Atm e1)   -- X(E1
    &\implies&  X(E|a|E,L|N) = A(E|a|N)
 }
 \begin{code}
-vReduce vd inv (Comp nx [ Atm ee               -- X(E
+vReduce vd invs (Comp nx [ Atm ee               -- X(E
                         , as                   --  |a
                         , Atm (App ns [l1,l2]) --  | E,L or L,E
                         , Atm en               --  |N)
                         ])
  | nx == nX && ns == setn && isSingleton ee && isSingleton en
-   && l1==e && invTrims vd inv l1 l2
+   && l1==e && someInvFails vd invs l1 l2
     = lred "Inv collapses X to A" equivA
  | nx == nX && ns == setn && isSingleton ee && isSingleton en
-   && l2==e && invTrims vd inv l2 l1
+   && l2==e && someInvFails vd invs l2 l1
     = lred "Inv collapses X to A" equivA
  where
    e = theSingleton ee
@@ -1869,6 +1808,11 @@ vcalc pr = calcREPL vDict [noInvariant] $ buildMarks pr
 ivcalc inv pr
  = calcREPL vDict [(labelSetInv, inv)] $ buildMarks pr
 
+ivscalc invs pr
+ = calcREPL vDict (map lsi invs) $ buildMarks pr
+ where lsi inv = (labelSetInv, inv)
+
+
 vputcalc :: (Ord s, Show s) => Pred s -> IO ()
 vputcalc pr = printREPL vDict [noInvariant] $ buildMarks pr
 
@@ -2007,12 +1951,21 @@ invVatom.b = [lg|out]
 athenb = actionA `vseq` actionB
 \end{code}
 \begin{verbatim}
-Q(athenb) = A(in|a|lg) \/ A(lg|b|out)
+Q(athenb)
+    A(r|ii|r1)
+ \/ [r1|r1:] /\ (II \/ A(r1|a|r1:))
+ \/ A(r1:|ii|r2)
+ \/ [r2|r2:] /\ (II \/ A(r2|b|r2:))
+ \/ A(r2:|ii|r:)
 \end{verbatim}
+we strip out the invariant and skip parts
 \begin{code}
 q_athenb
-  = mkOr [ mkA inp a  lg
-         , mkA lg  b out ]
+ = mkOr [ mkA r ii r1
+        , mkA r1 a r1'
+        , mkA r1' ii r2
+        , mkA r2 b r2'
+        , mkA r2' ii r' ]
 \end{code}
 
 \begin{verbatim}

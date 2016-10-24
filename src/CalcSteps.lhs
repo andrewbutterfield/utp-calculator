@@ -264,19 +264,19 @@ expDefs _ _ = Nothing
 \HDRc{Simple Reduction}
 
 \begin{code}
-doReduce :: (Ord s, Show s) => Dict s -> Pred s -> Mark
+doReduce :: (Ord s, Show s) => Dict s -> [Pred s] -> Mark
            -> MPred s -> Maybe (BeforeAfter s)
-doReduce d inv m mpr
+doReduce d invs m mpr
  = case M.lookup "laws" d of
-    Just (LawEntry red _ _)  ->  doRed d m inv mpr red
+    Just (LawEntry red _ _)  ->  doRed d m invs mpr red
     _                        ->  Nothing
 
-doRed :: (Ord s, Show s) => Dict s -> Mark -> Pred s -> MPred s -> [RWFun s]
+doRed :: (Ord s, Show s) => Dict s -> Mark -> [Pred s] -> MPred s -> [RWFun s]
       -> Maybe (BeforeAfter s)
-doRed d m inv mpr [] = Nothing
-doRed d m inv mpr@(ms,_) (rf:rfs)
- = case doStepSearch m (rwLift $ rf d inv) mpr of
-    Nothing    ->  doRed d m inv mpr rfs
+doRed d m invs mpr [] = Nothing
+doRed d m invs mpr@(ms,_) (rf:rfs)
+ = case doStepSearch m (rwLift $ rf d invs) mpr of
+    Nothing    ->  doRed d m invs mpr rfs
     reduction  ->  reduction -- add m in as extra mark?
 \end{code}
 
@@ -302,19 +302,19 @@ doCRed d m mpr (rf:rfs)
 \HDRc{Loop Unrolling}
 
 \begin{code}
-doUnroll :: (Ord s, Show s) => String -> Dict s -> Pred s -> Mark
+doUnroll :: (Ord s, Show s) => String -> Dict s -> [Pred s] -> Mark
            -> MPred s -> Maybe (BeforeAfter s)
-doUnroll ns d inv m mpr
+doUnroll ns d invs m mpr
  = case M.lookup "laws" d of
-    Just (LawEntry _ _ unr)   ->  doUnr ns d m inv mpr unr
+    Just (LawEntry _ _ unr)   ->  doUnr ns d m invs mpr unr
     _                         ->  Nothing
 
-doUnr :: (Ord s, Show s) => String -> Dict s -> Mark -> Pred s -> MPred s
+doUnr :: (Ord s, Show s) => String -> Dict s -> Mark -> [Pred s] -> MPred s
       -> [String -> RWFun s] -> Maybe (BeforeAfter s)
-doUnr ns d m inv mpr [] = Nothing
-doUnr ns d m inv mpr (rf:rfs)
- = case doStepSearch m (rwLift $ rf ns d inv) mpr of
-     Nothing    ->  doUnr ns d m inv mpr rfs
+doUnr ns d m invs mpr [] = Nothing
+doUnr ns d m invs mpr (rf:rfs)
+ = case doStepSearch m (rwLift $ rf ns d invs) mpr of
+     Nothing    ->  doUnr ns d m invs mpr rfs
      unrolling  ->  unrolling
 \end{code}
 

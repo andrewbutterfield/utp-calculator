@@ -105,7 +105,7 @@ type RWResult s
          , Pred s  -- result predicate
          , Bool )  -- True if top-level modified
 type RWFun s = Dict s     -- dictionary
-            -> Pred s     -- invariant predicate
+            -> [Pred s]   -- invariant predicates
             -> Pred s     -- target predicate
             -> RWResult s
 \end{code}
