@@ -733,7 +733,10 @@ We then move onto the ``LE-invariant'', as predicates
 \begin{code}
 nLEInv = "LEInv"
 
-leInv es = Comp nLEInv $ map Atm es
+leInv es = Comp nLEInv $ map liftLE es
+liftLE e@(App nm _)
+ | nm == nLESet  =  Atm e
+liftLE e         =  Atm $ leElem e
 
 isLEInv (Comp n es)
  | n == nLEInv  =  all isLESet es
@@ -859,7 +862,7 @@ ppW sCP vd p [pr]
 ppW _ _ _ _ = pps styleRed $ ppa ("invalid-"++nW)
 
 r' = rstep r
-invWWW = leInv [leSet [r], leSet [r']]
+invWWW = leInv [r,r']
 
 -- we don't want to expand the definition of this, or simplify it
 defnW = pNoChg nW
@@ -926,7 +929,13 @@ The definitions, using the new shorthands:
 \\
 \\ \Atm a &\defs&\W(A(r|a|\rr:))
 \\
-\\ C \cseq D
+\\ \cskip
+   &\defs&
+   \Atm{ii}
+}
+The following are all under review (they lack sufficient invariants).
+\RLEQNS{
+   C \cseq D
    &\defs&
    \W(~    A(r|ii|\rr1)
       \lor C[\rr1/r]
@@ -954,10 +963,6 @@ The definitions, using the new shorthands:
    &\defs&
    \W(\quad  \phlor A(r|ii|\rr1) \lor A(\rr1|ii|\rr:)
 \\ && \qquad {}\lor C[\rr1/r]    \lor A(\rr{1:}|ii|\rr1) ~)
-\\
-\\ \cskip
-   &\defs&
-   \Atm{ii}
 }
 
 \newpage
@@ -1060,12 +1065,12 @@ vSkipCalcEntry
 
 \RLEQNS{
    C \cseq D
-   &\defs&
-   \W(~    A(r|ii|\rr1)
-      \lor C[\rr1/r]
-      \lor A(\rr{1:}|ii|\rr2)
-      \lor D[\rr2/r]
-      \lor A(\rr{2:}|ii|\rr:) ~)
+   &\defs& [r|\rr1|\rr{1:}|\rr2|\rr{2:}|\rr:] \land {}
+\\ && \W(\quad {}\phlor A(r|ii|\rr1)
+\\ && \qquad {} \lor C[\rr1/r]
+\\ && \qquad {} \lor A(\rr{1:}|ii|\rr2)
+\\ && \qquad {} \lor D[\rr2/r]
+\\ && \qquad {} \lor A(\rr{2:}|ii|\rr:)~)
 }
 \begin{code}
 nVSeq = "VSeq"
@@ -1085,6 +1090,8 @@ r1' = rstep r1
 r2 = rsplit2 r
 r2' = rstep r2
 
+invVSeq = leInv [r,r1,r1',r2,r2',r']
+
 pSeq p q
  = mkOr [ mkA r ii r1
         , PSub p [("r",r1)]
@@ -1092,16 +1099,14 @@ pSeq p q
         , PSub q [("r",r2)]
         , mkA r2' ii r' ]
 
-defnVSeq d [p,q] = ldefn shVSeq $ wp $ pSeq p q
+defnVSeq d [p,q] = ldefn shVSeq $ mkAnd [ invVSeq
+                                        , wp $ pSeq p q ]
 
 lg = new1 g
 g' = new2 g
 g'1 = xxxsplit1 g'
 
 g'2 = xxxsplit2 g'
-
-invVSeq1 = leInv [leSet [r1], leSet [r1']]
-invVSeq2 = leInv [leSet [r2], leSet [r2']]
 
 vSeqEntry :: (Show s, Ord s) => (String, Entry s)
 vSeqEntry
@@ -1950,12 +1955,13 @@ invVatom.b = [lg|out]
 \begin{code}
 athenb = actionA `vseq` actionB
 \end{code}
+
 \begin{verbatim}
 Q(athenb)
     A(r|ii|r1)
- \/ [r1|r1:] /\ (II \/ A(r1|a|r1:))
+ \/ A(r1|a|r1:)
  \/ A(r1:|ii|r2)
- \/ [r2|r2:] /\ (II \/ A(r2|b|r2:))
+ \/ A(r2|b|r2:)
  \/ A(r2:|ii|r:)
 \end{verbatim}
 we strip out the invariant and skip parts
@@ -1969,30 +1975,70 @@ q_athenb
 \end{code}
 
 \begin{verbatim}
-q_athenb^2 = X(in|a;b|in,lg|out)
+q_athenb^2 =
+    A(r|ii;a|r1:)
+ \/ A(r1|a;ii|r2)
+ \/ A(r1:|ii;b|r2:)
+ \/ A(r2|b;ii|r:)
 \end{verbatim}
 The invariant means that the removal of $\ell_g$ above is redundant,
 so the $X$ becomes an $A$
 \begin{code}
-q_athenb_2 = mkA inp ab out
-ab = mkSeq a b
+q_athenb_2
+ = mkOr [ mkA r   a r1'
+        , mkA r1  a r2
+        , mkA r1' b r2'
+        , mkA r2  b r' ]
 \end{code}
 
 \begin{verbatim}
-q_athenb^3 = false
+q_athenb^3 =
+    A(r|ii ; a|r2)
+ \/ A(r1|a ; b|r2:)
+ \/ A(r1:|ii ; b|r:)
 \end{verbatim}
 \begin{code}
-v_athenb
- = mkOr [ mkSkip
-        , q_athenb
-        , q_athenb_2 ]
+ab = mkSeq a b
+q_athenb_3
+ = mkOr [ mkA r a r2
+        , mkA r1 ab r2'
+        , mkA r1' b r' ]
 \end{code}
-\begin{verbatim}
-v_athenb
- = [in|lg|out] /\
-   ( II \/ A(in|a|lg) \/ A(lg|b|out) \/ A(in|a ; b|out) )
-\end{verbatim}
 
+\begin{verbatim}
+q_athenb^4 =
+    A(r|ii ; a ; b|r2:)
+ \/ A(r1|a ; b|r:)
+\end{verbatim}
+\begin{code}
+q_athenb_4
+ = mkOr [ mkA r ab r2'
+        , mkA r1 ab r' ]
+\end{code}
+
+\begin{verbatim}
+q_athenb^5 =
+    A(r|ii ; a ; b|r:)
+\end{verbatim}
+\begin{code}
+q_athenb_5
+ = mkOr [ mkA r ab r' ]
+\end{code}
+
+\begin{verbatim}
+q_athenb^6 = false
+
+v_athenb
+ = [r|r1|r1'|r2|r2'|r'] /\
+    A(r|ii|r1) \/ A(r1|a|r1:) \/ A(r1:|ii|r2) \/ A(r2|b|r2:) \/ A(r2:|ii|r:)
+ \/ A(r|a|r1:) \/ A(r1|a|r2) \/ A(r1:|b|r2:) \/ A(r2|b|r:)
+ \/ A(r|a|r2) \/ A(r1|ab|r2:) \/ A(r1:|b|r:)
+ \/ A(r|ab|r2:) \/ A(r1|ab|r:)
+ \/ A(r|ab|r:)
+\end{verbatim}
+\begin{code}
+v_athenb = undefined
+\end{code}
 
 \newpage
 \HDRc{Non-deterministic Choice}
