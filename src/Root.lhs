@@ -1120,54 +1120,11 @@ vSeqEntry
 
 \RLEQNS{
    C + D
-   &\defs&
-   \W(\quad {}\phlor A(in|ii|\ell_{g1})
-\\ && \qquad {} \lor
-                     A(in|ii|\ell_{g2})
-\\ && \qquad {} \lor
-   C[g_{1:},\ell_{g1}/g,in] \lor D[g_{2:},\ell_{g2}/g,in]~)
-\\&& {} \land [in|\ell_{g1}|\ell_{g2}|out]
-}
-\RLEQNS{
-   \W(C) &\defs& [r|\rr:]
-                 \land
-                 \left(\bigvee_{i\in 0\dots} C^i\right)
-\\ ii &\defs& s'=s
-\\
-\\ \Atm a &\defs&\W(A(r|a|\rr:))
-\\
-\\ C \cseq D
-   &\defs&
-   \W(~    A(r|ii|\rr1)
-      \lor C[\rr1/r]
-      \lor A(\rr{1:}|ii|\rr2)
-      \lor D[\rr2/r]
-      \lor A(\rr{2:}|ii|\rr:) ~)
-\\
-\\ C + D
-   &\defs&
-   \W(\quad {}\phlor A(r|ii|\rr1) \lor A(r|ii|\rr2)
+   &\defs& [r|\rr1|\rr{1:}|\rr2|\rr{2:}|\rr:] \land {}
+\\&& \W(\quad {}\phlor A(r|ii|\rr1) \lor A(r|ii|\rr2)
 \\ && \qquad {} \lor
    C[\rr1/r] \lor D[\rr2/r]
 \\ && \qquad {} \lor A(\rr{1:}|ii|\rr:) \lor A(\rr{2:}|ii|\rr:) ~)
-\\
-\\ C \parallel D
-   &\defs&
-   \W(\quad\phlor A(r|ii|\rr1,\rr2)
-\\ && \qquad {}\lor
-   C[\rr1/r]
-   \lor D[\rr2/r]
-\\ && \qquad {}\lor
-   A(\rr{1:},\rr{2:}|ii|\rr:)~)
-\\
-\\ C^*
-   &\defs&
-   \W(\quad  \phlor A(r|ii|\rr1) \lor A(\rr1|ii|\rr:)
-\\ && \qquad {}\lor C[\rr1/r]    \lor A(\rr{1:}|ii|\rr1) ~)
-\\
-\\ \cskip
-   &\defs&
-   \Atm{ii}
 }
 \begin{code}
 nVChc = "VChc"
@@ -1182,15 +1139,19 @@ ppVChc sCP d p [pr1,pr2]
                             , sCP precVChc 2 pr2 ]
 ppVChc _ _ _ _ = pps styleRed $ ppa ("invalid-"++shVChc)
 
+invVChc = invVSeq -- not a complete coincidence !
+
+pChc p q
+ = mkOr [ mkA r ii r1
+        , mkA r ii r2
+        , PSub p [("r",r1)]
+        , PSub q [("r",r2)]
+        , mkA r1' ii r'
+        , mkA r2' ii r' ]
+
 defnVChc d [p,q]
- = ldefn shVChc $ wp
-    $ mkOr [ mkA inp ii lg1
-           , mkA inp ii lg2
-           , PSub p sub1
-           , PSub q sub2 ]
- where
-   sub1 = [("g",g1'),("in",lg1)]
-   sub2 = [("g",g2'),("in",lg2)]
+ = ldefn shVChc $ mkAnd [ invVChc
+                        , wp $ pChc p q ]
 
 g1 = xxxsplit1 g
 g2 = xxxsplit2 g
@@ -1198,8 +1159,6 @@ lg1 = new1 g1
 lg2 = new1 g2
 g1' = new2 g1
 g2' = new2 g2
-
-invVChc = leInv [leElem inp, leElem lg1, leElem lg2, leElem out]
 
 vChcEntry :: (Show s, Ord s) => (String, Entry s)
 vChcEntry
