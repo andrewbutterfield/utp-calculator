@@ -2009,47 +2009,57 @@ invVChc = [in|lg1|lg2|out]
 aorb = actionA `vchc` actionB
 \end{code}
 \begin{verbatim}
-Q(aorb) = A(in|ii|lg1) \/ A(in|ii|lg2) \/ A(lg1|a|out) \/ A(lg2|b|out)
+Q(aorb) = A(r|ii|r1) \/ A(r|ii|r2) 
+          \/ A(r1|a|r1:) \/ A(r2|b|r2:)
+          \/ A(r1:|ii|r:) \/ A(r2:|ii|r:)
 \end{verbatim}
 \begin{code}
 q_aorb
-  = mkOr [ mkA inp ii lg1
-         , mkA inp ii lg2
-         , mkA lg1  a out
-         , mkA lg2  b out ]
+  = mkOr [ mkA r ii r1
+         , mkA r ii r2
+         , mkA r1  a r1'
+         , mkA r2  b r2'
+         , mkA r1' ii r'
+         , mkA r2' ii r' ]
 \end{code}
 
 \begin{verbatim}
-q_aorb^2 = X(in|ii ; a|in,lg1|out) \/ X(in|ii ; b|in,lg2|out)
-\end{verbatim}
-We manually note that \texttt{ii;a = a} and if \texttt{in} is in \texttt{ls},
-then the invariant ensures that \texttt{lg1} (or \texttt{lg2}) is not,
-and so the removal of \texttt{in,lg1}
-can be replaced by \texttt{in}, and so we can use the A-form:
-\begin{verbatim}
-X(in|ii;a|in,lg1|out) = A(in|a|out)
+q_aorb^2 = A(r|a|r1:) \/ A(r|b|r2:) \/ A(r1|a|r:) \/ A(r2|b|r:)
 \end{verbatim}
 \begin{code}
 q_aorb_2
-  = mkOr [ mkA inp a out
-         , mkA inp b out ]
+  = mkOr [ mkA r a r1'
+         , mkA r b r2'
+         , mkA r1 a r'
+         , mkA r2 b r' ]
 \end{code}
 
 \begin{verbatim}
-q_aorb^3 = false
+q_aorb^3 = A(r|a|r:) \/ A(r|b|r:)
+\end{verbatim}
+\begin{code}
+q_aorb_3
+ = mkOr [ mkA r a r', mkA r b r' ]
+\end{code}
+\begin{verbatim}
+q_aorb^4 = false
 \end{verbatim}
 \begin{code}
 v_aorb
  = mkOr [ mkSkip
         , q_aorb
-        , q_aorb_2 ]
+        , q_aorb_2
+        , q_aorb_3 ]
 \end{code}
 \begin{verbatim}
 v_aorb
- = [in|lg1|lg2|out] /\
-   ( II \/ A(in|ii|lg1) \/ A(in|ii|lg2)
-        \/ A(lg1|a|out) \/ A(lg2|b|out)
-        \/ A(in|a|out)  \/ A(in|b|out) )
+ = [r|r1|r1:|r2|r2:|r:] /\
+   ( II
+     \/ A(r|ii|r1) \/ A(r|ii|r2)
+     \/ A(r1|a|r1:) \/ A(r2|b|r2:)
+     \/ A(r1:|ii|r:) \/ A(r2:|ii|r:)
+     \/ A(r|a|r1:) \/ A(r|b|r2:) \/ A(r1|a|r:) \/ A(r2|b|r:)
+     \/ A(r|a|r:) \/ A(r|b|r:) )
 \end{verbatim}
 
 
