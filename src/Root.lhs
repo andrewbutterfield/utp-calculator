@@ -1172,55 +1172,16 @@ vChcEntry
 
 \RLEQNS{
    C \parallel D
-   &\defs&
-   \W(\quad\phlor A(in|ii|\ell_{g1},\ell_{g2})
-\\ && \qquad {}\lor
-   C[g_{1::},\ell_{g1},\ell_{g1:}/g,in,out]
-   \lor D[g_{2::},\ell_{g2},\ell_{g2:}/g,in,out]
-\\ && \qquad {}\lor
-   A(\ell_{g1:},\ell_{g2:}|ii|out)~)
-\\&& {} \land [in|(\ell_{g1}|\ell_{g1:}),(\ell_{g2}|\ell_{g2:})|out]
-}
-\RLEQNS{
-   \W(C) &\defs& [r|\rr:]
-                 \land
-                 \left(\bigvee_{i\in 0\dots} C^i\right)
-\\ ii &\defs& s'=s
-\\
-\\ \Atm a &\defs&\W(A(r|a|\rr:))
-\\
-\\ C \cseq D
-   &\defs&
-   \W(~    A(r|ii|\rr1)
-      \lor C[\rr1/r]
-      \lor A(\rr{1:}|ii|\rr2)
-      \lor D[\rr2/r]
-      \lor A(\rr{2:}|ii|\rr:) ~)
-\\
-\\ C + D
-   &\defs&
-   \W(\quad {}\phlor A(r|ii|\rr1) \lor A(r|ii|\rr2)
-\\ && \qquad {} \lor
-   C[\rr1/r] \lor D[\rr2/r]
-\\ && \qquad {} \lor A(\rr{1:}|ii|\rr:) \lor A(\rr{2:}|ii|\rr:) ~)
-\\
-\\ C \parallel D
-   &\defs&
-   \W(\quad\phlor A(r|ii|\rr1,\rr2)
+   &\defs& ~
+   [r|\rr1,\rr2,\rr{1:},\rr{2:}|\rr:] \land
+   [\rr1|\rr{1:}] \land
+   [\rr2|\rr{2:}] \land {}
+\\&& \W(\quad\phlor A(r|ii|\rr1,\rr2)
 \\ && \qquad {}\lor
    C[\rr1/r]
    \lor D[\rr2/r]
 \\ && \qquad {}\lor
    A(\rr{1:},\rr{2:}|ii|\rr:)~)
-\\
-\\ C^*
-   &\defs&
-   \W(\quad  \phlor A(r|ii|\rr1) \lor A(\rr1|ii|\rr:)
-\\ && \qquad {}\lor C[\rr1/r]    \lor A(\rr{1:}|ii|\rr1) ~)
-\\
-\\ \cskip
-   &\defs&
-   \Atm{ii}
 }
 \begin{code}
 nVPar = "VPar"
@@ -1235,15 +1196,24 @@ ppVPar sCP d p [pr1,pr2]
                             , sCP precVPar 2 pr2 ]
 ppVPar _ _ _ _ = pps styleRed $ ppa ("invalid-"++shVPar)
 --
+
+invVPar1 = leInv [r,leSet [r1,r2,r1',r2'], r']
+invVPar2 = leInv [r1,r1']
+invVPar3 = leInv [r2,r2']
+
+invVPars = [ invVPar1, invVPar2, invVPar3 ]
+
+invVPar = mkAnd invVPars
+
+pPar p q
+ = mkOr [ mkA r ii (set [r1,r2])
+           , PSub p [("r",r1)]
+           , PSub q [("r",r2)]
+           , mkA (set [r1',r2']) ii r' ]
+
 defnVPar d [p,q]
- = ldefn shVPar $ wp
-    $ mkOr [ mkA inp ii (set [lg1,lg2])
-           , PSub p sub1
-           , PSub q sub2
-           , mkA s12' ii out ]
- where
-   sub1 = [("g",g1''),("in",lg1),("out",lg1')]
-   sub2 = [("g",g2''),("in",lg2),("out",lg2')]
+ = ldefn shVPar $ mkAnd [ invVPar
+                        , wp $ pPar p q ]
 
 lg1' = new1 g1'
 lg2' = new1 g2'
@@ -1251,11 +1221,6 @@ g1'' = new2 g1'
 g2'' = new2 g2'
 s12' = set [lg1',lg2']
 
-invVPar = leInv [ leElem inp
-                , leSet [ lg1, lg1' ]
-                , leSet [ lg2, lg2' ]
-                , leElem out
-                ]
 
 vParEntry :: (Show s, Ord s) => (String, Entry s)
 vParEntry
@@ -1986,7 +1951,17 @@ q_athenb_5
 
 \begin{verbatim}
 q_athenb^6 = false
-
+\end{verbatim}
+\begin{code}
+q_athenb_all
+ = mkOr [ mkSkip
+        , q_athenb
+        , q_athenb_2
+        , q_athenb_3
+        , q_athenb_4
+        , q_athenb_5 ]
+\end{code}
+\begin{verbatim}
 v_athenb
  = [r|r1|r1'|r2|r2'|r'] /\
     A(r|ii|r1) \/ A(r1|a|r1:) \/ A(r1:|ii|r2) \/ A(r2|b|r2:) \/ A(r2:|ii|r:)
@@ -1996,7 +1971,7 @@ v_athenb
  \/ A(r|ab|r:)
 \end{verbatim}
 \begin{code}
-v_athenb = undefined
+v_athenb = mkAnd [invVSeq, q_athenb_all ]
 \end{code}
 
 \newpage
@@ -2009,7 +1984,7 @@ invVChc = [in|lg1|lg2|out]
 aorb = actionA `vchc` actionB
 \end{code}
 \begin{verbatim}
-Q(aorb) = A(r|ii|r1) \/ A(r|ii|r2) 
+Q(aorb) = A(r|ii|r1) \/ A(r|ii|r2)
           \/ A(r1|a|r1:) \/ A(r2|b|r2:)
           \/ A(r1:|ii|r:) \/ A(r2:|ii|r:)
 \end{verbatim}
@@ -2045,7 +2020,7 @@ q_aorb_3
 q_aorb^4 = false
 \end{verbatim}
 \begin{code}
-v_aorb
+q_aorb_all
  = mkOr [ mkSkip
         , q_aorb
         , q_aorb_2
@@ -2061,6 +2036,9 @@ v_aorb
      \/ A(r|a|r1:) \/ A(r|b|r2:) \/ A(r1|a|r:) \/ A(r2|b|r:)
      \/ A(r|a|r:) \/ A(r|b|r:) )
 \end{verbatim}
+\begin{code}
+v_aorb = mkAnd [ invVChc, q_aorb_all ]
+\end{code}
 
 
 
@@ -2075,26 +2053,27 @@ awithb = actionA `vpar` actionB
 \end{code}
 \begin{verbatim}
 Q(awithb)
-  =    A(in|ii|lg1,lg2)
-    \/ A(lg1|a|lg1:) \/ A(lg2|b|lg2:)
-    \/ A(lg1:,lg2:|ii|out)
+  =    A(r|ii|r1,r2)
+       \/ A(r1|a|r1:)
+       \/ A(r2|b|r2:)
+       \/ A(r1:,r2:|ii|r:)
 \end{verbatim}
 \begin{code}
 q_awithb
-  = mkOr [ mkA inp ii $ set [lg1,lg2]
-         , mkA lg1 a lg1'
-         , mkA lg2 b lg2'
-         , mkA (set [lg1',lg2']) ii out ]
+  = mkOr [ mkA r ii $ set [r1,r2]
+         , mkA r1 a r1'
+         , mkA r2 b r2'
+         , mkA (set [r1',r2']) ii r' ]
 \end{code}
 
 \begin{verbatim}
 q_awithb^2
- =    X(in|ii ; a|in,lg1|lg1:,lg2)
-   \/ X(lg1,lg2|b ; a|lg1,lg2|lg1:,lg2:)
-   \/ X(in|ii ; b|in,lg2|lg2:,lg1)
-   \/ X(lg1,lg2|a ; b|lg1,lg2|lg1:,lg2:)
-   \/ X(lg2:,lg1|a ; ii|lg1:,lg2:,lg1|out)
-   \/ X(lg1:,lg2|b ; ii|lg1:,lg2:,lg2|out)
+ =  X(r|a|r,r1|r2,r1:)
+ \/ A(r1,r2|ba|r1:,r2:)
+ \/ X(r|b|r,r2|r1,r2:)
+ \/ A(r1,r2|ab|r1:,r2:)
+ \/ X(r1,r2:|a|r1,r1:,r2:|r:)
+ \/ X(r2,r1:|b|r2,r1:,r2:|r:)
 \end{verbatim}
 We manually note that \texttt{ii;a = a} and if \texttt{in} is in \texttt{ls},
 then the invariant ensures that \texttt{lg1} (or \texttt{lg2}) is not,

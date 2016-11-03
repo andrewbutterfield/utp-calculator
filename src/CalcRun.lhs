@@ -190,8 +190,15 @@ calcHelp d m st
 
 Displaying the invariant
 \begin{code}
+displayInv d m st@(_,_,[])
+ = do putStrLn "No Invariant!"
+      runREPL d m st
 displayInv d m st@(_,_,[(_,inv)])
  = do putStrLn ("Invariant:  "++pdshow 80 d inv)
+      runREPL d m st
+displayInv d m st@(_,_,ivs)
+ = do putStrLn "Invariants:"
+      sequence $ map (putStrLn . pdshow 80 d . snd) ivs
       runREPL d m st
 \end{code}
 

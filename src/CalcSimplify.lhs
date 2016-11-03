@@ -475,6 +475,7 @@ substitutable d (Comp name _,_)
 substitutable _ _ = True
 \end{code}
 
+\newpage
 \HDRb{Invariant Checking}\label{hb:inv-check}
 
 We will generally have a list of invariants to check:
@@ -499,6 +500,7 @@ chkInvariants d ((ichk,inv):invrest) m mpr
 
 \end{code}
 
+\newpage
 We explore the current predicate,
 bottom-up, like simplify,
 except we have a fixed simplification function
