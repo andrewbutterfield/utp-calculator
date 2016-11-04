@@ -1249,52 +1249,12 @@ vParEntry
 
 \RLEQNS{
    C^*
-   &\defs&
-   \W(\quad  \phlor A(in|ii|out)
-\\ && \qquad {}\lor A(in|ii|\ell_g)
-\\ && \qquad {}\lor C[g_{:},\ell_g,in/g,in,out]~)
-\\&& {} \land [in|\ell_g|out]
-}
-\RLEQNS{
-   \W(C) &\defs& [r|\rr:]
-                 \land
-                 \left(\bigvee_{i\in 0\dots} C^i\right)
-\\ ii &\defs& s'=s
-\\
-\\ \Atm a &\defs&\W(A(r|a|\rr:))
-\\
-\\ C \cseq D
-   &\defs&
-   \W(~    A(r|ii|\rr1)
-      \lor C[\rr1/r]
-      \lor A(\rr{1:}|ii|\rr2)
-      \lor D[\rr2/r]
-      \lor A(\rr{2:}|ii|\rr:) ~)
-\\
-\\ C + D
-   &\defs&
-   \W(\quad {}\phlor A(r|ii|\rr1) \lor A(r|ii|\rr2)
-\\ && \qquad {} \lor
-   C[\rr1/r] \lor D[\rr2/r]
-\\ && \qquad {} \lor A(\rr{1:}|ii|\rr:) \lor A(\rr{2:}|ii|\rr:) ~)
-\\
-\\ C \parallel D
-   &\defs&
-   \W(\quad\phlor A(r|ii|\rr1,\rr2)
-\\ && \qquad {}\lor
-   C[\rr1/r]
-   \lor D[\rr2/r]
-\\ && \qquad {}\lor
-   A(\rr{1:},\rr{2:}|ii|\rr:)~)
-\\
-\\ C^*
-   &\defs&
-   \W(\quad  \phlor A(r|ii|\rr1) \lor A(\rr1|ii|\rr:)
-\\ && \qquad {}\lor C[\rr1/r]    \lor A(\rr{1:}|ii|\rr1) ~)
-\\
-\\ \cskip
-   &\defs&
-   \Atm{ii}
+   &\defs& [r|\rr2|\rr1|\rr{1:}|\rr:] \land {}
+\\&& \W(\quad  \phlor A(r|ii|\rr2)
+\\ && \qquad {}\lor A(\rr2|ii|\rr1)
+               \lor C[\rr1/r]
+               \lor A(\rr{1:}|ii|\rr2)
+\\ && \qquad {}\lor A(\rr2|ii|\rr:) ~)
 }
 \begin{code}
 nVIter = "VIter"
@@ -1308,20 +1268,19 @@ ppVIter sCP d p [pr]
      $ ppclosed  "(" ")*" "" [sCP 0 1 pr]
 
 ppVIter _ _ _ _ = pps styleRed $ ppa ("invalid-"++shVIter)
---
-defnVIter d [p]
- = ldefn shVIter $ wp
-    $ mkOr [ mkA inp ii out
-           , mkA inp ii lg
-           , PSub p sub
-           ]
- where
-   sub = [("g",g'),("in",lg),("out",inp)]
 
-invVIter = leInv [ leElem inp
-                 , leElem lg
-                 , leElem out
-                 ]
+invVIter = leInv [r,r2,r1,r1',r']
+
+pIter p
+ = mkOr [ mkA r ii r2
+        , mkA r2 ii r1
+        , PSub p [("r",r1)]
+        , mkA r1' ii r2
+        , mkA r2 ii r' ]
+
+defnVIter d [p]
+ = ldefn shVIter $ mkAnd [ invVIter
+                         , wp $ pIter p ]
 
 vIterEntry :: (Show s, Ord s) => (String, Entry s)
 vIterEntry
@@ -2185,82 +2144,121 @@ itera = viter actionA
 \end{code}
 
 \begin{verbatim}
-Q(itera) = A(in|ii|out) \/ A(in|ii|lg) \/ A(lg|a|in)
+Q(itera)
+ =  A(r|ii|r2)
+ \/ A(r2|ii|r1)
+ \/ A(r1|a|r1:)
+ \/ A(r1:|ii|r2)
+ \/ A(r2|ii|r:)
 \end{verbatim}
 \begin{code}
 q_itera
-  = mkOr [ mkA inp ii out
-         , mkA inp ii lg
-         , mkA lg  a  inp ]
+  = mkOr [ mkA r ii r2
+         , mkA r2 ii r1
+         , mkA r1  a  r1'
+         , mkA r1' ii r2
+         , mkA r2 ii r' ]
 \end{code}
+
+
+
+
 
 \begin{verbatim}
 q_itera^2
-  =    X(lg|a ; ii|in,lg|out)
-    \/ X(lg|a ; ii|in,lg|lg)
-    \/ X(in|ii ; a|in,lg|in)
+  = A(r|ii|r1)
+ \/ A(r1:|ii|r1)
+ \/ A(r2|a|r1:)
+ \/ A(r1|a|r2)
+ \/ A(r|ii|r:)
+ \/ A(r1:|ii|r:)
 \end{verbatim}
-We can simplify to use $A$:
 \begin{code}
 q_itera_2
- = mkOr [ mkA lg  a out
-        , mkA lg  a lg
-        , mkA inp a inp ]
+ = mkOr [ mkA r ii r1
+        , mkA r1' ii r1
+        , mkA r2 a r1'
+        , mkA r1 a r2
+        , mkA r ii r'     -- 1st zero iter, end-to-end
+        , mkA r1' ii r' ]
 \end{code}
 
 \begin{verbatim}
 q_itera^3
-  =    X(in|ii ; a|in,lg|out)
-    \/ X(in|ii ; a|in,lg|lg)
-    \/ X(lg|a ; a|in,lg|in)
+  = A(r1|a|r1)
+ \/ A(r|a|r1:)
+ \/ A(r1:|a|r1:)
+ \/ A(r2|a|r2)
+ \/ A(r1|a|r:)
 \end{verbatim}
 \begin{code}
 q_itera_3
- = mkOr [ mkA inp a  out
-        , mkA inp a  lg
-        , mkA lg  a2 inp ]
-a2 = mkSeq a a
+ = mkOr [ mkA r1 a r1
+        , mkA r a r1'
+        , mkA r1' a r1'
+        , mkA r2 a r2
+        , mkA r1 a r' ]
 \end{code}
 
 \begin{verbatim}
 q_itera^4
- =    X(lg|a ; a|in,lg|out)
-   \/ X(lg|a ; a|in,lg|lg)
-   \/ X(in|ii ; a ; a|in,lg|in)
+  = A(r2|a|r1)
+ \/ A(r1|aa|r1:)
+ \/ A(r|a|r2)
+ \/ A(r1:|a|r2)
+ \/ A(r2|a|r:)
 \end{verbatim}
 \begin{code}
 q_itera_4
- = mkOr [ mkA lg  a2 out
-        , mkA lg  a2 lg
-        , mkA inp a2 inp ]
+ = mkOr [ mkA r2 a r1
+        , mkA r1 aa r1' -- 1st double!
+        , mkA r a r2
+        , mkA r1' a r2
+        , mkA r2 a r' ]
+
+aa = mkSeq a a
 \end{code}
 
 \begin{verbatim}
 q_itera^5
- =    X(in|ii ; a ; a|in,lg|out)
-   \/ X(in|ii ; a ; a|in,lg|lg)
-   \/ X(lg|a ; a ; a|in,lg|in)
+  = A(r|a|r1)
+ \/ A(r1:|a|r1)
+ \/ A(r2|aa|r1:)
+ \/ A(r1|aa|r2)
+ \/ A(r|a|r:)
+ \/ A(r1:|a|r:)
 \end{verbatim}
 \begin{code}
 q_itera_5
- = mkOr [ mkA inp a2 out
-        , mkA inp a2 lg
-        , mkA lg  a3 inp ]
-a3 = mkSeq a2 a
+ = mkOr [ mkA r a r1
+        , mkA r1' a r1
+        , mkA r2 aa r1'
+        , mkA r1 aa r2
+        , mkA r a r'    -- 1st single iter, end-to-end
+        , mkA r1' a r' ]
 \end{code}
 
 \begin{verbatim}
- q_itera^6
-  =    X(lg|a ; a ; a|in,lg|out)
-    \/ X(lg|a ; a ; a|in,lg|lg)
-    \/ X(in|ii ; a ; a ; a|in,lg|in)
+q_itera^6
+  = A(r1|aa|r1)
+ \/ A(r|aa|r1:)
+ \/ A(r1:|aa|r1:)
+ \/ A(r2|aa|r2)
+ \/ A(r1|aa|r:)
 \end{verbatim}
 \begin{code}
 q_itera_6
- = mkOr [ mkA lg  a3 out
-        , mkA lg  a3 lg
-        , mkA inp a3 inp ]
+ = mkOr [ mkA r1 aa r1
+        , mkA r aa r1'
+        , mkA r1' aa r1'
+        , mkA r2 aa r2
+        , mkA r1 aa r'
+        ]
 \end{code}
+Now the pattern repeats, with a \verb"q_itera_n" cycle of length 3
+
+
+
 
 We notice that we are getting Q pairs of the following form:
 \begin{verbatim}
