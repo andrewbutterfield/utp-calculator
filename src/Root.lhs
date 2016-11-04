@@ -335,7 +335,23 @@ dosdiff d es1 es2
 ppSDiff d ss = "("  ++ dlshow d " \\ " ss ++ ")"
 \end{code}
 
+\HDRd{Set Utilities}
 
+It can be useful to turn a set into a list
+of its elements:
+\begin{code}
+setElems :: Ord s => Expr s -> [Expr s]
+setElems (App sn es) | sn == setn  =  sort $ nub $ es
+setElems e = []
+\end{code}
+Also determining subsets (subsequences)
+\begin{code}
+isSubSeqOf [] _ = True
+isSubSeqOf _ [] = False
+isSubSeqOf a@(x:a') (y:b) | x==y       =  isSubSeqOf a' b
+                          | otherwise  =  isSubSeqOf a  b
+\end{code}
+From GHC 7.10 onwards this is \texttt{Data.List.subSequencesOf}.
 
 \HDRb{Shorthands}
 
@@ -1514,22 +1530,41 @@ vReduce vd _ (Comp ns [ (Comp nx1 [ (Atm e1)   -- X(E1
    \lnot(\setof{E,L} \textbf{ lsat } I)
    &\implies&  X(E|a|E,L|N) = A(E|a|N)
 }
+Given $I$ and $X(E|a|R|A)$, we proceed as follows:
+\begin{enumerate}
+  \item Let $D = R \setminus E$
+  \item Compute
+    $D' =
+       \setof{  d | d \in D,
+                    \lnot (E\cup\setof d \textbf{ lsat } I)}
+    $
+  \item
+    If $D = D'$ then return $A(E|a|A)$
+  \item
+    Else, return $X(E|a|E\cup(D \setminus D')|A)$.
+\end{enumerate}
 \begin{code}
-vReduce vd invs (Comp nx [ Atm ee               -- X(E
-                        , as                   --  |a
-                        , Atm (App ns [l1,l2]) --  | E,L or L,E
-                        , Atm en               --  |N)
-                        ])
- | nx == nX && ns == setn && isSingleton ee && isSingleton en
-   && l1==e && someInvFails vd invs l1 l2
-    = lred "Inv collapses X to A" equivA
- | nx == nX && ns == setn && isSingleton ee && isSingleton en
-   && l2==e && someInvFails vd invs l2 l1
-    = lred "Inv collapses X to A" equivA
- where
-   e = theSingleton ee
-   n = theSingleton en
-   equivA = mkA e as n
+vReduce vd invs (Comp nx [ Atm e   -- X(E
+                         , as      --  |a
+                         , Atm r   --  |R
+                         , Atm a   --  |A)
+                         ])
+ | nx == nX && applicable
+   = lred "Inv collapses X to A" $ mkA e as a
+  where
+    applicable = es `isSubSeqOf` rs
+                 && ds == ds'
+    es = setElems e
+    rs = setElems r
+    ds = rs \\ es
+    ds' = filter (someInvFails invs) ds
+
+    someInvFails [] _ = False
+    someInvFails (inv:invs) d
+     | lsat vd ed inv  =  someInvFails invs d
+     | otherwise  =  True
+     where
+       ed = snd $ esimp vd (e `u` set [d])
 \end{code}
 
 
@@ -2068,67 +2103,61 @@ q_awithb
 
 \begin{verbatim}
 q_awithb^2
- =  X(r|a|r,r1|r2,r1:)
+ =  A(r|a|r2,r1:)
  \/ A(r1,r2|ba|r1:,r2:)
- \/ X(r|b|r,r2|r1,r2:)
+ \/ A(r|b|r1,r2:)
  \/ A(r1,r2|ab|r1:,r2:)
- \/ X(r1,r2:|a|r1,r1:,r2:|r:)
- \/ X(r2,r1:|b|r2,r1:,r2:|r:)
+ \/ A(r1,r2:|a|r:)
+ \/ A(r2,r1:|b|r:)
 \end{verbatim}
-We manually note that \texttt{ii;a = a} and if \texttt{in} is in \texttt{ls},
-then the invariant ensures that \texttt{lg1} (or \texttt{lg2}) is not,
-and so the removal of \texttt{in,lg1}
-can be replaced by \texttt{in}, and so we can use the A-form:
-\begin{verbatim}
-X(in|ii;a|in,lg1|lg1:,lg2) = A(in|a|lg1:,lg2)
-\end{verbatim}
+
+
 \begin{code}
 q_awithb_2
-  = mkOr [ mkA inp a $ set [lg1',lg2]
-         , mkA (set [lg1,lg2]) (mkSeq b a) $ set [lg1',lg2']
-         , mkA inp b $ set [lg2',lg1]
-         , mkA (set [lg1,lg2]) (mkSeq a  b) $ set [lg1',lg2']
-         , mkA (set [lg2',lg1]) a out
-         , mkA (set [lg1',lg2]) b out ]
+  = mkOr [ mkA r a $ set [r1',r2]
+         , mkA (set [r1,r2]) ba $ set [r1',r2']
+         , mkA r b $ set [r2',r1]
+         , mkA (set [r1,r2]) ab $ set [r1',r2']
+         , mkA (set [r2',r1]) a r'
+         , mkA (set [r1',r2]) b r' ]
 \end{code}
 
 \begin{verbatim}
 q_awithb^3
- =    X(in|ii ; b ; a|in,lg1,lg2|lg1:,lg2:)
-   \/ X(in|ii ; a ; b|in,lg1,lg2|lg1:,lg2:)
-   \/ X(lg1,lg2|b ; a|lg2:,lg1,lg2|out)
-   \/ X(lg1,lg2|a ; b|lg1:,lg1,lg2|out)
+ =  A(r|ba|r1:,r2:)
+ \/ A(r|ab|r1:,r2:)
+ \/ A(r1,r2|ba|r:)
+ \/ A(r1,r2|ab|r:)
 \end{verbatim}
-We do the same tidy-up.
-The assymetry here (why \texttt{ii;a;b} and \texttt{a;b} but not \texttt{a;b;ii}?)
-is an artefact of the earlier tidy-up we did for \verb"q_awithb_2".
 \begin{code}
 q_awithb_3
- = mkOr [ mkA inp (mkSeq b a) $ set [lg1',lg2']
-        , mkA inp (mkSeq a b) $ set [lg1',lg2']
-        , mkA (set [lg1,lg2]) (mkSeq b a) out
-        , mkA (set [lg1,lg2]) (mkSeq a b) out ]
+ = mkOr [ mkA r ba $ set [r1',r2']
+        , mkA r ab $ set [r1',r2']
+        , mkA (set [r1,r2]) ba r'
+        , mkA (set [r1,r2]) ab r' ]
 \end{code}
 \begin{verbatim}
 q_awithb^4
- = X(in|ii ; b ; a|in,lg1,lg2|out) \/ X(in|ii ; a ; b|in,lg1,lg2|out)
+ = A(r|ba|r:) \/ A(r|ab|r:)
 \end{verbatim}
 Tidy up
 \begin{code}
 q_awithb_4
- = mkOr [ mkA inp (mkSeq b a) out
-        , mkA inp (mkSeq a b) out ]
+ = mkOr [ mkA r (mkSeq b a) r'
+        , mkA r (mkSeq a b) r' ]
 \end{code}
 \begin{verbatim}
 q_awithb^5 = false
 \end{verbatim}
 \begin{code}
-v_awithb
+q_awithb_all
  = mkOr [ mkSkip
         , q_awithb
         , q_awithb_2
         , q_awithb_3
         , q_awithb_4 ]
+
+v_awithb = mkAnd [ invVPar, q_awithb_all ]
 \end{code}
 \begin{verbatim}
 v_awithb
