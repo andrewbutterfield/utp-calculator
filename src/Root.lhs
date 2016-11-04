@@ -419,72 +419,13 @@ vSetDict
     ]
 \end{code}
 
-\newpage
-\HDRc{Label Generation}
 
-Imagine that we have a mechanism for generating labels as follows:
-\RLEQNS{
-  g &\in& G & \text{a label generator}
-\\ \ell &\in& L & \text{labels}
-\\ new &:& G \fun L \times G & \text{generating a new label}
-\\ split &:& G \fun G \times G & \text{split one generator into two}
-}
-
-Coding the function projections
-$new_i = \pi_i \circ new$
-and $split_i = \pi_i \circ split$.
-\begin{code}
--- deprecated:
-new1n = "new1"
-new1 g = App new1n [g]
-gNew1 [g] = new1 g
-
-new2n = "new2"
-new2 g = App new2n [g]
-gNew2 [g] = new2 g
-
-xxxsplit1n = "xxxsplit1"
-xxxsplit1 g = App xxxsplit1n [g]
-gSplit1 [g] = xxxsplit1 g
-
-xxxsplit2n = "xxxsplit2"
-xxxsplit2 g = App xxxsplit2n [g]
-gSplit2 [g] = xxxsplit2 g
-\end{code}
-
-\HDRd{Generator Shorthand}
-
-To make calculation easier, we shall introduce the following shorthands:
-\RLEQNS{
-\\ \ell_g &\defs& new_1(g)
-\\ \g:    &\defs& new_2(g)
-\\ \g1    &\defs& split_1(g)
-\\ \g2    &\defs& split_2(g)
-}
-\begin{code}
-showGNew1   d [g] = 'l':edshow d g
-showGNew2   d [g] = edshow d g ++ ":"
-showGSplit1 d [g] = edshow d g ++ "1"
-showGSplit2 d [g] = edshow d g ++ "2"
-\end{code}
-
-We can now define a generator dictionary:
-\begin{code}
-vGenDict :: (Eq s, Ord s, Show s) => Dict s
-vGenDict
- = makeDict
-    [ (new1n,(ExprEntry subAny showGNew1 (justMakes gNew1) noEq))
-    , (new2n,(ExprEntry subAny showGNew2 (justMakes gNew2) noEq))
-    , (xxxsplit1n,(ExprEntry subAny showGSplit1 (justMakes gSplit1) noEq))
-    , (xxxsplit2n,(ExprEntry subAny showGSplit2 (justMakes gSplit2) noEq))
-    ]
-\end{code}
 
 \HDRc{The Expression Dictionary}\label{hc:WWW-expr-dict}
 
 \begin{code}
 dictVE :: (Ord s, Show s) => Dict s
-dictVE = rPathDict `dictMrg` vSetDict -- `dictMrg` vGenDict
+dictVE = rPathDict `dictMrg` vSetDict
 \end{code}
 
 
@@ -1117,13 +1058,6 @@ pSeq p q
 
 defnVSeq d [p,q] = ldefn shVSeq $ mkAnd [ invVSeq
                                         , wp $ pSeq p q ]
-
-lg = new1 g
-g' = new2 g
-g'1 = xxxsplit1 g'
-
-g'2 = xxxsplit2 g'
-
 vSeqEntry :: (Show s, Ord s) => (String, Entry s)
 vSeqEntry
  = ( nVSeq
@@ -1168,13 +1102,6 @@ pChc p q
 defnVChc d [p,q]
  = ldefn shVChc $ mkAnd [ invVChc
                         , wp $ pChc p q ]
-
-g1 = xxxsplit1 g
-g2 = xxxsplit2 g
-lg1 = new1 g1
-lg2 = new1 g2
-g1' = new2 g1
-g2' = new2 g2
 
 vChcEntry :: (Show s, Ord s) => (String, Entry s)
 vChcEntry
@@ -1230,13 +1157,6 @@ pPar p q
 defnVPar d [p,q]
  = ldefn shVPar $ mkAnd [ invVPar
                         , wp $ pPar p q ]
-
-lg1' = new1 g1'
-lg2' = new1 g2'
-g1'' = new2 g1'
-g2'' = new2 g2'
-s12' = set [lg1',lg2']
-
 
 vParEntry :: (Show s, Ord s) => (String, Entry s)
 vParEntry
@@ -1769,7 +1689,7 @@ a = PVar "a"
 b = PVar "b"
 
 subII :: (Show s, Ord s) => Pred s
-subII = PSub mkSkip [("g",g'1),("out",lg)]
+subII = PSub mkSkip [("r",r1')]
 
 -- an invariant that always fails
 noGood _ _ _ = Just False
@@ -1786,7 +1706,7 @@ athenbBody = case defvseq [actionA,actionB] of
               Just (_,Comp _ [body],_)  ->  body
               _                         ->  PVar "??"
 
-testpr = PSub (mkOr [pr, mkSeq pr pr]) [("in",lg)]
+testpr = PSub (mkOr [pr, mkSeq pr pr]) [("r",r1)]
  where pr = mkA inp ii out
 
 disp Nothing = putStrLn "\nNo change"
@@ -2079,6 +1999,7 @@ q_awithb_2
          , mkA (set [r1,r2]) ab $ set [r1',r2']
          , mkA (set [r2',r1]) a r'
          , mkA (set [r1',r2]) b r' ]
+ba = mkSeq b a
 \end{code}
 
 \begin{verbatim}
@@ -2257,164 +2178,9 @@ q_itera_6
 \end{code}
 Now the pattern repeats, with a \verb"q_itera_n" cycle of length 3
 
-
-
-
-We notice that we are getting Q pairs of the following form:
-\begin{verbatim}
-q_2itera i  -- i in 0..
- =    A(in|a^i|out)   \/ A(in|a^i|lg)   \/ A(lg|a^i+1|in)
-   \/ A(lg|a^i+1|out) \/ A(lg|a^i+1|lg) \/ A(in|a^i+1|in)
-\end{verbatim}
-\begin{code}
-as_2itera i
- = [ mkA inp ai  out
-   , mkA inp ai  lg
-   , mkA lg  ai' inp
-   , mkA lg  ai' out
-   , mkA lg  ai' lg
-   , mkA inp ai' inp ]
- where
-   ai  = doa i
-   ai' = doa (i+1)
-
-doa 0 = ii
-doa n = doa' a (n-1)
-
-doa' as 0 = as
-doa' as n = doa' (mkSeq as a) (n-1)
-
-q_2itera = mkOr . as_2itera
-\end{code}
-
-\newpage
-Putting it all together\dots
-\begin{code}
-v_itera -- be lazy, be very lazy ! No calculation!
- = mkOr (mkSkip : mk2itera 0)
- where
-   mk2itera i = as_2itera i ++ mk2itera (i+1)
-
-v_itera_n i -- finite prefix of behaviour
- = mkOr (mkSkip : concat (map as_2itera [0..i]))
-\end{code}
-\begin{verbatim}
-v_actionA
- = [in|lg|out] /\ [in|out]
-   ( II
-     \/ A(in|ii|out)
-     \/ A(in|ii|lg)
-     \/ A(lg|a|in)
-     \/ A(lg|a|out)
-     \/ A(lg|a|lg)
-     \/ A(in|a|in)
-     \/ A(in|a|out)
-     \/ A(in|a|lg)
-     \/ A(lg|a ; a|in)
-     \/ A(lg|a ; a|out)
-     \/ A(lg|a ; a|lg)
-     \/ A(in|a ; a|in)
-     \/ A(in|a ; a|out)
-     \/ A(in|a ; a|lg)
-     \/ A(lg|a ; a ; a|in)
-     \/ A(lg|a ; a ; a|out)
-     \/ A(lg|a ; a ; a|lg)
-     \/ A(in|a ; a ; a|in)
-     \/ ... )
-\end{verbatim}
-
 \newpage
 \HDRc{ Sequence Iteration}
 
-\begin{verbatim}
-invVIter = [in|lg|out]
-invVSeq = [in|lg|out]
-invVAtom = [in|out]
-invVSeq.seq = [lg|lg:|in]
-invVAtom.seq.a = [lg|lg:]
-invVatom.seq.b = [lg:|in]
-\end{verbatim}
 \begin{code}
 iterseq = viter v_athenb
-inv_iterseq
- = leInv [ leElem inp
-         , leElem lg
-         , leElem lg'
-         , leElem out ]
-lg' = new1 g'
 \end{code}
-
-\begin{verbatim}
-Q(iterseq) =    A(in|ii|out) \/ A(in|ii|lg)
-             \/ A(lg|a|lg:) \/ A(lg:|b|in) \/ A(lg|a;b|in)
-\end{verbatim}
-\begin{code}
-q_iterseq
- = mkOr [ mkA inp ii out
-        , mkA inp ii lg
-        , mkA lg   a lg'
-        , mkA lg  ab inp
-        , mkA lg'  b inp ]
-\end{code}
-
-\begin{verbatim}
-q_iterseq^2
- =    X(lg:|b ; ii|in,lg:|out) \/ X(lg|a ; b ; ii|in,lg|out)
-   \/ X(lg:|b ; ii|in,lg:|lg) \/ X(lg|a ; b ; ii|in,lg|lg)
-   \/ X(in|ii ; a|in,lg|lg:)
-   \/ X(lg|a ; b|lg,lg:|in)
-   \/ X(in|ii ; a ; b|in,lg|in)
-\end{verbatim}
-\begin{code}
-q_iterseq_2
- = mkOr [ mkA inp a  lg'
-        , mkA inp ab inp
-        , mkA lg  ab out
-        , mkA lg  ab lg
-        , mkA lg  ab inp
-        , mkA lg' b  lg
-        , mkA lg' b  out  ]
-\end{code}
-
-\begin{verbatim}
-q_iterseq^3
- =    X(lg|a ; b|lg,lg:|out)
-   \/ X(in|ii ; a ; b|in,lg|out)
-   \/ X(lg|a ; b|lg,lg:|lg)
-   \/ X(in|ii ; a ; b|in,lg|lg)
-   \/ X(lg:|b ; a|in,lg:|lg:) \/ X(lg|a ; b ; a|in,lg|lg:)
-   \/ X(in|ii ; a ; b|in,lg|in)
-   \/ X(lg:|b ; a ; b|in,lg:|in) \/ X(lg|a ; b ; a ; b|in,lg|in)
-\end{verbatim}
-\begin{code}
-q_iterseq_3
- = mkOr [ mkA inp ab   out
-        , mkA inp ab   lg
-        , mkA inp ab   inp
-        , mkA lg  ab   out
-        , mkA lg  ab   lg
-        , mkA lg  aba  lg'
-        , mkA lg  abab inp
-        , mkA lg' ba   lg'
-        , mkA lg' bab  inp ]
-ba = mkSeq b a
-aba = mkSeq ab a
-bab = mkSeq ba b
-abab = mkSeq aba b
-\end{code}
-
-\begin{verbatim}
-q_iterseq^4
- =    X(lg|a ; b ; a ; b|in,lg|out)
-   \/ X(lg:|b ; a ; b|in,lg:|out)
-   \/ X(lg|a ; b ; a ; b|in,lg|lg)
-   \/ X(lg:|b ; a ; b|in,lg:|lg)
-   \/ X(lg|a ; b ; a ; b|in,lg|in)
-   \/ X(lg:|b ; a ; b|in,lg:|in)
-   \/ X(in|ii ; a ; b|in,lg|out)
-   \/ X(in|ii ; a ; b|in,lg|lg)
-   \/ X(in|ii ; a ; b ; a|in,lg|lg:)
-   \/ X(in|ii ; a ; b ; a ; b|in,lg|in)
-   \/ X(lg|a ; b ; a|lg,lg:|lg:)
-   \/ X(lg|a ; b ; a ; b|lg,lg:|in)
-\end{verbatim}
