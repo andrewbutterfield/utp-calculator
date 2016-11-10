@@ -475,8 +475,32 @@ substitutable d (Comp name _,_)
 substitutable _ _ = True
 \end{code}
 
+\newpage
 \HDRb{Invariant Checking}\label{hb:inv-check}
 
+We will generally have a list of invariants to check:
+\begin{code}
+chkInvariants :: (Ord s, Show s)
+             => Dict s
+             -> InvState s
+             -> Mark
+             -> MPred s
+             -> Maybe (BeforeAfter s)
+
+chkInvariants d [] m mpr = Nothing
+
+chkInvariants d ((ichk,inv):invrest) m mpr
+ = case chkInvariant (ichk d inv) m mpr of
+    Nothing  ->  chkInvariants d invrest m mpr
+    Just (before, what, after)
+     -> case chkInvariants d invrest m after of
+          Nothing  ->  Just (before, what, after)
+          Just (_,what',after')
+           -> Just (before,what',after')
+
+\end{code}
+
+\newpage
 We explore the current predicate,
 bottom-up, like simplify,
 except we have a fixed simplification function

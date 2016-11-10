@@ -6,6 +6,7 @@ import qualified Data.Map as M
 import Data.List
 import Data.Char
 import Data.Maybe
+import POrd
 import PrettyPrint
 import CalcTypes
 import StdPrecedences
@@ -25,85 +26,21 @@ import UTCPCReduce
 \end{code}
 
 \begin{code}
--- import Debug.Trace
--- dbg str x = trace (str++show x) x
+import Debug.Trace
+rdbg str x = trace (str++show x) x
 \end{code}
 
-This Root file is a re-work of the Views semantics
-replacing label generators by ``rooted'' label-paths.
 
-\RLEQNS{
-   S &\defs& \setof{:,1,2}
-\\ \sigma &\defs& S^*
-\\ R &::=& r | R S
-\\ R &\le& R\sigma
-\\ R1\sigma &\le& R:
-\\ R2\sigma &\le& R:
-\\ \W(P) &\defs& \bigvee_i P^i
-}
-\begin{code}
-data RootStep = Step | Split1 | Split2 deriving (Eq,Ord)
-instance Show RootStep where
- show Step = ":"
- show Split1 = "1"
- show Split2 = "2"
 
-newtype RootPath = RootPath [RootStep] deriving Eq
-instance Show RootPath where
-  show (RootPath rs) = 'r':(concat (map show rs))
-instance Read RootPath where
-  readsPrec _ ('r':rest) = [readPath [] rest]
-  readsPrec _ _ = []
 
-readPath path "" = (RootPath $ reverse path,"")
-readPath path str@(c:cs)
- | c == ':'   =  readPath (Step:path) cs
- | c == '1'   =  readPath (Split1:path) cs
- | c == '2'   =  readPath (Split2:path) cs
- | otherwise  =  (RootPath $ reverse path,str)
-\end{code}
 
-We need to define a partial-order class.
-\texttt{Data.Poset} is not suitable as it ``overloads'' \texttt{Ord}.
-Others require various type/class extensions I prefer to avoid.
-The following is inspired by Wren Romano's \texttt{Data.Numbers.Ord}.
-\begin{code}
-data POrdering = PNC | PLT | PEQ | PGT deriving (Eq, Show)
-class Eq t => POrd t where
-  pcmp :: t -> t -> POrdering
-  lt :: t -> t -> Bool
-  le :: t -> t -> Bool
-  gt :: t -> t -> Bool
-  ge :: t -> t -> Bool
-
-  lt a b = pcmp a b == PLT
-  le a b = case pcmp a b of
-            PLT  ->  True
-            PEQ  ->  False
-  gt a b = pcmp a b == PGT
-  ge a b = case pcmp a b of
-            PGT  ->  True
-            PEQ  ->  False
-\end{code}
-Now for our rooted labels:
-\begin{code}
-instance POrd RootPath where
-  pcmp (RootPath rp1) (RootPath rp2) = compRP rp1 rp2
-
-compRP :: Eq a => [a] -> [a] -> POrdering
-compRP  [] [] = PEQ
-compRP [] (_:_) = PLT
-compRP (_:_) [] = PGT
-compRP (s1:ss1) (s2:ss2)
- | s1 == s2  =  compRP ss1 ss2
- | otherwise =  PNC
-\end{code}
-
+\newpage
 We do a quick run-down of the Commands\cite{conf/popl/Dinsdale-YoungBGPY13}.
 
 \HDRb{Syntax}
 
-\def\Atm#1{Atm(#1)}
+\def\Atm#1{\langle#1\rangle}
+\def\rr#1{r{\scriptstyle{#1}}}
 
 \begin{eqnarray*}
    a &\in& \Atom
@@ -127,13 +64,143 @@ precVIter = 5 + precSpacer  6
 
 \HDRb{Domains}
 
-\begin{eqnarray*}
-   s &\in& \mathcal S
-\\ \sem{-} &:& \Atom \fun \mathcal S \fun \mathcal P(\mathcal S)
-\\ S \ominus (T|V)
-   &\defs& (S \setminus T) \cup V
-\end{eqnarray*}
 
+\HDRc{Rooted Paths}
+
+This Root file is a re-work of the Views semantics
+replacing label generators by ``rooted'' label-paths.
+Initially we work up some stuff directly in Haskell,
+not using the \texttt{Expr} or \texttt{Pred} types.
+
+We start by defining three basic ways to transform a rooted path:
+``step'' ($:$);
+``split-one'' ($1$);
+and ``split-two'' ($2$).
+\RLEQNS{
+   S &\defs& \setof{:,1,2}
+}
+\begin{code}
+showConst str _ _ = str  -- constant pretty-printer
+evalConst _ = noeval -- constant (non-)evaluator
+
+stepn   = ":" ; step   = App stepn   []
+split1n = "1" ; split1 = App split1n []
+split2n = "2" ; split2 = App split2n []
+
+stepEntry
+ = ( stepn,   ExprEntry [] (showConst stepn)   evalConst noEq )
+split1Entry
+ = ( split1n, ExprEntry [] (showConst split1n) evalConst noEq )
+split2Entry
+ = ( split2n, ExprEntry [] (showConst split2n) evalConst noEq )
+
+data RootStep = Step | Split1 | Split2 deriving (Eq,Ord)
+instance Show RootStep where
+ show Step = ":"
+ show Split1 = "1"
+ show Split2 = "2"
+\end{code}
+
+We now define a rooted path as an expression of the form
+of the variable $r$ followed by zero or more $S$ transforms.
+\RLEQNS{
+   \sigma,\varsigma &\defs& S^*
+\\ R &::=& r | R S
+\\   & = & r\sigma
+}
+These have to be expressions as we shall want to substitute for $r$
+in them.
+\begin{code}
+rootn = "r" ; root = Var rootn
+
+rpathn = "R"
+rpath rp s = App rpathn [rp, s]
+rPath [rp, s] = rpath rp s
+
+rstep rp   =   rpath rp step
+rsplit1 rp  =  rpath rp split1
+rsplit2 rp  =  rpath rp split2
+
+rpShow d [rp, s] = edshow d rp ++ edshow d s
+
+rpathEntry :: Show s => ( String, Entry s )
+rpathEntry
+ = ( rpathn
+   , ExprEntry subAny rpShow (justMakes rPath) noEq )
+
+newtype RootPath = RootPath [RootStep] deriving Eq
+instance Show RootPath where
+  show (RootPath rs) = 'r':(concat (map show rs))
+instance Read RootPath where
+  readsPrec _ ('r':rest) = [readPath [] rest]
+  readsPrec _ _ = []
+
+readPath path "" = (RootPath $ reverse path,"")
+readPath path str@(c:cs)
+ | c == ':'   =  readPath (Step:path) cs
+ | c == '1'   =  readPath (Split1:path) cs
+ | c == '2'   =  readPath (Split2:path) cs
+ | otherwise  =  (RootPath $ reverse path,str)
+\end{code}
+
+\newpage
+\HDRc{Path Ordering}
+\RLEQNS{
+   R &\le& R\sigma
+\\ R1\sigma &<& R\!:\!\varsigma
+\\ R2\sigma &<& R\!:\!\varsigma
+}
+\begin{code}
+instance POrd RootPath where
+  pcmp (RootPath rp1) (RootPath rp2) = compRP rp1 rp2
+
+compRP :: [RootStep] -> [RootStep] -> POrdering
+\end{code}
+\RLEQNS{
+   r &\le& r\sigma
+}
+\begin{code}
+compRP  [] [] = PEQ
+compRP [] (_:_) = PLT
+compRP (_:_) [] = PGT
+\end{code}
+\RLEQNS{
+   R1\sigma &<& R\!:\!\varsigma
+}
+\begin{code}
+compRP (Split1:_) (Step:_) = PLT
+compRP (Step:_) (Split1:_) = PGT
+\end{code}
+\RLEQNS{
+   R2\sigma &<& R\!:\!\varsigma
+}
+\begin{code}
+compRP (Split2:_) (Step:_) = PLT
+compRP (Step:_) (Split2:_) = PGT
+\end{code}
+\RLEQNS{
+   R &\le& R\sigma
+}
+\begin{code}
+compRP (s1:ss1) (s2:ss2)
+ | s1 == s2  =  compRP ss1 ss2
+ | otherwise =  PNC
+\end{code}
+
+Build the rooted paths dictionary:
+\begin{code}
+rPathDict :: Show s => Dict s
+rPathDict
+ = makeDict
+    [ stepEntry
+    , split1Entry
+    , split2Entry
+    , rpathEntry
+    ]
+\end{code}
+
+
+\newpage
 \HDRc{Set Expressions}
 
 We use sets in two key ways:
@@ -268,7 +335,23 @@ dosdiff d es1 es2
 ppSDiff d ss = "("  ++ dlshow d " \\ " ss ++ ")"
 \end{code}
 
+\HDRd{Set Utilities}
 
+It can be useful to turn a set into a list
+of its elements:
+\begin{code}
+setElems :: Ord s => Expr s -> [Expr s]
+setElems (App sn es) | sn == setn  =  sort $ nub $ es
+setElems e = []
+\end{code}
+Also determining subsets (subsequences)
+\begin{code}
+isSubSeqOf [] _ = True
+isSubSeqOf _ [] = False
+isSubSeqOf a@(x:a') (y:b) | x==y       =  isSubSeqOf a' b
+                          | otherwise  =  isSubSeqOf a  b
+\end{code}
+From GHC 7.10 onwards this is \texttt{Data.List.subSequencesOf}.
 
 \HDRb{Shorthands}
 
@@ -337,70 +420,12 @@ vSetDict
 \end{code}
 
 
-\HDRc{Label Generation}
-
-Imagine that we have a mechanism for generating labels as follows:
-\RLEQNS{
-  g &\in& G & \text{a label generator}
-\\ \ell &\in& L & \text{labels}
-\\ new &:& G \fun L \times G & \text{generating a new label}
-\\ split &:& G \fun G \times G & \text{split one generator into two}
-}
-
-Coding the function projections
-$new_i = \pi_i \circ new$
-and $split_i = \pi_i \circ split$.
-\begin{code}
-new1n = "new1"
-new1 g = App new1n [g]
-gNew1 [g] = new1 g
-
-new2n = "new2"
-new2 g = App new2n [g]
-gNew2 [g] = new2 g
-
-split1n = "split1"
-split1 g = App split1n [g]
-gSplit1 [g] = split1 g
-
-split2n = "split2"
-split2 g = App split2n [g]
-gSplit2 [g] = split2 g
-\end{code}
-
-\HDRd{Generator Shorthand}
-
-To make calculation easier, we shall introduce the following shorthands:
-\RLEQNS{
-\\ \ell_g &\defs& new_1(g)
-\\ \g:    &\defs& new_2(g)
-\\ \g1    &\defs& split_1(g)
-\\ \g2    &\defs& split_2(g)
-}
-\begin{code}
-showGNew1   d [g] = 'l':edshow d g
-showGNew2   d [g] = edshow d g ++ ":"
-showGSplit1 d [g] = edshow d g ++ "1"
-showGSplit2 d [g] = edshow d g ++ "2"
-\end{code}
-
-We can now define a generator dictionary:
-\begin{code}
-vGenDict :: (Eq s, Ord s, Show s) => Dict s
-vGenDict
- = makeDict
-    [ (new1n,(ExprEntry subAny showGNew1 (justMakes gNew1) noEq))
-    , (new2n,(ExprEntry subAny showGNew2 (justMakes gNew2) noEq))
-    , (split1n,(ExprEntry subAny showGSplit1 (justMakes gSplit1) noEq))
-    , (split2n,(ExprEntry subAny showGSplit2 (justMakes gSplit2) noEq))
-    ]
-\end{code}
 
 \HDRc{The Expression Dictionary}\label{hc:WWW-expr-dict}
 
 \begin{code}
 dictVE :: (Ord s, Show s) => Dict s
-dictVE = vSetDict `dictMrg` vGenDict
+dictVE = rPathDict `dictMrg` vSetDict
 \end{code}
 
 
@@ -409,14 +434,15 @@ dictVE = vSetDict `dictMrg` vGenDict
 
 \begin{eqnarray*}
    s, s' &:& \mathcal S
-\\ ls, ls' &:& \mathcal P (Lbl)
-\\ g &:& Gen
-\\ in, out &:& Lbl
+\\ ls, ls' &:& \mathcal P (R)
+\\ r &:& R
 \end{eqnarray*}
 
 \begin{code}
 s   = Var "s"  ; s'  = Var "s'"
 ls  = Var "ls" ; ls' = Var "ls'"
+r   = Var "r"
+-- deprecated:
 g   = Var "g"
 inp = Var "in" -- "in" is a Haskell keyword
 out = Var "out"
@@ -424,7 +450,8 @@ out = Var "out"
 
 We define our dictionary alphabet entries,
 and also declare that the predicate variables $a$, $a$ and $a$
-will refer to atomic state-changes, and so only have alphabet $\setof{s,s'}$.
+will refer to atomic state-changes,
+and so only have alphabet $\setof{s,s'}$.
 \begin{code}
 vAlfDict
  = dictMrg dictAlpha dictAtomic
@@ -435,7 +462,7 @@ vAlfDict
                          , pvarEntry "c" ss' ]
    ss' = ["s", "s'"]
 
-vStatic = ["g","in","out"]
+vStatic = ["r"]
 vDynamic = ["ls","ls'","s","s'"]
 vObs = vDynamic ++ vStatic
 \end{code}
@@ -597,170 +624,92 @@ vAEntry
    , PredEntry vStatic ppA vObs defnA simpA )
 \end{code}
 
-\HDRc{Wheels within Wheels}\label{hc:WwW}
-
-We will remove the stuttering step from here,
-because it looks like it only needs to be applied to atomic actions,
-and it then propagates up.
-\RLEQNS{
-   \W(C) &\defs& \true * C
-\\       &=& \bigvee_{i\in 0\dots} \Skip\seq D^i
-     & \textbf{provided } C = \Skip \lor D \textbf{ for some } D
-\\ ii &\defs& s'=s
-}
-We hypothesis that $\W(C) = \W(\Skip \lor C)$
-for all our command constructs.
-\begin{code}
-nW = "W"
-isW (Comp n [_]) | n==nW = True; isW _ = False
-
-mkW pr  = Comp nW [pr]
-
-ppW sCP vd p [pr]
- = ppclosed "W(" ")" "" [ sCP 0 1 pr ]
-ppW _ _ _ _ = pps styleRed $ ppa ("invalid-"++nW)
-
--- we don't want to expand the definition of this, or simplify it
-defnW = pNoChg nW
-simpW = pNoChg nW
-
-vWEntry :: (Show s, Ord s) => (String, Entry s)
-vWEntry
- = ( nW
-   , PredEntry [] ppW vObs defnW simpW )
-\end{code}
-
-\NOTE{
-Redo this to handle $\W(P) = \true * (\Skip \lor P)$
-}
-\begin{code}
-wUnroll :: Ord s => String -> RWFun s
-wUnroll arg d _ wpr@(Comp nw [pr])
- | nw == nW
-   = case numfrom arg of
-      0 -> Just ( "W-unroll"
-                , mkSeq (mkOr [mkSkip, pr]) wpr , True )
-      n -> Just ( "W-unroll."++arg
-                ,  wunroll n
-                , True )
-
- where
-   numfrom "" = 0
-   numfrom (c:_) | isDigit c = digitToInt c
-                 | otherwise = 42
-
-   wunroll n = mkOr (mkSkip : dupPr pr n)
-   dupPr dups 0 = []
-   dupPr dups n = dups : dupPr (mkSeq dups pr) (n-1)
-
-wUnroll _ _ _ _ = Nothing
-\end{code}
-
-\newpage
-\HDRb{WwW Semantic Definitions}
-
-The definitions, using the new shorthands:
-\RLEQNS{
-   \W(C) &\defs& \true * C
-\\       &=& \bigvee_{i\in 0\dots} \Skip\seq D^i
-\\       & & \textbf{provided } C = \Skip \lor D \textbf{ for some } D
-\\ ii &\defs& s'=s
-\\
-\\ \Atm a &\defs&\W(\Skip \lor A(in|a|out)) \land [in|out]
-\\ \cskip
-   &\defs&
-   \W(\Skip \lor A(in|ii|out)) \land [in|out]
-\\
-\\ C \cseq D
-   &\defs&
-   \W(C[g_{:1},\ell_g/g,out] \lor D[g_{:2},\ell_g/g,in])
-\\&& {}\land [in|\ell_g|out]
-\\
-\\ C + D
-   &\defs&
-   \W(\quad {}\phlor A(in|ii|\ell_{g1})
-\\ && \qquad {} \lor
-                     A(in|ii|\ell_{g2})
-\\ && \qquad {} \lor
-   C[g_{1:},\ell_{g1}/g,in] \lor D[g_{2:},\ell_{g2}/g,in]~)
-\\&& {} \land [in|\ell_{g1}|\ell_{g2}|out]
-\\
-\\ C \parallel D
-   &\defs&
-   \W(\quad\phlor A(in|ii|\ell_{g1},\ell_{g2})
-\\ && \qquad {}\lor
-   C[g_{1::},\ell_{g1},\ell_{g1:}/g,in,out]
-   \lor D[g_{2::},\ell_{g2},\ell_{g2:}/g,in,out]
-\\ && \qquad {}\lor
-   A(\ell_{g1:},\ell_{g2:}|ii|out)~)
-\\&& {} \land [in|(\ell_{g1}|\ell_{g1:}),(\ell_{g2}|\ell_{g2:})|out]
-\\
-\\ C^*
-   &\defs&
-   \W(\quad  \phlor A(in|ii|out)
-\\ && \qquad {}\lor A(in|ii|\ell_g)
-\\ && \qquad {}\lor C[g_{:},\ell_g,in/g,in,out]~)
-\\&& {} \land [in|\ell_g|out]
-}
 
 \newpage
 \HDRc{Coding Label-Set Invariants}
 
+We have a key invariant as part of the healthiness
+condition associated with every semantic predicate,
+namely that the labels $r$ and $\rr:$ never occur in  $ls$ at
+the same time:
+\[
+ ( r \in ls \implies \rr: \notin ls )
+ \land
+ ( \rr: \in ls \implies r \notin ls )
+\]
+This is the Label Exclusivity invariant.
+
+Given the way we shall use substitution of $r$ by
+other rooted paths, for sub-components,
+we shall see that we will get a number of instances of this.
+We adopt a shorthand notation,
+so that the above invariant is simply
+\[
+  [r|\rr:]
+\]
+So we define the following general shorthand:
 \RLEQNS{
-   i \in I_\tau &::=& \tau \mid \otimes(i,\ldots,i) \mid \cup (i,\ldots,i)
+   ~[L_1|L_2|\dots|L_n]
+   &\defs&
+   \forall_{i,j \in 1\dots n}
+    @
+    i \neq j \implies
+     ( L_i \cap ls \neq \emptyset \implies L_j \cap ls = \emptyset )
+\\ \multicolumn{3}{c}{\elabel{short-lbl-exclusive}}
 }
-We shall code this structure directly in Haskell
-as it eases invariant satisfaction calculation.
+What needs to be kept in mind regarding this shorthand notation
+is that $ls$ is mentioned under the hood,
+and it is really all about what can be present in the global label-set
+at any instant in time.
+
+We refer to the $L$ above as \texttt{LESet},
+and use \texttt{LEInv} to denote the full invariant.
+We start with the ``LE-sets'', as expressions
 \begin{code}
-data I t = I t | U [I t] | X [I t] deriving Show
-\end{code}
-We refer to these three variants as
- \texttt{IElem}, \texttt{IDisj} and \texttt{IJoin}:
-\begin{code}
-nIElem = "IElem"
-nIDisj = "IDIsj"
-nIJoin = "IJoin"
+nLESet = "LESet"
 
-isLSInv (Comp n _)
- | n==nIElem || n==nIDisj || n==nIJoin  =  True
-isLSInv _ = False
+leSet es = App nLESet es
+leElem e = leSet [e]
 
-isIElem (Comp n [_])   | n==nIElem = True; isIElem _ = False
-isIDisj (Comp n (_:_)) | n==nIDisj = True; isIDisj _ = False
-isIJoin (Comp n (_:_)) | n==nIJoin = True; isIJoin _ = False
+isLESet (Comp n _)
+ | n == nLESet  =  True
+ | otherwise    =  False
 
-ielem e          =  Comp nIElem [Atm e]
-idisj prs@(_:_)  =  Comp nIDisj prs
-ijoin prs@(_:_)  =  Comp nIJoin prs
+showLESet d [] = ""
+showLESet d [e] = edshow d e
+showLESet d (e:es) = edshow d e ++ ',':showLESet d es
 
-ppIElem sCP d p [pr@(Atm e)] = sCP 0 1 pr
-ppIElem _ _ _ _ = pps styleRed $ ppa ("invalid-"++nIElem)
-
-precInv = -1
-
-ppIDisj sCP d p prs = ppclosed "[" "]" "|" $ map (sCP precInv 1) prs
-
-ppIJoin sCP d p prs
- = paren p precInv
-     $ ppopen  "," $ ppwalk 1 (sCP precInv) prs
-
-vIElemEntry :: (Show s, Ord s) => (String, Entry s)
-vIElemEntry
- = ( nIElem
-   , PredEntry anyVars ppIElem vStatic (pNoChg nIElem) (pNoChg nIElem) )
-
-vIDisjEntry :: (Show s, Ord s) => (String, Entry s)
-vIDisjEntry
- = ( nIDisj
-   , PredEntry anyVars ppIDisj vStatic (pNoChg nIDisj) (pNoChg nIDisj) )
-
-vIJoinEntry :: (Show s, Ord s) => (String, Entry s)
-vIJoinEntry
- = ( nIJoin
-   , PredEntry anyVars ppIJoin vStatic (pNoChg nIJoin) (pNoChg nIJoin) )
+vLESetEntry :: Show s => (String, Entry s)
+vLESetEntry
+ = ( nLESet
+   , ExprEntry subAny showLESet (justMakes leSet) noEq )
 \end{code}
 
 \newpage
+We then move onto the ``LE-invariant'', as predicates
+\begin{code}
+nLEInv = "LEInv"
+
+leInv es = Comp nLEInv $ map liftLE es
+liftLE e@(App nm _)
+ | nm == nLESet  =  Atm e
+liftLE e         =  Atm $ leElem e
+
+isLEInv (Comp n es)
+ | n == nLEInv  =  all isLESet es
+ | otherwise    =  False
+
+precInv = -1
+
+ppLEInv sCP d p prs
+ = ppclosed "[" "]" "|" $ map (sCP precInv 1) prs
+
+vLEInvEntry :: (Show s, Ord s) => (String, Entry s)
+vLEInvEntry
+ = ( nLEInv
+   , PredEntry anyVars ppLEInv vStatic (pNoChg nLEInv) (pNoChg nLEInv) )
+\end{code}
+
 Now, we need to define invariant satisfaction.
 Our invariant applies to $A$ and $X$ atomic actions:
 \RLEQNS{
@@ -784,88 +733,42 @@ labelSetInv _ _ _ = Nothing
 labelSetReport (rep1, rep2)  =  Just (rep1 && rep2)
 \end{code}
 
+\newpage
 Now we have to code up \textbf{lsat}:
 \RLEQNS{
+   \textbf{lsat}_S [L_1|\dots|L_n]
+   &\defs&
+   \#(filter ~\textbf{lsat'}_S \seqof{L_1,\ldots,L_n}) < 2
+\\ \textbf{lsat'}_S \setof{\ell_1,\dots,\ell_n}
+  &\defs&
+  \exists i @ \textbf{lsat''}_S \ell_i
+\\ \textbf{lsat''}_S \ell &\defs& \ell \in S
 }
 \begin{code}
 lsat :: (Ord s, Show s) => Dict s -> Expr s -> Pred s -> Bool
-lsat d ls inv = isJust $ loccChk $ locc d ls inv
+lsat d lset (Comp nm ells)
+ | nm == nLEInv
+   = case filter (lsat' d lset) ells of
+      []   ->  True
+      [_]  ->  True
+      _    ->  False
+ | otherwise  =  False
+lsat _ _ _ = False
+
+lsat' :: (Ord s, Show s) => Dict s -> Expr s -> Pred s -> Bool
+lsat' d lset (Atm (App nm lse))
+ | nm == nLESet  =  any (lsat'' d lset) lse
+ | otherwise     =  False
+lsat' _ _ _      =  False
+
+lsat'' :: (Ord s, Show s) => Dict s -> Expr s -> Expr s -> Bool
+lsat'' d lset ell
+ = case esimp d $ subset ell lset of
+      (_,B b)  ->  b
+      _        ->  False -- no occupancy!
 \end{code}
 
-We want to take an invariant over labels
-and a label-set to get the same structure over booleans.
-This is the label occupancy structure:
-\RLEQNS{
-   occ &:& \power \Int \fun I_\Int \fun I_\Bool
-\\ occ_L~\ell &\defs& \ell \in L
-\\ occ_L~\otimes(i_1,\ldots,i_n)
-   &\defs&
-   \otimes(occ_L~i_1,\ldots,occ_L~i_n)
-\\ occ_L~\cup(i_1,\ldots,i_n)
-   &\defs&
-   \cup(occ_L~i_1,\ldots,occ_L~i_n)
-}
-\begin{code}
--- occ :: Eq t => [t] -> I t -> I Bool
-locc :: (Ord s, Show s) => Dict s -> Expr s -> Pred s -> I Bool
 
--- occ ls (I ell) = I (ell `elem` ls)
-locc d lset (Comp nm [Atm ell])
- | nm == nIElem
-   = case esimp d $ subset ell lset of
-      (_,B b)  ->  I b
-      _        ->  I False -- no occupancy!
-
--- occ ls (U invs) = U $ map (occ ls) invs
-locc d lset (Comp nm prs)
- | nm == nIJoin  =  U $ map (locc d lset) prs
-
--- occ ls (X invs) = X $ map (occ ls) invs
- | nm == nIDisj  =  X $ map (locc d lset) prs
-
-locc d lset pr  = I False -- no occupancy
-\end{code}
-
-\newpage
-We now take a $I_\Bool$ and check that occupancy
-satisfies the constraints in order
-to reduce it to a boolean.
-In effect we look for failures
-(can only come from $\oplus$)
-and propagate these up.
-\RLEQNS{
-   occChk &:& I_\Bool \fun (\setof{ok,fail}\times \Bool)
-\\ occChk(b) &\defs& (ok,b)
-\\ occChk(\cup(i_1,\ldots,i_n))
-   &\defs&
-   (fail,\_),
-   \textbf{ if }\exists j @ occChk(i_j) = (fail,\_)
-\\ && (ok,b_1 \lor \dots \lor b_n),
-   \textbf{ if }\forall j @ occChk(i_j) = (ok,b_j)
-\\ occChk(\otimes(i_1,\ldots,i_n))
-   &\defs&
-   (fail,\_),
-   \textbf{ if }\exists j @ occChk(i_j) = (fail,\_)
-\\&& (fail,\_) \mbox{ if more than one $(ok,true)$}
-\\&& (ok,false) \mbox{ if all are $(ok,false)$}
-\\&& (ok,true) \mbox{ if  exactly one $(ok,true)$}
-}
-\begin{code}
-loccChk :: I Bool -> Maybe Bool
-loccChk (I b) = Just b
-loccChk (U occs) -- we go all monadic !!!
- = do ps <- sequence $ map loccChk occs
-      return $ any id ps
-loccChk (X occs)
- = do ps <- sequence $ map loccChk occs
-      let ps' = filter id ps
-      case length ps' of
-        0  ->  return False
-        1  ->  return True
-        _  ->  fail "not-exclusive"
-\end{code}
-
-\newpage
 \HDRc{Invariant Trimming}
 
 We can use the invariant to trim removal sets,
@@ -875,21 +778,155 @@ given an enabling label or label-set.
    &\defs&
    \lnot(\setof{E,L} \textbf{ lsat } I)
 }
+We need a function that establishes when the invariant is not satisfies
+for at least one invariant in a supplied list.
 \begin{code}
-invTrims :: (Ord s, Show s)
+someInvFails :: (Ord s, Show s)
          => Dict s
-         -> Pred s  -- Invariant
+         -> [Pred s]  -- Invariants
          -> Expr s  -- enable label being removed
          -> Expr s  -- other label being removed
          -> Bool
-invTrims d inv ena other = not $ lsat d (set [ena,other]) inv
+someInvFails d invs ena other = findFail (set [ena,other]) invs
+ where
+   findFail lpair []          =  False
+   findFail lpair (inv:invs)
+    | not $ lsat d lpair inv  =  True
+    | otherwise               =  findFail lpair  invs
 \end{code}
+
+\newpage
+\HDRc{Wheels within Wheels}\label{hc:WwW}
+
+The wheels-within-wheels healthiness condition
+insists that $r$ and $\rr:$ are never simultaneously in
+the label-set $ls$,
+and that our semantic predicates are closed under mumbling.
+\RLEQNS{
+   \W(C)
+   &\defs&
+   [r|\rr:] \land \left(~\bigvee_{i\in 0\dots} C^i~\right)
+\\ ii &\defs& s'=s
+}
+\begin{code}
+nW = "W"
+isW (Comp n [_]) | n==nW = True; isW _ = False
+
+mkW pr  = Comp nW [pr]
+
+ppW sCP vd p [pr]
+ = ppclosed "W(" ")" "" [ sCP 0 1 pr ]
+ppW _ _ _ _ = pps styleRed $ ppa ("invalid-"++nW)
+
+r' = rstep r
+invWWW = leInv [r,r']
+
+-- we don't want to expand the definition of this, or simplify it
+defnW = pNoChg nW
+simpW = pNoChg nW
+
+vWEntry :: (Show s, Ord s) => (String, Entry s)
+vWEntry
+ = ( nW
+   , PredEntry [] ppW vObs defnW simpW )
+\end{code}
+
+\newpage
+Unrolling $\W(C)$, using $I$ for $[r|\rr:]$,
+and noting that
+$
+\bigvee_{i \in \Nat} C^i
+= \Skip \lor (C\seq\bigvee_{i \in \Nat} C^i)
+$.
+\RLEQNS{
+   \W(C) &=& I \land \bigvee C^i
+\\ &=& I \land (\Skip \lor C\seq\bigvee C^i)
+\\ &=& I \land (\Skip \lor C\seq((\Skip \lor C\seq\bigvee C^i)))
+\\ &=& I \land (\Skip \lor C \lor C^2\seq\bigvee C^i)
+\\ &=& I \land (\Skip \lor C \lor C^2\seq((\Skip \lor C\seq\bigvee C^i)))
+\\ &=& I \land (\Skip \lor C \lor C^2 \lor C^3\seq\bigvee C^i)
+\\ &\vdots&
+\\ &=& I \land (\Skip \lor C \lor \dots C^{k-1} \lor C^k\seq\bigvee C^i)
+\\ &=& I \land (~(\bigvee_{i < k} C^i) \lor (\bigvee_{i \geq k} C^i)~)
+}
+We assume $\seq$ binds tighter then $\lor$.
+\begin{code}
+wUnroll :: Ord s => String -> RWFun s
+-- to be re-done properly if ever it is required
+-- wUnroll arg d _ wpr@(Comp nw [pr])
+--  | nw == nW
+--    = case numfrom arg of
+--       0 -> Just ( "W-unroll"
+--                 , mkSeq (mkOr [mkSkip, pr]) wpr , True )
+--       n -> Just ( "W-unroll."++arg
+--                 ,  wunroll n
+--                 , True )
+--
+--  where
+--    numfrom "" = 0
+--    numfrom (c:_) | isDigit c = digitToInt c
+--                  | otherwise = 42
+--
+--    wunroll n = mkOr (mkSkip : dupPr pr n)
+--    dupPr dups 0 = []
+--    dupPr dups n = dups : dupPr (mkSeq dups pr) (n-1)
+
+wUnroll _ _ _ _ = Nothing
+\end{code}
+
+\newpage
+\HDRb{WwW Semantic Definitions}
+
+The definitions, using the new shorthands:
+\RLEQNS{
+   \W(C) &\defs& [r|\rr:]
+                 \land
+                 \left(\bigvee_{i\in 0\dots} C^i\right)
+\\ ii &\defs& s'=s
+\\
+\\ \Atm a &\defs&\W(A(r|a|\rr:))
+\\
+\\ \cskip
+   &\defs&
+   \Atm{ii}
+}
+The following are all under review (they lack sufficient invariants).
+\RLEQNS{
+   C \cseq D
+   &\defs&
+   \W(~    A(r|ii|\rr1)
+      \lor C[\rr1/r]
+      \lor A(\rr{1:}|ii|\rr2)
+      \lor D[\rr2/r]
+      \lor A(\rr{2:}|ii|\rr:) ~)
+\\
+\\ C + D
+   &\defs&
+   \W(\quad {}\phlor A(r|ii|\rr1) \lor A(r|ii|\rr2)
+\\ && \qquad {} \lor
+   C[\rr1/r] \lor D[\rr2/r]
+\\ && \qquad {} \lor A(\rr{1:}|ii|\rr:) \lor A(\rr{2:}|ii|\rr:) ~)
+\\
+\\ C \parallel D
+   &\defs&
+   \W(\quad\phlor A(r|ii|\rr1,\rr2)
+\\ && \qquad {}\lor
+   C[\rr1/r]
+   \lor D[\rr2/r]
+\\ && \qquad {}\lor
+   A(\rr{1:},\rr{2:}|ii|\rr:)~)
+\\
+\\ C^*
+   &\defs&
+   \W(\quad  \phlor A(r|ii|\rr1) \lor A(\rr1|ii|\rr:)
+\\ && \qquad {}\lor C[\rr1/r]    \lor A(\rr{1:}|ii|\rr1) ~)
+}
 
 \newpage
 \HDRc{Coding Atomic Semantics}
 
 \RLEQNS{
- \Atm a &\defs&\W(\Skip \lor A(in|a|out)) \land [in|out]
+   \Atm a &\defs&\W(A(r|a|\rr:))
 }
 
 \begin{code}
@@ -901,15 +938,9 @@ atom pr = Comp nAtom [pr]
 ppAtom sCP d p [pr] = ppbracket "<" (sCP 0 1 pr) ">"
 ppAtom _ _ _ _ = pps styleRed $ ppa ("invalid-"++nAtom)
 
-defnAtom d [a]
- = ldefn nAtom $ wp $ mkOr $ [mkSkip, mkA inp a out]
-
-invAtom = idisj [ielem inp, ielem out]
+defnAtom d [a] = ldefn nAtom $ wp $ mkA r a r'
 
 wp x = Comp "W" [x]
-
-sinp = sngl inp
-sout = sngl out
 
 vAtmEntry :: (Show s, Ord s) => (String, Entry s)
 vAtmEntry
@@ -917,14 +948,15 @@ vAtmEntry
    , PredEntry ["s","s'"] ppAtom [] defnAtom (pNoChg nAtom) )
 \end{code}
 
-Running the calculator on $Atm(a)$ results in the following:
+Running the calculator on $\Atm a$ results in the following:
 \begin{verbatim}
-II \/ A(in|a|out)
+[r|r:] /\ (II \/ A(r|a|r:))
 \end{verbatim}
 So we add a variant dictionary entry:
 \begin{code}
 defnAtomCalc d [a]
- = ldefn (nAtom++" calculation") $ mkOr [mkSkip, mkA inp a out]
+ = ldefn (nAtom++" calculation")
+         $ mkAnd [invWWW, mkOr [mkSkip, mkA r a r']]
 
 vAtmCalcEntry :: (Show s, Ord s) => (String, Entry s)
 vAtmCalcEntry
@@ -937,9 +969,10 @@ vAtmCalcEntry
 \HDRc{Coding Skip}
 
 \RLEQNS{
-   \cskip
+   ii &\defs& s'=s
+\\ \cskip
    &\defs&
-   \W(\Skip \lor A(in|ii|out)) \land [in|out]
+   \Atm{ii}
 }
 \begin{code}
 nVSkip = "VSkip" -- internal abstract name
@@ -950,10 +983,9 @@ vskip  = Comp nVSkip []
 ppVSkip d ms p [] = ppa "<skip>"
 ppVSkip d ms p mprs = pps styleRed $ ppa ("invalid-"++nVSkip)
 
-defnVSkip d []
- = ldefn nVSkip $ wp $ mkOr $ [mkSkip, mkA inp ii out]
+defnVSkip d [] = ldefn nVSkip $ wp $ mkA r ii r'
 
-invVSkip = idisj [ielem inp, ielem out]
+invVSkip = leInv [leElem inp, leElem out]
 
 vSkipEntry :: (Show s, Ord s) => (String, Entry s)
 vSkipEntry
@@ -964,15 +996,16 @@ vSkipEntry
 nii= "ii"
 ii = PVar nii
 \end{code}
-The calculation of $Atm(ii)$ also leads us to the following calculation
+The calculation of $\Atm{ii}$ also leads us to the following calculation
 for \verb"<skip>":
 \begin{verbatim}
-II \/ A(in|ii|out)
+[r|r:] /\ (II \/ A(r|ii|r:))
 \end{verbatim}
 So we add a variant dictionary entry:
 \begin{code}
 defnVSkipCalc d []
- = ldefn (nVSkip++" calculation") $ mkOr [mkSkip, mkA inp ii out]
+ = ldefn (nVSkip++" calculation")
+         $ mkAnd [ invWWW,mkOr [mkSkip, mkA r ii r']]
 
 vSkipCalcEntry :: (Show s, Ord s) => (String, Entry s)
 vSkipCalcEntry
@@ -989,9 +1022,12 @@ vSkipCalcEntry
 
 \RLEQNS{
    C \cseq D
-   &\defs&
-   \W(C[g_{:1},\ell_g/g,out] \lor D[g_{:2},\ell_g/g,in])
-   \land [in|\ell_g|out]
+   &\defs& [r|\rr1|\rr{1:}|\rr2|\rr{2:}|\rr:] \land {}
+\\ && \W(\quad {}\phlor A(r|ii|\rr1)
+\\ && \qquad {} \lor C[\rr1/r]
+\\ && \qquad {} \lor A(\rr{1:}|ii|\rr2)
+\\ && \qquad {} \lor D[\rr2/r]
+\\ && \qquad {} \lor A(\rr{2:}|ii|\rr:)~)
 }
 \begin{code}
 nVSeq = "VSeq"
@@ -1006,19 +1042,22 @@ ppVSeq sCP d p [pr1,pr2]
                             , sCP precVSeq 2 pr2 ]
 ppVSeq _ _ _ _ = pps styleRed $ ppa ("invalid-"++shVSeq)
 
-defnVSeq d [p,q]
- = ldefn shVSeq $ wp $ mkOr [PSub p sub1, PSub q sub2]
- where
-   sub1 = [("g",g'1),("out",lg)]
-   sub2 = [("g",g'2),("in",lg)]
+r1 = rsplit1 r
+r1' = rstep r1
+r2 = rsplit2 r
+r2' = rstep r2
 
-lg = new1 g
-g' = new2 g
-g'1 = split1 g'
-g'2 = split2 g'
+invVSeq = leInv [r,r1,r1',r2,r2',r']
 
-invVSeq = idisj[ielem inp, ielem lg, ielem out]
+pSeq p q
+ = mkOr [ mkA r ii r1
+        , PSub p [("r",r1)]
+        , mkA r1' ii r2
+        , PSub q [("r",r2)]
+        , mkA r2' ii r' ]
 
+defnVSeq d [p,q] = ldefn shVSeq $ mkAnd [ invVSeq
+                                        , wp $ pSeq p q ]
 vSeqEntry :: (Show s, Ord s) => (String, Entry s)
 vSeqEntry
  = ( nVSeq
@@ -1031,13 +1070,11 @@ vSeqEntry
 
 \RLEQNS{
    C + D
-   &\defs&
-   \W(\quad {}\phlor A(in|ii|\ell_{g1})
+   &\defs& [r|\rr1|\rr{1:}|\rr2|\rr{2:}|\rr:] \land {}
+\\&& \W(\quad {}\phlor A(r|ii|\rr1) \lor A(r|ii|\rr2)
 \\ && \qquad {} \lor
-                     A(in|ii|\ell_{g2})
-\\ && \qquad {} \lor
-   C[g_{1:},\ell_{g1}/g,in] \lor D[g_{2:},\ell_{g2}/g,in]~)
-\\&& {} \land [in|\ell_{g1}|\ell_{g2}|out]
+   C[\rr1/r] \lor D[\rr2/r]
+\\ && \qquad {} \lor A(\rr{1:}|ii|\rr:) \lor A(\rr{2:}|ii|\rr:) ~)
 }
 \begin{code}
 nVChc = "VChc"
@@ -1052,24 +1089,19 @@ ppVChc sCP d p [pr1,pr2]
                             , sCP precVChc 2 pr2 ]
 ppVChc _ _ _ _ = pps styleRed $ ppa ("invalid-"++shVChc)
 
+invVChc = invVSeq -- not a complete coincidence !
+
+pChc p q
+ = mkOr [ mkA r ii r1
+        , mkA r ii r2
+        , PSub p [("r",r1)]
+        , PSub q [("r",r2)]
+        , mkA r1' ii r'
+        , mkA r2' ii r' ]
+
 defnVChc d [p,q]
- = ldefn shVChc $ wp
-    $ mkOr [ mkA inp ii lg1
-           , mkA inp ii lg2
-           , PSub p sub1
-           , PSub q sub2 ]
- where
-   sub1 = [("g",g1'),("in",lg1)]
-   sub2 = [("g",g2'),("in",lg2)]
-
-g1 = split1 g
-g2 = split2 g
-lg1 = new1 g1
-lg2 = new1 g2
-g1' = new2 g1
-g2' = new2 g2
-
-invVChc = idisj [ielem inp, ielem lg1, ielem lg2, ielem out]
+ = ldefn shVChc $ mkAnd [ invVChc
+                        , wp $ pChc p q ]
 
 vChcEntry :: (Show s, Ord s) => (String, Entry s)
 vChcEntry
@@ -1083,14 +1115,16 @@ vChcEntry
 
 \RLEQNS{
    C \parallel D
-   &\defs&
-   \W(\quad\phlor A(in|ii|\ell_{g1},\ell_{g2})
+   &\defs& ~
+   [r|\rr1,\rr2,\rr{1:},\rr{2:}|\rr:] \land
+   [\rr1|\rr{1:}] \land
+   [\rr2|\rr{2:}] \land {}
+\\&& \W(\quad\phlor A(r|ii|\rr1,\rr2)
 \\ && \qquad {}\lor
-   C[g_{1::},\ell_{g1},\ell_{g1:}/g,in,out]
-   \lor D[g_{2::},\ell_{g2},\ell_{g2:}/g,in,out]
+   C[\rr1/r]
+   \lor D[\rr2/r]
 \\ && \qquad {}\lor
-   A(\ell_{g1:},\ell_{g2:}|ii|out)~)
-\\&& {} \land [in|(\ell_{g1}|\ell_{g1:}),(\ell_{g2}|\ell_{g2:})|out]
+   A(\rr{1:},\rr{2:}|ii|\rr:)~)
 }
 \begin{code}
 nVPar = "VPar"
@@ -1105,28 +1139,24 @@ ppVPar sCP d p [pr1,pr2]
                             , sCP precVPar 2 pr2 ]
 ppVPar _ _ _ _ = pps styleRed $ ppa ("invalid-"++shVPar)
 --
+
+invVPar1 = leInv [r,leSet [r1,r2,r1',r2'], r']
+invVPar2 = leInv [r1,r1']
+invVPar3 = leInv [r2,r2']
+
+invVPars = [ invVPar1, invVPar2, invVPar3 ]
+
+invVPar = mkAnd invVPars
+
+pPar p q
+ = mkOr [ mkA r ii (set [r1,r2])
+           , PSub p [("r",r1)]
+           , PSub q [("r",r2)]
+           , mkA (set [r1',r2']) ii r' ]
+
 defnVPar d [p,q]
- = ldefn shVPar $ wp
-    $ mkOr [ mkA inp ii (set [lg1,lg2])
-           , PSub p sub1
-           , PSub q sub2
-           , mkA s12' ii out ]
- where
-   sub1 = [("g",g1''),("in",lg1),("out",lg1')]
-   sub2 = [("g",g2''),("in",lg2),("out",lg2')]
-
-lg1' = new1 g1'
-lg2' = new1 g2'
-g1'' = new2 g1'
-g2'' = new2 g2'
-s12' = set [lg1',lg2']
-
-invVPar = idisj [ ielem inp
-                , ijoin [ idisj [ ielem lg1, ielem lg1' ]
-                        , idisj [ ielem lg2, ielem lg2' ]
-                        ]
-                , ielem out
-                ]
+ = ldefn shVPar $ mkAnd [ invVPar
+                        , wp $ pPar p q ]
 
 vParEntry :: (Show s, Ord s) => (String, Entry s)
 vParEntry
@@ -1139,11 +1169,12 @@ vParEntry
 
 \RLEQNS{
    C^*
-   &\defs&
-   \W(\quad  \phlor A(in|ii|out)
-\\ && \qquad {}\lor A(in|ii|\ell_g)
-\\ && \qquad {}\lor C[g_{:},\ell_g,in/g,in,out]~)
-\\&& {} \land [in|\ell_g|out]
+   &\defs& [r|\rr2|\rr1|\rr{1:}|\rr:] \land {}
+\\&& \W(\quad  \phlor A(r|ii|\rr2)
+\\ && \qquad {}\lor A(\rr2|ii|\rr1)
+               \lor C[\rr1/r]
+               \lor A(\rr{1:}|ii|\rr2)
+\\ && \qquad {}\lor A(\rr2|ii|\rr:) ~)
 }
 \begin{code}
 nVIter = "VIter"
@@ -1157,20 +1188,19 @@ ppVIter sCP d p [pr]
      $ ppclosed  "(" ")*" "" [sCP 0 1 pr]
 
 ppVIter _ _ _ _ = pps styleRed $ ppa ("invalid-"++shVIter)
---
-defnVIter d [p]
- = ldefn shVIter $ wp
-    $ mkOr [ mkA inp ii out
-           , mkA inp ii lg
-           , PSub p sub
-           ]
- where
-   sub = [("g",g'),("in",lg),("out",inp)]
 
-invVIter = idisj [ ielem inp
-                 , ielem lg
-                 , ielem out
-                 ]
+invVIter = leInv [r,r2,r1,r1',r']
+
+pIter p
+ = mkOr [ mkA r ii r2
+        , mkA r2 ii r1
+        , PSub p [("r",r1)]
+        , mkA r1' ii r2
+        , mkA r2 ii r' ]
+
+defnVIter d [p]
+ = ldefn shVIter $ mkAnd [ invVIter
+                         , wp $ pIter p ]
 
 vIterEntry :: (Show s, Ord s) => (String, Entry s)
 vIterEntry
@@ -1188,9 +1218,11 @@ dictVP, dictVPCalc :: (Ord s, Show s) => Dict s
 dictVP = makeDict [ vXEntry
                   , vAEntry
                   , vWEntry
-                  , vIElemEntry
-                  , vIDisjEntry
-                  , vIJoinEntry
+                  , vLESetEntry
+                  , vLEInvEntry
+                  -- , vIElemEntry
+                  -- , vIDisjEntry
+                  -- , vIJoinEntry
                   , vAtmEntry
                   , vSkipEntry
                   , vSeqEntry
@@ -1377,22 +1409,41 @@ vReduce vd _ (Comp ns [ (Comp nx1 [ (Atm e1)   -- X(E1
    \lnot(\setof{E,L} \textbf{ lsat } I)
    &\implies&  X(E|a|E,L|N) = A(E|a|N)
 }
+Given $I$ and $X(E|a|R|A)$, we proceed as follows:
+\begin{enumerate}
+  \item Let $D = R \setminus E$
+  \item Compute
+    $D' =
+       \setof{  d | d \in D,
+                    \lnot (E\cup\setof d \textbf{ lsat } I)}
+    $
+  \item
+    If $D = D'$ then return $A(E|a|A)$
+  \item
+    Else, return $X(E|a|E\cup(D \setminus D')|A)$.
+\end{enumerate}
 \begin{code}
-vReduce vd inv (Comp nx [ Atm ee               -- X(E
-                        , as                   --  |a
-                        , Atm (App ns [l1,l2]) --  | E,L or L,E
-                        , Atm en               --  |N)
-                        ])
- | nx == nX && ns == setn && isSingleton ee && isSingleton en
-   && l1==e && invTrims vd inv l1 l2
-    = lred "Inv collapses X to A" equivA
- | nx == nX && ns == setn && isSingleton ee && isSingleton en
-   && l2==e && invTrims vd inv l2 l1
-    = lred "Inv collapses X to A" equivA
- where
-   e = theSingleton ee
-   n = theSingleton en
-   equivA = mkA e as n
+vReduce vd invs (Comp nx [ Atm e   -- X(E
+                         , as      --  |a
+                         , Atm r   --  |R
+                         , Atm a   --  |A)
+                         ])
+ | nx == nX && applicable
+   = lred "Inv collapses X to A" $ mkA e as a
+  where
+    applicable = es `isSubSeqOf` rs
+                 && ds == ds'
+    es = setElems e
+    rs = setElems r
+    ds = rs \\ es
+    ds' = filter (someInvFails invs) ds
+
+    someInvFails [] _ = False
+    someInvFails (inv:invs) d
+     | lsat vd ed inv  =  someInvFails invs d
+     | otherwise  =  True
+     where
+       ed = snd $ esimp vd (e `u` set [d])
 \end{code}
 
 
@@ -1600,6 +1651,11 @@ vcalc pr = calcREPL vDict [noInvariant] $ buildMarks pr
 ivcalc inv pr
  = calcREPL vDict [(labelSetInv, inv)] $ buildMarks pr
 
+ivscalc invs pr
+ = calcREPL vDict (map lsi invs) $ buildMarks pr
+ where lsi inv = (labelSetInv, inv)
+
+
 vputcalc :: (Ord s, Show s) => Pred s -> IO ()
 vputcalc pr = printREPL vDict [noInvariant] $ buildMarks pr
 
@@ -1633,7 +1689,7 @@ a = PVar "a"
 b = PVar "b"
 
 subII :: (Show s, Ord s) => Pred s
-subII = PSub mkSkip [("g",g'1),("out",lg)]
+subII = PSub mkSkip [("r",r1')]
 
 -- an invariant that always fails
 noGood _ _ _ = Just False
@@ -1650,7 +1706,7 @@ athenbBody = case defvseq [actionA,actionB] of
               Just (_,Comp _ [body],_)  ->  body
               _                         ->  PVar "??"
 
-testpr = PSub (mkOr [pr, mkSeq pr pr]) [("in",lg)]
+testpr = PSub (mkOr [pr, mkSeq pr pr]) [("r",r1)]
  where pr = mkA inp ii out
 
 disp Nothing = putStrLn "\nNo change"
@@ -1737,40 +1793,100 @@ invVatom.b = [lg|out]
 \begin{code}
 athenb = actionA `vseq` actionB
 \end{code}
+
 \begin{verbatim}
-Q(athenb) = A(in|a|lg) \/ A(lg|b|out)
+Q(athenb)
+    A(r|ii|r1)
+ \/ A(r1|a|r1:)
+ \/ A(r1:|ii|r2)
+ \/ A(r2|b|r2:)
+ \/ A(r2:|ii|r:)
 \end{verbatim}
+we strip out the invariant and skip parts
 \begin{code}
 q_athenb
-  = mkOr [ mkA inp a  lg
-         , mkA lg  b out ]
+ = mkOr [ mkA r ii r1
+        , mkA r1 a r1'
+        , mkA r1' ii r2
+        , mkA r2 b r2'
+        , mkA r2' ii r' ]
 \end{code}
 
 \begin{verbatim}
-q_athenb^2 = X(in|a;b|in,lg|out)
+q_athenb^2 =
+    A(r|ii;a|r1:)
+ \/ A(r1|a;ii|r2)
+ \/ A(r1:|ii;b|r2:)
+ \/ A(r2|b;ii|r:)
 \end{verbatim}
 The invariant means that the removal of $\ell_g$ above is redundant,
 so the $X$ becomes an $A$
 \begin{code}
-q_athenb_2 = mkA inp ab out
-ab = mkSeq a b
+q_athenb_2
+ = mkOr [ mkA r   a r1'
+        , mkA r1  a r2
+        , mkA r1' b r2'
+        , mkA r2  b r' ]
 \end{code}
 
 \begin{verbatim}
-q_athenb^3 = false
+q_athenb^3 =
+    A(r|ii ; a|r2)
+ \/ A(r1|a ; b|r2:)
+ \/ A(r1:|ii ; b|r:)
 \end{verbatim}
 \begin{code}
-v_athenb
+ab = mkSeq a b
+q_athenb_3
+ = mkOr [ mkA r a r2
+        , mkA r1 ab r2'
+        , mkA r1' b r' ]
+\end{code}
+
+\begin{verbatim}
+q_athenb^4 =
+    A(r|ii ; a ; b|r2:)
+ \/ A(r1|a ; b|r:)
+\end{verbatim}
+\begin{code}
+q_athenb_4
+ = mkOr [ mkA r ab r2'
+        , mkA r1 ab r' ]
+\end{code}
+
+\begin{verbatim}
+q_athenb^5 =
+    A(r|ii ; a ; b|r:)
+\end{verbatim}
+\begin{code}
+q_athenb_5
+ = mkOr [ mkA r ab r' ]
+\end{code}
+
+\begin{verbatim}
+q_athenb^6 = false
+\end{verbatim}
+\begin{code}
+q_athenb_all
  = mkOr [ mkSkip
         , q_athenb
-        , q_athenb_2 ]
+        , q_athenb_2
+        , q_athenb_3
+        , q_athenb_4
+        , q_athenb_5 ]
 \end{code}
 \begin{verbatim}
 v_athenb
- = [in|lg|out] /\
-   ( II \/ A(in|a|lg) \/ A(lg|b|out) \/ A(in|a ; b|out) )
+ = [r|r1|r1'|r2|r2'|r'] /\
+    A(r|ii|r1) \/ A(r1|a|r1:) \/ A(r1:|ii|r2) \/ A(r2|b|r2:) \/ A(r2:|ii|r:)
+ \/ A(r|a|r1:) \/ A(r1|a|r2) \/ A(r1:|b|r2:) \/ A(r2|b|r:)
+ \/ A(r|a|r2) \/ A(r1|ab|r2:) \/ A(r1:|b|r:)
+ \/ A(r|ab|r2:) \/ A(r1|ab|r:)
+ \/ A(r|ab|r:)
 \end{verbatim}
-
+\begin{code}
+v_athenb = mkAnd [invVSeq, q_athenb_all ]
+\end{code}
 
 \newpage
 \HDRc{Non-deterministic Choice}
@@ -1782,48 +1898,61 @@ invVChc = [in|lg1|lg2|out]
 aorb = actionA `vchc` actionB
 \end{code}
 \begin{verbatim}
-Q(aorb) = A(in|ii|lg1) \/ A(in|ii|lg2) \/ A(lg1|a|out) \/ A(lg2|b|out)
+Q(aorb) = A(r|ii|r1) \/ A(r|ii|r2)
+          \/ A(r1|a|r1:) \/ A(r2|b|r2:)
+          \/ A(r1:|ii|r:) \/ A(r2:|ii|r:)
 \end{verbatim}
 \begin{code}
 q_aorb
-  = mkOr [ mkA inp ii lg1
-         , mkA inp ii lg2
-         , mkA lg1  a out
-         , mkA lg2  b out ]
+  = mkOr [ mkA r ii r1
+         , mkA r ii r2
+         , mkA r1  a r1'
+         , mkA r2  b r2'
+         , mkA r1' ii r'
+         , mkA r2' ii r' ]
 \end{code}
 
 \begin{verbatim}
-q_aorb^2 = X(in|ii ; a|in,lg1|out) \/ X(in|ii ; b|in,lg2|out)
-\end{verbatim}
-We manually note that \texttt{ii;a = a} and if \texttt{in} is in \texttt{ls},
-then the invariant ensures that \texttt{lg1} (or \texttt{lg2}) is not,
-and so the removal of \texttt{in,lg1}
-can be replaced by \texttt{in}, and so we can use the A-form:
-\begin{verbatim}
-X(in|ii;a|in,lg1|out) = A(in|a|out)
+q_aorb^2 = A(r|a|r1:) \/ A(r|b|r2:) \/ A(r1|a|r:) \/ A(r2|b|r:)
 \end{verbatim}
 \begin{code}
 q_aorb_2
-  = mkOr [ mkA inp a out
-         , mkA inp b out ]
+  = mkOr [ mkA r a r1'
+         , mkA r b r2'
+         , mkA r1 a r'
+         , mkA r2 b r' ]
 \end{code}
 
 \begin{verbatim}
-q_aorb^3 = false
+q_aorb^3 = A(r|a|r:) \/ A(r|b|r:)
 \end{verbatim}
 \begin{code}
-v_aorb
+q_aorb_3
+ = mkOr [ mkA r a r', mkA r b r' ]
+\end{code}
+\begin{verbatim}
+q_aorb^4 = false
+\end{verbatim}
+\begin{code}
+q_aorb_all
  = mkOr [ mkSkip
         , q_aorb
-        , q_aorb_2 ]
+        , q_aorb_2
+        , q_aorb_3 ]
 \end{code}
 \begin{verbatim}
 v_aorb
- = [in|lg1|lg2|out] /\
-   ( II \/ A(in|ii|lg1) \/ A(in|ii|lg2)
-        \/ A(lg1|a|out) \/ A(lg2|b|out)
-        \/ A(in|a|out)  \/ A(in|b|out) )
+ = [r|r1|r1:|r2|r2:|r:] /\
+   ( II
+     \/ A(r|ii|r1) \/ A(r|ii|r2)
+     \/ A(r1|a|r1:) \/ A(r2|b|r2:)
+     \/ A(r1:|ii|r:) \/ A(r2:|ii|r:)
+     \/ A(r|a|r1:) \/ A(r|b|r2:) \/ A(r1|a|r:) \/ A(r2|b|r:)
+     \/ A(r|a|r:) \/ A(r|b|r:) )
 \end{verbatim}
+\begin{code}
+v_aorb = mkAnd [ invVChc, q_aorb_all ]
+\end{code}
 
 
 
@@ -1838,81 +1967,77 @@ awithb = actionA `vpar` actionB
 \end{code}
 \begin{verbatim}
 Q(awithb)
-  =    A(in|ii|lg1,lg2)
-    \/ A(lg1|a|lg1:) \/ A(lg2|b|lg2:)
-    \/ A(lg1:,lg2:|ii|out)
+  =    A(r|ii|r1,r2)
+       \/ A(r1|a|r1:)
+       \/ A(r2|b|r2:)
+       \/ A(r1:,r2:|ii|r:)
 \end{verbatim}
 \begin{code}
 q_awithb
-  = mkOr [ mkA inp ii $ set [lg1,lg2]
-         , mkA lg1 a lg1'
-         , mkA lg2 b lg2'
-         , mkA (set [lg1',lg2']) ii out ]
+  = mkOr [ mkA r ii $ set [r1,r2]
+         , mkA r1 a r1'
+         , mkA r2 b r2'
+         , mkA (set [r1',r2']) ii r' ]
 \end{code}
 
 \begin{verbatim}
 q_awithb^2
- =    X(in|ii ; a|in,lg1|lg1:,lg2)
-   \/ X(lg1,lg2|b ; a|lg1,lg2|lg1:,lg2:)
-   \/ X(in|ii ; b|in,lg2|lg2:,lg1)
-   \/ X(lg1,lg2|a ; b|lg1,lg2|lg1:,lg2:)
-   \/ X(lg2:,lg1|a ; ii|lg1:,lg2:,lg1|out)
-   \/ X(lg1:,lg2|b ; ii|lg1:,lg2:,lg2|out)
+ =  A(r|a|r2,r1:)
+ \/ A(r1,r2|ba|r1:,r2:)
+ \/ A(r|b|r1,r2:)
+ \/ A(r1,r2|ab|r1:,r2:)
+ \/ A(r1,r2:|a|r:)
+ \/ A(r2,r1:|b|r:)
 \end{verbatim}
-We manually note that \texttt{ii;a = a} and if \texttt{in} is in \texttt{ls},
-then the invariant ensures that \texttt{lg1} (or \texttt{lg2}) is not,
-and so the removal of \texttt{in,lg1}
-can be replaced by \texttt{in}, and so we can use the A-form:
-\begin{verbatim}
-X(in|ii;a|in,lg1|lg1:,lg2) = A(in|a|lg1:,lg2)
-\end{verbatim}
+
+
 \begin{code}
 q_awithb_2
-  = mkOr [ mkA inp a $ set [lg1',lg2]
-         , mkA (set [lg1,lg2]) (mkSeq b a) $ set [lg1',lg2']
-         , mkA inp b $ set [lg2',lg1]
-         , mkA (set [lg1,lg2]) (mkSeq a  b) $ set [lg1',lg2']
-         , mkA (set [lg2',lg1]) a out
-         , mkA (set [lg1',lg2]) b out ]
+  = mkOr [ mkA r a $ set [r1',r2]
+         , mkA (set [r1,r2]) ba $ set [r1',r2']
+         , mkA r b $ set [r2',r1]
+         , mkA (set [r1,r2]) ab $ set [r1',r2']
+         , mkA (set [r2',r1]) a r'
+         , mkA (set [r1',r2]) b r' ]
+ba = mkSeq b a
 \end{code}
 
 \begin{verbatim}
 q_awithb^3
- =    X(in|ii ; b ; a|in,lg1,lg2|lg1:,lg2:)
-   \/ X(in|ii ; a ; b|in,lg1,lg2|lg1:,lg2:)
-   \/ X(lg1,lg2|b ; a|lg2:,lg1,lg2|out)
-   \/ X(lg1,lg2|a ; b|lg1:,lg1,lg2|out)
+ =  A(r|ba|r1:,r2:)
+ \/ A(r|ab|r1:,r2:)
+ \/ A(r1,r2|ba|r:)
+ \/ A(r1,r2|ab|r:)
 \end{verbatim}
-We do the same tidy-up.
-The assymetry here (why \texttt{ii;a;b} and \texttt{a;b} but not \texttt{a;b;ii}?)
-is an artefact of the earlier tidy-up we did for \verb"q_awithb_2".
 \begin{code}
 q_awithb_3
- = mkOr [ mkA inp (mkSeq b a) $ set [lg1',lg2']
-        , mkA inp (mkSeq a b) $ set [lg1',lg2']
-        , mkA (set [lg1,lg2]) (mkSeq b a) out
-        , mkA (set [lg1,lg2]) (mkSeq a b) out ]
+ = mkOr [ mkA r ba $ set [r1',r2']
+        , mkA r ab $ set [r1',r2']
+        , mkA (set [r1,r2]) ba r'
+        , mkA (set [r1,r2]) ab r' ]
 \end{code}
 \begin{verbatim}
 q_awithb^4
- = X(in|ii ; b ; a|in,lg1,lg2|out) \/ X(in|ii ; a ; b|in,lg1,lg2|out)
+ = A(r|ba|r:) \/ A(r|ab|r:)
 \end{verbatim}
 Tidy up
 \begin{code}
 q_awithb_4
- = mkOr [ mkA inp (mkSeq b a) out
-        , mkA inp (mkSeq a b) out ]
+ = mkOr [ mkA r (mkSeq b a) r'
+        , mkA r (mkSeq a b) r' ]
 \end{code}
 \begin{verbatim}
 q_awithb^5 = false
 \end{verbatim}
 \begin{code}
-v_awithb
+q_awithb_all
  = mkOr [ mkSkip
         , q_awithb
         , q_awithb_2
         , q_awithb_3
         , q_awithb_4 ]
+
+v_awithb = mkAnd [ invVPar, q_awithb_all ]
 \end{code}
 \begin{verbatim}
 v_awithb
@@ -1940,238 +2065,122 @@ itera = viter actionA
 \end{code}
 
 \begin{verbatim}
-Q(itera) = A(in|ii|out) \/ A(in|ii|lg) \/ A(lg|a|in)
+Q(itera)
+ =  A(r|ii|r2)
+ \/ A(r2|ii|r1)
+ \/ A(r1|a|r1:)
+ \/ A(r1:|ii|r2)
+ \/ A(r2|ii|r:)
 \end{verbatim}
 \begin{code}
 q_itera
-  = mkOr [ mkA inp ii out
-         , mkA inp ii lg
-         , mkA lg  a  inp ]
+  = mkOr [ mkA r ii r2
+         , mkA r2 ii r1
+         , mkA r1  a  r1'
+         , mkA r1' ii r2
+         , mkA r2 ii r' ]
 \end{code}
+
+
+
+
 
 \begin{verbatim}
 q_itera^2
-  =    X(lg|a ; ii|in,lg|out)
-    \/ X(lg|a ; ii|in,lg|lg)
-    \/ X(in|ii ; a|in,lg|in)
+  = A(r|ii|r1)
+ \/ A(r1:|ii|r1)
+ \/ A(r2|a|r1:)
+ \/ A(r1|a|r2)
+ \/ A(r|ii|r:)
+ \/ A(r1:|ii|r:)
 \end{verbatim}
-We can simplify to use $A$:
 \begin{code}
 q_itera_2
- = mkOr [ mkA lg  a out
-        , mkA lg  a lg
-        , mkA inp a inp ]
+ = mkOr [ mkA r ii r1
+        , mkA r1' ii r1
+        , mkA r2 a r1'
+        , mkA r1 a r2
+        , mkA r ii r'     -- 1st zero iter, end-to-end
+        , mkA r1' ii r' ]
 \end{code}
 
 \begin{verbatim}
 q_itera^3
-  =    X(in|ii ; a|in,lg|out)
-    \/ X(in|ii ; a|in,lg|lg)
-    \/ X(lg|a ; a|in,lg|in)
+  = A(r1|a|r1)
+ \/ A(r|a|r1:)
+ \/ A(r1:|a|r1:)
+ \/ A(r2|a|r2)
+ \/ A(r1|a|r:)
 \end{verbatim}
 \begin{code}
 q_itera_3
- = mkOr [ mkA inp a  out
-        , mkA inp a  lg
-        , mkA lg  a2 inp ]
-a2 = mkSeq a a
+ = mkOr [ mkA r1 a r1
+        , mkA r a r1'
+        , mkA r1' a r1'
+        , mkA r2 a r2
+        , mkA r1 a r' ]
 \end{code}
 
 \begin{verbatim}
 q_itera^4
- =    X(lg|a ; a|in,lg|out)
-   \/ X(lg|a ; a|in,lg|lg)
-   \/ X(in|ii ; a ; a|in,lg|in)
+  = A(r2|a|r1)
+ \/ A(r1|aa|r1:)
+ \/ A(r|a|r2)
+ \/ A(r1:|a|r2)
+ \/ A(r2|a|r:)
 \end{verbatim}
 \begin{code}
 q_itera_4
- = mkOr [ mkA lg  a2 out
-        , mkA lg  a2 lg
-        , mkA inp a2 inp ]
+ = mkOr [ mkA r2 a r1
+        , mkA r1 aa r1' -- 1st double!
+        , mkA r a r2
+        , mkA r1' a r2
+        , mkA r2 a r' ]
+
+aa = mkSeq a a
 \end{code}
 
 \begin{verbatim}
 q_itera^5
- =    X(in|ii ; a ; a|in,lg|out)
-   \/ X(in|ii ; a ; a|in,lg|lg)
-   \/ X(lg|a ; a ; a|in,lg|in)
+  = A(r|a|r1)
+ \/ A(r1:|a|r1)
+ \/ A(r2|aa|r1:)
+ \/ A(r1|aa|r2)
+ \/ A(r|a|r:)
+ \/ A(r1:|a|r:)
 \end{verbatim}
 \begin{code}
 q_itera_5
- = mkOr [ mkA inp a2 out
-        , mkA inp a2 lg
-        , mkA lg  a3 inp ]
-a3 = mkSeq a2 a
+ = mkOr [ mkA r a r1
+        , mkA r1' a r1
+        , mkA r2 aa r1'
+        , mkA r1 aa r2
+        , mkA r a r'    -- 1st single iter, end-to-end
+        , mkA r1' a r' ]
 \end{code}
 
 \begin{verbatim}
- q_itera^6
-  =    X(lg|a ; a ; a|in,lg|out)
-    \/ X(lg|a ; a ; a|in,lg|lg)
-    \/ X(in|ii ; a ; a ; a|in,lg|in)
+q_itera^6
+  = A(r1|aa|r1)
+ \/ A(r|aa|r1:)
+ \/ A(r1:|aa|r1:)
+ \/ A(r2|aa|r2)
+ \/ A(r1|aa|r:)
 \end{verbatim}
 \begin{code}
 q_itera_6
- = mkOr [ mkA lg  a3 out
-        , mkA lg  a3 lg
-        , mkA inp a3 inp ]
+ = mkOr [ mkA r1 aa r1
+        , mkA r aa r1'
+        , mkA r1' aa r1'
+        , mkA r2 aa r2
+        , mkA r1 aa r'
+        ]
 \end{code}
-
-We notice that we are getting Q pairs of the following form:
-\begin{verbatim}
-q_2itera i  -- i in 0..
- =    A(in|a^i|out)   \/ A(in|a^i|lg)   \/ A(lg|a^i+1|in)
-   \/ A(lg|a^i+1|out) \/ A(lg|a^i+1|lg) \/ A(in|a^i+1|in)
-\end{verbatim}
-\begin{code}
-as_2itera i
- = [ mkA inp ai  out
-   , mkA inp ai  lg
-   , mkA lg  ai' inp
-   , mkA lg  ai' out
-   , mkA lg  ai' lg
-   , mkA inp ai' inp ]
- where
-   ai  = doa i
-   ai' = doa (i+1)
-
-doa 0 = ii
-doa n = doa' a (n-1)
-
-doa' as 0 = as
-doa' as n = doa' (mkSeq as a) (n-1)
-
-q_2itera = mkOr . as_2itera
-\end{code}
-
-\newpage
-Putting it all together\dots
-\begin{code}
-v_itera -- be lazy, be very lazy ! No calculation!
- = mkOr (mkSkip : mk2itera 0)
- where
-   mk2itera i = as_2itera i ++ mk2itera (i+1)
-
-v_itera_n i -- finite prefix of behaviour
- = mkOr (mkSkip : concat (map as_2itera [0..i]))
-\end{code}
-\begin{verbatim}
-v_actionA
- = [in|lg|out] /\ [in|out]
-   ( II
-     \/ A(in|ii|out)
-     \/ A(in|ii|lg)
-     \/ A(lg|a|in)
-     \/ A(lg|a|out)
-     \/ A(lg|a|lg)
-     \/ A(in|a|in)
-     \/ A(in|a|out)
-     \/ A(in|a|lg)
-     \/ A(lg|a ; a|in)
-     \/ A(lg|a ; a|out)
-     \/ A(lg|a ; a|lg)
-     \/ A(in|a ; a|in)
-     \/ A(in|a ; a|out)
-     \/ A(in|a ; a|lg)
-     \/ A(lg|a ; a ; a|in)
-     \/ A(lg|a ; a ; a|out)
-     \/ A(lg|a ; a ; a|lg)
-     \/ A(in|a ; a ; a|in)
-     \/ ... )
-\end{verbatim}
+Now the pattern repeats, with a \verb"q_itera_n" cycle of length 3
 
 \newpage
 \HDRc{ Sequence Iteration}
 
-\begin{verbatim}
-invVIter = [in|lg|out]
-invVSeq = [in|lg|out]
-invVAtom = [in|out]
-invVSeq.seq = [lg|lg:|in]
-invVAtom.seq.a = [lg|lg:]
-invVatom.seq.b = [lg:|in]
-\end{verbatim}
 \begin{code}
 iterseq = viter v_athenb
-inv_iterseq
- = idisj [ ielem inp
-         , ielem lg
-         , ielem lg'
-         , ielem out ]
-lg' = new1 g'
 \end{code}
-
-\begin{verbatim}
-Q(iterseq) =    A(in|ii|out) \/ A(in|ii|lg)
-             \/ A(lg|a|lg:) \/ A(lg:|b|in) \/ A(lg|a;b|in)
-\end{verbatim}
-\begin{code}
-q_iterseq
- = mkOr [ mkA inp ii out
-        , mkA inp ii lg
-        , mkA lg   a lg'
-        , mkA lg  ab inp
-        , mkA lg'  b inp ]
-\end{code}
-
-\begin{verbatim}
-q_iterseq^2
- =    X(lg:|b ; ii|in,lg:|out) \/ X(lg|a ; b ; ii|in,lg|out)
-   \/ X(lg:|b ; ii|in,lg:|lg) \/ X(lg|a ; b ; ii|in,lg|lg)
-   \/ X(in|ii ; a|in,lg|lg:)
-   \/ X(lg|a ; b|lg,lg:|in)
-   \/ X(in|ii ; a ; b|in,lg|in)
-\end{verbatim}
-\begin{code}
-q_iterseq_2
- = mkOr [ mkA inp a  lg'
-        , mkA inp ab inp
-        , mkA lg  ab out
-        , mkA lg  ab lg
-        , mkA lg  ab inp
-        , mkA lg' b  lg
-        , mkA lg' b  out  ]
-\end{code}
-
-\begin{verbatim}
-q_iterseq^3
- =    X(lg|a ; b|lg,lg:|out)
-   \/ X(in|ii ; a ; b|in,lg|out)
-   \/ X(lg|a ; b|lg,lg:|lg)
-   \/ X(in|ii ; a ; b|in,lg|lg)
-   \/ X(lg:|b ; a|in,lg:|lg:) \/ X(lg|a ; b ; a|in,lg|lg:)
-   \/ X(in|ii ; a ; b|in,lg|in)
-   \/ X(lg:|b ; a ; b|in,lg:|in) \/ X(lg|a ; b ; a ; b|in,lg|in)
-\end{verbatim}
-\begin{code}
-q_iterseq_3
- = mkOr [ mkA inp ab   out
-        , mkA inp ab   lg
-        , mkA inp ab   inp
-        , mkA lg  ab   out
-        , mkA lg  ab   lg
-        , mkA lg  aba  lg'
-        , mkA lg  abab inp
-        , mkA lg' ba   lg'
-        , mkA lg' bab  inp ]
-ba = mkSeq b a
-aba = mkSeq ab a
-bab = mkSeq ba b
-abab = mkSeq aba b
-\end{code}
-
-\begin{verbatim}
-q_iterseq^4
- =    X(lg|a ; b ; a ; b|in,lg|out)
-   \/ X(lg:|b ; a ; b|in,lg:|out)
-   \/ X(lg|a ; b ; a ; b|in,lg|lg)
-   \/ X(lg:|b ; a ; b|in,lg:|lg)
-   \/ X(lg|a ; b ; a ; b|in,lg|in)
-   \/ X(lg:|b ; a ; b|in,lg:|in)
-   \/ X(in|ii ; a ; b|in,lg|out)
-   \/ X(in|ii ; a ; b|in,lg|lg)
-   \/ X(in|ii ; a ; b ; a|in,lg|lg:)
-   \/ X(in|ii ; a ; b ; a ; b|in,lg|in)
-   \/ X(lg|a ; b ; a|lg,lg:|lg:)
-   \/ X(lg|a ; b ; a ; b|lg,lg:|in)
-\end{verbatim}
