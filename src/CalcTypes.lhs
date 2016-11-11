@@ -196,7 +196,7 @@ $A \defs \setof{v_1,v_2,\ldots,v_n}$.
  | ExprEntry { -- about Expressions
      ecansub :: [String]                   -- substitutable vars
    , eprint  :: Dict s -> [Expr s] -> String   -- pretty printer
-   , eval    :: Dict s -> [Expr s]                  -- evaluator
+   , simp    :: Dict s -> [Expr s]                 -- simplifier
              -> ( String -- empty if no change, else explanation
                 , Expr s )
    , isEqual :: Dict s -> [Expr s] -> [Expr s] -> Maybe Bool

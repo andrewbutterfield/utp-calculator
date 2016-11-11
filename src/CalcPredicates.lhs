@@ -191,8 +191,10 @@ edshow d (App f es)
     Just (ExprEntry _ showf _ _) -> showf d es
 edshow d (Sub e sub) = pshow d e ++ showSub d sub
 
+dlshow :: Show s => Dict s -> String -> [Expr s] -> [Char]
 dlshow d sep xs = concat (intersperse sep $ map (edshow d) xs)
 
+pshow :: Show s => Dict s -> Expr s -> [Char]
 pshow d e@(St _)     =  "("++edshow d e++")"
 pshow d e@(App _ _)  =  "("++edshow d e++")"
 pshow d e            =       edshow d e
@@ -208,11 +210,19 @@ lsshow vs = concat $ intersperse "," vs
 By default we print \texttt{App f [e1,...,en]} as \texttt{f(e1,...,en)},
 using the following helper functions:
 \begin{code}
+stdFShow :: Show s => Dict s -> [Char] -> [Expr s] -> [Char]
 stdFShow d f es = f ++ "(" ++ dlshow d "," es ++ ")"
+
 
 stdFDefn d fname vs ebody eval = (vs,ebody,stdFShow d fname,eval)
 \end{code}
 For now, we don't support infix function syntax.
+
+We provide a default printer for an expression entry
+\begin{code}
+defEPrint :: Show s => String -> Dict s -> [Expr s] -> String
+defEPrint nm d es = stdFShow d nm es
+\end{code}
 
 
 Now, prettiness..
