@@ -84,7 +84,7 @@ cleanCalc ((currpr, steps, is),d)
 \begin{code}
 isPredEntry (PredEntry _ _ _ _ _) = True
 isPredEntry _ = False
-isExprEntry (ExprEntry _ _ _ _) = True
+isExprEntry (ExprEntry _ _ _ _ _) = True
 isExprEntry _ = False
 isAlfEntry (AlfEntry _) = True
 isAlfEntry _ = False
@@ -101,8 +101,8 @@ plookup nm d
 elookup :: String -> Dict s -> Maybe (Entry s)
 elookup nm d
  = case M.lookup nm d of
-     Just ed@(ExprEntry _ _ _ _)  ->  Just ed
-     _                            ->  Nothing
+     Just ed@(ExprEntry _ _ _ _ _)  ->  Just ed
+     _                              ->  Nothing
 
 alookup :: String -> Dict s -> Maybe (Entry s)
 alookup nm d
@@ -152,6 +152,8 @@ subAny =["*"]
 pNoChg :: String -> Rewrite s
 pNoChg _ _ _ = Nothing
 
+noDefn _ _ = Nothing
+
 -- labelling definitions
 ldefn :: String -> Pred s -> RWResult s
 ldefn nm pr = Just ( "Expanded defn. of " ++ nm, pr, True )
@@ -187,8 +189,8 @@ edshow d (Var v)    =  v
 edshow d Undef      =  "Undefined"
 edshow d (App f es)
  = case elookup f d of
-    Nothing                      ->  stdFShow d f es
-    Just (ExprEntry _ showf _ _) -> showf d es
+    Nothing                        ->  stdFShow d f es
+    Just (ExprEntry _ showf _ _ _) -> showf d es
 edshow d (Sub e sub) = pshow d e ++ showSub d sub
 
 dlshow :: Show s => Dict s -> String -> [Expr s] -> [Char]

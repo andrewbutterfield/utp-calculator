@@ -243,8 +243,11 @@ stepCComp' ccstep s@( Comp' name before after@(npr:rest)
 expandDefn :: (Ord s, Show s) => Dict s -> Mark
            -> MPred s -> Maybe (BeforeAfter s)
 expandDefn d m mpr  = doStepSearch m (expDefs d) mpr
+\end{code}
 
+\begin{code}
 expDefs :: Dict s -> MPred s -> MRWResult s
+
 expDefs d mpr@(Comp name prs, MT ms mts)
  = case plookup name d of
     Just pd@(PredEntry _ _ _ pdef _)
@@ -253,9 +256,21 @@ expDefs d mpr@(Comp name prs, MT ms mts)
             -> Just (what, topMark ms $ buildMarks pr', chgd)
           _ -> Nothing
     _ -> Nothing
+
+expDefs d mpr@(Atm (App name es), MT ms mts)
+ = case elookup name d of
+    Just ed@(ExprEntry _ _ edef _ _)
+      -> case edef d es of
+          Just (what,e')
+            -> Just ( what
+                    , topMark ms
+                        $ buildMarks (Atm e')
+                    , True )
+          _ -> Nothing
+    _ -> Nothing
+
 expDefs _ _ = Nothing
 \end{code}
-
 
 \newpage
 

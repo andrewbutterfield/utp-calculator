@@ -59,6 +59,7 @@ piEntry
    , ExprEntry
        subAny
        (defEPrint n_pi)
+       noDefn
        (justMakes $ App n_pi)
        noEq )
 \end{code}
@@ -78,6 +79,7 @@ epsEntry
    , ExprEntry
        subAny
        (defEPrint n_eps)
+       noDefn
        (justMakes $ App n_eps)
        noEq )
 \end{code}
@@ -102,13 +104,16 @@ univ = Var "univ"
 n_ii = "ii"
 ii = App n_ii [] -- we want to define this
 
+iiDefn  =  _pi _id
+
 iiEntry :: (Show s) => (String, Entry s)
 iiEntry
  = ( n_ii
    , ExprEntry
        subAny
        (\ _ _ -> n_ii)
-       (\_ _ -> ("ii",_pi _id))
+       (\_ _ -> Just ("ii", iiDefn))
+       (justMakes $ App n_ii)
        noEq )
 \end{code}
 

@@ -196,6 +196,8 @@ $A \defs \setof{v_1,v_2,\ldots,v_n}$.
  | ExprEntry { -- about Expressions
      ecansub :: [String]                   -- substitutable vars
    , eprint  :: Dict s -> [Expr s] -> String   -- pretty printer
+   , defn    :: Dict s -> [Expr s]             -- defn expansion
+             -> Maybe (String, Expr s)
    , simp    :: Dict s -> [Expr s]                 -- simplifier
              -> ( String -- empty if no change, else explanation
                 , Expr s )
@@ -294,7 +296,7 @@ or \m{cr_1} to \m{cr_n} or \m{u_1} to \m{u_p}, as appropriate.
 \begin{code}
 instance Show (Entry s) where
  show (AlfEntry vars) = "Alf {"++seplist ',' vars++"}"
- show (ExprEntry csub _ _ _) = "Expr, subst? = "++show csub
+ show (ExprEntry csub _ _ _ _) = "Expr, subst? = "++show csub
  show (PredEntry csub _ alf _ _)
   = "Pred, subFor"++show csub++", alf="++ashow alf
   where

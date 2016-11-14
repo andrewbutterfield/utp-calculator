@@ -68,7 +68,7 @@ asimp :: (Eq s, Ord s, Show s)
 asimp d fn (chgd,es)
  = case elookup fn d of
      Nothing  ->  (chgd, App fn es)
-     Just (ExprEntry _ _ evalf _)
+     Just (ExprEntry _ _ _ evalf _)
        -> case evalf d es of
             ( "", _ )  ->  (chgd, App fn es)
             ( _, e)    ->  (diff, e)

@@ -73,7 +73,9 @@ data Entry s =
  | ExprEntry { -- about Expressions
      ecansub :: [String]                   -- substitutable vars
    , eprint  :: Dict s -> [Expr s] -> String   -- pretty printer
-   , eval    :: Dict s -> [Expr s]                  -- evaluator
+   , defn    :: Dict s -> [Expr s]             -- defn expansion
+             -> Maybe (String, Expr s)
+   , simp    :: Dict s -> [Expr s]                 -- simplifier
              -> ( String -- empty if no change, else explanation
                 , Expr s )
    , isEqual :: Dict s -> [Expr s] -> [Expr s] -> Maybe Bool
