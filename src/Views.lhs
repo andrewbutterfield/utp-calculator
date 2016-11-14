@@ -198,6 +198,23 @@ dosdiff d es1 es2
 ppSDiff d ss = "("  ++ dlshow d " \\ " ss ++ ")"
 \end{code}
 
+\HDRd{Set Utilities}
+
+It can be useful to turn a set into a list
+of its elements:
+\begin{code}
+setElems :: Ord s => Expr s -> [Expr s]
+setElems (App sn es) | sn == setn  =  sort $ nub $ es
+setElems e = []
+\end{code}
+Also determining subsets (subsequences)
+\begin{code}
+isSubSeqOf [] _ = True
+isSubSeqOf _ [] = False
+isSubSeqOf a@(x:a') (y:b) | x==y       =  isSubSeqOf a' b
+                          | otherwise  =  isSubSeqOf a  b
+\end{code}
+From GHC 7.10 onwards this is \texttt{Data.List.subSequencesOf}.
 
 
 \HDRb{Shorthands}
@@ -257,12 +274,12 @@ The Set Dictionary:
 vSetDict :: (Eq s, Ord s, Show s) => Dict s
 vSetDict
  = makeDict
-    [ (setn,(ExprEntry subAny showSet evalSet eqSet))
-    , (unionn,(ExprEntry subAny ppUnion evalUnion noEq))
-    , (intn,(ExprEntry subAny ppIntsct evalIntsct noEq))
-    , (sdiffn,(ExprEntry subAny ppSDiff evalSDiff noEq))
-    , (subsetn,(ExprEntry subAny showSubSet evalSubset noEq))
-    , (sswapn, (ExprEntry subAny showSSwap evalSSwap noEq))
+    [ (setn,(ExprEntry subAny showSet noDefn evalSet eqSet))
+    , (unionn,(ExprEntry subAny ppUnion noDefn evalUnion noEq))
+    , (intn,(ExprEntry subAny ppIntsct noDefn evalIntsct noEq))
+    , (sdiffn,(ExprEntry subAny ppSDiff noDefn evalSDiff noEq))
+    , (subsetn,(ExprEntry subAny showSubSet noDefn evalSubset noEq))
+    , (sswapn, (ExprEntry subAny showSSwap noDefn evalSSwap noEq))
     ]
 \end{code}
 
@@ -319,10 +336,10 @@ We can now define a generator dictionary:
 vGenDict :: (Eq s, Ord s, Show s) => Dict s
 vGenDict
  = makeDict
-    [ (new1n,(ExprEntry subAny showGNew1 (justMakes gNew1) noEq))
-    , (new2n,(ExprEntry subAny showGNew2 (justMakes gNew2) noEq))
-    , (split1n,(ExprEntry subAny showGSplit1 (justMakes gSplit1) noEq))
-    , (split2n,(ExprEntry subAny showGSplit2 (justMakes gSplit2) noEq))
+    [ (new1n,(ExprEntry subAny showGNew1 noDefn (justMakes gNew1) noEq))
+    , (new2n,(ExprEntry subAny showGNew2 noDefn (justMakes gNew2) noEq))
+    , (split1n,(ExprEntry subAny showGSplit1 noDefn (justMakes gSplit1) noEq))
+    , (split2n,(ExprEntry subAny showGSplit2 noDefn (justMakes gSplit2) noEq))
     ]
 \end{code}
 
@@ -805,14 +822,21 @@ given an enabling label or label-set.
    &\defs&
    \lnot(\setof{E,L} \textbf{ lsat } I)
 }
+We need a function that establishes when the invariant is not satisfies
+for at least one invariant in a supplied list.
 \begin{code}
-invTrims :: (Ord s, Show s)
+someInvFails :: (Ord s, Show s)
          => Dict s
-         -> Pred s  -- Invariant
+         -> [Pred s]  -- Invariants
          -> Expr s  -- enable label being removed
          -> Expr s  -- other label being removed
          -> Bool
-invTrims d inv ena other = not $ lsat d (set [ena,other]) inv
+someInvFails d invs ena other = findFail (set [ena,other]) invs
+ where
+   findFail lpair []          =  False
+   findFail lpair (inv:invs)
+    | not $ lsat d lpair inv  =  True
+    | otherwise               =  findFail lpair  invs
 \end{code}
 
 \newpage
@@ -1307,24 +1331,42 @@ vReduce vd _ (Comp ns [ (Comp nx1 [ (Atm e1)   -- X(E1
    \lnot(\setof{E,L} \textbf{ lsat } I)
    &\implies&  X(E|a|E,L|N) = A(E|a|N)
 }
+Given $I$ and $X(E|a|R|A)$, we proceed as follows:
+\begin{enumerate}
+  \item Let $D = R \setminus E$
+  \item Compute
+    $D' =
+       \setof{  d | d \in D,
+                    \lnot (E\cup\setof d \textbf{ lsat } I)}
+    $
+  \item
+    If $D = D'$ then return $A(E|a|A)$
+  \item
+    Else, return $X(E|a|E\cup(D \setminus D')|A)$.
+\end{enumerate}
 \begin{code}
-vReduce vd inv (Comp nx [ Atm ee               -- X(E
-                        , as                   --  |a
-                        , Atm (App ns [l1,l2]) --  | E,L or L,E
-                        , Atm en               --  |N)
-                        ])
- | nx == nX && ns == setn && isSingleton ee && isSingleton en
-   && l1==e && invTrims vd inv l1 l2
-    = lred "Inv collapses X to A" equivA
- | nx == nX && ns == setn && isSingleton ee && isSingleton en
-   && l2==e && invTrims vd inv l2 l1
-    = lred "Inv collapses X to A" equivA
- where
-   e = theSingleton ee
-   n = theSingleton en
-   equivA = mkA e as n
-\end{code}
+vReduce vd invs (Comp nx [ Atm e   -- X(E
+                         , as      --  |a
+                         , Atm r   --  |R
+                         , Atm a   --  |A)
+                         ])
+ | nx == nX && applicable
+   = lred "Inv collapses X to A" $ mkA e as a
+  where
+    applicable = es `isSubSeqOf` rs
+                 && ds == ds'
+    es = setElems e
+    rs = setElems r
+    ds = rs \\ es
+    ds' = filter (someInvFails invs) ds
 
+    someInvFails [] _ = False
+    someInvFails (inv:invs) d
+     | lsat vd ed inv  =  someInvFails invs d
+     | otherwise  =  True
+     where
+       ed = snd $ esimp vd (e `u` set [d])
+\end{code}
 
 \newpage
 \HDRd{General Stuff}~

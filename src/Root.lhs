@@ -88,11 +88,11 @@ split1n = "1" ; split1 = App split1n []
 split2n = "2" ; split2 = App split2n []
 
 stepEntry
- = ( stepn,   ExprEntry [] (showConst stepn)   evalConst noEq )
+ = ( stepn,   ExprEntry [] (showConst stepn) noDefn  evalConst noEq )
 split1Entry
- = ( split1n, ExprEntry [] (showConst split1n) evalConst noEq )
+ = ( split1n, ExprEntry [] (showConst split1n) noDefn evalConst noEq )
 split2Entry
- = ( split2n, ExprEntry [] (showConst split2n) evalConst noEq )
+ = ( split2n, ExprEntry [] (showConst split2n) noDefn evalConst noEq )
 
 data RootStep = Step | Split1 | Split2 deriving (Eq,Ord)
 instance Show RootStep where
@@ -126,7 +126,7 @@ rpShow d [rp, s] = edshow d rp ++ edshow d s
 rpathEntry :: Show s => ( String, Entry s )
 rpathEntry
  = ( rpathn
-   , ExprEntry subAny rpShow (justMakes rPath) noEq )
+   , ExprEntry subAny rpShow noDefn (justMakes rPath) noEq )
 
 newtype RootPath = RootPath [RootStep] deriving Eq
 instance Show RootPath where
@@ -410,12 +410,12 @@ The Set Dictionary:
 vSetDict :: (Eq s, Ord s, Show s) => Dict s
 vSetDict
  = makeDict
-    [ (setn,(ExprEntry subAny showSet evalSet eqSet))
-    , (unionn,(ExprEntry subAny ppUnion evalUnion noEq))
-    , (intn,(ExprEntry subAny ppIntsct evalIntsct noEq))
-    , (sdiffn,(ExprEntry subAny ppSDiff evalSDiff noEq))
-    , (subsetn,(ExprEntry subAny showSubSet evalSubset noEq))
-    , (sswapn, (ExprEntry subAny showSSwap evalSSwap noEq))
+    [ (setn,(ExprEntry subAny showSet noDefn evalSet eqSet))
+    , (unionn,(ExprEntry subAny ppUnion noDefn evalUnion noEq))
+    , (intn,(ExprEntry subAny ppIntsct noDefn evalIntsct noEq))
+    , (sdiffn,(ExprEntry subAny ppSDiff noDefn evalSDiff noEq))
+    , (subsetn,(ExprEntry subAny showSubSet noDefn evalSubset noEq))
+    , (sswapn, (ExprEntry subAny showSSwap noDefn evalSSwap noEq))
     ]
 \end{code}
 
@@ -682,7 +682,7 @@ showLESet d (e:es) = edshow d e ++ ',':showLESet d es
 vLESetEntry :: Show s => (String, Entry s)
 vLESetEntry
  = ( nLESet
-   , ExprEntry subAny showLESet (justMakes leSet) noEq )
+   , ExprEntry subAny showLESet noDefn (justMakes leSet) noEq )
 \end{code}
 
 \newpage
