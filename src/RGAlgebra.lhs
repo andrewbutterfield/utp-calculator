@@ -44,11 +44,13 @@ We rapid prototype the emerging Rely-Guarantee Algebra work.
 r = Var "r"
 \end{code}
 
+
+
 \RLEQNS{
-   \pi(r) &=& \Pi(\sigma,\sigma'), (\sigma,\sigma') \in r
+     π(r) &=& \Pi(\sigma,\sigma'), (\sigma,\sigma') \in r
 }
 \begin{code}
-n_pi = "π"
+n_pi = "\960"  -- pi
 _pi r = App n_pi [r]
 
 piEntry :: (Show s) => (String, Entry s)
@@ -61,11 +63,13 @@ piEntry
        noEq )
 \end{code}
 
+
+
 \RLEQNS{
-   \epsilon(r) &=& \varepsilon(\sigma,\sigma'), (\sigma,\sigma') \in r
+   ϵ(r) &=& \mathcal{E}(\sigma,\sigma'), (\sigma,\sigma') \in r
 }
 \begin{code}
-n_eps = "ϵ"
+n_eps = "\x3f5" -- lunate epsilon
 eps r = App n_eps [r]
 
 epsEntry :: (Show s) => (String, Entry s)
