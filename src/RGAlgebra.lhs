@@ -166,6 +166,32 @@ epsUEntry
 
 \HDRc{Tests as a Boolean Algebra}
 
+\RLEQNS{
+   p &\subseteq& \Sigma
+}
+\begin{code}
+p = Var "p"
+\end{code}
+
+\RLEQNS{
+     τ(p) &=& \mbox{if $p$ then terminate else $\top$}
+}
+\begin{code}
+n_tau = "\964"  -- tau
+tau p = App n_tau [p]
+
+tauEntry :: (Show s) => Dict s
+tauEntry
+ = entry n_tau
+   $ ExprEntry
+       subAny
+       (defEPrint n_tau)
+       noDefn
+       (justMakes $ App n_tau)
+       noEq
+\end{code}
+
+
 \HDRb{Laws}
 
 \HDRc{Reduction Steps}
@@ -210,6 +236,7 @@ rgDict
     , iiEntry
     , piUEntry
     , epsUEntry
+    , tauEntry
     , lawEntry
     ]
 \end{code}
