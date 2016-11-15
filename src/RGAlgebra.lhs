@@ -86,11 +86,14 @@ epsEntry
 
 \def\id{\rgname{id}}
 \def\univ{\rgname{univ}}
+\def\emp{\rgname{$\setof{}$}}
 
-Simple relations: \id, \univ
+Simple relations and predicates: \id, \univ, $\emp$
 \begin{code}
-_id = Var "id"
-univ = Var "univ"
+n_id   = "id"   ; _id  = Var n_id
+n_univ = "univ" ; univ = Var n_univ
+n_emp  = "{}"   ; emp  = Var n_emp
+n_top  = "T"    ; top  = Var n_top
 \end{code}
 
 
@@ -103,16 +106,16 @@ univ = Var "univ"
 \begin{code}
 n_ii = "ii"
 ii = App n_ii [] -- we want to define this
-
-iiDefn  =  _pi _id
+iiPrint _ _ = n_ii
+iiDefn _ _  =  edefn n_ii $ _pi _id
 
 iiEntry :: (Show s) => (String, Entry s)
 iiEntry
  = ( n_ii
    , ExprEntry
        subAny
-       (\ _ _ -> n_ii)
-       (\_ _ -> Just ("ii", iiDefn))
+       iiPrint
+       iiDefn
        (justMakes $ App n_ii)
        noEq )
 \end{code}
@@ -121,17 +124,76 @@ iiEntry
 \RLEQNS{
    \pi &=& \pi(\univ)
 }
+\begin{code}
+n_piU = "piU"
+piU = App n_piU []
+piUPrint _ _ = n_pi
+piUDefn _ _ = edefn "\960" $ _pi univ
+
+piUEntry :: (Show s) => (String, Entry s)
+piUEntry
+ = ( n_piU
+   , ExprEntry
+       subAny
+       piUPrint
+       piUDefn
+       (justMakes $ App n_piU)
+       noEq )
+\end{code}
+
 \RLEQNS{
    \epsilon &=& \epsilon(\univ)
 }
+\begin{code}
+n_epsU = "epsU"
+epsU = App n_epsU []
+epsUPrint _ _ = n_eps
+epsUDefn _ _ = edefn "\1013" $ eps univ
+
+epsUEntry :: (Show s) => (String, Entry s)
+epsUEntry
+ = ( n_epsU
+   , ExprEntry
+       subAny
+       epsUPrint
+       epsUDefn
+       (justMakes $ App n_epsU)
+       noEq )
+\end{code}
+
+
+\HDRb{Laws}
+
+\HDRc{Reduction Steps}
+
+\begin{code}
+rgReduce :: (Ord s, Show s) => RWFun s
+         -- Dict s
+         -- -> [Pred s]  -- Invariants
+         -- -> Pred s    -- Target Predicate
+         -- -> Maybe (String, Pred s, Bool)
+\end{code}
+
 \RLEQNS{
-   r \subseteq \Sigma \times \Sigma
-\\ \stutter &=& \pi(\id)
-\\ \pi &=& \pi(\univ)
-\\ \epsilon &=& \epsilon(\univ)
+   \pi(\emp) &=& \top
+\\ \epsilon(\emp) &=& \top
 }
+\begin{code}
+rgReduce d _ (Atm (App anm [Var enm]))
+ | enm == n_emp && (anm == n_pi || anm == n_eps)
+   = Just ( "Empty Rel is infeasible", Atm top, True)
+\end{code}
 
+\begin{code}
+rgReduce _ _ _ = Nothing
+\end{code}
 
+\HDRc{law Entry}
+
+\begin{code}
+lawEntry :: (Ord s, Show s) => (String, Entry s)
+lawEntry = (laws, LawEntry [rgReduce] [] [])
+\end{code}
 
 \HDRb{RG Dictionary}
 \begin{code}
@@ -141,6 +203,9 @@ rgDict
     [ piEntry
     , epsEntry
     , iiEntry
+    , piUEntry
+    , epsUEntry
+    , lawEntry
     ]
 \end{code}
 }

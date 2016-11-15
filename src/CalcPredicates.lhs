@@ -157,6 +157,8 @@ noDefn _ _ = Nothing
 -- labelling definitions
 ldefn :: String -> Pred s -> RWResult s
 ldefn nm pr = Just ( "Expanded defn. of " ++ nm, pr, True )
+edefn :: String -> Expr s -> Maybe (String, Expr s)
+edefn nm e = Just ( "Expanded defn. of " ++ nm, e )
 \end{code}
 
 

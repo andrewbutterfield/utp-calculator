@@ -1261,7 +1261,7 @@ mtchLabelSetSSwap _      =  Nothing
 \begin{code}
 vReduce :: (Ord s, Show s) => RWFun s
         -- Dict s
-        -- -> Pred s    -- Invariant
+        -- -> [Pred s]  -- Invariants
         -- -> Pred s    -- Target Predicate
         -- -> Maybe (String, Pred s, Bool)
 \end{code}
