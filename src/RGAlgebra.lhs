@@ -1,6 +1,7 @@
 \HDRa{Rely-Guarantee Algebra}\label{ha:RGAlg}
 \begin{code}
 module RGAlgebra where
+--import IOUtil
 import Utilities
 import qualified Data.Map as M
 import Data.List
