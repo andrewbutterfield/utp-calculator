@@ -106,9 +106,9 @@ calcREPL d invst pr
  = do putStrLn ""
       putStrLn $ versionShow d'
       runREPL d' startm (buildMarks pr,[],invst)
- where d' = dictMrg d $ dictVersion calcVersion
+ where d' = dictMrg (dictVersion calcVersion) d
 
-calcVersion = "UTP-Calc v0.0.1"
+calcVersion = "UTP-Calc v0.2"
 
 versionShow d
  = case alookup version d of

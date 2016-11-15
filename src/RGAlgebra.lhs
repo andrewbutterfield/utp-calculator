@@ -31,11 +31,33 @@ import UTCPCReduce
 
 {
 \def\rgname#1{\textsf{#1}}
+\def\rgcomm#1{\mathbf{#1}}
 
 We rapid prototype the emerging Rely-Guarantee Algebra work.
 
 \HDRb{Definitions}
 
+\HDRc{Structure of concurrent program algebra}
+
+\def\nil{\rgcomm{nil}}
+\def\alf{\rgcomm{\alpha}}
+\def\chaos{\rgcomm{chaos}}
+
+
+We have:
+\RLEQNS{
+       & \top
+\\ \nil &      & \alf
+\\     & \chaos
+\\ & \bot
+}
+\begin{code}
+n_top  = "\8868"    ; top  = Var n_top
+n_nil = "nil" ; nil = Var n_nil
+n_alf = "\945" ; alf = Var n_alf
+n_chaos = "chaos" ; chaos = Var n_chaos
+n_bot = "\8869" ; bot = Var n_bot
+\end{code}
 
 \HDRc{Primitive Atomic Commands}
 
@@ -44,7 +66,8 @@ We rapid prototype the emerging Rely-Guarantee Algebra work.
    r \subseteq \Sigma \times \Sigma
 }
 \begin{code}
-r = Var "r"
+n_sigma = "\8721" ; sigma = Var n_sigma
+r     = Var "r"
 \end{code}
 
 
@@ -96,7 +119,6 @@ Simple relations and predicates: \id, \univ, $\emp$
 n_id   = "id"   ; _id  = Var n_id
 n_univ = "univ" ; univ = Var n_univ
 n_emp  = "{}"   ; emp  = Var n_emp
-n_top  = "T"    ; top  = Var n_top
 \end{code}
 
 
@@ -207,13 +229,25 @@ rgReduce :: (Ord s, Show s) => RWFun s
 \RLEQNS{
    \pi(\emp) &=& \top
 \\ \epsilon(\emp) &=& \top
+\\ \tau(\emp) &=& \top
 }
 \begin{code}
 rgReduce d _ (Atm (App anm [Var enm]))
- | enm == n_emp && (anm == n_pi || anm == n_eps)
+ | enm == n_emp &&
+   (anm == n_pi || anm == n_eps || anm == n_tau)
    = Just ( "Empty Rel is infeasible", Atm top, True)
 \end{code}
 
+\RLEQNS{
+   \tau(\Sigma) &=& \nil
+\\ \tau(p_1) \sqcap \tau(p_2) &=& \tau(p_1 \cup p_2)
+\\ \tau(p_1) \sqcup \tau(p_2) &=& \tau(p_1 \cap p_2)
+\\                            &=& \tau(p_1)\tau(p_2)
+\\                            &=& \tau(p_1)\parallel\tau(p_2)
+\\ \lnot\tau(p) &=& \tau(\overline p)
+}
+
+The final catch-all pattern:
 \begin{code}
 rgReduce _ _ _ = Nothing
 \end{code}
