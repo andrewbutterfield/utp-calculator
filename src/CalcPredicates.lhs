@@ -139,6 +139,9 @@ mergeEntry e _ = e
 
 dictMrg :: Dict s -> Dict s -> Dict s
 dictMrg = M.unionWith mergeEntry
+
+mergeDicts ::[Dict s] -> Dict s
+mergeDicts = foldl dictMrg M.empty
 \end{code}
 
 
@@ -228,15 +231,18 @@ defEPrint :: Show s => String -> Dict s -> [Expr s] -> String
 defEPrint nm d es = stdFShow d nm es
 \end{code}
 
-
 Now, prettiness..
 \begin{code}
-pdshow :: (Show s, Ord s) => Int -> Dict s -> Pred s -> String
-pdshow w d pr = render w $ showp d noStyles 0 pr
+plainShow :: (Show s, Ord s) => Int -> Dict s -> Pred s -> String
+plainShow w d pr = render w $ showp d noStyles 0 pr
 
 pmdshow :: (Show s, Ord s)
         => Int -> Dict s -> MarkStyle -> MPred s -> String
 pmdshow w d msf mpr = render w $ mshowp d msf 0 mpr
+
+pdshow :: (Show s, Ord s)
+        => Int -> Dict s -> MarkStyle -> Pred s -> String
+pdshow w d msf pr = render w $ mshowp d msf 0 $ buildMarks pr
 \end{code}
 
 Pretty-printing predicates.
@@ -300,6 +306,6 @@ showp d ms p pr = mshowp d ms p $ buildMarks pr
 
 \begin{code}
 dbg str x = trace (str++show x) x
-cdbg d str pr = trace (str++pdshow 80 d pr) pr
-csdbg d str prs = trace (str++unlines (map (pdshow 80 d) prs)) prs
+cdbg d str pr = trace (str++plainShow 80 d pr) pr
+csdbg d str prs = trace (str++unlines (map (plainShow 80 d) prs)) prs
 \end{code}

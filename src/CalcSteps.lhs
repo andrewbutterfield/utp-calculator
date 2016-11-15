@@ -32,7 +32,7 @@ condResolve d i (Just (nm, [(pr,mpr,chgd)])) = Just (nm,mpr,chgd)
 condResolve d i (Just (nm, outcomes))
  = Just( nm
          ++ ", given "
-         ++ pdshow 1000 d cnd -- no linebreaks, for now
+         ++ plainShow 1000 d cnd -- no linebreaks, for now
        , res, chgd )
  where (cnd, res, chgd) = outcomes !! (i-1)
 \end{code}

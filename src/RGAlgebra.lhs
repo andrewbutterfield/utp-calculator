@@ -34,7 +34,10 @@ import UTCPCReduce
 
 We rapid prototype the emerging Rely-Guarantee Algebra work.
 
-\HDRb{Primitive Atomic Commands}
+\HDRb{Definitions}
+
+
+\HDRc{Primitive Atomic Commands}
 
 
 \RLEQNS{
@@ -53,15 +56,15 @@ r = Var "r"
 n_pi = "\960"  -- pi
 _pi r = App n_pi [r]
 
-piEntry :: (Show s) => (String, Entry s)
+piEntry :: (Show s) => Dict s
 piEntry
- = ( n_pi
-   , ExprEntry
+ = entry n_pi
+   $ ExprEntry
        subAny
        (defEPrint n_pi)
        noDefn
        (justMakes $ App n_pi)
-       noEq )
+       noEq
 \end{code}
 
 
@@ -73,15 +76,15 @@ piEntry
 n_eps = "\x3f5" -- lunate epsilon
 eps r = App n_eps [r]
 
-epsEntry :: (Show s) => (String, Entry s)
+epsEntry :: (Show s) => Dict s
 epsEntry
- = ( n_eps
-   , ExprEntry
+ = entry n_eps
+   $ ExprEntry
        subAny
        (defEPrint n_eps)
        noDefn
        (justMakes $ App n_eps)
-       noEq )
+       noEq
 \end{code}
 
 \def\id{\rgname{id}}
@@ -109,15 +112,15 @@ ii = App n_ii [] -- we want to define this
 iiPrint _ _ = n_ii
 iiDefn _ _  =  edefn n_ii $ _pi _id
 
-iiEntry :: (Show s) => (String, Entry s)
+iiEntry :: (Show s) => Dict s
 iiEntry
- = ( n_ii
-   , ExprEntry
+ = entry n_ii
+   $ ExprEntry
        subAny
        iiPrint
        iiDefn
        (justMakes $ App n_ii)
-       noEq )
+       noEq
 \end{code}
 
 
@@ -130,15 +133,15 @@ piU = App n_piU []
 piUPrint _ _ = n_pi
 piUDefn _ _ = edefn "\960" $ _pi univ
 
-piUEntry :: (Show s) => (String, Entry s)
+piUEntry :: (Show s) => Dict s
 piUEntry
- = ( n_piU
-   , ExprEntry
+ = entry n_piU
+   $ ExprEntry
        subAny
        piUPrint
        piUDefn
        (justMakes $ App n_piU)
-       noEq )
+       noEq
 \end{code}
 
 \RLEQNS{
@@ -150,17 +153,18 @@ epsU = App n_epsU []
 epsUPrint _ _ = n_eps
 epsUDefn _ _ = edefn "\1013" $ eps univ
 
-epsUEntry :: (Show s) => (String, Entry s)
+epsUEntry :: (Show s) => Dict s
 epsUEntry
- = ( n_epsU
-   , ExprEntry
+ = entry n_epsU
+   $ ExprEntry
        subAny
        epsUPrint
        epsUDefn
        (justMakes $ App n_epsU)
-       noEq )
+       noEq
 \end{code}
 
+\HDRc{Tests as a Boolean Algebra}
 
 \HDRb{Laws}
 
@@ -191,16 +195,17 @@ rgReduce _ _ _ = Nothing
 \HDRc{law Entry}
 
 \begin{code}
-lawEntry :: (Ord s, Show s) => (String, Entry s)
-lawEntry = (laws, LawEntry [rgReduce] [] [])
+lawEntry :: (Ord s, Show s) => Dict s
+lawEntry = entry laws $ LawEntry [rgReduce] [] []
 \end{code}
 
 \HDRb{RG Dictionary}
 \begin{code}
 rgDict :: (Ord s, Show s) => Dict s
 rgDict
- = makeDict
-    [ piEntry
+ = mergeDicts
+    [ dictVersion "RGAlgebra 0.1"
+    , piEntry
     , epsEntry
     , iiEntry
     , piUEntry
@@ -214,7 +219,7 @@ rgDict
 
 \begin{code}
 rgshow :: (Show s, Ord s) => Pred s -> String
-rgshow = pmdshow 80 rgDict noStyles . buildMarks
+rgshow = pdshow 80 rgDict noStyles
 
 rgput :: (Show s, Ord s) => Pred s -> IO ()
 rgput = putStrLn . rgshow
@@ -222,5 +227,5 @@ rgput = putStrLn . rgshow
 rgeput :: (Show s, Ord s) => Expr s -> IO ()
 rgeput = rgput . Atm
 
-rgcalc pr = calcREPL rgDict [] $ buildMarks pr
+rgcalc pr = calcREPL rgDict [] pr
 \end{code}

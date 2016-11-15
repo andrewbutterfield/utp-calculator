@@ -53,7 +53,7 @@ dictUTCP
                   , lawsUTCPDict
                   ]
 
-showUTCP pr = pdshow 80 dictUTCP pr
+showUTCP pr = plainShow 80 dictUTCP pr
 
 calc :: (Ord s, Show s) => Pred s -> IO (CalcLog s)
 calc = calcREPL dictUTCP noInvariant . buildMarks

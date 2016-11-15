@@ -100,12 +100,12 @@ For now we define a simple REPL.
 First, some top-level setup:
 \begin{code}
 calcREPL :: (Ord s, Show s)
-         => Dict s -> InvState s -> MPred s
+         => Dict s -> InvState s -> Pred s
          -> IO (CalcLog s)
-calcREPL d invst mpr
+calcREPL d invst pr
  = do putStrLn ""
       putStrLn $ versionShow d'
-      runREPL d' startm (mpr,[],invst)
+      runREPL d' startm (buildMarks pr,[],invst)
  where d' = dictMrg d $ dictVersion calcVersion
 
 calcVersion = "UTP-Calc v0.0.1"
@@ -172,15 +172,16 @@ calcHelp d m st
        [ ""
        , "? - this help message"
        , "s - simplify everywhere (twice)"
+       , "i - check invariant"
+       , "I - show invariant"
        , "x - exit, returning proof script"
        , "u - undo"
-       , "most subsequent commands affect the first applicable location"
+       , "subsequent commands affect the first applicable location"
        , "d - definition expansion"
        , "r - reduction law application"
        , "l[n] - loop unrolling - n: optional depth"
        , "c - conditional reduction step"
-       , "i - check invariant"
-       , "I - show invariant"
+       , "--"
        , "M - show marks (DEBUG)"
        , "B - view before (DEBUG)"
        , "A - view after (DEBUG)"
@@ -194,11 +195,11 @@ displayInv d m st@(_,_,[])
  = do putStrLn "No Invariant!"
       runREPL d m st
 displayInv d m st@(_,_,[(_,inv)])
- = do putStrLn ("Invariant:  "++pdshow 80 d inv)
+ = do putStrLn ("Invariant:  "++plainShow 80 d inv)
       runREPL d m st
 displayInv d m st@(_,_,ivs)
  = do putStrLn "Invariants:"
-      sequence $ map (putStrLn . pdshow 80 d . snd) ivs
+      sequence $ map (putStrLn . plainShow 80 d . snd) ivs
       runREPL d m st
 \end{code}
 
@@ -253,7 +254,7 @@ ccshow :: (Show s, Ord s)
        => Dict s -> [(Int,(Pred s, MPred s))] -> [String]
 ccshow d [] = []
 ccshow d ((i,(cpr,rmpr)):rest)
- = ["","(" ++ show i++ ") provided:    " ++ pdshow 80 d cpr
+ = ["","(" ++ show i++ ") provided:    " ++ plainShow 80 d cpr
    ,"--"
    ,pmdshow 80 d noStyles rmpr]
    ++ ccshow d rest
