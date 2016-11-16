@@ -10,60 +10,97 @@ along with dull ASCII equivalents for Windows users.
 
 We assume UTF-8 throughout.
 
+Given a LaTeX symbol macro like \verb"\xyz"
+we define a Haskell variable \verb"_xyz"
+to be a string that gives either a Unicode/UTF-8 glyph for that symbol,
+or an approximation using ``ASCII-art''.
+
 
 \begin{code}
-#ifndef mingw32_HOST_OS
 \end{code}
 
 \HDRb{Nice Symbols for OS X/Unix}
 
-
 \begin{code}
-s_pi    = "\x03C0"
-s_eps   = "\x03F5"
-s_tau   = "\x03C4"
-s_Sigma = "\x2211"
-s_top   = "\x22A4"
-s_bot   = "\x22A5"
+#ifndef mingw32_HOST_OS
+
+_pi = "\x03C0"
+_epsilon = "\x03F5"
+_tau = "\x03C4"
+_Sigma = "\x2211"
+
+_top = "\x22A4"
+_bot = "\x22A5"
+
+_lnot = "\172"
+_land = "\8743"
+_lor = "\8744"
+
+_emptyset = "\8709"
+_cup = "\8746"
+_cap = "\8745"
+_setminus = "\8726"
+_in = "\8712"
+_subseteq = "\8838"
+
+#endif
 \end{code}
 
-
-\begin{code}
-\end{code}
-
-
-\begin{code}
-#else
-\end{code}
 
 \HDRb{``Nice'' Symbols for Windows }
 
 \begin{code}
-s_pi = "pi"
-s_eps   = "eps"
-s_tau   = "tau"
-s_Sigma = "Sigma"
-s_top   = "top"
-s_bot   = "bot"
-\end{code}
+#ifdef mingw32_HOST_OS
 
-\begin{code}
+_pi = "pi"
+_epsilon = "eps"
+_tau = "tau"
+_Sigma = "Sigma"
+
+_top = "T"
+_bot = "_|_"
+
+_lnot = "~"
+_land = "/\\"
+_lor = "\\/"
+
+_emptyset = "{}"
+_cup = "U"
+_cap = "I"
+_setminus = "\\"
+_in = "in"
+_subseteq = "subset"
+
 #endif
 \end{code}
 
 \HDRb{Platform Independent Code}
 
+Basically a catalog of our nice symbols that is easy to display in GHCi
 \begin{code}
 nice
- = [ "s_pi    = "++s_pi
-   , "s_eps   = "++s_eps
-   , "s_tau   = "++s_tau
-   , "s_Sigma = "++s_Sigma
-   , "s_top   = "++s_top
-   , "s_bot   = "++s_bot
+ = [ ("_pi", _pi)
+   , ("_epsilon", _epsilon)
+   , ("_tau", _tau)
+   , ("_Sigma", _Sigma)
+   , ("_top", _top)
+   , ("_bot", _bot)
+   , ("_lnot", _lnot)
+   , ("_land", _land)
+   , ("_lor", _lor)
+   , ("_emptyset", _emptyset)
+   , ("_cup", _cup)
+   , ("_cap", _cap)
+   , ("_setminus", _setminus)
+   , ("_in", _in)
+   , ("_subseteq", _subseteq)
    ]
+
+render w (_nm, nm)
+ = _nm ++ (replicate (w-length _nm) ' ') ++ "= " ++ nm
 \end{code}
 \begin{code}
 main
- = do putStrLn $ unlines nice
+ = do putStrLn $ unlines $ map (render (maxw+1)) nice
+ where maxw = maximum $ map (length . fst) nice
 \end{code}
