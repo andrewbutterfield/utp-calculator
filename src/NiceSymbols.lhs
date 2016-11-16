@@ -32,9 +32,13 @@ _Sigma = "\x2211"
 _top = "\x22A4"
 _bot = "\x22A5"
 
+_true = "\119957\119955\119958\119942"  -- bold true
+_false = "\119943\119938\119949\119956\119942" -- bold false
 _lnot = "\172"
 _land = "\8743"
 _lor = "\8744"
+_implies = "\8658"
+_equiv = "\8801"
 
 _emptyset = "\8709"
 _cup = "\8746"
@@ -60,9 +64,13 @@ _Sigma = "Sigma"
 _top = "T"
 _bot = "_|_"
 
+_true = "true"  -- bold true
+_false = "false" -- bold false
 _lnot = "~"
 _land = "/\\"
 _lor = "\\/"
+_implies = "==>"
+_equiv = "=="
 
 _emptyset = "{}"
 _cup = "U"
@@ -85,9 +93,13 @@ nice
    , ("_Sigma", _Sigma)
    , ("_top", _top)
    , ("_bot", _bot)
+   , ("_true", _true)
+   , ("_false", _false)
    , ("_lnot", _lnot)
    , ("_land", _land)
    , ("_lor", _lor)
+   , ("_implies", _implies)
+   , ("_equiv", _equiv)
    , ("_emptyset", _emptyset)
    , ("_cup", _cup)
    , ("_cap", _cap)
@@ -96,11 +108,11 @@ nice
    , ("_subseteq", _subseteq)
    ]
 
-render w (_nm, nm)
- = _nm ++ (replicate (w-length _nm) ' ') ++ "= " ++ nm
+niceRender w (_nm, nm)
+ = _nm ++ (replicate (w-length _nm) ' ') ++ "  " ++ nm
 \end{code}
 \begin{code}
 main
- = do putStrLn $ unlines $ map (render (maxw+1)) nice
+ = do putStrLn $ unlines $ map (niceRender maxw) nice
  where maxw = maximum $ map (length . fst) nice
 \end{code}

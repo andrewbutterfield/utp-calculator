@@ -16,7 +16,8 @@ import CalcSysTypes
 import CalcSimplify
 import CalcRecogniser
 import CalcRun
--- import StdPredicates
+import StdSets
+import StdPredicates
 -- import StdLaws
 -- import CalcZipper
 -- import CalcSteps
@@ -273,9 +274,14 @@ rgDict
     , epsUEntry
     , tauEntry
     , lawEntry
+    , stdSetDict
+    , stdPredDict
     ]
 \end{code}
 }
+
+
+
 
 \HDRb{Top Level Support}
 

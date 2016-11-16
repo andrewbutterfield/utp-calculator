@@ -6,6 +6,7 @@ import qualified Data.Map as M
 import Data.List
 import Data.Char
 import Data.Maybe
+import NiceSymbols
 import Debug.Trace
 import PrettyPrint
 import CalcTypes
@@ -257,8 +258,8 @@ mshowp d msf p mpr@( pr, MT ms _)
 
 mshowp0 :: (Ord s, Show s)
         => Dict s -> MarkStyle -> Int -> MPred s -> PP
-mshowp0 d _ _ (T, _)  = ppa "true"
-mshowp0 d _ _ (F, _)  = ppa "false"
+mshowp0 d _ _ (T, _)  = ppa _true
+mshowp0 d _ _ (F, _)  = ppa _false
 mshowp0 d _ _ (PVar p, _)  = ppa p
 mshowp0 d _ p (Equal e1 e2, _)
    = paren p precEq

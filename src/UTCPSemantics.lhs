@@ -111,12 +111,12 @@ and also declare that the predicate variables $A$, $B$ and $C$
 will refer to atomic state-changes, and so only have alphabet $\setof{s,s'}$.
 \begin{code}
 alfUTCPDict
- = dictMrg dictAlpha dictAtomic
+ =  dictAlpha `dictMrg` dictAtomic
  where
    dictAlpha = stdAlfDictGen ["s"] ["ls"] ["g","in","out"]
-   dictAtomic = makeDict [ pvarEntry "A" ss'
-                         , pvarEntry "B" ss'
-                         , pvarEntry "C" ss' ]
+   dictAtomic = mergeDicts [ pvarEntry "A" ss'
+                           , pvarEntry "B" ss'
+                           , pvarEntry "C" ss' ]
    ss' = ["s", "s'"]
 \end{code}
 
