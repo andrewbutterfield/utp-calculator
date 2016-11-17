@@ -21,8 +21,13 @@ or an approximation using ``ASCII-art''.
 
 \HDRb{Nice Symbols for OS X/Unix}
 
+Try $\ll$ and $\gg$
+
 \begin{code}
 #ifndef mingw32_HOST_OS
+
+_ll = "\171"
+_gg = "\187"
 
 _alpha = "\945"
 _pi = "\x03C0"
@@ -50,7 +55,7 @@ _setminus = "\8726"
 _in = "\8712"
 _subseteq = "\8838"
 
-_overline str = "\ESC[6m"++str++"\ESC[0m"
+_overline str = "\ESC[9m"++follow str '\x35e'++"\ESC[0m"
 #endif
 \end{code}
 
@@ -60,6 +65,10 @@ _overline str = "\ESC[6m"++str++"\ESC[0m"
 \begin{code}
 #ifdef mingw32_HOST_OS
 
+_ll = "<<"
+_gg = ">>"
+
+_alpha = "alf"
 _pi = "pi"
 _epsilon = "eps"
 _tau = "tau"
@@ -91,10 +100,17 @@ _overline str = "ovl("++str++")"
 
 \HDRb{Platform Independent Code}
 
+\begin{code}
+follow "" _ = ""
+follow (c:cs) a = c:a:follow cs a
+\end{code}
+
 Basically a catalog of our nice symbols that is easy to display in GHCi
 \begin{code}
 nice
- = [ ("_pi", _pi)
+ = [ ("_ll", _ll)
+   , ("_gg", _gg)
+   , ("_pi", _pi)
    , ("_epsilon", _epsilon)
    , ("_tau", _tau)
    , ("_Sigma", _Sigma)
@@ -115,7 +131,7 @@ nice
    , ("_setminus", _setminus)
    , ("_in", _in)
    , ("_subseteq", _subseteq)
-   , ("_overline(x)", _overline "x")
+   , ("_overline(p)", _overline "p")
    ]
 
 niceRender w (_nm, nm)

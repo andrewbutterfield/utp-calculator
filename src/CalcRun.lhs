@@ -5,6 +5,7 @@ import Utilities
 import Data.List
 import Data.Char
 import Data.Maybe
+import NiceSymbols
 import Debug.Trace
 import PrettyPrint
 import CalcTypes
@@ -214,12 +215,14 @@ calcStep d m stepf st@(currpr,steps,is)
  = do case stepf currpr of
        Nothing  ->  runREPL d m st
        Just ( before,comment, after )
-         -> do  putStrLn ( "\n = " ++ show comment )
+         -> do  putStrLn ( "\n = " ++ quote comment )
                 let st' = stUpdate (comment,before) after st
                 runREPL d (nextm m) st'
 
 stUpdate :: Show s => (String, MPred s) ->  MPred s -> State s -> State s
 stUpdate wbefore after ( _, steps, is) = ( after, wbefore:steps, is)
+
+quote str = _ll++' ':str++' ':_gg
 \end{code}
 
 Apply a given conditional step:
@@ -240,7 +243,7 @@ calcCStep d m cstepf st@(currpr,steps,_)
              then do let afters'' = map addtopmod afters'
                      let Just (why,after,_)
                            = condResolve d sel $ Just (comment,afters'')
-                     putStrLn ( "\n = " ++ show comment )
+                     putStrLn ( "\n = " ++ quote comment )
                      let st' = stUpdate (why, before) after st
                      runREPL d (nextm m) st'
              else runREPL d m st
@@ -353,7 +356,7 @@ stepPrint :: (Ord s, Show s)
 stepPrint d s [] = []
 stepPrint d s ((comment,mpr):rest)
  = [pmdshow 80 d (stepshow s) mpr]
-   ++[" = " ++ show comment]
+   ++[" = " ++ quote comment]
    ++ stepPrint d (s+1) rest
 
 

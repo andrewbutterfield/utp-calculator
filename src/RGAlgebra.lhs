@@ -249,6 +249,11 @@ rgReduce d _ (Atm (App anm [Var enm]))
 \\                            &=& \tau(p_1)\parallel\tau(p_2)
 \\ \lnot\tau(p) &=& \tau(\overline p)
 }
+\begin{code}
+rgReduce d _ (Atm (App tnm [Var enm]))
+ | tnm == n_tau && enm == n_Sigma
+   = Just ( n_tau++" of "++n_Sigma, Atm nil, True )
+\end{code}
 
 The final catch-all pattern:
 \begin{code}
