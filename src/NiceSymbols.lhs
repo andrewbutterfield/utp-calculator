@@ -24,6 +24,7 @@ or an approximation using ``ASCII-art''.
 \begin{code}
 #ifndef mingw32_HOST_OS
 
+_alpha = "\945"
 _pi = "\x03C0"
 _epsilon = "\x03F5"
 _tau = "\x03C4"
@@ -31,6 +32,8 @@ _Sigma = "\x2211"
 
 _top = "\x22A4"
 _bot = "\x22A5"
+_sqcap = "\8851"
+_sqcup = "\8852"
 
 _true = "\119957\119955\119958\119942"  -- bold true
 _false = "\119943\119938\119949\119956\119942" -- bold false
@@ -47,6 +50,7 @@ _setminus = "\8726"
 _in = "\8712"
 _subseteq = "\8838"
 
+_overline str = "\ESC[6m"++str++"\ESC[0m"
 #endif
 \end{code}
 
@@ -63,6 +67,8 @@ _Sigma = "Sigma"
 
 _top = "T"
 _bot = "_|_"
+_sqcap = "|~|"
+_sqcup = "|_|"
 
 _true = "true"  -- bold true
 _false = "false" -- bold false
@@ -79,6 +85,7 @@ _setminus = "\\"
 _in = "in"
 _subseteq = "subset"
 
+_overline str = "ovl("++str++")"
 #endif
 \end{code}
 
@@ -93,6 +100,8 @@ nice
    , ("_Sigma", _Sigma)
    , ("_top", _top)
    , ("_bot", _bot)
+   , ("_sqcap", _sqcap)
+   , ("_sqcup", _sqcup)
    , ("_true", _true)
    , ("_false", _false)
    , ("_lnot", _lnot)
@@ -106,6 +115,7 @@ nice
    , ("_setminus", _setminus)
    , ("_in", _in)
    , ("_subseteq", _subseteq)
+   , ("_overline(x)", _overline "x")
    ]
 
 niceRender w (_nm, nm)

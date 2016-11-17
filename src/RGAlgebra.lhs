@@ -7,6 +7,7 @@ import qualified Data.Map as M
 import Data.List
 import Data.Char
 import Data.Maybe
+import NiceSymbols
 import PrettyPrint
 import CalcTypes
 import StdPrecedences
@@ -54,11 +55,11 @@ We have:
 \\ & \bot
 }
 \begin{code}
-n_top  = "\8868"    ; top  = Var n_top
+n_top  = _top    ; top  = Var n_top
 n_nil = "nil" ; nil = Var n_nil
-n_alf = "\945" ; alf = Var n_alf
+n_alf = _alpha ; alf = Var n_alf
 n_chaos = "chaos" ; chaos = Var n_chaos
-n_bot = "\8869" ; bot = Var n_bot
+n_bot = _bot ; bot = Var n_bot
 \end{code}
 
 \HDRc{Primitive Atomic Commands}
@@ -68,7 +69,7 @@ n_bot = "\8869" ; bot = Var n_bot
    r \subseteq \Sigma \times \Sigma
 }
 \begin{code}
-n_sigma = "\8721" ; sigma = Var n_sigma
+n_Sigma = _Sigma ; sigma = Var n_Sigma
 r     = Var "r"
 \end{code}
 
@@ -78,8 +79,8 @@ r     = Var "r"
      π(r) &=& \Pi(\sigma,\sigma'), (\sigma,\sigma') \in r
 }
 \begin{code}
-n_pi = "\960"  -- pi
-_pi r = App n_pi [r]
+n_pi = _pi  -- pi
+mkpi r = App n_pi [r]
 
 piEntry :: (Show s) => Dict s
 piEntry
@@ -98,7 +99,7 @@ piEntry
    ϵ(r) &=& \mathcal{E}(\sigma,\sigma'), (\sigma,\sigma') \in r
 }
 \begin{code}
-n_eps = "\x3f5" -- lunate epsilon
+n_eps = _epsilon -- lunate epsilon
 eps r = App n_eps [r]
 
 epsEntry :: (Show s) => Dict s
@@ -134,7 +135,7 @@ n_emp  = "{}"   ; emp  = Var n_emp
 n_ii = "ii"
 ii = App n_ii [] -- we want to define this
 iiPrint _ _ = n_ii
-iiDefn _ _  =  edefn n_ii $ _pi _id
+iiDefn _ _  =  edefn n_ii $ mkpi _id
 
 iiEntry :: (Show s) => Dict s
 iiEntry
@@ -152,10 +153,10 @@ iiEntry
    \pi &=& \pi(\univ)
 }
 \begin{code}
-n_piU = "piU"
+n_piU = _pi++"U"
 piU = App n_piU []
 piUPrint _ _ = n_pi
-piUDefn _ _ = edefn "\960" $ _pi univ
+piUDefn _ _ = edefn _pi $ mkpi univ
 
 piUEntry :: (Show s) => Dict s
 piUEntry
@@ -172,10 +173,10 @@ piUEntry
    \epsilon &=& \epsilon(\univ)
 }
 \begin{code}
-n_epsU = "epsU"
+n_epsU = _epsilon++"U"
 epsU = App n_epsU []
 epsUPrint _ _ = n_eps
-epsUDefn _ _ = edefn "\1013" $ eps univ
+epsUDefn _ _ = edefn _epsilon $ eps univ
 
 epsUEntry :: (Show s) => Dict s
 epsUEntry
@@ -201,7 +202,7 @@ p = Var "p"
      τ(p) &=& \mbox{if $p$ then terminate else $\top$}
 }
 \begin{code}
-n_tau = "\964"  -- tau
+n_tau = _tau  -- tau
 tau p = App n_tau [p]
 
 tauEntry :: (Show s) => Dict s
