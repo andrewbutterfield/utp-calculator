@@ -62,6 +62,21 @@ n_chaos = "chaos" ; chaos = Var n_chaos
 n_bot = _bot ; bot = Var n_bot
 \end{code}
 
+We have $\sqcap$ and $\sqcup$.
+\begin{code}
+n_meet = _sqcap ; meet t1 t2 = App n_meet [t1,t2]
+ppMeet d ts = "(" ++ dlshow d (pad n_meet) ts ++ ")"
+
+n_join = _sqcup ; join t1 t2 = App n_join [t1,t2]
+ppJoin d ts = "(" ++ dlshow d (pad n_join) ts ++ ")"
+
+meetEntry, joinEntry :: (Ord s, Show s) => Dict s
+meetEntry
+ = entry n_meet $ ExprEntry subAny ppMeet noDefn noEval noEq
+joinEntry
+ = entry n_join $ ExprEntry subAny ppJoin noDefn noEval noEq
+\end{code}
+
 \HDRc{Primitive Atomic Commands}
 
 
@@ -243,18 +258,35 @@ rgReduce d _ (Atm (App anm [Var enm]))
 
 \RLEQNS{
    \tau(\Sigma) &=& \nil
-\\ \tau(p_1) \sqcap \tau(p_2) &=& \tau(p_1 \cup p_2)
-\\ \tau(p_1) \sqcup \tau(p_2) &=& \tau(p_1 \cap p_2)
-\\                            &=& \tau(p_1)\tau(p_2)
-\\                            &=& \tau(p_1)\parallel\tau(p_2)
-\\ \lnot\tau(p) &=& \tau(\overline p)
 }
 \begin{code}
 rgReduce d _ (Atm (App tnm [Var enm]))
  | tnm == n_tau && enm == n_Sigma
    = Just ( n_tau++" of "++n_Sigma, Atm nil, True )
 \end{code}
+\RLEQNS{
+   \tau(p_1) \sqcap \tau(p_2) &=& \tau(p_1 \cup p_2)
+\\ \tau(p_1) \sqcup \tau(p_2) &=& \tau(p_1 \cap p_2)
+\\                            &=& \tau(p_1)\tau(p_2)
+\\                            &=& \tau(p_1)\parallel\tau(p_2)
+}
+\begin{code}
+rgReduce d _ (Atm (App nop [ App tn1 [p1]      --  tau(p1)
+                           , App tn2 [p2] ]))  --  tau(p2) 
+ | nop == n_meet && tn1 == n_tau && tn2 == n_tau
+    = Just("meet of "++n_tau, Atm (tau (p1 `u` p2)), True )
+ | nop == n_join && tn1 == n_tau && tn2 == n_tau
+    = Just("join of "++n_tau, Atm (tau (p1 `i` p2)), True )
+\end{code}
 
+\RLEQNS{
+   \lnot\tau(p) &=& \tau(\overline p)
+}
+\begin{code}
+rgReduce d _ (Comp nn [Atm (App tnm [p])])
+ | nn == nNot && tnm == n_tau
+   = Just( nNot++"-"++n_tau, Atm (App tnm [complement p]), True )
+\end{code}
 The final catch-all pattern:
 \begin{code}
 rgReduce _ _ _ = Nothing
@@ -273,6 +305,8 @@ rgDict :: (Ord s, Show s) => Dict s
 rgDict
  = mergeDicts
     [ dictVersion "RGAlgebra 0.1"
+    , meetEntry
+    , joinEntry
     , piEntry
     , epsEntry
     , iiEntry

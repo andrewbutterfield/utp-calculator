@@ -173,7 +173,9 @@ and a simple wrapper for evals that always do something
 none :: ( String, Expr s)
 none = ( "", Undef )
 noeval :: [Expr s] -> ( String, Expr s)
-noeval es = none
+noeval _ = none
+noEval :: Dict s -> [Expr s] -> (String, Expr s)
+noEval _ = noeval
 does :: String -> (Dict s -> [Expr s] -> Expr s)
      -> Dict s -> [Expr s]
      -> ( String, Expr s )

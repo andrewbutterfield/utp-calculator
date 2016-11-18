@@ -98,7 +98,7 @@ isComp _     _            =  False
 \begin{code}
 nNot = _lnot ; isNot  = isComp nNot
 
-mkNot mpr = Comp nNot [mpr]
+mkNot pr = Comp nNot [pr]
 
 ppNot sCP d p [pr] -- ignore marking for now
  = paren p precNot

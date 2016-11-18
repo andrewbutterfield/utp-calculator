@@ -21,8 +21,6 @@ or an approximation using ``ASCII-art''.
 
 \HDRb{Nice Symbols for OS X/Unix}
 
-Try $\ll$ and $\gg$
-
 \begin{code}
 #ifndef mingw32_HOST_OS
 

@@ -110,6 +110,21 @@ precIntsc = precSpacer  12
 precSDiff = precSpacer  13
 \end{code}
 
+\HDRd{Set Unary Operators}\label{hd:set-unops}~
+
+We have set complement ($\overline S$),
+where
+\RLEQNS{
+   \overline S &=& \mathcal U \setminus S
+}
+for some appropriate universe set $\mathcal U$.
+\begin{code}
+compn = _overline " "
+complement s = App compn [s]
+ppComp d [s] = _overline (edshow d s)
+ppComp _ _ = "badd-comp"
+\end{code}
+
 \HDRd{Set Binary Operators}\label{hd:set-binops}~
 
 \begin{code}
@@ -202,6 +217,7 @@ stdSetDict :: (Eq s, Ord s, Show s) => Dict s
 stdSetDict
  = mergeDicts
     [ entry setn $ ExprEntry subAny showSet noDefn evalSet eqSet
+    , entry compn $ ExprEntry subAny ppComp noDefn noEval noEq
     , entry unionn $ ExprEntry subAny ppUnion noDefn evalUnion noEq
     , entry intn $ ExprEntry subAny ppIntsct noDefn evalIntsct noEq
     , entry sdiffn $ ExprEntry subAny ppSDiff noDefn evalSDiff noEq
