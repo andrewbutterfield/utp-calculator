@@ -22,9 +22,9 @@ import StdPredicates
 -- import StdLaws
 -- import CalcZipper
 -- import CalcSteps
-import StdUTPPredicates
-import StdUTPLaws
-import UTCPCReduce
+-- import StdUTPPredicates
+-- import StdUTPLaws
+-- import UTCPCReduce
 \end{code}
 
 \begin{code}
@@ -64,17 +64,23 @@ n_bot = _bot ; bot = Var n_bot
 
 We have $\sqcap$ and $\sqcup$.
 \begin{code}
-n_meet = _sqcap ; meet t1 t2 = App n_meet [t1,t2]
-ppMeet d ts = "(" ++ dlshow d (pad n_meet) ts ++ ")"
+n_meet = _sqcap ; meet t1 t2 = Comp n_meet [t1,t2]
+ppMeet sCP d p ts
+ = paren p precOr  -- we assume meet is like or
+     $ ppopen (pad n_meet)
+     $ ppwalk 1 (sCP precOr) ts
 
-n_join = _sqcup ; join t1 t2 = App n_join [t1,t2]
-ppJoin d ts = "(" ++ dlshow d (pad n_join) ts ++ ")"
+n_join = _sqcup ; join t1 t2 = Comp n_join [t1,t2]
+ppJoin sCP d p ts
+ = paren p precAnd  -- we assume join is like and
+     $ ppopen (pad n_join)
+     $ ppwalk 1 (sCP precAnd) ts
 
 meetEntry, joinEntry :: (Ord s, Show s) => Dict s
 meetEntry
- = entry n_meet $ ExprEntry subAny ppMeet noDefn noEval noEq
+ = entry n_meet $ PredEntry subAny ppMeet [] noDefn noDefn
 joinEntry
- = entry n_join $ ExprEntry subAny ppJoin noDefn noEval noEq
+ = entry n_join $ PredEntry subAny ppJoin [] noDefn noDefn
 \end{code}
 
 \HDRc{Primitive Atomic Commands}
@@ -231,7 +237,41 @@ tauEntry
        noEq
 \end{code}
 
+We need sequential composition (we keep the ; explicit):
+\begin{code}
+n_seq = ";" ; mkSeq t1 t2 = Comp n_seq [t1,t2]
+ppSeq sCP d p ts
+ = paren p precOr  -- we assume join is like or
+     $ ppopen (pad n_seq)
+     $ ppwalk 1 (sCP precOr) ts
 
+seqEntry :: (Ord s, Show s) => Dict s
+seqEntry
+ = entry n_seq $ PredEntry subAny ppSeq [] noDefn noDefn
+\end{code}
+
+\def\pre{\textbf{\textsf{pre}}}
+\RLEQNS{
+   \pre~ t &=& t \sqcap \lnot t \bot
+\\  &=& t \sqcap (\lnot t) \seq \bot
+}
+\begin{code}
+n_pre = mathSansBold "pre"
+pre t = Comp n_pre [t]
+
+precPre = precNot -- for now
+ppPre sCP d p [t] 
+ = paren p precPre
+       $ pplist [ppa n_pre, ppa " ", sCP precPre 1 t]
+ppPre sCP d p _ = pps styleRed $ ppa ("invalid-"++n_pre)
+       
+preDefn d [t] 
+  = Just ( n_pre, meet t (mkSeq (mkNot t) $ Atm bot), True )
+
+preEntry :: (Ord s, Show s) => Dict s
+preEntry
+ = entry n_pre $ PredEntry subAny ppPre [] preDefn noDefn
+\end{code}
 \HDRb{Laws}
 
 \HDRc{Reduction Steps}
@@ -272,7 +312,7 @@ rgReduce d _ (Atm (App tnm [Var enm]))
 }
 \begin{code}
 rgReduce d _ (Atm (App nop [ App tn1 [p1]      --  tau(p1)
-                           , App tn2 [p2] ]))  --  tau(p2) 
+                           , App tn2 [p2] ]))  --  tau(p2)
  | nop == n_meet && tn1 == n_tau && tn2 == n_tau
     = Just("meet of "++n_tau, Atm (tau (p1 `u` p2)), True )
  | nop == n_join && tn1 == n_tau && tn2 == n_tau
@@ -313,6 +353,8 @@ rgDict
     , piUEntry
     , epsUEntry
     , tauEntry
+    , seqEntry
+    , preEntry
     , lawEntry
     , stdSetDict
     , stdPredDict

@@ -3,6 +3,7 @@
 \begin{code}
 {-# LANGUAGE CPP #-}
 module NiceSymbols where
+import Data.Char
 \end{code}
 
 We define some nice symbols using unicode, for non-Windows usage,
@@ -15,10 +16,31 @@ we define a Haskell variable \verb"_xyz"
 to be a string that gives either a Unicode/UTF-8 glyph for that symbol,
 or an approximation using ``ASCII-art''.
 
+\HDRb{Alphabet conversions}
 
+How to convert ASCII `a' to `z' into different fontstyles, in UTF-8
+(See \verb"http://qaz.wtf/u/convert.cgi?text=az").
+ 
+\begin{tabular}{|l|r|r|}
+  \hline
+  Style & Code for 'A' & Code for `a' 
+  \\\hline
+  ASCII & 65 & 97 
+  \\\hline
+  Math Sans Bold & 120276 & 120302 \\
+  \\\hline
+\end{tabular}
 \begin{code}
+styleShift code_A code_a c
+ | isUpper c  =  chr (ord c + upperShift)
+ | isLower c  =  chr (ord c + lowerShift)
+ | otherwise  =  c
+ where
+   upperShift = code_A - ord 'A'
+   lowerShift = code_a - ord 'a'
+   
+mathSansBold = map $ styleShift 120276 120302
 \end{code}
-
 \HDRb{Nice Symbols for OS X/Unix}
 
 \begin{code}
