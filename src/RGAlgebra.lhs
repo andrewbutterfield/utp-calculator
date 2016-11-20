@@ -272,6 +272,30 @@ preEntry :: (Ord s, Show s) => Dict s
 preEntry
  = entry n_pre $ PredEntry subAny ppPre [] preDefn noDefn
 \end{code}
+
+\RLEQNS{
+   \setof p &=& \pre~\tau(p)
+\\ &=& \tau(p) \sqcap \tau(\overline{p})\bot
+}
+\begin{code}
+n_assert = "{}"
+assert t = Comp n_assert [t]
+
+precAssert = precNot -- for now
+ppAssert sCP d p [t]
+ = paren p precAssert
+       $ pplist [ppa "{", sCP precPre 0 t, ppa "}" ]
+ppAssert sCP d p _ = pps styleRed $ ppa ("invalid-"++n_assert)
+
+assertDefn d [t]
+  = Just ( n_assert, pre $ Atm $ tau p, True )
+
+assertEntry :: (Ord s, Show s) => Dict s
+assertEntry
+ = entry n_assert $ PredEntry subAny ppAssert [] assertDefn noDefn
+\end{code}
+
+
 \HDRb{Laws}
 
 \HDRc{Reduction Steps}
@@ -355,6 +379,7 @@ rgDict
     , tauEntry
     , seqEntry
     , preEntry
+    , assertEntry
     , lawEntry
     , stdSetDict
     , stdPredDict
