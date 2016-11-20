@@ -295,6 +295,48 @@ assertEntry
  = entry n_assert $ PredEntry subAny ppAssert [] assertDefn noDefn
 \end{code}
 
+\RLEQNS{
+   !  && \mbox{not sure what this is}
+}
+\begin{code}
+n_bang = "!" ; isNot  = isComp nNot
+
+mkBang a = Comp n_bang [a]
+
+precBang = precNot -- for now
+ppBang sCP d p [a] -- ignore marking for now
+ = paren p precBang
+       $ pplist [ppa n_bang, sCP precNot 1 a]
+ppBang sCP d p _ = pps styleRed $ ppa ("invalid-"++n_bang)
+
+bangEntry :: (Show s, Ord s) => Dict s
+bangEntry
+ = entry n_bang
+   $ PredEntry anyVars ppBang [] noDefn noDefn
+\end{code}
+
+
+\def\assume{\textbf{\textsf{assume}}}
+\RLEQNS{
+   \assume~ a &=& a \sqcap (!a) \bot
+}
+\begin{code}
+n_assume = mathSansBold "assume"
+assume t = Comp n_assume [t]
+
+precAssume = precNot -- for now
+ppAssume sCP d p [t]
+ = paren p precAssume
+       $ pplist [ppa n_assume, ppa " ", sCP precPre 1 t]
+ppAssume sCP d p _ = pps styleRed $ ppa ("invalid-"++n_assume)
+
+assumeDefn d [a]
+  = Just ( n_assume, meet a (mkSeq (mkBang a) $ Atm bot), True )
+
+assumeEntry :: (Ord s, Show s) => Dict s
+assumeEntry
+ = entry n_assume $ PredEntry subAny ppAssume [] assumeDefn noDefn
+\end{code}
 
 \HDRb{Laws}
 
@@ -351,6 +393,14 @@ rgReduce d _ (Comp nn [Atm (App tnm [p])])
  | nn == nNot && tnm == n_tau
    = Just( nNot++"-"++n_tau, Atm (App tnm [complement p]), True )
 \end{code}
+
+\RLEQNS{
+   \assume~\pi \sqcap \epsilon(r)
+   =
+   \pi \sqcap \epsilon(r) \sqcap \epsilon(\overline{r})\bot
+}
+
+
 The final catch-all pattern:
 \begin{code}
 rgReduce _ _ _ = Nothing
@@ -379,6 +429,8 @@ rgDict
     , tauEntry
     , seqEntry
     , preEntry
+    , bangEntry
+    , assumeEntry
     , assertEntry
     , lawEntry
     , stdSetDict
