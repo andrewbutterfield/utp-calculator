@@ -12,7 +12,7 @@ import CalcTypes
 import CalcAlphabets
 import StdPrecedences
 import CalcPredicates
-import StdAbstractions
+import DictAbstractions
 \end{code}
 
 Here we provide dictionary entries for all our ``standard''
