@@ -1,6 +1,6 @@
-\HDRa{Standard Abstractions}\label{ha:std-abs}
+\HDRa{Dictionary Abstractions}\label{ha:dict-abs}
 \begin{code}
-module StdAbstractions where
+module DictAbstractions where
 import Utilities
 import qualified Data.Map as M
 import Data.List
