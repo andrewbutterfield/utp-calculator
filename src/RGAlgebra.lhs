@@ -260,12 +260,12 @@ n_pre = mathSansBold "pre"
 pre t = Comp n_pre [t]
 
 precPre = precNot -- for now
-ppPre sCP d p [t] 
+ppPre sCP d p [t]
  = paren p precPre
        $ pplist [ppa n_pre, ppa " ", sCP precPre 1 t]
 ppPre sCP d p _ = pps styleRed $ ppa ("invalid-"++n_pre)
-       
-preDefn d [t] 
+
+preDefn d [t]
   = Just ( n_pre, meet t (mkSeq (mkNot t) $ Atm bot), True )
 
 preEntry :: (Ord s, Show s) => Dict s
@@ -299,7 +299,7 @@ assertEntry
    !  && \mbox{not sure what this is}
 }
 \begin{code}
-n_bang = "!" ; isNot  = isComp nNot
+n_bang = "!" 
 
 mkBang a = Comp n_bang [a]
 

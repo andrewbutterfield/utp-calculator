@@ -12,83 +12,16 @@ import CalcTypes
 import CalcAlphabets
 import StdPrecedences
 import CalcPredicates
+import StdAbstractions
 \end{code}
 
 Here we provide dictionary entries for all our ``standard''
  predicate forms.
 
-\HDRb{Generic Definitions}\label{hb:gen-defs}
-
-First, we deal with simple ways to provide \texttt{PredEntry}
-for simple predicate variables:
-\begin{code}
-pvarEntry :: String -> [String] -> Dict s
-pvarEntry nm alf
- = entry nm
-   $ PredEntry [] ppPVar alf (pNoChg nm) (pNoChg nm)
- where ppPVar _ _ _ _ = ppa nm
-\end{code}
-
-Now, some generic intelligent composite constructors:
-
-\HDRc{Associative Flattening }~
-
-First, building a flattened associative list:
-\begin{code}
-mkAssoc
-  :: String -> (Pred s -> Bool) -> [Pred s] -> [Pred s]
-  -> Pred s
-mkAssoc op isOp srp [] = Comp op $ reverse srp
-mkAssoc op isOp srp (pr:prs)
- | isOp pr = mkAssoc op isOp (reverse (predPrs pr)++srp) prs
- | otherwise  = mkAssoc op isOp (pr:srp) prs
-
-predPrs (Comp _ prs) = prs  ;  predPrs _ = []
-\end{code}
-
-\newpage
-\HDRc{Lattice Simplification}~
-
-Given binary operator $\otimes$ with zero $0$ and unit $1$
-this embodies the following laws:
-\RLEQNS{
-   0 \otimes x & = 0 = & x \otimes 0
-\\ 1 \otimes x & = x = & x \otimes 1
-}
-\begin{code}
-sLattice :: (Ord s, Show s)
-         => Dict s
-         -> String
-         -> ([Pred s] -> Pred s)
-         -> Pred s
-         -> Pred s
-         -> [Pred s]
-         -> RWResult s
-sLattice d tag op zero unit prs
- = ret tag $ zcheck $ filter (/= unit) prs
- where
-   zcheck prs
-    | any (==zero) prs  =  [zero]
-    | otherwise = prs
-   ret tag prs'
-    | prs' == prs       =  Nothing
-    | otherwise         =  Just ( tag, op prs', diff )
-\end{code}
-
-
-\newpage
 
 \HDRb{Standard Definitions}\label{hb:std-defs}
 
 
-First, a composite recogniser:
-\begin{code}
-isComp :: String -> Pred s -> Bool
-isComp cname (Comp nm _)  =  nm == cname
-isComp _     _            =  False
-\end{code}
-
-\newpage
 \HDRc{Negation}\label{hc:def-Not}
 
 \RLEQNS{
