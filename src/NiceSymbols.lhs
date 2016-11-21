@@ -75,6 +75,9 @@ _setminus = "\8726"
 _in = "\8712"
 _subseteq = "\8838"
 
+_parallel = "\8214"
+_double_intersection = "\8914"
+
 _overline str = "\ESC[9m"++follow str '\x35e'++"\ESC[0m"
 #endif
 \end{code}
@@ -114,6 +117,9 @@ _setminus = "\\"
 _in = "in"
 _subseteq = "subset"
 
+_parallel = "||"
+_double_intersection = "II"
+
 _overline str = "ovl("++str++")"
 #endif
 \end{code}
@@ -151,6 +157,8 @@ nice
    , ("_setminus", _setminus)
    , ("_in", _in)
    , ("_subseteq", _subseteq)
+   , ("_parallel", _parallel)
+   , ("_double_intersection", _double_intersection)
    , ("_overline(p)", _overline "p")
    ]
 
