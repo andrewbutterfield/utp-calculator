@@ -292,19 +292,8 @@ assertEntry
 \begin{code}
 n_bang = "!"
 precBang = precNot -- for now
-(bang,bangEntry) = prefixPT n_bang precBang Nothing
 
--- mkBang a = Comp n_bang [a]
---
--- ppBang sCP d p [a] -- ignore marking for now
---  = paren p precBang
---        $ pplist [ppa n_bang, sCP precNot 1 a]
--- ppBang sCP d p _ = pps styleRed $ ppa ("invalid-"++n_bang)
---
--- bangEntry :: (Show s, Ord s) => Dict s
--- bangEntry
---  = entry n_bang
---    $ PredEntry anyVars ppBang [] noDefn noDefn
+(bang,bangEntry) = prefixPT n_bang precBang Nothing
 \end{code}
 
 
