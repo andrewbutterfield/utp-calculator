@@ -72,8 +72,48 @@ prefixPT n_PT precPT optDefnPT
       , entry n_PT $ PredEntry subAny ppPT [] defnPT noDefn )
 \end{code}
 
-
+\newpage
 \HDRb{Binary Operator Abstractions}
+
+\HDRc{Semi-Lattice Operators}
+
+\RLEQNS{
+   (a \oplus b) \oplus c &=& a \oplus (b \oplus c)
+\\ 1 \oplus a & = a = & a \oplus 1
+\\ 0 \oplus a 7 = 0 = 7 a \oplus 0
+}
+
+Associative binary operators with both unit and zero elements.
+\begin{code}
+opSemiLattice :: (Ord s, Show s)
+              => String
+              -> Pred s
+              -> Pred s
+              -> Int
+              -> ( [Pred s] -> Pred s
+                 , Dict s)
+opSemiLattice n_SL zero unit precSL
+ = let
+
+     isSL (Comp name _)  =  name == n_SL
+     isSL _              =  False
+
+     mkSL [] = unit
+     mkSL [pr] = pr
+     mkSL prs = mkAssoc n_SL isSL [] prs
+
+     ppSL sCP d p []   = sCP p 0 unit
+     ppSL sCP d p [pr] = sCP p 1 pr
+     ppSL sCP d p prs
+      = paren p precSL
+          $ ppopen (pad n_SL)
+          $ ppwalk 1 (sCP precSL) prs
+
+     simpSL d prs  = sLattice d (n_SL++"-simplify") mkSL zero unit prs
+
+   in ( mkSL
+      , entry n_SL $ PredEntry subAny ppSL [] noDefn simpSL )
+\end{code}
 
 \HDRc{Associative Flattening }~
 

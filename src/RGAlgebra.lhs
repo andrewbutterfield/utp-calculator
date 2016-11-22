@@ -56,32 +56,45 @@ We have:
 \\ & \bot
 }
 \begin{code}
-n_top  = _top    ; top  = Var n_top
-n_nil = "nil" ; nil = Var n_nil
-n_alf = _alpha ; alf = Var n_alf
-n_chaos = "chaos" ; chaos = Var n_chaos
-n_bot = _bot ; bot = Var n_bot
+n_top  = _top    ; top  = PVar n_top
+n_nil = "nil" ; nil = PVar n_nil
+n_alf = _alpha ; alf = PVar n_alf
+n_chaos = "chaos" ; chaos = PVar n_chaos
+n_bot = _bot ; bot = PVar n_bot
 \end{code}
 
-We have $\sqcap$ and $\sqcup$.
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|}
+  \hline
+    & assoc & comm & idem & unit & zero
+  \\\hline
+  $\sqcap$ & \checkmark & \checkmark & \checkmark & $\top$ & $\bot$
+  \\\hline
+  $\sqcup$ & \checkmark & \checkmark & \checkmark & $\bot$ & $\top$
+  \\\hline
+\end{tabular}
+\end{center}
+
 \begin{code}
-n_meet = _sqcap ; meet t1 t2 = Comp n_meet [t1,t2]
-ppMeet sCP d p ts
- = paren p precOr  -- we assume meet is like or
-     $ ppopen (pad n_meet)
-     $ ppwalk 1 (sCP precOr) ts
+n_meet = _sqcap
 
-n_join = _sqcup ; join t1 t2 = Comp n_join [t1,t2]
-ppJoin sCP d p ts
- = paren p precAnd  -- we assume join is like and
-     $ ppopen (pad n_join)
-     $ ppwalk 1 (sCP precAnd) ts
+meetBundle :: (Ord s, Show s) => ( [Pred s] -> Pred s, Dict s)
+meet       :: (Ord s, Show s) =>   [Pred s] -> Pred s
+meetEntry  :: (Ord s, Show s) =>                       Dict s
 
-meetEntry, joinEntry :: (Ord s, Show s) => Dict s
-meetEntry
- = entry n_meet $ PredEntry subAny ppMeet [] noDefn noDefn
-joinEntry
- = entry n_join $ PredEntry subAny ppJoin [] noDefn noDefn
+meetBundle = opSemiLattice n_meet bot top precOr
+meet = fst meetBundle
+meetEntry = snd meetBundle
+
+n_join = _sqcup
+
+joinBundle :: (Ord s, Show s) => ( [Pred s] -> Pred s, Dict s)
+join       :: (Ord s, Show s) =>   [Pred s] -> Pred s
+joinEntry  :: (Ord s, Show s) =>                       Dict s
+
+joinBundle = opSemiLattice n_join top bot precAnd
+join = fst joinBundle
+joinEntry = snd joinBundle
 \end{code}
 
 \HDRc{Primitive Atomic Commands}
@@ -259,9 +272,15 @@ seqEntry
 \begin{code}
 n_pre = mathSansBold "pre"
 precPre = precNot -- for now
-expandPre d t = meet t (mkSeq (mkNot t) $ Atm bot)
+expandPre d t = meet [ t, mkSeq (mkNot t) bot ]
 
-(pre,preEntry) = prefixPT n_pre precPre $ Just expandPre
+preBuild :: (Ord s, Show s) => ( Pred s -> Pred s, Dict s )
+pre      :: (Ord s, Show s) =>   Pred s -> Pred s
+preEntry :: (Ord s, Show s) =>                     Dict s
+
+preBuild = prefixPT n_pre precPre $ Just expandPre
+pre      = fst preBuild
+preEntry = snd preBuild
 \end{code}
 
 \RLEQNS{
@@ -312,7 +331,7 @@ ppAssume sCP d p [t]
 ppAssume sCP d p _ = pps styleRed $ ppa ("invalid-"++n_assume)
 
 assumeDefn d [a]
-  = Just ( n_assume, meet a (mkSeq (bang a) $ Atm bot), True )
+  = Just ( n_assume, meet [ a, mkSeq (bang a) bot ], True )
 
 assumeEntry :: (Ord s, Show s) => Dict s
 assumeEntry
@@ -340,7 +359,7 @@ rgReduce :: (Ord s, Show s) => RWFun s
 rgReduce d _ (Atm (App anm [Var enm]))
  | enm == n_emp &&
    (anm == n_pi || anm == n_eps || anm == n_tau)
-   = Just ( "Empty Rel is infeasible", Atm top, True)
+   = Just ( "Empty Rel is infeasible", top, True)
 \end{code}
 
 \RLEQNS{
@@ -349,7 +368,7 @@ rgReduce d _ (Atm (App anm [Var enm]))
 \begin{code}
 rgReduce d _ (Atm (App tnm [Var enm]))
  | tnm == n_tau && enm == n_Sigma
-   = Just ( n_tau++" of "++n_Sigma, Atm nil, True )
+   = Just ( n_tau++" of "++n_Sigma, nil, True )
 \end{code}
 \RLEQNS{
    \tau(p_1) \sqcap \tau(p_2) &=& \tau(p_1 \cup p_2)

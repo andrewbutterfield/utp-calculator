@@ -29,6 +29,7 @@ isComp _     _            =  False
 \end{code}
 
 
+\newpage
 \HDRb{Standard Definitions}\label{hb:std-defs}
 
 
@@ -79,26 +80,15 @@ notEntry
 \begin{code}
 nAnd = _land ; isAnd  =  isComp nAnd
 
-mkAnd []    =  T
-mkAnd [pr]  =  pr
-mkAnd mprs  =  mkAssoc nAnd isAnd [] mprs
+andBundle :: (Ord s, Show s) => ( [Pred s] -> Pred s, Dict s)
+mkAnd     :: (Ord s, Show s) =>   [Pred s] -> Pred s
+andEntry  :: (Ord s, Show s) =>                       Dict s
 
-ppAnd sCP d p []    =  sCP p 0 T -- hack for top-level
-ppAnd sCP d p [pr]  =  sCP p 1 pr
-ppAnd sCP d p prs
- = paren p precAnd
-     $ ppopen (pad _land)
-     $ ppwalk 1 (sCP precAnd) prs
-
-simpAnd d prs  = sLattice d (_land++"-simplify") mkAnd F T prs
-
-andEntry :: (Show s, Ord s) => Dict s
-andEntry
- = entry nAnd
-   $ PredEntry anyVars ppAnd [] (pNoChg nAnd) simpAnd
+andBundle = opSemiLattice nAnd F T precAnd
+mkAnd    = fst andBundle
+andEntry = snd andBundle
 \end{code}
 
-\newpage
 \HDRc{Disjunction}\label{hc:def-Or}
 
 \RLEQNS{
@@ -106,25 +96,15 @@ andEntry
 \\ &|& \mOr & \tOr
 }
 \begin{code}
-nOr = _lor ; isOr  = isComp nOr
+nOr = _lor
 
-mkOr []   = F
-mkOr [pr] = pr
-mkOr mprs = mkAssoc nOr isOr [] mprs
+orBundle :: (Ord s, Show s) => ( [Pred s] -> Pred s, Dict s)
+mkOr     :: (Ord s, Show s) =>   [Pred s] -> Pred s
+orEntry  :: (Ord s, Show s) =>                       Dict s
 
-ppOr sCP d p [] = sCP p 0 F
-ppOr sCP d p [pr] = sCP p 1 pr
-ppOr sCP d p prs
- = paren p precOr
-     $ ppopen (pad _lor)
-     $ ppwalk 1 (sCP precOr) prs
-
-simpOr d prs  = sLattice d (_lor++"-simplify") mkOr T F prs
-
-orEntry :: (Show s, Ord s) => Dict s
-orEntry
- = entry nOr
-   $ PredEntry anyVars ppOr [] (pNoChg nOr) simpOr
+orBundle = opSemiLattice nOr T F precOr
+mkOr = fst orBundle
+orEntry = snd orBundle
 \end{code}
 
 \newpage
