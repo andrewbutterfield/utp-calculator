@@ -20,16 +20,6 @@ most implemented as dictionary entry builder functions.
 We want to support a wide range of binary operators,
 and well as predicate transformers of interest.
 
-\HDRb{Generic Definitions}\label{hb:gen-defs}
-
-
-First, a composite recogniser:
-\begin{code}
-isComp :: String -> Pred s -> Bool
-isComp cname (Comp nm _)  =  nm == cname
-isComp _     _            =  False
-\end{code}
-
 
 \HDRb{Variable Abstractions}
 
@@ -43,7 +33,47 @@ pvarEntry nm alf
  where ppPVar _ _ _ _ = ppa nm
 \end{code}
 
-\HDRb{Binary Operator Abstrations}
+\newpage
+\HDRb{Unary Operator Abstractions}
+
+\HDRc{Prefix Predicate Transformer}
+
+\RLEQNS{
+   \textbf{\textsf{PT}} P &=& \ldots
+}
+\begin{code}
+prefixPT :: String                       -- name
+         -> Int                          -- precedence
+         -> Maybe ( Dict s
+                    -> Pred s -> Pred s) -- optional defn expander
+         -> ( Pred s -> Pred s           -- builder
+            , Dict s)                    -- entry
+prefixPT n_PT precPT optDefnPT
+ = let
+
+     mkPT pr = Comp n_PT [pr]
+
+     appSep
+      | length n_PT == 1 && (not . isAlpha $ head n_PT)  =  ""
+      | otherwise                                        =  " "
+
+     ppPT sCP d p [pr]
+      = paren p precPT
+            $ pplist [ppa n_PT, ppa appSep, sCP precPT 1 pr]
+     ppPT sCP d p _ = pps styleRed $ ppa $ error n_PT
+     error nm = "invalid-"++nm++", only one argument allowed"
+
+     defnPT d [pr]
+       = case optDefnPT of
+          Nothing        ->  Nothing
+          Just expandPT  ->  Just (n_PT, expandPT d pr, True)
+
+   in ( mkPT
+      , entry n_PT $ PredEntry subAny ppPT [] defnPT noDefn )
+\end{code}
+
+
+\HDRb{Binary Operator Abstractions}
 
 \HDRc{Associative Flattening }~
 

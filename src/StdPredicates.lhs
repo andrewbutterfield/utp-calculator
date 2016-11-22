@@ -18,6 +18,16 @@ import DictAbstractions
 Here we provide dictionary entries for all our ``standard''
  predicate forms.
 
+\HDRb{Generic Definitions}\label{hb:gen-defs}
+
+
+First, a composite recogniser:
+\begin{code}
+isComp :: String -> Pred s -> Bool
+isComp cname (Comp nm _)  =  nm == cname
+isComp _     _            =  False
+\end{code}
+
 
 \HDRb{Standard Definitions}\label{hb:std-defs}
 

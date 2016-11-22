@@ -20,12 +20,12 @@ or an approximation using ``ASCII-art''.
 
 How to convert ASCII `a' to `z' into different fontstyles, in UTF-8
 (See \verb"http://qaz.wtf/u/convert.cgi?text=az").
- 
+
 \begin{tabular}{|l|r|r|}
   \hline
-  Style & Code for 'A' & Code for `a' 
+  Style & Code for 'A' & Code for `a'
   \\\hline
-  ASCII & 65 & 97 
+  ASCII & 65 & 97
   \\\hline
   Math Sans Bold & 120276 & 120302 \\
   \\\hline
@@ -38,7 +38,7 @@ styleShift code_A code_a c
  where
    upperShift = code_A - ord 'A'
    lowerShift = code_a - ord 'a'
-   
+
 mathSansBold = map $ styleShift 120276 120302
 \end{code}
 \HDRb{Nice Symbols for OS X/Unix}
@@ -76,7 +76,7 @@ _in = "\8712"
 _subseteq = "\8838"
 
 _parallel = "\8214"
-_double_intersection = "\8914"
+_Cap = "\8914"
 
 _overline str = "\ESC[9m"++follow str '\x35e'++"\ESC[0m"
 #endif
@@ -118,7 +118,7 @@ _in = "in"
 _subseteq = "subset"
 
 _parallel = "||"
-_double_intersection = "II"
+_Cap = "II"
 
 _overline str = "ovl("++str++")"
 #endif
@@ -158,7 +158,7 @@ nice
    , ("_in", _in)
    , ("_subseteq", _subseteq)
    , ("_parallel", _parallel)
-   , ("_double_intersection", _double_intersection)
+   , ("_Cap", _Cap)
    , ("_overline(p)", _overline "p")
    ]
 

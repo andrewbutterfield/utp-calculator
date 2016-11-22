@@ -12,6 +12,7 @@ import PrettyPrint
 import CalcTypes
 import StdPrecedences
 import CalcPredicates
+import DictAbstractions
 import CalcAlphabets
 import CalcSysTypes
 import CalcSimplify
@@ -257,20 +258,10 @@ seqEntry
 }
 \begin{code}
 n_pre = mathSansBold "pre"
-pre t = Comp n_pre [t]
-
 precPre = precNot -- for now
-ppPre sCP d p [t]
- = paren p precPre
-       $ pplist [ppa n_pre, ppa " ", sCP precPre 1 t]
-ppPre sCP d p _ = pps styleRed $ ppa ("invalid-"++n_pre)
+expandPre d t = meet t (mkSeq (mkNot t) $ Atm bot)
 
-preDefn d [t]
-  = Just ( n_pre, meet t (mkSeq (mkNot t) $ Atm bot), True )
-
-preEntry :: (Ord s, Show s) => Dict s
-preEntry
- = entry n_pre $ PredEntry subAny ppPre [] preDefn noDefn
+(pre,preEntry) = prefixPT n_pre precPre $ Just expandPre
 \end{code}
 
 \RLEQNS{
@@ -299,20 +290,21 @@ assertEntry
    !  && \mbox{not sure what this is}
 }
 \begin{code}
-n_bang = "!" 
-
-mkBang a = Comp n_bang [a]
-
+n_bang = "!"
 precBang = precNot -- for now
-ppBang sCP d p [a] -- ignore marking for now
- = paren p precBang
-       $ pplist [ppa n_bang, sCP precNot 1 a]
-ppBang sCP d p _ = pps styleRed $ ppa ("invalid-"++n_bang)
+(bang,bangEntry) = prefixPT n_bang precBang Nothing
 
-bangEntry :: (Show s, Ord s) => Dict s
-bangEntry
- = entry n_bang
-   $ PredEntry anyVars ppBang [] noDefn noDefn
+-- mkBang a = Comp n_bang [a]
+--
+-- ppBang sCP d p [a] -- ignore marking for now
+--  = paren p precBang
+--        $ pplist [ppa n_bang, sCP precNot 1 a]
+-- ppBang sCP d p _ = pps styleRed $ ppa ("invalid-"++n_bang)
+--
+-- bangEntry :: (Show s, Ord s) => Dict s
+-- bangEntry
+--  = entry n_bang
+--    $ PredEntry anyVars ppBang [] noDefn noDefn
 \end{code}
 
 
@@ -331,7 +323,7 @@ ppAssume sCP d p [t]
 ppAssume sCP d p _ = pps styleRed $ ppa ("invalid-"++n_assume)
 
 assumeDefn d [a]
-  = Just ( n_assume, meet a (mkSeq (mkBang a) $ Atm bot), True )
+  = Just ( n_assume, meet a (mkSeq (bang a) $ Atm bot), True )
 
 assumeEntry :: (Ord s, Show s) => Dict s
 assumeEntry
