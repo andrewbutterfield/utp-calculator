@@ -491,9 +491,9 @@ rgcalc pr = calcREPL rgDict [] pr
 }
 
 \newpage
-\HDRc{From the FM2016 (joint-Best) Paper}
+\HDRb{From the FM2016 (joint-Best) Paper}
 
-\HDRb{Introduction}
+\HDRc{Introduction}
 
 Assume $a$, $b$ atomic, $c$, $d$ arbitrary processes.
 \RLEQNS{
@@ -501,7 +501,7 @@ Assume $a$, $b$ atomic, $c$, $d$ arbitrary processes.
 \\ (a;c)\ileave(b;d) &=& a;(c\ileave b;d) \sqcap b;(a;c\ileave d)
 }
 
-\HDRd{Concurrent Refinement Algebra}~
+\HDRc{Concurrent Refinement Algebra}~
 
 Concurrent Refinement Algebra (CRA):
 \[
@@ -547,7 +547,7 @@ Needed for the following:
 \\ c;c^\omega;d &=& c;c^\star;d \sqcap c^\infty
 }
 
-\HDRd{The Boolean Sub-algebra of Tests}~
+\HDRc{The Boolean Sub-algebra of Tests}~
 
 Test commands: $t \in \mathcal B \subseteq C$, extended algebra:
 \[
@@ -570,7 +570,7 @@ Assume $t \in \mathcal B$, arbitrary test.
 \\ \lnot \top &=& \nil
 }
 
-\HDRd{Abstract Atomic Steps}~
+\HDRc{Abstract Atomic Steps}~
 
 Atomic Steps commands: $a,b \in \mathcal A \subseteq C$.
 
@@ -641,8 +641,84 @@ If ; is conjunctive:
 }
 
 
-\HDRd{Relational Atomic Steps}~
+\HDRc{Relational Atomic Steps}~
 
-\HDRd{Relies and Guarantees}~
+\RLEQNS{
+   \sigma &\in& \Sigma
+\\ r &\in& \Set(\Sigma\times\Sigma)
+\\ \pi &:& \Set(\Sigma\times\Sigma) \fun \mathcal A
+\\ \epsilon &:& \Set(\Sigma\times\Sigma) \fun \mathcal A
+\\ \pi(\emptyset) ~~= &\top& =~~ \epsilon(\emptyset)
+\\ \pi(r_1) \sqcup \epsilon(r_2) &=& \top
+}
+For $s \in \setof{\pi,\epsilon}$:
+\RLEQNS{
+   r_1=r_2 &\Leftrightarrow& s(r_1)=s(r_2)
+\\ s(r_1 \cup r_2) &=& s(r_1) \sqcap s(r_2)
+\\ s(r_1 \cap r_2) &=& s(r_1) \sqcup s(r_2)
+\\ r_1 \subseteq r_2 &\implies& s(r_2) \sqsubseteq s(r_1)
+}
 
-\HDRd{Abstract Communication in Process Algebras}~
+\RLEQNS{
+   p &\in& \Set\Sigma
+\\ \tau &:& \Set\Sigma \fun \mathcal B
+\\ \tau(\emptyset) &=& \top
+\\ \tau(\Sigma) &=& \nil
+\\ \{p\} &\defs& \Assert~\tau(p)
+\\     &  =  & \tau(p) \sqcap \tau(\lnot p);\bot
+\\ \{\emptyset\} &=& \bot
+\\ \{\Sigma\} &=& \nil
+}
+
+\HDRc{Relies and Guarantees}~
+
+\RLEQNS{
+   g &\in& \Set(\Sigma\times\Sigma)
+\\ (\piRestrict~g) &\defs& \pi(g) \sqcap \wait
+\\ \guar~g &\defs& (\piRestrict~g)^\omega
+\\ g_1 \subseteq q_2 &\implies& (\piRestrict~g_2) \sqsubseteq (\piRestrict~g_1)
+}
+
+\RLEQNS{
+   c \Cap \bot &=& \bot
+\\ (c \Cap c') \Cap c'' &=& c \Cap (c' \Cap c'')
+\\ c \Cap d &=& d \Cap c
+\\ c \Cap c &=& c
+\\ c \Cap (\bigsqcap D) &=& (\bigsqcap_{d \in D} c \Cap d), D \neq \setof{}
+\\ a \Cap b &=& a \sqcup b
+\\ t \Cap t' &=& t \sqcup t'
+\\ (a;c) \Cap (b;d) &=& (a \Cap b);(c \Cap d)
+\\ (a;c) \Cap \nil &=& \top
+\\ a^\infty \Cap b^\infty &=& (a \Cap b)^\infty
+\\ a \Cap \alf &=& a
+\\ \chaos &\defs& \alf^\omega
+\\ a^\omega \Cap b^\omega &=& (a \Cap b)^\omega
+\\ (\piRestrict~ g_1) \Cap (\piRestrict~g_2) &=& (\piRestrict(g_1 \cap g_2))
+\\ a^\omega \Cap (c;d) &=& (a^\omega \Cap c);(a^\omega \Cap d)
+\\ (guar~g) \Cap (c;d) &=& (\guar~g \Cap c) ; (\guar~g \Cap d)
+}
+
+\RLEQNS{
+   (\epsAssm~r) &\defs& \assume(!\epsilon(\overline r))
+\\ &=& !\epsilon(\overline r) \sqcap \epsilon(\overline r);\bot
+\\ \rely~r &\defs& (\epsAssm~r)^\omega
+\\ \assume~a \Cap \assume~b &=& \assume(a \sqcup b)
+\\ (\rely~r) \Cap (c;d) &=& (\rely~r \Cap c);(\rely~r \Cap d)
+}
+
+Rely-Guarantee quintuple: $\setof{p,r}c\setof{g,q}$
+
+\RLEQNS{
+   \term &\defs& \epsilon^\omega (\pi;\epsilon^\omega)^\star
+\\ ~[q] 
+   &\defs& 
+   \bigsqcap_{\sigma\in\Sigma}
+    \tau(\setof{\sigma}) 
+    ; \term 
+    ; \tau(\setof{\sigma'\in\Sigma|(\sigma,\sigma')\in q})
+\\ \setof{p,r}c\setof{g,q}
+   &\defs&
+   \{p\}(\rely~r \Cap \guar~g \Cap [q]) \sqsubseteq c
+}
+
+\HDRc{Abstract Communication in Process Algebras}~
