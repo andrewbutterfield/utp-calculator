@@ -33,20 +33,11 @@ import StdPredicates
 -- dbg str x = trace (str++show x) x
 \end{code}
 
-{
-\def\rgname#1{\textsf{#1}}
-\def\rgcomm#1{\mathbf{#1}}
-
 We rapid prototype the emerging Rely-Guarantee Algebra work.
 
 \HDRb{Definitions}
 
 \HDRc{Structure of concurrent program algebra}
-
-\def\nil{\rgcomm{nil}}
-\def\alf{\rgcomm{\alpha}}
-\def\chaos{\rgcomm{chaos}}
-
 
 We have:
 \RLEQNS{
@@ -148,10 +139,6 @@ epsEntry
        noEq
 \end{code}
 
-\def\id{\rgname{id}}
-\def\univ{\rgname{univ}}
-\def\emp{\rgname{$\setof{}$}}
-
 Simple relations and predicates: \id, \univ, $\emp$
 \begin{code}
 n_id   = "id"   ; _id  = Var n_id
@@ -159,9 +146,6 @@ n_univ = "univ" ; univ = Var n_univ
 n_emp  = "{}"   ; emp  = Var n_emp
 \end{code}
 
-
-
-\def\stutter{ii}
 
 \RLEQNS{
    \stutter &=& \pi(\id)
@@ -264,7 +248,6 @@ seqEntry
  = entry n_seq $ PredEntry subAny ppSeq [] noDefn noDefn
 \end{code}
 
-\def\pre{\textbf{\textsf{pre}}}
 \RLEQNS{
    \pre~ t &=& t \sqcap \lnot t \bot
 \\  &=& t \sqcap (\lnot t) \seq \bot
@@ -316,7 +299,6 @@ precBang = precNot -- for now
 \end{code}
 
 
-\def\assume{\textbf{\textsf{assume}}}
 \RLEQNS{
    \assume~ a &=& a \sqcap (!a) \bot
 }
@@ -396,7 +378,7 @@ rgReduce d _ (Comp nn [Atm (App tnm [p])])
 
 \RLEQNS{
    \assume~\pi \sqcap \epsilon(r)
-   =
+   &=&
    \pi \sqcap \epsilon(r) \sqcap \epsilon(\overline{r})\bot
 }
 
@@ -437,8 +419,6 @@ rgDict
     , stdPredDict
     ]
 \end{code}
-}
-
 
 
 
@@ -456,3 +436,213 @@ rgeput = rgput . Atm
 
 rgcalc pr = calcREPL rgDict [] pr
 \end{code}
+
+\newpage
+\HDRb{Algebra Redux}
+
+
+\HDRc{From the FM2016 Tutorial}
+\RLEQNS{
+       & \top
+\\ \nil &      & \alf
+\\     & \chaos
+\\ & \bot
+}
+
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|}
+  \hline
+    & assoc & comm & idem & unit & zero
+  \\\hline
+  $\sqcap$ & \checkmark & \checkmark & \checkmark & $\top$ & $\bot$
+  \\\hline
+  $\sqcup$ & \checkmark & \checkmark & \checkmark & $\bot$ & $\top$
+  \\\hline
+\end{tabular}
+\end{center}
+
+\RLEQNS{
+   r \subseteq \Sigma \times \Sigma
+\\ π(r) &=& \Pi(\sigma,\sigma'), (\sigma,\sigma') \in r
+\\ ϵ(r) &=& \mathcal{E}(\sigma,\sigma'), (\sigma,\sigma') \in r
+\\ \stutter &=& \pi(\id)
+\\ \pi &=& \pi(\univ)
+\\ \epsilon &=& \epsilon(\univ)
+\\ p &\subseteq& \Sigma
+\\ τ(p) &=& \mbox{if $p$ then terminate else $\top$}
+\\ \pre~ t &=& t \sqcap \lnot t \bot
+\\  &=& t \sqcap (\lnot t) \seq \bot
+\\ \setof p &=& \pre~\tau(p)
+\\ &=& \tau(p) \sqcap \tau(\overline{p})\bot
+\\ !  && \mbox{not sure what this is}
+\\ \assume~ a &=& a \sqcap (!a) \bot
+\\ \pi(\emp) &=& \top
+\\ \epsilon(\emp) &=& \top
+\\ \tau(\emp) &=& \top
+\\ \tau(\Sigma) &=& \nil
+\\ \tau(p_1) \sqcap \tau(p_2) &=& \tau(p_1 \cup p_2)
+\\ \tau(p_1) \sqcup \tau(p_2) &=& \tau(p_1 \cap p_2)
+\\                            &=& \tau(p_1)\tau(p_2)
+\\                            &=& \tau(p_1)\parallel\tau(p_2)
+\\ \lnot\tau(p) &=& \tau(\overline p)
+\\ \assume~\pi \sqcap \epsilon(r)
+   &=&
+   \pi \sqcap \epsilon(r) \sqcap \epsilon(\overline{r})\bot
+}
+
+\newpage
+\HDRc{From the FM2016 (joint-Best) Paper}
+
+\HDRb{Introduction}
+
+Assume $a$, $b$ atomic, $c$, $d$ arbitrary processes.
+\RLEQNS{
+   (a;c)\parallel(b;d) &=& (a\parallel b);(c\parallel d)
+\\ (a;c)\ileave(b;d) &=& a;(c\ileave b;d) \sqcap b;(a;c\ileave d)
+}
+
+\HDRd{Concurrent Refinement Algebra}~
+
+Concurrent Refinement Algebra (CRA):
+\[
+(\mathcal C,\sqcap,\sqcup,;,\parallel,\bot,\top,\nil,\Skip)
+\]
+Complete, distributive lattice:
+$
+(\mathcal C,\sqcap,\sqcup,\bot,\top)
+$.
+\RLEQNS{
+   c \sqsubseteq d &\defs& (c \sqcap d) = c
+\\ \bot \subseteq &c& \subseteq \top
+}
+Monoid:
+$
+  (\mathcal C, ;, \nil)
+$.
+\RLEQNS{
+   \top ; c &=& \top
+\\ \bot ; c &=& \bot
+\\ c ; \top &\neq& \top
+\\ c ;\bot &\neq& \bot
+\\ (\bigsqcap C) ; d &=& \bigsqcap_{c \in C}(c;d)
+\\ c^0 &\defs& \nil
+\\ c^{i+1} &\defs& c ; c^i
+\\ c^\star &\defs& \nu x . \nil \sqcap c ; x
+\\ c^\omega &\defs& \mu x . \nil \sqcap c ;x
+\\ c^\infty &\defs& c^\omega ; \top
+\\ c^\omega &=& \nil \sqcap c ; c^\omega
+\\ c^\star &=& \nil \sqcap c ; c^\star
+\\ c^\infty &=& c ; c^\infty ~=~ c^i ; c^\infty ~=~ c^\infty ; d
+}
+True in their relational model, but generally in CCS or CSP:
+\RLEQNS{
+   D \neq \setof{} &\implies& c;(\bigsqcap D) = \bigsqcap_{d \in D}(c;d)
+}
+It says that ; is \emph{conjunctive}.
+Needed for the following:
+\RLEQNS{
+   c^\omega &=& c^\star \sqcap c^\infty
+\\ c^\star &=& \bigsqcap_{i \in \Nat} c^i
+\\ c^\omega ; d &=& c^\star;d \sqcap c^\infty
+\\ c;c^\omega;d &=& c;c^\star;d \sqcap c^\infty
+}
+
+\HDRd{The Boolean Sub-algebra of Tests}~
+
+Test commands: $t \in \mathcal B \subseteq C$, extended algebra:
+\[
+(\mathcal C,\mathcal B,\sqcap,\sqcup,;,\parallel,\bot,\top,\nil,\Skip,\lnot)
+\]
+Test Boolean algebra --- sub-lattice of CRA:
+$
+(\mathcal B,\sqcap,\sqcup,\lnot,\top,\nil)
+$
+
+$\mathcal B$ closed under $\sqcap, \sqcup, ;, \parallel$.
+
+Assume $t \in \mathcal B$, arbitrary test.
+\RLEQNS{
+   t;t' &=& t \sqcup t'
+\\ t\parallel t' &=& t \sqcup t'
+\\ (t;c) \parallel (t;d) &=& t;(c\parallel d)
+\\ (t;c) \sqcup (t';d) &=& (t \sqcup t') ; (c \sqcup d)
+\\ \Assert~t &\defs& t \sqcap \lnot t ; \bot
+\\ \lnot \top &=& \nil
+}
+
+\HDRd{Abstract Atomic Steps}~
+
+Atomic Steps commands: $a,b \in \mathcal A \subseteq C$.
+
+Atomic Action Boolean algebra --- sub-lattice of CRA:
+$
+(\mathcal A,\sqcap,\sqcup,!,\top,\alf)
+$
+\RLEQNS{
+   \alf \sqcup \nil &=& \top
+}
+
+$\mathcal A$ closed under $\sqcap, \sqcup, \parallel$, but not $;$.
+
+\RLEQNS{
+   a \parallel \wait &=& a
+\\ a;c \parallel b;d &=& (a \parallel b);(c\parallel d)
+\\ a;c \sqcup b;d &=& (a \sqcup b);(c \sqcup d)
+\\ a;c \parallel \nil &=& \top
+\\ a;c \sqcup \nil &=& \top
+\\ a \sqcup !a &=& \top
+\\ a \sqcap !a &=& \alf
+\\ !\top &=& \alf
+\\ \assume~a &\defs& a \sqcap (!a);\bot
+}
+
+Given any $c$ there are $t$, $t'$, $I$, $a_i$ and $c_i$ such that:
+\RLEQNS{
+   c &=& t \sqcap t';\bot \sqcap \bigsqcap_{i \in I}(a_i ; c_i)
+\\ \Skip &\defs& \wait^\omega
+\\ \wait^\omega \parallel c &=& c
+\\ a^\star\parallel \nil &=& \nil
+\\ a^\omega\parallel \nil &=& \nil
+\\ a^\infty\parallel \nil &=& \top
+\\ a^i;c \parallel b^i;d &=& (a\parallel b)^i ; (c \parallel d)
+}
+If ; is conjunctive:
+\RLEQNS{
+   a^\star \parallel b^\star &=& (a \parallel b)^\star
+\\ a^\infty \parallel b^\infty &\defs?& (a \parallel b)^\infty
+\\ a^\star;c \parallel b^\star;d
+   &=&
+   (a \parallel b)^\star
+   ;
+   ( (c \parallel d)
+     \sqcap
+     (c \parallel b;b^\star;d)
+     \sqcap
+     (a;a^\star;c \parallel d) )
+\\ a^\star;c \parallel b^\infty
+   &=&
+   (a\parallel b)^\star; (c\parallel b^\infty)
+\\ a^\omega;c \parallel b^\omega;d
+   &=&
+   (a \parallel b)^\omega
+   ;
+   ( (c \parallel d)
+     \sqcap
+     (c \parallel b;b^\omega;d)
+     \sqcap
+     (a;a^\omega;c \parallel d) )
+\\ \action a &\defs& \wait^\omega ; a; \wait^\omega
+\\ \action a \parallel \action b
+   &=&
+   \action{a\parallel b}
+   \sqcap \action a ; \action b
+   \sqcap \action b ; \action a
+\\ a \ileave b &=& a;b \sqcap b;a
+}
+
+
+\HDRd{Relational Atomic Steps}~
+
+\HDRd{Relies and Guarantees}~
+
+\HDRd{Abstract Communication in Process Algebras}~
