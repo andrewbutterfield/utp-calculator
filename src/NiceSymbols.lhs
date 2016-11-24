@@ -39,7 +39,10 @@ styleShift code_A code_a c
    upperShift = code_A - ord 'A'
    lowerShift = code_a - ord 'a'
 
+mathBold     = map $ styleShift 119808 119834
 mathSansBold = map $ styleShift 120276 120302
+flags        = map $ styleShift 127462 127462
+test = map $ styleShift 119886 119886
 \end{code}
 \HDRb{Nice Symbols for OS X/Unix}
 

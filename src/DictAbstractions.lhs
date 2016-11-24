@@ -75,12 +75,84 @@ prefixPT n_PT precPT optDefnPT
 \newpage
 \HDRb{Binary Operator Abstractions}
 
+\HDRc{Monoid Operators}
+
+\RLEQNS{
+   (a \oplus b) \oplus c &=& a \oplus (b \oplus c)
+\\ 1 \oplus a &= a =& a \oplus 1
+}
+
+Associative binary operators with  unit elements.
+\begin{code}
+opMonoid :: (Ord s, Show s)
+              => String
+              -> Pred s
+              -> Int
+              -> ( [Pred s] -> Pred s
+                 , Dict s)
+opMonoid n_MND unit precMND
+ = let
+
+     isMND (Comp name _)  =  name == n_MND
+     isMND _              =  False
+
+     mkMND [] = unit
+     mkMND [pr] = pr
+     mkMND prs = mkAssoc n_MND isMND [] prs
+
+     ppMND sCP d p []   = sCP p 0 unit
+     ppMND sCP d p [pr] = sCP p 1 pr
+     ppMND sCP d p prs
+      = paren p precMND
+          $ ppopen (pad n_MND)
+          $ ppwalk 1 (sCP precMND) prs
+
+     simpMND d prs  = sMonoid d (n_MND++"-simplify") mkMND  unit prs
+
+   in ( mkMND
+      , entry n_MND $ PredEntry subAny ppMND [] noDefn simpMND )
+\end{code}
+
+\newpage
+\HDRc{Monoid Simplification}~
+
+Given associative binary operator $\otimes$ with and unit $1$
+this embodies the following laws:
+\RLEQNS{
+   1 \otimes x & = x = & x \otimes 1
+\\ \bigotimes_{i \in \setof{1}} x_i &=& x_1
+}
+\begin{code}
+sMonoid :: (Ord s, Show s)
+         => Dict s
+         -> String               -- op. name
+         -> ([Pred s] -> Pred s) -- op. builder
+         -> Pred s               -- unit
+         -> [Pred s]             -- op. arguments
+         -> RWResult s
+sMonoid d tag op unit prs
+ = ret $ simpM [] prs
+ where
+
+   simpM srp [] = reverse srp
+   simpM srp (pr:prs)
+    | pr == unit  =  simpM     srp  prs
+    | otherwise   =  simpM (pr:srp) prs
+
+   ret []          =  Just (tag, unit, diff )
+   ret [pr]        =  Just (tag, pr, diff )
+   ret prs'
+    | prs' == prs  =  Nothing
+    | null prs'    =  Just (tag, unit, diff )
+    | otherwise    =  Just (tag, op prs', diff )
+\end{code}
+
 \HDRc{Semi-Lattice Operators}
 
 \RLEQNS{
    (a \oplus b) \oplus c &=& a \oplus (b \oplus c)
-\\ 1 \oplus a & = a = & a \oplus 1
-\\ 0 \oplus a 7 = 0 = 7 a \oplus 0
+\\ 1 \oplus a &= a =& a \oplus 1
+\\ 0 \oplus a &= 0 =& a \oplus 0
 }
 
 Associative binary operators with both unit and zero elements.
