@@ -1,7 +1,6 @@
 \HDRa{Rely-Guarantee Algebra}\label{ha:RGAlg}
 \begin{code}
 module RGAlgebra where
---import IOUtil
 import Utilities
 import qualified Data.Map as M
 import Data.List
@@ -20,12 +19,6 @@ import CalcRecogniser
 import CalcRun
 import StdSets
 import StdPredicates
--- import StdLaws
--- import CalcZipper
--- import CalcSteps
--- import StdUTPPredicates
--- import StdUTPLaws
--- import UTCPCReduce
 \end{code}
 
 \begin{code}
@@ -60,24 +53,10 @@ with smart builders that flatten nested usage, remove identities
 and collapse it all if any zeros occur.
 \begin{code}
 n_meet = _sqcap
-
-meetBundle :: (Ord s, Show s) => ( [Pred s] -> Pred s, Dict s)
-meet       :: (Ord s, Show s) =>   [Pred s] -> Pred s
-meetEntry  :: (Ord s, Show s) =>                       Dict s
-
-meetBundle = opSemiLattice n_meet bot top precOr
-meet = fst meetBundle
-meetEntry = snd meetBundle
+(meet, meetEntry) = opSemiLattice n_meet bot top precOr
 
 n_join = _sqcup
-
-joinBundle :: (Ord s, Show s) => ( [Pred s] -> Pred s, Dict s)
-join       :: (Ord s, Show s) =>   [Pred s] -> Pred s
-joinEntry  :: (Ord s, Show s) =>                       Dict s
-
-joinBundle = opSemiLattice n_join top bot precAnd
-join = fst joinBundle
-joinEntry = snd joinBundle
+(join, joinEntry) = opSemiLattice n_join top bot precAnd
 \end{code}
 All that really remains now are the distributivity laws.
 We defer those until we know which one we prefer
@@ -142,7 +121,6 @@ r     = Var "r"
 n_pi = _pi  -- pi
 mkpi r = App n_pi [r]
 
-piEntry :: (Show s) => Dict s
 piEntry
  = entry n_pi
    $ ExprEntry
@@ -162,7 +140,6 @@ piEntry
 n_eps = _epsilon -- lunate epsilon
 eps r = App n_eps [r]
 
-epsEntry :: (Show s) => Dict s
 epsEntry
  = entry n_eps
    $ ExprEntry
@@ -190,7 +167,6 @@ ii = App n_ii [] -- we want to define this
 iiPrint _ _ = n_ii
 iiDefn _ _  =  edefn n_ii $ mkpi _id
 
-iiEntry :: (Show s) => Dict s
 iiEntry
  = entry n_ii
    $ ExprEntry
@@ -211,7 +187,6 @@ piU = App n_piU []
 piUPrint _ _ = n_pi
 piUDefn _ _ = edefn _pi $ mkpi univ
 
-piUEntry :: (Show s) => Dict s
 piUEntry
  = entry n_piU
    $ ExprEntry
@@ -231,7 +206,6 @@ epsU = App n_epsU []
 epsUPrint _ _ = n_eps
 epsUDefn _ _ = edefn _epsilon $ eps univ
 
-epsUEntry :: (Show s) => Dict s
 epsUEntry
  = entry n_epsU
    $ ExprEntry
@@ -258,7 +232,6 @@ p = Var "p"
 n_tau = _tau  -- tau
 tau p = App n_tau [p]
 
-tauEntry :: (Show s) => Dict s
 tauEntry
  = entry n_tau
    $ ExprEntry
@@ -277,7 +250,6 @@ ppSeq sCP d p ts
      $ ppopen (pad n_seq)
      $ ppwalk 1 (sCP precOr) ts
 
-seqEntry :: (Ord s, Show s) => Dict s
 seqEntry
  = entry n_seq $ PredEntry subAny ppSeq [] noDefn noDefn
 \end{code}
@@ -291,13 +263,7 @@ n_pre = bold "pre"
 precPre = precNot -- for now
 expandPre d t = meet [ t, mkSeq (mkNot t) bot ]
 
-preBuild :: (Ord s, Show s) => ( Pred s -> Pred s, Dict s )
-pre      :: (Ord s, Show s) =>   Pred s -> Pred s
-preEntry :: (Ord s, Show s) =>                     Dict s
-
-preBuild = prefixPT n_pre precPre $ Just expandPre
-pre      = fst preBuild
-preEntry = snd preBuild
+(pre, preEntry) = prefixPT n_pre precPre $ Just expandPre
 \end{code}
 
 \RLEQNS{
@@ -320,7 +286,6 @@ ppAssert sCP d p _ = pps styleRed $ ppa ("invalid-"++n_assert)
 assertDefn d [t]
   = Just ( n_assert, pre $ Atm $ tau p, True )
 
-assertEntry :: (Ord s, Show s) => Dict s
 assertEntry
  = entry n_assert $ PredEntry subAny ppAssert [] assertDefn noDefn
 \end{code}
@@ -352,7 +317,6 @@ ppAssume sCP d p _ = pps styleRed $ ppa ("invalid-"++n_assume)
 assumeDefn d [a]
   = Just ( n_assume, meet [ a, mkSeq (bang a) bot ], True )
 
-assumeEntry :: (Ord s, Show s) => Dict s
 assumeEntry
  = entry n_assume $ PredEntry subAny ppAssume [] assumeDefn noDefn
 \end{code}
@@ -362,11 +326,11 @@ assumeEntry
 \HDRc{Reduction Steps}
 
 \begin{code}
-rgReduce :: (Ord s, Show s) => RWFun s
-         -- Dict s
-         -- -> [Pred s]  -- Invariants
-         -- -> Pred s    -- Target Predicate
-         -- -> Maybe (String, Pred s, Bool)
+rgReduce :: RWFun
+         -- Dict
+         -- -> [Pred]  -- Invariants
+         -- -> Pred    -- Target Predicate
+         -- -> Maybe (String, Pred, Bool)
 \end{code}
 
 \RLEQNS{
@@ -428,13 +392,13 @@ rgReduce _ _ _ = Nothing
 \HDRc{law Entry}
 
 \begin{code}
-lawEntry :: (Ord s, Show s) => Dict s
+lawEntry :: Dict
 lawEntry = entry laws $ LawEntry [rgReduce] [] []
 \end{code}
 
 \HDRb{RG Dictionary}
 \begin{code}
-rgDict :: (Ord s, Show s) => Dict s
+rgDict :: Dict
 rgDict
  = mergeDicts
     [ dictVersion "RGAlgebra 0.1"
@@ -462,13 +426,13 @@ rgDict
 \HDRb{Top Level Support}
 
 \begin{code}
-rgshow :: (Show s, Ord s) => Pred s -> String
+rgshow :: Pred -> String
 rgshow = pdshow 80 rgDict noStyles
 
-rgput :: (Show s, Ord s) => Pred s -> IO ()
+rgput :: Pred -> IO ()
 rgput = putStrLn . rgshow
 
-rgeput :: (Show s, Ord s) => Expr s -> IO ()
+rgeput :: Expr -> IO ()
 rgeput = rgput . Atm
 
 rgcalc pr = calcREPL rgDict [] pr

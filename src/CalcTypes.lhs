@@ -33,19 +33,18 @@ variables, function applications, and substitutions.
 \\  &|& v(e_1,\ldots,e_n) & \mbox{Application}
 \\ &|& e[e_1,\ldots,e_n/v_1,\ldots,v_n] & \mbox{Substitution}
 }
-This type $E$ is parametric in a generic state type:
 \begin{code}
-data Expr s
- = St s  -- a value of type State
+data Expr
+ = St -- a value of type State
  | B Bool
  | Z Int
  | Var String
- | App String [Expr s]
- | Sub (Expr s) (Substn s)
+ | App String [Expr]
+ | Sub Expr Substn
  | Undef
  deriving (Eq,Ord,Show)
 
-type Substn s = [(String,Expr s)]
+type Substn = [(String,Expr)]
 \end{code}
 We treat expressions as atomic from the perspective of
 pretty-printing and highlighting.
@@ -75,14 +74,14 @@ on predicates,
 with a few support functions to hide the details of marking.
 We represent ``matchable'' predicates using the \texttt{Pred} datatype:
 \begin{code}
-data Pred s
+data Pred
  = T
  | F
  | PVar String
- | Equal (Expr s) (Expr s)
- | Atm (Expr s)
- | Comp String [Pred s]
- | PSub (Pred s) (Substn s)
+ | Equal Expr Expr
+ | Atm Expr
+ | Comp String [Pred]
+ | PSub Pred Substn
  deriving (Eq, Ord, Show)
 \end{code}
 
@@ -100,14 +99,14 @@ Also returned is a boolean flag that indicates
 if it was the top-level predicate that was modified,
 rather than one of its sub-components.
 \begin{code}
-type RWResult s
+type RWResult
  = Maybe ( String  -- rewrite justification
-         , Pred s  -- result predicate
+         , Pred  -- result predicate
          , Bool )  -- True if top-level modified
-type RWFun s = Dict s     -- dictionary
-            -> [Pred s]   -- invariant predicates
-            -> Pred s     -- target predicate
-            -> RWResult s
+type RWFun = Dict     -- dictionary
+            -> [Pred]   -- invariant predicates
+            -> Pred    -- target predicate
+            -> RWResult
 \end{code}
 
 For convenience we give boolean values indicating if something
@@ -126,12 +125,12 @@ So we design a ``step'' that returns the alternative rewrite outcomes,
 along with a clear statement of the corresponding side-conditions.
 This allows the user to select which one should be used.
 \begin{code}
-type CRWResult s
+type CRWResult
  = Maybe ( String      -- justification
-         , [( Pred s   -- side-condition to be discharged
-            , Pred s   -- modified predicate
+         , [( Pred  -- side-condition to be discharged
+            , Pred  -- modified predicate
             , Bool)])  -- True if top-level modified
-type CRWFun s = Dict s -> Pred s -> CRWResult s
+type CRWFun = Dict -> Pred-> CRWResult
 \end{code}
 The justification string used in the calculator will be the one returned
 here along with a rendering of the chosen side-condition.
@@ -145,7 +144,7 @@ here along with a rendering of the chosen side-condition.
 We need a dictionary that maps various names
 to appropriate definitions.
 \begin{code}
-type Dict s = M.Map String (Entry s)
+type Dict = M.Map String Entry
 \end{code}
 
 When processing a composite,
@@ -155,30 +154,30 @@ This function will be passed the dictionary,
 and the list of sub-components for it to do its work,
 and will return a justification string and un-marked predicate:
 \begin{code}
-type Rewrite s = Dict s -> [Pred s] -> RWResult s
+type Rewrite = Dict -> [Pred] -> RWResult
 \end{code}
 
 
 For pretty printing we will need to call a specific system-supplied
 function with the following type:
 \begin{code}
-type SubCompPrint s
+type SubCompPrint
  = Int       -- precedence level for sub-component
    -> Int    -- sub-component number
-   -> Pred s -- sub-component
+   -> Pred -- sub-component
    -> PP
 \end{code}
 
 
 A dictionary entry is a sum of  definition types defined below
 \begin{code}
-data Entry s =
+data Entry =
 \end{code}
 
 \HDRc{Alphabet Entry}\label{hc:alfa-entry}
 
 \begin{code}
--- data Entry s = ....
+-- data Entry = ....
    AlfEntry {   -- about Alphabets
     avars   :: [String]  -- alphabet
    }
@@ -192,16 +191,16 @@ $A \defs \setof{v_1,v_2,\ldots,v_n}$.
 \HDRc{Expression Entry}\label{hc:expr-entry}
 
 \begin{code}
--- data Entry s = ....
+-- data Entry = ....
  | ExprEntry { -- about Expressions
      ecansub :: [String]                   -- substitutable vars
-   , eprint  :: Dict s -> [Expr s] -> String   -- pretty printer
-   , defn    :: Dict s -> [Expr s]             -- defn expansion
-             -> Maybe (String, Expr s)
-   , simp    :: Dict s -> [Expr s]                 -- simplifier
+   , eprint  :: Dict -> [Expr] -> String   -- pretty printer
+   , defn    :: Dict -> [Expr]             -- defn expansion
+             -> Maybe (String, Expr)
+   , simp    :: Dict -> [Expr]                 -- simplifier
              -> ( String -- empty if no change, else explanation
-                , Expr s )
-   , isEqual :: Dict s -> [Expr s] -> [Expr s] -> Maybe Bool
+                , Expr )
+   , isEqual :: Dict -> [Expr] -> [Expr] -> Maybe Bool
    }
 \end{code}
 We interpret a \texttt{Dict} entry like
@@ -225,12 +224,12 @@ of a proof step.
 \begin{code}
  | PredEntry {    -- about Predicates and PredVars
      pcansub :: [String]                   -- substitutable vars
-   , pprint  :: SubCompPrint s                 -- pretty-printer
-             -> Dict s -> Int -> [Pred s]
+   , pprint  :: SubCompPrint                 -- pretty-printer
+             -> Dict -> Int -> [Pred]
              -> PP
    , alfa :: [String]                      -- predicate alphabet
-   , pdefn   :: Rewrite s                      -- defn expansion
-   , prsimp  :: Rewrite s                          -- simplifier
+   , pdefn   :: Rewrite                     -- defn expansion
+   , prsimp  :: Rewrite                        -- simplifier
    }
 \end{code}
 We interpret a \texttt{Dict} entry like
@@ -269,9 +268,9 @@ To do so risks an infinite loop.
 
 \begin{code}
  | LawEntry {  -- about useful laws
-     reduce  :: [RWFun s]            -- reduction laws
-   , creduce :: [CRWFun s]           -- conditional reductions
-   , unroll  :: [String -> RWFun s]  -- loop unrollers
+     reduce  :: [RWFun]            -- reduction laws
+   , creduce :: [CRWFun]           -- conditional reductions
+   , unroll  :: [String -> RWFun]  -- loop unrollers
    }
 \end{code}
 We interpret a \texttt{Dict} entry like:
@@ -294,7 +293,7 @@ or \m{cr_1} to \m{cr_n} or \m{u_1} to \m{u_p}, as appropriate.
 \HDRc{Displaying Dictionaries}\label{hc:show-dicts}
 
 \begin{code}
-instance Show (Entry s) where
+instance Show Entry where
  show (AlfEntry vars) = "Alf {"++seplist ',' vars++"}"
  show (ExprEntry csub _ _ _ _) = "Expr, subst? = "++show csub
  show (PredEntry csub _ alf _ _)
@@ -327,7 +326,7 @@ a predicate, and either returns \texttt{Nothing} if no such pattern exists
 or else returns \texttt{Just} a selection of zero or more sub-components
 of interest.
 \begin{code}
-type Recogniser s = Pred s -> Maybe [Pred s]
+type Recogniser = Pred -> Maybe [Pred]
 
 noBind        =  Just []
 condBind c prs = if c then Just prs else Nothing
@@ -351,24 +350,24 @@ otherwise the result should be \texttt{Just T}.
 In an invariant state, we have
 lists where each element pairs a checker with an invariant predicate.
 \begin{code}
-type InvChecker s = Dict s
-                 -> Pred s  -- invariant
-                 -> Pred s  -- test
+type InvChecker = Dict
+                 -> Pred  -- invariant
+                 -> Pred  -- test
                  -> Maybe Bool
-type InvPair s
- = ( InvChecker s  -- inv check function
-   , Pred s )      -- invariant predicate
+type InvPair
+ = ( InvChecker  -- inv check function
+   , Pred )      -- invariant predicate
 
-type InvState s = [InvPair s]
+type InvState = [InvPair]
 \end{code}
 
 We define a invariant pair that does nothing,
 and whose use won't appear as a calculation step,
 as well as an empty list.
 \begin{code}
-noInvariant :: InvPair s
+noInvariant :: InvPair
 noInvariant = ( \_ _ _ -> Nothing, T )
 
-noInvariants :: InvState s
+noInvariants :: InvState
 noInvariants = []
 \end{code}

@@ -15,6 +15,7 @@ import CalcSysTypes
 import CalcSimplify
 import CalcRecogniser
 import CalcRun
+import DictAbstractions
 import StdPredicates
 import StdLaws
 -- import CalcZipper
@@ -77,7 +78,7 @@ sngl e = set [e]
 
 emp = set []
 
-mkSet :: Ord s => [Expr s] -> Expr s
+mkSet :: [Expr] -> Expr
 mkSet = set . sort . nub
 
 showSet d [elm] = edshow d elm
@@ -203,7 +204,7 @@ ppSDiff d ss = "("  ++ dlshow d " \\ " ss ++ ")"
 It can be useful to turn a set into a list
 of its elements:
 \begin{code}
-setElems :: Ord s => Expr s -> [Expr s]
+setElems :: Expr -> [Expr]
 setElems (App sn es) | sn == setn  =  sort $ nub $ es
 setElems e = []
 \end{code}
@@ -271,7 +272,7 @@ setswap starts olds news
 
 The Set Dictionary:
 \begin{code}
-vSetDict :: (Eq s, Ord s, Show s) => Dict s
+vSetDict :: Dict
 vSetDict
  = makeDict
     [ (setn,(ExprEntry subAny showSet noDefn evalSet eqSet))
@@ -333,7 +334,7 @@ showGSplit2 d [g] = edshow d g ++ "2"
 
 We can now define a generator dictionary:
 \begin{code}
-vGenDict :: (Eq s, Ord s, Show s) => Dict s
+vGenDict :: Dict
 vGenDict
  = makeDict
     [ (new1n,(ExprEntry subAny showGNew1 noDefn (justMakes gNew1) noEq))
@@ -346,7 +347,7 @@ vGenDict
 \HDRc{The Expression Dictionary}\label{hc:WWW-expr-dict}
 
 \begin{code}
-dictVE :: (Ord s, Show s) => Dict s
+dictVE :: Dict
 dictVE = vSetDict `dictMrg` vGenDict
 \end{code}
 
@@ -377,9 +378,9 @@ vAlfDict
  = dictMrg dictAlpha dictAtomic
  where
    dictAlpha = stdAlfDictGen ["s"] ["ls"] vStatic
-   dictAtomic = makeDict [ pvarEntry "a" ss'
-                         , pvarEntry "b" ss'
-                         , pvarEntry "c" ss' ]
+   dictAtomic = mergeDicts [ pvarEntry "a" ss'
+                           , pvarEntry "b" ss'
+                           , pvarEntry "c" ss' ]
    ss' = ["s", "s'"]
 
 vStatic = ["g","in","out"]
@@ -426,7 +427,7 @@ skipEntry' -- in stdUTPDict
 \HDRd{Updating the Standard UTP Dictionary}~
 
 \begin{code}
-vStdUTPDict :: (Show s, Ord s) => Dict s
+vStdUTPDict :: Dict
 vStdUTPDict
   = makeDict [ skipEntry -- don't want to expand such defns
              ] `dictMrg` stdUTPDict
@@ -509,7 +510,7 @@ simpX vd [ (Atm e1)   -- E
 
 Now, put it all together
 \begin{code}
-vXEntry :: (Show s, Ord s) => (String, Entry s)
+vXEntry :: (String, Entry)
 vXEntry
  = ( nX
    , PredEntry vStatic ppX vObs defnX simpX )
@@ -538,7 +539,7 @@ ppA _ _ _ _ = pps styleRed $ ppa ("invalid-"++nA)
 defnA = pNoChg nA
 simpA = pNoChg nA
 
-vAEntry :: (Show s, Ord s) => (String, Entry s)
+vAEntry :: (String, Entry)
 vAEntry
  = ( nA
    , PredEntry vStatic ppA vObs defnA simpA )
@@ -571,7 +572,7 @@ ppW _ _ _ _ = pps styleRed $ ppa ("invalid-"++nW)
 defnW = pNoChg nW
 simpW = pNoChg nW
 
-vWEntry :: (Show s, Ord s) => (String, Entry s)
+vWEntry :: (String, Entry)
 vWEntry
  = ( nW
    , PredEntry [] ppW vObs defnW simpW )
@@ -581,7 +582,7 @@ vWEntry
 Redo this to handle $\W(P) = \true * (\Skip \lor P)$
 }
 \begin{code}
-wUnroll :: Ord s => String -> RWFun s
+wUnroll :: String -> RWFun
 wUnroll arg d _ wpr@(Comp nw [pr])
  | nw == nW
    = case numfrom arg of
@@ -691,17 +692,17 @@ ppIJoin sCP d p prs
  = paren p precInv
      $ ppopen  "," $ ppwalk 1 (sCP precInv) prs
 
-vIElemEntry :: (Show s, Ord s) => (String, Entry s)
+vIElemEntry :: (String, Entry)
 vIElemEntry
  = ( nIElem
    , PredEntry anyVars ppIElem vStatic (pNoChg nIElem) (pNoChg nIElem) )
 
-vIDisjEntry :: (Show s, Ord s) => (String, Entry s)
+vIDisjEntry :: (String, Entry)
 vIDisjEntry
  = ( nIDisj
    , PredEntry anyVars ppIDisj vStatic (pNoChg nIDisj) (pNoChg nIDisj) )
 
-vIJoinEntry :: (Show s, Ord s) => (String, Entry s)
+vIJoinEntry :: (String, Entry)
 vIJoinEntry
  = ( nIJoin
    , PredEntry anyVars ppIJoin vStatic (pNoChg nIJoin) (pNoChg nIJoin) )
@@ -719,7 +720,7 @@ Our invariant applies to $A$ and $X$ atomic actions:
    E \textbf{ lsat } I \land A \textbf{ lsat } I
 }
 \begin{code}
-labelSetInv :: (Ord s, Show s) => InvChecker s
+labelSetInv :: InvChecker
 labelSetInv d inv pr@(Comp nm [Atm e,_,Atm n])
  | nm == nA = labelSetReport( lsat d e inv
                             , lsat d n inv )
@@ -735,7 +736,7 @@ Now we have to code up \textbf{lsat}:
 \RLEQNS{
 }
 \begin{code}
-lsat :: (Ord s, Show s) => Dict s -> Expr s -> Pred s -> Bool
+lsat :: Dict -> Expr -> Pred -> Bool
 lsat d ls inv = isJust $ loccChk $ locc d ls inv
 \end{code}
 
@@ -754,7 +755,7 @@ This is the label occupancy structure:
 }
 \begin{code}
 -- occ :: Eq t => [t] -> I t -> I Bool
-locc :: (Ord s, Show s) => Dict s -> Expr s -> Pred s -> I Bool
+locc :: Dict -> Expr -> Pred -> I Bool
 
 -- occ ls (I ell) = I (ell `elem` ls)
 locc d lset (Comp nm [Atm ell])
@@ -825,12 +826,11 @@ given an enabling label or label-set.
 We need a function that establishes when the invariant is not satisfies
 for at least one invariant in a supplied list.
 \begin{code}
-someInvFails :: (Ord s, Show s)
-         => Dict s
-         -> [Pred s]  -- Invariants
-         -> Expr s  -- enable label being removed
-         -> Expr s  -- other label being removed
-         -> Bool
+someInvFails :: Dict
+             -> [Pred]  -- Invariants
+             -> Expr  -- enable label being removed
+             -> Expr  -- other label being removed
+             -> Bool
 someInvFails d invs ena other = findFail (set [ena,other]) invs
  where
    findFail lpair []          =  False
@@ -865,7 +865,7 @@ wp x = Comp "W" [x]
 sinp = sngl inp
 sout = sngl out
 
-vAtmEntry :: (Show s, Ord s) => (String, Entry s)
+vAtmEntry :: (String, Entry)
 vAtmEntry
  = ( nAtom
    , PredEntry ["s","s'"] ppAtom [] defnAtom (pNoChg nAtom) )
@@ -880,7 +880,7 @@ So we add a variant dictionary entry:
 defnAtomCalc d [a]
  = ldefn (nAtom++" calculation") $ mkOr [mkSkip, mkA inp a out]
 
-vAtmCalcEntry :: (Show s, Ord s) => (String, Entry s)
+vAtmCalcEntry :: (String, Entry)
 vAtmCalcEntry
  = ( nAtom
    , PredEntry ["s","s'"] ppAtom [] defnAtomCalc (pNoChg nAtom) )
@@ -909,7 +909,7 @@ defnVSkip d []
 
 invVSkip = idisj [ielem inp, ielem out]
 
-vSkipEntry :: (Show s, Ord s) => (String, Entry s)
+vSkipEntry :: (String, Entry)
 vSkipEntry
  = ( nVSkip
    , PredEntry ["s","s'"] ppVSkip [] defnVSkip (pNoChg nSkip) )
@@ -928,7 +928,7 @@ So we add a variant dictionary entry:
 defnVSkipCalc d []
  = ldefn (nVSkip++" calculation") $ mkOr [mkSkip, mkA inp ii out]
 
-vSkipCalcEntry :: (Show s, Ord s) => (String, Entry s)
+vSkipCalcEntry :: (String, Entry)
 vSkipCalcEntry
  = ( nVSkip
    , PredEntry ["s","s'"] ppVSkip [] defnVSkipCalc (pNoChg nAtom) )
@@ -973,7 +973,7 @@ g'2 = split2 g'
 
 invVSeq = idisj[ielem inp, ielem lg, ielem out]
 
-vSeqEntry :: (Show s, Ord s) => (String, Entry s)
+vSeqEntry :: (String, Entry)
 vSeqEntry
  = ( nVSeq
    , PredEntry [] ppVSeq [] defnVSeq (pNoChg nVSeq) )
@@ -1025,7 +1025,7 @@ g2' = new2 g2
 
 invVChc = idisj [ielem inp, ielem lg1, ielem lg2, ielem out]
 
-vChcEntry :: (Show s, Ord s) => (String, Entry s)
+vChcEntry :: (String, Entry)
 vChcEntry
  = ( nVChc
    , PredEntry [] ppVChc [] defnVChc (pNoChg nVChc) )
@@ -1082,7 +1082,7 @@ invVPar = idisj [ ielem inp
                 , ielem out
                 ]
 
-vParEntry :: (Show s, Ord s) => (String, Entry s)
+vParEntry :: (String, Entry)
 vParEntry
  = ( nVPar
    , PredEntry [] ppVPar [] defnVPar (pNoChg nVPar) )
@@ -1126,7 +1126,7 @@ invVIter = idisj [ ielem inp
                  , ielem out
                  ]
 
-vIterEntry :: (Show s, Ord s) => (String, Entry s)
+vIterEntry :: (String, Entry)
 vIterEntry
  = ( nVIter
    , PredEntry [] ppVIter [] defnVIter (pNoChg nVIter) )
@@ -1138,7 +1138,7 @@ vIterEntry
 \HDRc{The Predicate Dictionary}\label{hc:WWW-pred-dict}
 
 \begin{code}
-dictVP, dictVPCalc :: (Ord s, Show s) => Dict s
+dictVP, dictVPCalc :: Dict
 dictVP = makeDict [ vXEntry
                   , vAEntry
                   , vWEntry
@@ -1171,7 +1171,7 @@ dictVPCalc = makeDict [ vAtmCalcEntry
    & \ecite{sswap-$;$-prop.}
 }
 \begin{code}
-mtchLabelSetSSwap :: Eq s => Recogniser s
+mtchLabelSetSSwap :: Recogniser
 mtchLabelSetSSwap (Equal v' (App nm [v, s1, s2]))
  | v == ls && v' == ls'  =  Just [Atm s1, Atm s2]
 mtchLabelSetSSwap _      =  Nothing
@@ -1181,11 +1181,11 @@ mtchLabelSetSSwap _      =  Nothing
 \HDRc{\texttt{vReduce}}\label{hc:vReduce}
 
 \begin{code}
-vReduce :: (Ord s, Show s) => RWFun s
-        -- Dict s
-        -- -> Pred s    -- Invariant
-        -- -> Pred s    -- Target Predicate
-        -- -> Maybe (String, Pred s, Bool)
+vReduce :: RWFun
+        -- Dict
+        -- -> Pred    -- Invariant
+        -- -> Pred    -- Target Predicate
+        -- -> Maybe (String, Pred, Bool)
 \end{code}
 
 
@@ -1440,7 +1440,7 @@ vReduce _ _ _ = Nothing
 \HDRc{The Reduction Entry}\label{hc:WWW-reduce-ent}
 
 \begin{code}
-vRedEntry :: (Ord s, Show s) => Dict s
+vRedEntry :: Dict
 vRedEntry = entry laws $ LawEntry [vReduce] [] []
 \end{code}
 
@@ -1448,7 +1448,7 @@ vRedEntry = entry laws $ LawEntry [vReduce] [] []
 \HDRb{Conditional Reductions for WWW}\label{hb:WWW-creduce}
 
 \begin{code}
-vCReduce :: CRWFun s
+vCReduce :: CRWFun
 \end{code}
 
 Default case: no change.
@@ -1459,7 +1459,7 @@ vCReduce _ mpr = Nothing
 \HDRc{The Conditional Reduction Entry}\label{hc:WWW-reduce-ent}
 
 \begin{code}
-vCRedEntry :: (Ord s, Show s) => Dict s
+vCRedEntry :: Dict
 vCRedEntry = entry laws $ LawEntry [] [vCReduce] []
 \end{code}
 
@@ -1498,7 +1498,7 @@ But we also support several styles and degrees of unrolling:
          (c \land P)^n \seq c *P
 \end{eqnarray*}
 \begin{code}
-vUnroll :: Ord s => String -> RWFun s
+vUnroll :: String -> RWFun
 vUnroll ns d _ iter@(Comp nm  [c, pr])
  | nm == nIter = lred ("loop-unroll" ++ ntag ns) $ vunroll n
  where
@@ -1532,7 +1532,7 @@ vUnroll _ _ _ _ = Nothing
 \HDRc{The Unroll Entry}\label{hc:WWW-reduce-ent}
 
 \begin{code}
-vLoopEntry :: (Ord s, Show s) => Dict s
+vLoopEntry :: Dict
 vLoopEntry = entry laws $ LawEntry [] [] [wUnroll,vUnroll]
 \end{code}
 
@@ -1540,7 +1540,7 @@ vLoopEntry = entry laws $ LawEntry [] [] [wUnroll,vUnroll]
 \HDRb{Dictionary for Views}\label{hb:View-Dict}
 
 \begin{code}
-vDict :: (Ord s, Show s) => Dict s
+vDict :: Dict
 vDict
  =  dictVersion "Views 0.3"
      -- supersede dictVP below as calcs rollout
@@ -1561,33 +1561,33 @@ vDict
 
 
 \begin{code}
-vshow :: (Show s, Ord s) => Pred s -> String
+vshow :: Pred -> String
 vshow = pmdshow 80 vDict noStyles . buildMarks
 
-vput :: (Show s, Ord s) => Pred s -> IO ()
+vput :: Pred -> IO ()
 vput = putStrLn . vshow
 
-vcalc pr = calcREPL vDict [noInvariant] $ buildMarks pr
+vcalc pr = calcREPL vDict [noInvariant] pr
 
 ivcalc inv pr
- = calcREPL vDict [(labelSetInv, inv)] $ buildMarks pr
+ = calcREPL vDict [(labelSetInv, inv)] pr
 
-vputcalc :: (Ord s, Show s) => Pred s -> IO ()
-vputcalc pr = printREPL vDict [noInvariant] $ buildMarks pr
+vputcalc :: Pred -> IO ()
+vputcalc pr = printREPL vDict [noInvariant]  pr
 
 ivputc inv pr
- = printREPL vDict [(labelSetInv, inv)] $ buildMarks pr
+ = printREPL vDict [(labelSetInv, inv)]  pr
 
 vsavecalc fp pr
  = do calc <- vcalc pr
       saveCalc fp calc
 
-vsimp :: (Show s, Ord s) => Pred s -> (String, Pred s)
+vsimp :: Pred -> (String, Pred)
 vsimp pr
   = case simplify vDict 42 $ buildMarks pr of
      Nothing               ->  ("", pr)
      Just (_,what,(pr',_)) ->  (what,pr')
-vsimp2 :: (Show s, Ord s) => (String, Pred s) -> (String, Pred s)
+vsimp2 :: (String, Pred) -> (String, Pred)
 vsimp2 = vsimp . snd
 
 vcsave fp inv pr
@@ -1604,20 +1604,20 @@ pP = PVar "P" ; pQ = PVar "Q"  -- general programs
 a = PVar "a"
 b = PVar "b"
 
-subII :: (Show s, Ord s) => Pred s
+subII :: Pred
 subII = PSub mkSkip [("g",g'1),("out",lg)]
 
 -- an invariant that always fails
 noGood _ _ _ = Just False
 
-xcalc :: (Ord s, Show s) => Pred s -> IO ()
-xcalc = printREPL vDict [(noGood, F)] . buildMarks
+xcalc :: Pred -> IO ()
+xcalc = printREPL vDict [(noGood, F)]
 \end{code}
 
 \begin{code}
---defvseq :: (Ord s, Show s) => [Pred s] -> Pred s
-defvseq = defnVSeq (vDict :: Dict ())
---athenbBody :: (Ord s, Show s) => Pred s
+--defvseq :: [Pred] -> Pred
+defvseq = defnVSeq vDict
+--athenbBody :: Pred
 athenbBody = case defvseq [actionA,actionB] of
               Just (_,Comp _ [body],_)  ->  body
               _                         ->  PVar "??"
@@ -1632,7 +1632,7 @@ disp (Just (before,_,after))
       putStrLn "\n\tbecomes\n"
       vput $ fst after
 
-test :: Maybe (BeforeAfter ())
+test :: Maybe BeforeAfter
 test = simplify vDict 42 $ buildMarks testpr
 \end{code}
 

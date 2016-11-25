@@ -69,7 +69,7 @@ viewed as reduction steps going from left-to-right.
 \begin{code}
 lred nm pr = Just ( nm, pr, diff )
 
-reduceStd :: (Ord s, Show s) => RWFun s
+reduceStd :: RWFun
 \end{code}
 
 \HDRc{Skip and Sequential Composition}\label{hc:skip-and-seq}
@@ -235,7 +235,7 @@ reduceStd d _ mpr = lred "" mpr
 
 Now, the standard reduction dictionary entry:
 \begin{code}
-stdReduceEntry :: (Show s, Ord s) => Dict s
+stdReduceEntry :: Dict
 stdReduceEntry = entry laws $ LawEntry [reduceStd] [] []
 \end{code}
 
@@ -246,7 +246,7 @@ Iteration  satisfies the loop-unrolling law:
   c * P  \quad=\quad (P ; c * P ) \cond c \Skip
 \]
 \begin{code}
-unrollStd :: Ord s => String -> RWFun s
+unrollStd :: String -> RWFun
 unrollStd ns d _ w@(Comp nm  [c, pr])
  | nm== nIter && isCondition c
            = Just( "std-loop-unroll"
@@ -257,7 +257,7 @@ unrollStd _ _ _ _ = Nothing
 
 Now, the standard unroll dictionary entry:
 \begin{code}
-stdUnrollEntry :: (Show s, Ord s) => Dict s
+stdUnrollEntry :: Dict
 stdUnrollEntry = entry laws $ LawEntry [] [] [unrollStd]
 \end{code}
 
@@ -265,7 +265,7 @@ stdUnrollEntry = entry laws $ LawEntry [] [] [unrollStd]
 \HDRb{The Standard UTP Dictionary}\label{hb:std-UTP-dict}
 
 \begin{code}
-stdUTPDict :: (Ord s, Show s) => Dict s
+stdUTPDict :: Dict
 stdUTPDict
  = makeDict
     [ topEntry

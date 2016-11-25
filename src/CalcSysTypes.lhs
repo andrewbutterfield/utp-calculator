@@ -27,12 +27,12 @@ data MTree = MT Marks [MTree] deriving (Eq, Ord, Show)
 Marked predicates are marks paired with a predicate,
 denoted by the \texttt{MPred} datatype:
 \begin{code}
-type MPred s = ( Pred s, MTree )
+type MPred = ( Pred, MTree )
 \end{code}
 
 We provide a marking constructor that marks a tree with no integers:
 \begin{code}
-buildMarks :: Pred s -> MPred s
+buildMarks :: Pred -> MPred
 buildMarks pr@(Comp _ prs)
  = ( pr, MT [] mts )
    where mts = map (snd . buildMarks) prs
@@ -44,7 +44,7 @@ buildMarks pr = ( pr, MT [] [] )
 
 There is a key invariant that \texttt{MPred} must satisfy:
 \begin{code}
-invMPred :: MPred s -> Bool
+invMPred :: MPred -> Bool
 invMPred (Comp _ prs, MT _ mts)
  = length mts == length prs && all invMPred (zip prs mts)
 invMPred (PSub pr _, MT _ mts)
@@ -57,13 +57,13 @@ We really should prove \texttt{invMPred (buildMarks pr)} !
 
 We provide a HOF to make changes `under' markings:
 \begin{code}
-pfapply :: (Pred s -> Pred s) -> MPred s -> MPred s
+pfapply :: (Pred -> Pred) -> MPred -> MPred
 pfapply pf (pr, mt) = (pf pr, mt)
 \end{code}
 
 Sometimes we need to view everything:
 \begin{code}
-viewPred :: Show s => MPred s -> String
+viewPred :: MPred -> String
 viewPred
  = unlines . vPred 0
  where
@@ -98,7 +98,7 @@ viewPred
 --
 --    vSbst i subs = ind i ["Subst for "++show (map fst subs)]
 
-putView :: Show s => MPred s -> IO ()
+putView :: MPred -> IO ()
 putView = putStrLn . viewPred
 \end{code}
 
@@ -118,7 +118,7 @@ noStyles = const Nothing
 
 We note, using the notion of ``datatypes as algebras'',
 %( http://chris-taylor.github.io/blog/2013/02/13/the-algebra-of-algebraic-data-types-part-iii/)
-that the \texttt{Pred s} and \texttt{MPred s} types above
+that the \texttt{Pred} and \texttt{MPred} types above
 correspond to the following algebraic forms:
 \RLEQNS{
    V && & \mbox{Variables}
@@ -135,7 +135,7 @@ correspond to the following algebraic forms:
 \\ T &=& M \times T^* & \mbox{Mark Trees}
 \\ &=& G(T)
 }
-We want to define a ``zipper'' \cite{JFP::Huet1997} for \texttt{MPred s},
+We want to define a ``zipper'' \cite{JFP::Huet1997} for \texttt{MPred},
 following Conor McBride's Datatype Differentiation approach\cite{McB:derrti}.
 In effect we want a parallel zipper that keeps both the predicate
 and mark-tree in sync.
@@ -156,13 +156,13 @@ We used the following differentiation laws:
 }
 This leads to the following zipper datatypes:
 \begin{code}
-data Pred' s
+data Pred'
  = Comp'        -- parent is a Comp node
      String       -- parent name
-     [Pred s]     -- components before current focus
-     [Pred s]     -- components after current focus
+     [Pred]     -- components before current focus
+     [Pred]     -- components after current focus
  | PSub'        -- parent is a PSub node
-     (Substn s)   -- substitution in parent
+     Substn     -- substitution in parent
  deriving Show
 
 data MTree'
@@ -171,14 +171,14 @@ data MTree'
      [MTree]   -- components before current focus
      [MTree]   -- components before current focus
 
-type MPred' s = ( Pred' s, MTree' )
+type MPred' = ( Pred', MTree' )
 \end{code}
 We then define a zipper as being an predicate
 together with a list of predicate derivatives:
 \begin{code}
-type MPZipper s
-  = ( MPred s    -- the current (focus) predicate
-    , [MPred' s] -- the steps we took to get here,
+type MPZipper
+  = ( MPred    -- the current (focus) predicate
+    , [MPred']  -- the steps we took to get here,
                    -- and what we passed on the way.
     )
 \end{code}
@@ -244,15 +244,15 @@ any sub-component.
 
 Under the hood we need \texttt{RWResult} versions with marked predicates:
 \begin{code}
-type MRWResult s
+type MRWResult
  = Maybe ( String  -- rewrite justification
-         , MPred s  -- result marked predicate
+         , MPred  -- result marked predicate
          , Bool )  -- True if top-level modified
 
-type MCRWResult s
+type MCRWResult
  = Maybe ( String      -- justification
-         , [( Pred s   -- side-condition to be discharged
-            , MPred s   -- modified marked predicate
+         , [( Pred   -- side-condition to be discharged
+            , MPred   -- modified marked predicate
             , Bool)])  -- True if top-level modified
 \end{code}
 
@@ -264,18 +264,18 @@ calculation step).
 We have a type that has this information,
 along with a justification string:
 \begin{code}
-type BeforeAfter s
- = ( MPred s   -- before predicate, marked
+type BeforeAfter
+ = ( MPred   -- before predicate, marked
    , String      -- justification
-   , MPred s ) -- after predicate, marked
+   , MPred ) -- after predicate, marked
 \end{code}
 In the conditional case, we have lists of outcomes
 paired with conditions:
 \begin{code}
-type BeforeAfters s
- = ( MPred s   -- before predicate, marked
+type BeforeAfters
+ = ( MPred   -- before predicate, marked
    , String      -- justification
-   , [(Pred s,MPred s)] ) -- after predicates, marked
+   , [(Pred,MPred)] ) -- after predicates, marked
 \end{code}
 
 This seems to present a problem for the zipper,
@@ -286,37 +286,37 @@ However the structure of the two predicates is identical everywhere else
 so a single zipper ``path'' can be applied to both.
 
 \begin{code}
-type MPZip2 s = (BeforeAfter s, [MPred' s])
+type MPZip2  = (BeforeAfter, [MPred' ])
 \end{code}
 
 For conditional searches,
 we return a list of \texttt{Pred},\texttt{MPred} pairs:
 \begin{code}
-type CMPZip2 s = ( BeforeAfters s, [MPred' s] )
+type CMPZip2 = ( BeforeAfters, [MPred'] )
 \end{code}
 
 First, the REPL state:
 \begin{code}
-type Step s
+type Step
  = ( String        -- step justification
-   , MPred s )     -- prev predicate
-type State s
- = ( MPred s       -- current goal predicate
-   , [Step s]      -- calc steps so far
-   , InvState s )  -- invariant
+   , MPred )     -- prev predicate
+type State
+ = ( MPred       -- current goal predicate
+   , [Step ]      -- calc steps so far
+   , InvState  )  -- invariant
 \end{code}
 
 A calculation log records all pertinent data regarding a calculation
 \begin{code}
-type CalcLog s = ( State s   -- final state
-                 , Dict s )  -- final dictionary
+type CalcLog  = ( State    -- final state
+                 , Dict )  -- final dictionary
 \end{code}
 The dictionary is included as it is required, for example,
 to pretty-print the predicates.
 
 It can help to be able to see all the gory details.
 \begin{code}
-viewcalc :: Show s => CalcLog s -> IO ()
+viewcalc :: CalcLog  -> IO ()
 viewcalc ((currpr,steps,_),_)
  = vc 0 $ reverse (("QED",currpr):steps)
  where

@@ -35,7 +35,7 @@ sngl e = set [e]
 
 emp = set []
 
-mkSet :: Ord s => [Expr s] -> Expr s
+mkSet :: [Expr] -> Expr
 mkSet = set . sort . nub
 
 showSet d [elm] = edshow d elm
@@ -89,7 +89,7 @@ is considered to be $\setof x \subseteq \setof  y$
 \begin{code}
 subsetn = _subseteq
 subset e set = App subsetn [e,set]
-evalSubset :: (Ord s, Show s) => Dict s -> [Expr s] -> (String, Expr s)
+evalSubset :: Dict -> [Expr] -> (String, Expr)
 evalSubset = evalSetBinFun dosubset
 dosubset d es1 es2 -- is es1 a subset of es2 ?
   | null es1lesses2  =  ( _subseteq, B True )
@@ -130,7 +130,7 @@ ppComp _ _ = "badd-comp"
 \begin{code}
 unionn = _cup
 u s1 s2 = App unionn [s1,s2]
-evalUnion :: (Ord s, Show s) => Dict s -> [Expr s] -> (String, Expr s)
+evalUnion :: Dict -> [Expr] -> (String, Expr)
 evalUnion = evalSetBinFun dounion
 dounion d es1 es2
   | all (isGround d) es1es2  =  ( _cup, mkSet es1es2 )
@@ -143,7 +143,7 @@ ppUnion d ss = "("  ++ dlshow d (pad _cup) ss ++ ")"
 \begin{code}
 intn = _cap
 i s1 s2 = App intn [s1,s2]
-evalIntsct :: (Ord s, Show s) => Dict s -> [Expr s] -> (String, Expr s)
+evalIntsct :: Dict -> [Expr] -> (String, Expr)
 evalIntsct= evalSetBinFun dointsct
 dointsct d es1 es2
   | all (isGround d) es1es2  =  ( _cap, mkSet es1es2 )
@@ -157,7 +157,7 @@ ppIntsct d ss = "("  ++ dlshow d (pad _cap) ss ++ ")"
 \begin{code}
 sdiffn = _setminus
 sdiff s1 s2 = App sdiffn [s1,s2]
-evalSDiff :: (Ord s, Show s) => Dict s -> [Expr s] -> (String, Expr s)
+evalSDiff :: Dict -> [Expr] -> (String, Expr)
 evalSDiff = evalSetBinFun dosdiff
 dosdiff d es1 es2
   | all (isGround d) es1es2  =  ( _setminus, mkSet es1es2 )
@@ -172,7 +172,7 @@ ppSDiff d ss = "("  ++ dlshow d (pad _setminus) ss ++ ")"
 It can be useful to turn a set into a list
 of its elements:
 \begin{code}
-setElems :: Ord s => Expr s -> [Expr s]
+setElems :: Expr -> [Expr]
 setElems (App sn es) | sn == setn  =  sort $ nub $ es
 setElems e = []
 \end{code}
@@ -213,7 +213,7 @@ showSubSet d [e,set]
 
 The Set Dictionary:
 \begin{code}
-stdSetDict :: (Eq s, Ord s, Show s) => Dict s
+stdSetDict :: Dict
 stdSetDict
  = mergeDicts
     [ entry setn $ ExprEntry subAny showSet noDefn evalSet eqSet

@@ -23,7 +23,7 @@ Here we provide dictionary entries for all our ``standard''
 
 First, a composite recogniser:
 \begin{code}
-isComp :: String -> Pred s -> Bool
+isComp :: String -> Pred -> Bool
 isComp cname (Comp nm _)  =  nm == cname
 isComp _     _            =  False
 \end{code}
@@ -64,7 +64,7 @@ simpNot d [Comp name [pr]]
 
 simpNot _ _ = Nothing
 
-notEntry :: (Show s, Ord s) => Dict s
+notEntry :: Dict
 notEntry
  = entry nNot
    $ PredEntry anyVars ppNot [] (pNoChg nNot) simpNot
@@ -78,15 +78,8 @@ notEntry
 \\ &|& \mAnd & \tAnd
 }
 \begin{code}
-nAnd = _land ; isAnd  =  isComp nAnd
-
-andBundle :: (Ord s, Show s) => ( [Pred s] -> Pred s, Dict s)
-mkAnd     :: (Ord s, Show s) =>   [Pred s] -> Pred s
-andEntry  :: (Ord s, Show s) =>                       Dict s
-
-andBundle = opSemiLattice nAnd F T precAnd
-mkAnd    = fst andBundle
-andEntry = snd andBundle
+nAnd = _land
+(mkAnd, andEntry) = opSemiLattice nAnd F T precAnd
 \end{code}
 
 \HDRc{Disjunction}\label{hc:def-Or}
@@ -97,14 +90,7 @@ andEntry = snd andBundle
 }
 \begin{code}
 nOr = _lor
-
-orBundle :: (Ord s, Show s) => ( [Pred s] -> Pred s, Dict s)
-mkOr     :: (Ord s, Show s) =>   [Pred s] -> Pred s
-orEntry  :: (Ord s, Show s) =>                       Dict s
-
-orBundle = opSemiLattice nOr T F precOr
-mkOr = fst orBundle
-orEntry = snd orBundle
+(mkOr, orEntry) = opSemiLattice nOr T F precOr
 \end{code}
 
 \newpage
@@ -143,7 +129,7 @@ simpImp d [ _, T ]  = Just ( _implies++"-simp", T, diff  )
 
 simpImp _ _ = Nothing
 
-impEntry :: (Show s, Ord s) => Dict s
+impEntry :: Dict
 impEntry
  = entry nImp
    $ PredEntry anyVars ppImp [] (pNoChg nImp) simpImp
@@ -184,7 +170,7 @@ simpEqv d [ F, pr ]  =  Just ( _equiv++"-simp", mkNot pr, diff )
 \begin{code}
 simpEqv _ _ = Nothing
 
-eqvEntry :: (Show s, Ord s) => Dict s
+eqvEntry :: Dict
 eqvEntry
  = entry nEqv
    $ PredEntry anyVars ppEqv [] (pNoChg nEqv) simpEqv
@@ -193,7 +179,7 @@ eqvEntry
 \HDRb{Standard Predicate Dictionary}
 
 \begin{code}
-stdPredDict :: (Ord s, Show s) => Dict s
+stdPredDict :: Dict
 stdPredDict
  = mergeDicts
     [ dictVersion "std-pred 0.2"

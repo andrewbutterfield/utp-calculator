@@ -25,8 +25,7 @@ typically obtained from the user,
 we can resolve a conditional step
 into a completed one:
 \begin{code}
-condResolve :: (Ord s, Show s)
-         => Dict s -> Int -> MCRWResult s -> MRWResult s
+condResolve :: Dict -> Int -> MCRWResult -> MRWResult
 condResolve _ _ Nothing = Nothing
 condResolve d i (Just (nm, [(pr,mpr,chgd)])) = Just (nm,mpr,chgd)
 condResolve d i (Just (nm, outcomes))
@@ -42,8 +41,8 @@ condResolve d i (Just (nm, outcomes))
 %
 %We treat things like simplification here as one big atomic modify step.
 %\begin{code}
-%doAtomicStep :: Mark -> (Mark -> MPred s -> RWResult s) -> MPred s
-%             -> Maybe (MPred s, String, MPred s)
+%doAtomicStep :: Mark -> (Mark -> MPred -> RWResult) -> MPred
+%             -> Maybe (MPred, String, MPred)
 %doAtomicStep m mcstep mpr@(_,pr)
 % = case mcstep m pr of
 %     Nothing -> Nothing
@@ -61,8 +60,8 @@ a predicate, and returning when we succeed.
 
 This call encapsulates the use of zippers completely:
 \begin{code}
-doStepSearch :: Show s => Mark -> (MPred s -> MRWResult s)  -> MPred s
-             -> Maybe (BeforeAfter s)
+doStepSearch :: Mark -> (MPred -> MRWResult)  -> MPred
+             -> Maybe (BeforeAfter)
 doStepSearch m cstep mpr
  = let
      ((mpr1,what,mpr2),ss) = stepFocus cstep $ startMPZ mpr
@@ -72,7 +71,7 @@ doStepSearch m cstep mpr
 \end{code}
 We will need to lift functions from \texttt{Pred} to \texttt{MPred}:
 \begin{code}
-rwLift :: (Pred s -> RWResult s) -> MPred s -> MRWResult s
+rwLift :: (Pred -> RWResult) -> MPred -> MRWResult
 rwLift prf (pr, MT ms _)
  = case prf pr of
      Nothing -> Nothing
@@ -85,7 +84,7 @@ rwLift prf (pr, MT ms _)
 We try a step function first at the current focus level,
 only recursing in deeper if that fails:
 \begin{code}
-stepFocus :: (MPred s -> MRWResult s) -> MPZipper s -> MPZip2 s
+stepFocus :: (MPred -> MRWResult) -> MPZipper -> MPZip2
 stepFocus cstep mpz@( mpr, ss )
  = case cstep mpr of
      Just ( what, mpr', _ )  ->  ((mpr, what, mpr'), ss)
@@ -96,7 +95,7 @@ stepFocus cstep mpz@( mpr, ss )
 
 We are now systematically exploring composite sub-parts:
 \begin{code}
-stepComponents :: (MPred s -> MRWResult s) -> MPZipper s -> MPZip2 s
+stepComponents :: (MPred -> MRWResult) -> MPZipper -> MPZip2
 
 
 -- Substitution, simple, only 1 sub-component:
@@ -117,11 +116,11 @@ stepComponents cstep ( mpr, ss ) = ( (mpr, "", mpr), ss )
 
 Going through a sub-component list:
 \begin{code}
-stepComp' :: (MPred s -> MRWResult s)
-          -> MPred' s   -- current Comp'
-          -> [MPred' s] -- current zip history
-          -> MPred s    -- current focus, within Comp
-          -> MPZip2 s
+stepComp' :: (MPred -> MRWResult)
+          -> MPred'   -- current Comp'
+          -> [MPred'] -- current zip history
+          -> MPred    -- current focus, within Comp
+          -> MPZip2
 
 -- end case, processing last components
 stepComp' cstep s@(Comp' name before [], MT' ms mbef []) ss mpr
@@ -153,8 +152,8 @@ a predicate, and returning when we succeed.
 
 This call encapsulates the use of zippers completely:
 \begin{code}
-doStepCSearch :: Mark -> (MPred s -> MCRWResult s)  -> MPred s
-              -> Maybe (BeforeAfters s)
+doStepCSearch :: Mark -> (MPred -> MCRWResult)  -> MPred
+              -> Maybe (BeforeAfters)
 doStepCSearch m ccstep mpr
  = let
      ((mpr1,what,mprs2),ss) = stepCFocus ccstep $ startMPZ mpr
@@ -164,7 +163,7 @@ doStepCSearch m ccstep mpr
 \end{code}
 We will need to lift functions from \texttt{Pred} to \texttt{MPred}:
 \begin{code}
-crwLift :: (Pred s -> CRWResult s) -> MPred s -> MCRWResult s
+crwLift :: (Pred -> CRWResult) -> MPred -> MCRWResult
 crwLift prf (pr, mt)
  = case prf pr of
      Nothing -> Nothing
@@ -177,7 +176,7 @@ crwLift prf (pr, mt)
 We try a step function first at the current focus level,
 only recursing in deeper if that fails:
 \begin{code}
-stepCFocus :: (MPred s -> MCRWResult s) -> MPZipper s -> CMPZip2 s
+stepCFocus :: (MPred -> MCRWResult) -> MPZipper -> CMPZip2
 stepCFocus ccstep mpz@( mpr, ss )
  = case ccstep mpr of
     Nothing              ->  stepCComponents ccstep mpz
@@ -190,7 +189,7 @@ fixafters (pr, mpr', _) = (pr, mpr')
 
 We are now systematically exploring composite sub-parts:
 \begin{code}
-stepCComponents :: (MPred s -> MCRWResult s) -> MPZipper s -> CMPZip2 s
+stepCComponents :: (MPred -> MCRWResult) -> MPZipper -> CMPZip2
 
 -- Substitution, simple, only 1 sub-component:
 stepCComponents ccstep ( (PSub pr subs, MT ms [smt]), ss )
@@ -213,11 +212,11 @@ stepCComponents ccstep ( mpr, ss ) = ( (mpr, "", [(T,mpr)]), ss )
 
 Going through a sub-component list:
 \begin{code}
-stepCComp' :: (MPred s -> MCRWResult s)
-          -> MPred' s   -- current Comp'
-          -> [MPred' s] -- current zip history
-          -> MPred s    -- current focus, within Comp
-          -> CMPZip2 s
+stepCComp' :: (MPred -> MCRWResult)
+          -> MPred'   -- current Comp'
+          -> [MPred'] -- current zip history
+          -> MPred    -- current focus, within Comp
+          -> CMPZip2
 
 -- end case, processing last components
 stepCComp' ccstep s@(Comp' name before [], MT' ms mbef []) ss mpr
@@ -240,13 +239,13 @@ stepCComp' ccstep s@( Comp' name before after@(npr:rest)
 \HDRb{Definition Expansion}\label{hb:defn-expand}
 
 \begin{code}
-expandDefn :: (Ord s, Show s) => Dict s -> Mark
-           -> MPred s -> Maybe (BeforeAfter s)
+expandDefn :: Dict -> Mark
+           -> MPred -> Maybe (BeforeAfter)
 expandDefn d m mpr  = doStepSearch m (expDefs d) mpr
 \end{code}
 
 \begin{code}
-expDefs :: Dict s -> MPred s -> MRWResult s
+expDefs :: Dict -> MPred -> MRWResult
 
 expDefs d mpr@(Comp name prs, MT ms mts)
  = case plookup name d of
@@ -279,15 +278,15 @@ expDefs _ _ = Nothing
 \HDRc{Simple Reduction}
 
 \begin{code}
-doReduce :: (Ord s, Show s) => Dict s -> [Pred s] -> Mark
-           -> MPred s -> Maybe (BeforeAfter s)
+doReduce :: Dict -> [Pred] -> Mark
+           -> MPred -> Maybe (BeforeAfter)
 doReduce d invs m mpr
  = case M.lookup "laws" d of
     Just (LawEntry red _ _)  ->  doRed d m invs mpr red
     _                        ->  Nothing
 
-doRed :: (Ord s, Show s) => Dict s -> Mark -> [Pred s] -> MPred s -> [RWFun s]
-      -> Maybe (BeforeAfter s)
+doRed :: Dict -> Mark -> [Pred] -> MPred -> [RWFun]
+      -> Maybe (BeforeAfter)
 doRed d m invs mpr [] = Nothing
 doRed d m invs mpr@(ms,_) (rf:rfs)
  = case doStepSearch m (rwLift $ rf d invs) mpr of
@@ -298,15 +297,15 @@ doRed d m invs mpr@(ms,_) (rf:rfs)
 \HDRc{Conditional Reduction}
 
 \begin{code}
-doCReduce :: (Ord s, Show s) => Dict s -> Mark
-           -> MPred s -> Maybe (BeforeAfters s)
+doCReduce :: Dict -> Mark
+           -> MPred -> Maybe (BeforeAfters)
 doCReduce d m mpr
  = case M.lookup "laws" d of
     Just (LawEntry _ cred _)  ->  doCRed d m mpr cred
     _                         ->  Nothing
 
-doCRed :: (Ord s, Show s) => Dict s -> Mark -> MPred s -> [CRWFun s]
-       -> Maybe (BeforeAfters s)
+doCRed :: Dict -> Mark -> MPred -> [CRWFun]
+       -> Maybe (BeforeAfters)
 doCRed d m mpr [] = Nothing
 doCRed d m mpr (rf:rfs)
  = case doStepCSearch m (crwLift $ rf d) mpr of
@@ -317,15 +316,15 @@ doCRed d m mpr (rf:rfs)
 \HDRc{Loop Unrolling}
 
 \begin{code}
-doUnroll :: (Ord s, Show s) => String -> Dict s -> [Pred s] -> Mark
-           -> MPred s -> Maybe (BeforeAfter s)
+doUnroll :: String -> Dict -> [Pred] -> Mark
+           -> MPred -> Maybe (BeforeAfter)
 doUnroll ns d invs m mpr
  = case M.lookup "laws" d of
     Just (LawEntry _ _ unr)   ->  doUnr ns d m invs mpr unr
     _                         ->  Nothing
 
-doUnr :: (Ord s, Show s) => String -> Dict s -> Mark -> [Pred s] -> MPred s
-      -> [String -> RWFun s] -> Maybe (BeforeAfter s)
+doUnr :: String -> Dict -> Mark -> [Pred] -> MPred
+      -> [String -> RWFun] -> Maybe (BeforeAfter)
 doUnr ns d m invs mpr [] = Nothing
 doUnr ns d m invs mpr (rf:rfs)
  = case doStepSearch m (rwLift $ rf ns d invs) mpr of

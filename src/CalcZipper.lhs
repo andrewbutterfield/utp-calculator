@@ -10,7 +10,7 @@ import CalcSysTypes
 \HDRb{Zipper Setup}
 
 \begin{code}
-startMPZ :: MPred s -> MPZipper s
+startMPZ :: MPred -> MPZipper
 startMPZ mp = ( mp, [] )
 \end{code}
 
@@ -19,7 +19,7 @@ startMPZ mp = ( mp, [] )
 We go down by specifying which sub-component, if necessary,
 with components numbered from 0 upwards
 \begin{code}
-downMPZ :: Int -> MPZipper s -> MPZipper s
+downMPZ :: Int -> MPZipper -> MPZipper
 downMPZ _ ( (PSub pr subs, MT ms [smt]), ss )
          = ( (pr, smt), (PSub' subs, MT' ms [] []) : ss )
 downMPZ i ( (Comp name prs, MT ms mts), ss )
@@ -36,7 +36,7 @@ downMPZ _ mpz = mpz -- default case, do nothing
 We can plug an \texttt{MPred} into a\texttt{ MPred'} to get an \texttt{MPred},
 effectively moving up one level
 \begin{code}
-plugMPZ :: MPred' s -> MPred s -> MPred s
+plugMPZ :: MPred' -> MPred -> MPred
 plugMPZ (Comp' name before after, MT' ms mbef maft) (pr, mt)
                             =  ( Comp name (before++pr:after)
                                , MT ms (mbef++mt:maft) )
@@ -46,7 +46,7 @@ plugMPZ (PSub' subs, MT' ms _ _) (pr, mt)  =  (PSub pr subs, MT ms [mt])
 We then lift this to work with a zipper
 where the top-most (inner-most) step is first
 \begin{code}
-upMPZ :: MPZipper s -> MPZipper s
+upMPZ :: MPZipper -> MPZipper
 upMPZ ( mpr, (s:ss) ) = ( plugMPZ s mpr, ss )
 upMPZ mpz = mpz -- taken if currently at top
 \end{code}
@@ -54,8 +54,8 @@ upMPZ mpz = mpz -- taken if currently at top
 \HDRb{Modifying the Focus}
 
 \begin{code}
-updateMPZ :: (MPred s -> MPred s)
-          -> MPZipper s -> MPZipper s
+updateMPZ :: (MPred -> MPred)
+          -> MPZipper -> MPZipper
 updateMPZ f ( mpr, ss ) = ( f mpr, ss )
 \end{code}
 
@@ -63,13 +63,13 @@ updateMPZ f ( mpr, ss ) = ( f mpr, ss )
 
 We can unzip by repeatedly plugging in:
 \begin{code}
-unzipMPZ :: [MPred' s] -> MPred s -> MPred s
+unzipMPZ :: [MPred'] -> MPred -> MPred
 unzipMPZ [] mpr = mpr
 unzipMPZ (s:ss) mpr = unzipMPZ ss $ plugMPZ s mpr
 \end{code}
 
 We exit by unzipping as above:
 \begin{code}
-exitMPZ :: MPZipper s -> MPred s
+exitMPZ :: MPZipper -> MPred
 exitMPZ ( mpr, ss ) = unzipMPZ ss mpr
 \end{code}

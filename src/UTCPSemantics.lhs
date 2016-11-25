@@ -10,6 +10,7 @@ import CalcPredicates
 import CalcSimplify
 import CalcRecogniser
 import CalcSteps
+import DictAbstractions
 import StdPrecedences
 import StdPredicates
 import StdUTPPredicates
@@ -192,7 +193,7 @@ and updating by removing elements.
 setn = "set"
 set = App setn
 
-mkSet :: Ord s => [Expr s] -> Expr s
+mkSet :: [Expr] -> Expr
 mkSet = set . sort . nub
 
 showSet d elms = "{" ++ dlshow d "," elms ++ "}"
@@ -308,7 +309,7 @@ Label Swap:
 
 The Set Dictionary:
 \begin{code}
-setUTCPDict :: (Eq s, Ord s, Show s) => Dict s
+setUTCPDict :: Dict
 setUTCPDict
  = makeDict
     [ (setn,(ExprEntry subAny showSet noDefn evalSet eqSet))
@@ -342,7 +343,7 @@ lsin = Atm $ App subsetn [inp,ls]
 lsinout = App sswapn [ls,inp,out]
 ls'eqlsinout = Equal ls' lsinout
 
-patmEntry :: (Show s, Ord s) => (String, Entry s)
+patmEntry :: (String, Entry)
 patmEntry
  = ( nPAtm
    , PredEntry [] ppPAtm [] defnAtomic (pNoChg nPAtm) )
@@ -365,7 +366,7 @@ ppPIdle _ _ _ _  = pps styleRed $ ppa ("invalid-"++shPIdle)
 
 defnIdle d [] = ldefn shPIdle $ Equal s' s
 
-pidleEntry :: (Show s, Ord s) => (String, Entry s)
+pidleEntry :: (String, Entry)
 pidleEntry
  = ( nPIdle
    , PredEntry [] ppPIdle [] defnIdle (pNoChg nPIdle) )
@@ -552,7 +553,7 @@ so we have the following law:
 }
 We can now define a generator dictionary:
 \begin{code}
-genUTCPDict :: (Eq s, Ord s, Show s) => Dict s
+genUTCPDict :: Dict
 genUTCPDict
  = makeDict
     [ (new1n,(ExprEntry subAny showGNew1 noDefn (justMakes gNew1) noEq))
@@ -618,7 +619,7 @@ g' = new2 g
 g'1 = split1 g'
 g'2 = split2 g'
 
-pseqEntry :: (Show s, Ord s) => (String, Entry s)
+pseqEntry :: (String, Entry)
 pseqEntry
  = ( nPSeq
    , PredEntry [] ppPSeq [] defnSeq (pNoChg nPSeq) )
@@ -721,7 +722,7 @@ defnPPar d [p,q]
                , Equal s' s
                , Equal ls' (sswap ls (mkSet[lg1',lg2']) out) ]
 
-pparEntry :: (Show s, Ord s) => (String, Entry s)
+pparEntry :: (String, Entry)
 pparEntry
  = ( nPPar
    , PredEntry [] ppPPar [] defnPPar (pNoChg nPPar) )
@@ -788,7 +789,7 @@ defnPCond d [c,p,q]
    sub1 = [("g",g1'),("in",lg1)]
    sub2 = [("g",g2'),("in",lg2)]
 
-pcondEntry :: (Show s, Ord s) => (String, Entry s)
+pcondEntry :: (String, Entry)
 pcondEntry
  = ( nPCond
    , PredEntry [] ppPCond [] defnPCond (pNoChg nPCond) )
@@ -837,7 +838,7 @@ defnIter d [c,p]
                      , Equal ls' $ sswap ls inp ell ]
    sb = [("g",g'),("in",lg),("out",inp)]
 
-piterEntry :: (Show s, Ord s) => (String, Entry s)
+piterEntry :: (String, Entry)
 piterEntry
  = ( nPIter
    , PredEntry [] ppPIter [] defnIter (pNoChg nPIter) )
@@ -896,7 +897,7 @@ idefn i str = ldefn (str++'(':show i++")")
 
 runLoop p  = mkIter (mkNot $ Atm $ subset (mkSet [out]) ls) p
 
-prunEntry :: (Show s, Ord s) => Int -> (String, Entry s)
+prunEntry :: Int -> (String, Entry)
 prunEntry n
  = ( nPRun
    , PredEntry [] ppPRun [] (defnRun n) (pNoChg nPRun) )
@@ -924,7 +925,7 @@ ppPDo _ _ _ _  = pps styleRed $ ppa ("invalid-"++shPDo)
 defnDo d [p]
  = ldefn shPDo $ mkAnd [ Equal ls inp, run p ]
 
-pdoEntry :: (Show s, Ord s) => (String, Entry s)
+pdoEntry :: (String, Entry)
 pdoEntry
  = ( nPDo
    , PredEntry [] ppPDo [] defnDo (pNoChg nPDo) )
@@ -973,7 +974,7 @@ We assume atomic change-state actions $A$ with alphabet $\setof{s,s'}$.
 \\ do(P) &\defs& in=\ell_g \land out=\ell_{g:} \land ls=\ell_g \land run(P)
 }
 \begin{code}
-semUTCPDict :: (Ord s, Show s) => Dict s
+semUTCPDict :: Dict
 semUTCPDict
  = makeDict
     [ patmEntry

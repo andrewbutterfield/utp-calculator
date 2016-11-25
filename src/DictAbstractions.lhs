@@ -26,7 +26,7 @@ and well as predicate transformers of interest.
 First, we deal with simple ways to provide \texttt{PredEntry}
 for simple predicate variables:
 \begin{code}
-pvarEntry :: String -> [String] -> Dict s
+pvarEntry :: String -> [String] -> Dict
 pvarEntry nm alf
  = entry nm
    $ PredEntry [] ppPVar alf (pNoChg nm) (pNoChg nm)
@@ -44,10 +44,10 @@ pvarEntry nm alf
 \begin{code}
 prefixPT :: String                       -- name
          -> Int                          -- precedence
-         -> Maybe ( Dict s
-                    -> Pred s -> Pred s) -- optional defn expander
-         -> ( Pred s -> Pred s           -- builder
-            , Dict s)                    -- entry
+         -> Maybe ( Dict
+                    -> Pred -> Pred) -- optional defn expander
+         -> ( Pred -> Pred           -- builder
+            , Dict)                    -- entry
 prefixPT n_PT precPT optDefnPT
  = let
 
@@ -84,12 +84,11 @@ prefixPT n_PT precPT optDefnPT
 
 Associative binary operators with  unit elements.
 \begin{code}
-opMonoid :: (Ord s, Show s)
-              => String
-              -> Pred s
-              -> Int
-              -> ( [Pred s] -> Pred s
-                 , Dict s)
+opMonoid :: String
+         -> Pred
+         -> Int
+         -> ( [Pred] -> Pred
+            , Dict)
 opMonoid n_MND unit precMND
  = let
 
@@ -123,13 +122,12 @@ this embodies the following laws:
 \\ \bigotimes_{i \in \setof{1}} x_i &=& x_1
 }
 \begin{code}
-sMonoid :: (Ord s, Show s)
-         => Dict s
-         -> String               -- op. name
-         -> ([Pred s] -> Pred s) -- op. builder
-         -> Pred s               -- unit
-         -> [Pred s]             -- op. arguments
-         -> RWResult s
+sMonoid :: Dict
+        -> String               -- op. name
+        -> ([Pred] -> Pred) -- op. builder
+        -> Pred               -- unit
+        -> [Pred]             -- op. arguments
+        -> RWResult
 sMonoid d tag op unit prs
  = ret $ simpM [] prs
  where
@@ -157,13 +155,12 @@ sMonoid d tag op unit prs
 
 Associative binary operators with both unit and zero elements.
 \begin{code}
-opSemiLattice :: (Ord s, Show s)
-              => String
-              -> Pred s
-              -> Pred s
+opSemiLattice :: String
+              -> Pred
+              -> Pred
               -> Int
-              -> ( [Pred s] -> Pred s
-                 , Dict s)
+              -> ( [Pred] -> Pred
+                 , Dict)
 opSemiLattice n_SL zero unit precSL
  = let
 
@@ -192,8 +189,8 @@ opSemiLattice n_SL zero unit precSL
 First, building a flattened associative list:
 \begin{code}
 mkAssoc
-  :: String -> (Pred s -> Bool) -> [Pred s] -> [Pred s]
-  -> Pred s
+  :: String -> (Pred -> Bool) -> [Pred] -> [Pred]
+  -> Pred
 mkAssoc op isOp srp [] = Comp op $ reverse srp
 mkAssoc op isOp srp (pr:prs)
  | isOp pr = mkAssoc op isOp (reverse (predPrs pr)++srp) prs
@@ -213,14 +210,13 @@ this embodies the following laws:
 \\ \bigotimes_{i \in \setof{1}} x_i &=& x_1
 }
 \begin{code}
-sLattice :: (Ord s, Show s)
-         => Dict s
+sLattice :: Dict
          -> String               -- op. name
-         -> ([Pred s] -> Pred s) -- op. builder
-         -> Pred s               -- zero
-         -> Pred s               -- unit
-         -> [Pred s]             -- op. arguments
-         -> RWResult s
+         -> ([Pred] -> Pred) -- op. builder
+         -> Pred               -- zero
+         -> Pred               -- unit
+         -> [Pred]             -- op. arguments
+         -> RWResult
 sLattice d tag op zero unit prs
  = ret $ simpL [] prs
  where

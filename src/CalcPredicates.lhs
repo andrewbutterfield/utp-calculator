@@ -21,12 +21,12 @@ Smart constructors and equality testing for substitutions.
 mkSub e []  = e
 mkSub e sub = Sub e $ sort sub
 
-mkPSub :: Ord s => Pred s -> [(String, Expr s)] -> Pred s
+mkPSub :: Pred -> [(String, Expr)] -> Pred
 mkPSub pr []  = pr
 mkPSub pr sub = PSub pr $ sort sub
 
 -- substitutions are sorted for comparison
-ssame ::  (Eq s, Ord s) => Substn s -> Substn s -> Bool
+ssame ::  Substn -> Substn -> Bool
 ssame sub1 sub2 = sort sub1 == sort sub2
 \end{code}
 We treat expressions as atomic from the perspective of
@@ -36,29 +36,29 @@ pretty-printing and highlighting.
 
 \HDRc{Basic Marking}\label{hc:basic-marking}
 \begin{code}
-noMark :: Pred s -> MPred s
+noMark :: Pred -> MPred
 noMark = buildMarks
 
-unMark :: MPred s -> MPred s
+unMark :: MPred -> MPred
 unMark (pr, MT _ mts) = (pr, MT [] mts)
 
-topMark :: Marks -> MPred s -> MPred s
+topMark :: Marks -> MPred -> MPred
 topMark ms (pr, MT _ mts) = (pr, MT ms mts)
 
-addMark :: Mark -> MPred s -> MPred s
+addMark :: Mark -> MPred -> MPred
 addMark m (pr, MT ms mts) = (pr, MT (m:ms) mts)
 
-popMark :: MPred s -> MPred s
+popMark :: MPred -> MPred
 popMark (pr, MT ms mts) = (pr, MT (ttail ms) mts)
 
-remMark :: Mark -> MPred s -> MPred s
+remMark :: Mark -> MPred -> MPred
 remMark m (pr, MT ms mts) = (pr, MT (ms\\[m]) mts)
 \end{code}
 
 We also need sometimes to strip out a mark at all levels
 in a predicate:
 \begin{code}
-stripMark :: Mark -> MPred s -> MPred s
+stripMark :: Mark -> MPred -> MPred
 stripMark m (pr, mt) = (pr, stripMark' m mt)
 
 stripMark' m (MT ms mts)
@@ -67,10 +67,10 @@ stripMark' m (MT ms mts)
 
 Or even more drastically, clean them all out:
 \begin{code}
-cleanMarks :: MPred s -> MPred s
+cleanMarks :: MPred -> MPred
 cleanMarks (pr, _) = buildMarks pr
 
-cleanCalc :: CalcLog s -> CalcLog s
+cleanCalc :: CalcLog -> CalcLog
 cleanCalc ((currpr, steps, is),d)
  = ( (cleanMarks currpr
      , mapsnd cleanMarks steps
@@ -90,22 +90,22 @@ isExprEntry _ = False
 isAlfEntry (AlfEntry _) = True
 isAlfEntry _ = False
 
-nullDict :: Dict s
+nullDict :: Dict
 nullDict = M.empty
 
-plookup :: String -> Dict s -> Maybe (Entry s)
+plookup :: String -> Dict -> Maybe (Entry)
 plookup nm d
  = case M.lookup nm d of
      Just pd@(PredEntry _ _ _ _ _)  ->  Just pd
      _                              ->  Nothing
 
-elookup :: String -> Dict s -> Maybe (Entry s)
+elookup :: String -> Dict -> Maybe (Entry)
 elookup nm d
  = case M.lookup nm d of
      Just ed@(ExprEntry _ _ _ _ _)  ->  Just ed
      _                              ->  Nothing
 
-alookup :: String -> Dict s -> Maybe (Entry s)
+alookup :: String -> Dict -> Maybe (Entry)
 alookup nm d
  = case M.lookup nm d of
      Just ad@(AlfEntry _)  ->  Just ad
@@ -115,13 +115,13 @@ alookup nm d
 \HDRc{Dictionary Construction}
 
 \begin{code}
-makeDict :: [(String, Entry s)] -> Dict s
+makeDict :: [(String, Entry)] -> Dict
 makeDict = M.fromList
 
-entry :: String -> Entry s -> Dict s
+entry :: String -> Entry -> Dict
 entry s e = makeDict [(s, e)]
 
-dictVersion :: String -> Dict s
+dictVersion :: String -> Dict
 dictVersion vtxt = entry version $ AlfEntry [vtxt]
 
 version = "Version"
@@ -132,36 +132,36 @@ When we merge dictionary entries
 we concatenate \texttt{AlfEntry} and \texttt{LawEntry},
 but otherwise take the first:
 \begin{code}
-mergeEntry :: Entry s -> Entry s -> Entry s
+mergeEntry :: Entry -> Entry -> Entry
 mergeEntry (AlfEntry a1) (AlfEntry a2)  =  AlfEntry (a1++a2)
 mergeEntry (LawEntry r1 cr1 u1) (LawEntry r2 cr2 u2)
                          = LawEntry (r1++r2) (cr1++cr2) (u1++u2)
 mergeEntry e _ = e
 
-dictMrg :: Dict s -> Dict s -> Dict s
+dictMrg :: Dict -> Dict -> Dict
 dictMrg = M.unionWith mergeEntry
 
-mergeDicts ::[Dict s] -> Dict s
+mergeDicts ::[Dict] -> Dict
 mergeDicts = foldl dictMrg M.empty
 \end{code}
 
 
 Default expression/predicate entry functions
 \begin{code}
-noEq :: Dict s -> [Expr s] -> [Expr s] -> Maybe Bool
+noEq :: Dict -> [Expr] -> [Expr] -> Maybe Bool
 noEq _ _ _ = Nothing
 
 subAny =["*"]
 
-pNoChg :: String -> Rewrite s
+pNoChg :: String -> Rewrite
 pNoChg _ _ _ = Nothing
 
 noDefn _ _ = Nothing
 
 -- labelling definitions
-ldefn :: String -> Pred s -> RWResult s
+ldefn :: String -> Pred -> RWResult
 ldefn nm pr = Just ( "Expanded defn. of " ++ nm, pr, True )
-edefn :: String -> Expr s -> Maybe (String, Expr s)
+edefn :: String -> Expr -> Maybe (String, Expr)
 edefn nm e = Just ( "Expanded defn. of " ++ nm, e )
 \end{code}
 
@@ -170,15 +170,15 @@ For expression definitions,
 we define a default evaluator that does nothing,
 and a simple wrapper for evals that always do something
 \begin{code}
-none :: ( String, Expr s)
+none :: ( String, Expr)
 none = ( "", Undef )
-noeval :: [Expr s] -> ( String, Expr s)
+noeval :: [Expr] -> ( String, Expr)
 noeval _ = none
-noEval :: Dict s -> [Expr s] -> (String, Expr s)
+noEval :: Dict -> [Expr] -> (String, Expr)
 noEval _ = noeval
-does :: String -> (Dict s -> [Expr s] -> Expr s)
-     -> Dict s -> [Expr s]
-     -> ( String, Expr s )
+does :: String -> (Dict -> [Expr] -> Expr)
+     -> Dict -> [Expr]
+     -> ( String, Expr )
 does what f d es = ( what, f d es )
 justMakes f d es = ( "",   f es )
 \end{code}
@@ -189,8 +189,8 @@ justMakes f d es = ( "",   f es )
 We define the display of an expression using a dictionary
 to provide exceptional ways to render things.
 \begin{code}
-edshow :: Show s => Dict s -> Expr s -> String
-edshow d (St s)     =  show s
+edshow :: Dict -> Expr -> String
+edshow d St         =  bold "s"
 edshow d (B b)      =  show b
 edshow d (Z i)      =  show i
 edshow d (Var v)    =  v
@@ -201,11 +201,11 @@ edshow d (App f es)
     Just (ExprEntry _ showf _ _ _) -> showf d es
 edshow d (Sub e sub) = pshow d e ++ showSub d sub
 
-dlshow :: Show s => Dict s -> String -> [Expr s] -> [Char]
+dlshow :: Dict -> String -> [Expr] -> [Char]
 dlshow d sep xs = concat (intersperse sep $ map (edshow d) xs)
 
-pshow :: Show s => Dict s -> Expr s -> [Char]
-pshow d e@(St _)     =  "("++edshow d e++")"
+pshow :: Dict -> Expr -> [Char]
+pshow d St     =  "("++edshow d St++")"
 pshow d e@(App _ _)  =  "("++edshow d e++")"
 pshow d e            =       edshow d e
 
@@ -220,7 +220,7 @@ lsshow vs = concat $ intersperse "," vs
 By default we print \texttt{App f [e1,...,en]} as \texttt{f(e1,...,en)},
 using the following helper functions:
 \begin{code}
-stdFShow :: Show s => Dict s -> [Char] -> [Expr s] -> [Char]
+stdFShow :: Dict -> [Char] -> [Expr] -> [Char]
 stdFShow d f es = f ++ "(" ++ dlshow d "," es ++ ")"
 
 
@@ -230,36 +230,32 @@ For now, we don't support infix function syntax.
 
 We provide a default printer for an expression entry
 \begin{code}
-defEPrint :: Show s => String -> Dict s -> [Expr s] -> String
+defEPrint :: String -> Dict -> [Expr] -> String
 defEPrint nm d es = stdFShow d nm es
 \end{code}
 
 Now, prettiness..
 \begin{code}
-plainShow :: (Show s, Ord s) => Int -> Dict s -> Pred s -> String
+plainShow :: Int -> Dict -> Pred -> String
 plainShow w d pr = render w $ showp d noStyles 0 pr
 
-pmdshow :: (Show s, Ord s)
-        => Int -> Dict s -> MarkStyle -> MPred s -> String
+pmdshow :: Int -> Dict -> MarkStyle -> MPred -> String
 pmdshow w d msf mpr = render w $ mshowp d msf 0 mpr
 
-pdshow :: (Show s, Ord s)
-        => Int -> Dict s -> MarkStyle -> Pred s -> String
+pdshow :: Int -> Dict -> MarkStyle -> Pred -> String
 pdshow w d msf pr = render w $ mshowp d msf 0 $ buildMarks pr
 \end{code}
 
 Pretty-printing predicates.
 \begin{code}
-mshowp :: (Ord s, Show s)
-       => Dict s -> MarkStyle -> Int -> MPred s -> PP
+mshowp :: Dict -> MarkStyle -> Int -> MPred -> PP
 mshowp d msf p mpr@( pr, MT ms _)
  = sshowp $ catMaybes $ map msf ms
  where
   sshowp []  =  mshowp0 d msf p mpr
   sshowp (s:ss) = pps s $ sshowp ss
 
-mshowp0 :: (Ord s, Show s)
-        => Dict s -> MarkStyle -> Int -> MPred s -> PP
+mshowp0 :: Dict -> MarkStyle -> Int -> MPred -> PP
 mshowp0 d _ _ (T, _)  = ppa _true
 mshowp0 d _ _ (F, _)  = ppa _false
 mshowp0 d _ _ (PVar p, _)  = ppa p
@@ -278,30 +274,26 @@ mshowp0 d msf p (Comp cname pargs, MT _ mts)
        ->  showf (subCompShow msf mts d) d p pargs
     _  ->  stdCshow d msf cname mts pargs
 
-subCompShow :: (Ord s, Show s)
-            => MarkStyle -> [MTree] -> Dict s
-            -> SubCompPrint s
+subCompShow :: MarkStyle -> [MTree] -> Dict
+            -> SubCompPrint
 subCompShow msf mts d p i subpr
  | 0 < i && i <= length mts
    = mshowp d msf p (subpr, mts !!(i-1))
  | otherwise
    = mshowp d msf p $ buildMarks subpr
 
-stdCshow :: (Ord s, Show s)
-         => Dict s -> MarkStyle -> String -> [MTree] -> [Pred s]
+stdCshow :: Dict -> MarkStyle -> String -> [MTree] -> [Pred]
          -> PP
 stdCshow d msf cname mts pargs
  = pplist [ ppa cname
           , ppclosed "(" ")" ","
             $ ppwalk 1 (subCompShow msf mts d 0) pargs ]
 
-ppwalk :: (Ord s, Show s)
-       => Int -> (Int -> Pred s -> PP) -> [Pred s] -> [PP]
+ppwalk :: Int -> (Int -> Pred -> PP) -> [Pred] -> [PP]
 ppwalk _ _ []            =  []
 ppwalk i sCS (arg:args)  =  (sCS i arg) : ppwalk (i+1) sCS args
 
-showp :: (Ord s, Show s)
-      => Dict s -> MarkStyle -> Int -> Pred s -> PP
+showp :: Dict -> MarkStyle -> Int -> Pred -> PP
 showp d ms p pr = mshowp d ms p $ buildMarks pr
 \end{code}
 

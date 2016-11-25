@@ -100,9 +100,8 @@ Because the others are in fact paired with a string ($w_k$) identifying the step
 For now we define a simple REPL.
 First, some top-level setup:
 \begin{code}
-calcREPL :: (Ord s, Show s)
-         => Dict s -> InvState s -> Pred s
-         -> IO (CalcLog s)
+calcREPL :: Dict -> InvState -> Pred
+         -> IO (CalcLog)
 calcREPL d invst pr
  = do putStrLn ""
       putStrLn $ versionShow d'
@@ -120,9 +119,8 @@ versionShow d
 
 Now, the main REPL loop:
 \begin{code}
-runREPL :: (Ord s, Show s)
-        => Dict s -> Mark -> State s
-        -> IO (CalcLog s)
+runREPL :: Dict -> Mark -> State
+        -> IO (CalcLog)
 runREPL d m state@(currpr,steps,istate)
  = do
 --   if invMPred currpr
@@ -207,10 +205,9 @@ displayInv d m st@(_,_,ivs)
 \newpage
 Applying a given kind of step:
 \begin{code}
-calcStep :: (Ord s, Show s)
-         => Dict s -> Mark -> (MPred s -> Maybe (BeforeAfter s))
-         -> State s
-         -> IO (CalcLog s)
+calcStep :: Dict -> Mark -> (MPred -> Maybe (BeforeAfter))
+         -> State
+         -> IO (CalcLog)
 calcStep d m stepf st@(currpr,steps,is)
  = do case stepf currpr of
        Nothing  ->  runREPL d m st
@@ -219,7 +216,7 @@ calcStep d m stepf st@(currpr,steps,is)
                 let st' = stUpdate (comment,before) after st
                 runREPL d (nextm m) st'
 
-stUpdate :: Show s => (String, MPred s) ->  MPred s -> State s -> State s
+stUpdate :: (String, MPred) ->  MPred -> State -> State
 stUpdate wbefore after ( _, steps, is) = ( after, wbefore:steps, is)
 
 quote str = _ll++' ':str++' ':_gg
@@ -227,10 +224,9 @@ quote str = _ll++' ':str++' ':_gg
 
 Apply a given conditional step:
 \begin{code}
-calcCStep :: (Ord s, Show s)
-          => Dict s -> Mark -> (MPred s -> Maybe(BeforeAfters s))
-          -> State s
-          -> IO (CalcLog s)
+calcCStep :: Dict -> Mark -> (MPred -> Maybe(BeforeAfters))
+          -> State
+          -> IO (CalcLog)
 calcCStep d m cstepf st@(currpr,steps,_)
  = case cstepf currpr of
     Nothing  ->  runREPL d m st
@@ -253,8 +249,7 @@ calcCStep d m cstepf st@(currpr,steps,_)
    getInt _ = 0
    addtopmod (pr,mpr) = (pr,mpr,True) -- assume top modified
 
-ccshow :: (Show s, Ord s)
-       => Dict s -> [(Int,(Pred s, MPred s))] -> [String]
+ccshow :: Dict -> [(Int,(Pred, MPred))] -> [String]
 ccshow d [] = []
 ccshow d ((i,(cpr,rmpr)):rest)
  = ["","(" ++ show i++ ") provided:    " ++ plainShow 80 d cpr
@@ -276,10 +271,9 @@ prevm = subtract 1
 
 Showing Marks
 \begin{code}
-showMarks :: (Ord s, Show s)
-          => Dict s -> Mark
-          -> State s
-          -> IO (CalcLog s)
+showMarks :: Dict -> Mark
+          -> State
+          -> IO (CalcLog)
 showMarks d m state@(currpr,steps,_)
  = do showm (1::Int) $ reverse (currpr:map snd steps)
       runREPL d m state
@@ -289,7 +283,7 @@ showm i (mpr:mprs)
  = do putStrLn (show i ++ " ! " ++ show (marksOf mpr))
       showm (i+1) mprs
 
-marksOf :: MPred s -> [Mark]
+marksOf :: MPred -> [Mark]
 marksOf = mFlatten . snd
 
 mFlatten (MT ms mts) = ms ++ concat (map mFlatten mts)
@@ -311,7 +305,7 @@ viewBefore d m state@(currpr,(_,prevpr):_,_)
 
 \CALCINV
 \begin{code}
-invMarks :: CalcLog s -> Bool
+invMarks :: CalcLog -> Bool
 invMarks ((n_0, [],_),_) =  null $ marksOf n_0
 invMarks ((n_k, ps,_),_)
  = invMarksNE k n_k
@@ -345,14 +339,13 @@ stepshow s m
 
 Now, rendering the results to look pretty:
 \begin{code}
-calcPrint :: (Ord s, Show s) => CalcLog s -> String
+calcPrint :: CalcLog -> String
 calcPrint ( (currpr, steps, _), d )
  = unlines ( "" : versionShow d : ""
              : (stepPrint d 0 $ reverse steps)
                ++ [pmdshow 80 d (stepshow $ length steps) currpr])
 
-stepPrint :: (Ord s, Show s)
-          => Dict s -> StepNo -> [Step s] -> [String]
+stepPrint :: Dict -> StepNo -> [Step] -> [String]
 stepPrint d s [] = []
 stepPrint d s ((comment,mpr):rest)
  = [pmdshow 80 d (stepshow s) mpr]
@@ -360,7 +353,7 @@ stepPrint d s ((comment,mpr):rest)
    ++ stepPrint d (s+1) rest
 
 
-outcome :: CalcLog s -> MPred s
+outcome :: CalcLog -> MPred
 outcome ((mpr, _, _),_)  =  mpr
 \end{code}
 
@@ -374,7 +367,7 @@ printREPL d invstate mpr
 
 Rendering to a file (without highlighting!)
 \begin{code}
-saveCalc :: (Ord s, Show s) => FilePath -> CalcLog s -> IO ()
+saveCalc :: FilePath -> CalcLog -> IO ()
 saveCalc fp calc
  = writeFile fp $ calcPrint $ cleanCalc calc
 \end{code}

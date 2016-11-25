@@ -4,112 +4,112 @@
 
 
 \begin{code}
-data Expr s
- = St s  -- a value of type State
+data Expr
+ = St  -- a value of type State
  | B Bool
  | Z Int
  | Var String
- | App String [Expr s]
- | Sub (Expr s) (Substn s)
+ | App String [Expr]
+ | Sub Expr Substn
  | Undef
  deriving (Eq,Ord,Show)
 
-type Substn s = [(String,Expr s)]
+type Substn = [(String,Expr)]
 \end{code}
 
 \begin{code}
-data Pred s
+data Pred
  = T
  | F
  | PVar String
- | Equal (Expr s) (Expr s)
- | Atm (Expr s)
- | Comp String [Pred s]
- | PSub (Pred s) (Substn s)
+ | Equal Expr Expr
+ | Atm Expr
+ | Comp String [Pred]
+ | PSub Pred Substn
  deriving (Eq, Ord, Show)
 \end{code}
 \begin{code}
-type RWResult s
+type RWResult
  = Maybe ( String  -- rewrite justification
-         , Pred s  -- result predicate
+         , Pred  -- result predicate
          , Bool )  -- True if top-level modified
-type RWFun s = Dict s     -- dictionary
-            -> Pred s     -- invariant predicate
-            -> Pred s     -- target predicate
-            -> RWResult s
+type RWFun = Dict     -- dictionary
+            -> Pred     -- invariant predicate
+            -> Pred     -- target predicate
+            -> RWResult
 \end{code}
 
 \begin{code}
-type CRWResult s
+type CRWResult
  = Maybe ( String      -- justification
-         , [( Pred s   -- side-condition to be discharged
-            , Pred s   -- modified predicate
+         , [( Pred   -- side-condition to be discharged
+            , Pred   -- modified predicate
             , Bool)])  -- True if top-level modified
-type CRWFun s = Dict s -> Pred s -> CRWResult s
+type CRWFun = Dict -> Pred -> CRWResult
 \end{code}
 
 \newpage
 \begin{code}
-type Dict s = M.Map String (Entry s)
+type Dict = M.Map String (Entry)
 \end{code}
 
 \begin{code}
-type Rewrite s = Dict s -> [Pred s] -> RWResult s
+type Rewrite = Dict -> [Pred] -> RWResult
 \end{code}
 
 \begin{code}
-type SubCompPrint s
- = Int       -- precedence level for sub-component
+type SubCompPrint
+ = Int       -- precedence level forub-component
    -> Int    -- sub-component number
-   -> Pred s -- sub-component
+   -> Pred -- sub-component
    -> PP
 \end{code}
 
 \begin{code}
-data Entry s =
+data Entry =
    AlfEntry {   -- about Alphabets
     avars   :: [String]  -- alphabet
    }
  | ExprEntry { -- about Expressions
      ecansub :: [String]                   -- substitutable vars
-   , eprint  :: Dict s -> [Expr s] -> String   -- pretty printer
-   , defn    :: Dict s -> [Expr s]             -- defn expansion
-             -> Maybe (String, Expr s)
-   , simp    :: Dict s -> [Expr s]                 -- simplifier
+   , eprint  :: Dict -> [Expr] -> String   -- pretty printer
+   , defn    :: Dict -> [Expr]             -- defn expansion
+             -> Maybe (String, Expr)
+   , simp    :: Dict -> [Expr]                 -- simplifier
              -> ( String -- empty if no change, else explanation
-                , Expr s )
-   , isEqual :: Dict s -> [Expr s] -> [Expr s] -> Maybe Bool
+                , Expr )
+   , isEqual :: Dict -> [Expr] -> [Expr] -> Maybe Bool
    }
  | PredEntry {    -- about Predicates and PredVars
      pcansub :: [String]                   -- substitutable vars
-   , pprint  :: SubCompPrint s                 -- pretty-printer
-             -> Dict s -> Int -> [Pred s]
+   , pprint  :: SubCompPrint                 -- pretty-printer
+             -> Dict -> Int -> [Pred]
              -> PP
    , alfa :: [String]                      -- predicate alphabet
-   , pdefn   :: Rewrite s                      -- defn expansion
-   , prsimp  :: Rewrite s                          -- simplifier
+   , pdefn   :: Rewrite                      -- defn expansion
+   , prsimp  :: Rewrite                          -- simplifier
    }
  | LawEntry {  -- about useful laws
-     reduce  :: [RWFun s]            -- reduction laws
-   , creduce :: [CRWFun s]           -- conditional reductions
-   , unroll  :: [String -> RWFun s]  -- loop unrollers
+     reduce  :: [RWFun]            -- reduction laws
+   , creduce :: [CRWFun]           -- conditional reductions
+   , unroll  :: [String -> RWFun]  -- loop unrollers
    }
 \end{code}
 
 \begin{code}
-type Recogniser s = Pred s -> Maybe [Pred s]
+type Recogniser = Pred -> Maybe [Pred]
 \end{code}
 
 \begin{code}
-type InvChecker s
- = Dict s
-   -> Pred s     -- invariant
-   -> Pred s     -- test predicate
+type InvChecker
+ = Dict
+   -> Pred     -- invariant
+   -> Pred     -- test predicate
    -> Maybe Bool
-type InvPair s
- = ( InvChecker s  -- inv check function
-   , Pred s )      -- invariant predicate
-type InvState s = [InvPair s]
+type InvPair
+ = ( InvChecker  -- inv check function
+   , Pred )      -- invariant predicate
+type InvState = [InvPair]
 \end{code}
 
 \newpage
@@ -125,7 +125,7 @@ data MTree = MT Marks [MTree] deriving (Eq, Ord, Show)
 \end{code}
 
 \begin{code}
-type MPred s = ( Pred s, MTree )
+type MPred = ( Pred, MTree )
 \end{code}
 
 \begin{code}
@@ -133,13 +133,13 @@ type MarkStyle = Int -> Maybe Style
 \end{code}
 
 \begin{code}
-data Pred' s
+data Pred'
  = Comp'        -- parent is a Comp node
      String       -- parent name
-     [Pred s]     -- components before current focus
-     [Pred s]     -- components after current focus
+     [Pred]     -- components before current focus
+     [Pred]     -- components after current focus
  | PSub'        -- parent is a PSub node
-     (Substn s)   -- substitution in parent
+     Substn   -- substitution in parent
  deriving Show
 
 data MTree'
@@ -148,60 +148,60 @@ data MTree'
      [MTree]   -- components before current focus
      [MTree]   -- components before current focus
 
-type MPred' s = ( Pred' s, MTree' )
+type MPred' = ( Pred', MTree' )
 
-type MPZipper s
-  = ( MPred s    -- the current (focus) predicate
-    , [MPred' s] -- the steps we took to get here,
+type MPZipper
+  = ( MPred    -- the current (focus) predicate
+    , [MPred'] -- the steps we took to get here,
                    -- and what we passed on the way.
     )
 \end{code}
 
 \newpage
 \begin{code}
-type MRWResult s
+type MRWResult
  = Maybe ( String  -- rewrite justification
-         , MPred s  -- result marked predicate
+         , MPred  -- result marked predicate
          , Bool )  -- True if top-level modified
 
-type MCRWResult s
+type MCRWResult
  = Maybe ( String      -- justification
-         , [( Pred s   -- side-condition to be discharged
-            , MPred s   -- modified marked predicate
+         , [( Pred   -- side-condition to be discharged
+            , MPred   -- modified marked predicate
             , Bool)])  -- True if top-level modified
 \end{code}
 
 
 \begin{code}
-type BeforeAfter s
- = ( MPred s   -- before predicate, marked
+type BeforeAfter
+ = ( MPred   -- before predicate, marked
    , String      -- justification
-   , MPred s ) -- after predicate, marked
+   , MPred ) -- after predicate, marked
 \end{code}
 
 \begin{code}
-type BeforeAfters s
- = ( MPred s   -- before predicate, marked
+type BeforeAfters
+ = ( MPred   -- before predicate, marked
    , String      -- justification
-   , [(Pred s,MPred s)] ) -- after predicates, marked
+   , [(Pred,MPred)] ) -- after predicates, marked
 \end{code}
 
 \begin{code}
-type MPZip2 s = (BeforeAfter s, [MPred' s])
+type MPZip2 = (BeforeAfter, [MPred'])
 \end{code}
 
 \begin{code}
-type CMPZip2 s = ( BeforeAfters s, [MPred' s] )
+type CMPZip2 = ( BeforeAfters, [MPred'] )
 \end{code}
 
 \begin{code}
-type Step s
- = ( String        -- step justification
-   , MPred s )     -- prev predicate
-type State s
- = ( MPred s       -- current goal predicate
-   , [Step s]      -- calc steps so far
-   , InvState s )  -- invariant
-type CalcLog s = ( State s   -- final state
-                 , Dict s )  -- final dictionary
+type Step
+ = ( String        --tep justification
+   , MPred )     -- prev predicate
+type State
+ = ( MPred       -- current goal predicate
+   , [Step]      -- calc steps so far
+   , InvState )  -- invariant
+type CalcLog = ( State   -- final state
+                 , Dict )  -- final dictionary
 \end{code}
