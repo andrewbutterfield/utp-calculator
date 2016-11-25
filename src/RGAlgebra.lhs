@@ -68,7 +68,30 @@ rather than the other way around).
    c \sqsubseteq d &\defs& (c \sqcap d) = c
 \\ \bot \quad \sqsubseteq &c& \sqsubseteq \quad \top
 }
+\begin{code}
+n_rfdby = _sqsubseteq
 
+rfdby s p = Comp n_rfdby [s,p]
+
+rfdbyPP sCP d p [pr1,pr2] -- same precedence as implies
+ = paren p (precImp-1) -- bracket self
+     $ ppopen (pad n_rfdby) [ sCP precImp 1 pr1
+                            , sCP precImp 2 pr2 ]
+rfdbyPP sCP d p prs = pps styleRed $ ppa ("invalid-"++n_rfdby)
+
+rfdbyDefn d prs@[pr1,pr2]
+  = Just ( n_rfdby, mkEqv (meet prs) pr1, True )
+rfdbyDefn _ _ = Nothing
+
+rdfBySimp d [pr1,pr2]
+ | pr1 == bot  = Just ( n_bot++" refined by all", T, True )
+ | pr2 == top  = Just ( n_top++" refines all", T, True )
+rdfBySimp _ _ = Nothing
+
+rfdbyEntry
+ = entry n_rfdby
+   $ PredEntry subAny rfdbyPP [] rfdbyDefn rdfBySimp
+\end{code}
 
 \begin{center}
 \begin{tabular}{|c|c|c|c|c|c|}
@@ -246,7 +269,7 @@ We need sequential composition (we keep the ; explicit):
 \begin{code}
 n_seq = ";" ; mkSeq t1 t2 = Comp n_seq [t1,t2]
 ppSeq sCP d p ts
- = paren p precOr  -- we assume join is like or
+ = paren p precOr  -- we assume seq is like or
      $ ppopen (pad n_seq)
      $ ppwalk 1 (sCP precOr) ts
 
@@ -404,6 +427,7 @@ rgDict
     [ dictVersion "RGAlgebra 0.1"
     , meetEntry
     , joinEntry
+    , rfdbyEntry
     , piEntry
     , epsEntry
     , iiEntry

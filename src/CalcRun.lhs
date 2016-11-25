@@ -371,3 +371,10 @@ saveCalc :: FilePath -> CalcLog -> IO ()
 saveCalc fp calc
  = writeFile fp $ calcPrint $ cleanCalc calc
 \end{code}
+
+A utility to help guage terminal widths:
+\begin{code}
+wline n
+ = putStrLn $ take n $ concat $ map ten [1..]
+ where ten n = " 2345678 "++show (n `mod` 10)
+\end{code}

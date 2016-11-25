@@ -89,6 +89,7 @@ _top = "\x22A4"
 _bot = "\x22A5"
 _sqcap = "\8851"
 _sqcup = "\8852"
+_sqsubseteq = "\8849"
 
 _true = "\119957\119955\119958\119942"  -- bold true
 _false = "\119943\119938\119949\119956\119942" -- bold false
@@ -131,6 +132,7 @@ _top = "T"
 _bot = "_|_"
 _sqcap = "|~|"
 _sqcup = "|_|"
+_sqsubseteq = "|="
 
 _true = "true"  -- bold true
 _false = "false" -- bold false
