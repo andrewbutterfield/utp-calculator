@@ -56,8 +56,10 @@ eSGR n = "\ESC["++show n++"m"
 
 resetSGR = eSGR 0
 boldSGR  = eSGR 1
+ovlSGR   = eSGR 9
 
 bold str = boldSGR ++ str ++ resetSGR
+overline c = ovlSGR ++ c:resetSGR
 #endif
 \end{code}
 
@@ -91,8 +93,8 @@ _sqcap = "\8851"
 _sqcup = "\8852"
 _sqsubseteq = "\8849"
 
-_true = "\119957\119955\119958\119942"  -- bold true
-_false = "\119943\119938\119949\119956\119942" -- bold false
+_true = bold "true"
+_false = bold "false"
 _lnot = "\172"
 _land = "\8743"
 _lor = "\8744"
@@ -109,7 +111,7 @@ _subseteq = "\8838"
 _parallel = "\8214"
 _Cap = "\8914"
 
-_overline str = "\ESC[9m"++follow str '\x35e'++"\ESC[0m"
+_overline str = ovlSGR ++ follow str '\862' ++ resetSGR
 #endif
 \end{code}
 
