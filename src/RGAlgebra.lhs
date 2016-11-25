@@ -53,10 +53,10 @@ We have:
 \begin{code}
 n_top  = _top    ; top  = PVar n_top
 n_bot = _bot ; bot = PVar n_bot
-n_nil = mathBold "nil" ; nil = PVar n_nil
-n_skip = mathBold "skip"; skip = PVar n_skip
+n_nil = bold "nil" ; nil = PVar n_nil
+n_skip = bold "skip"; skip = PVar n_skip
 n_alf = _alpha ; alf = PVar n_alf
-n_chaos = mathBold "chaos" ; chaos = PVar n_chaos
+n_chaos = bold "chaos" ; chaos = PVar n_chaos
 \end{code}
 
 \begin{center}

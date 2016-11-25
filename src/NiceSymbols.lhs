@@ -44,6 +44,33 @@ mathSansBold = map $ styleShift 120276 120302
 flags        = map $ styleShift 127462 127462
 test = map $ styleShift 119886 119886
 \end{code}
+
+\HDRb{Weight Conversions}
+
+\HDRc{Weight Conversion for Unix/OS X}
+
+\begin{code}
+#ifndef mingw32_HOST_OS
+
+eSGR n = "\ESC["++show n++"m"
+
+resetSGR = eSGR 0
+boldSGR  = eSGR 1
+
+bold str = boldSGR ++ str ++ resetSGR
+#endif
+\end{code}
+
+\HDRc{Weight ``Conversion'' for Windows}
+
+\begin{code}
+#ifdef mingw32_HOST_OS
+
+bold str = str
+#endif
+\end{code}
+
+
 \HDRb{Nice Symbols for OS X/Unix}
 
 \begin{code}
