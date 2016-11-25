@@ -36,6 +36,7 @@ import StdPredicates
 We rapid prototype the emerging Rely-Guarantee Algebra work.
 We organise this based on the FM2016 paper (citation needed).
 
+\newpage
 \HDRb{Concurrent Refinement Algebra}
 
 Concurrent Refinement Algebra (CRA):
@@ -43,34 +44,20 @@ Concurrent Refinement Algebra (CRA):
 (\mathcal C,\sqcap,\sqcup,;,\parallel,\bot,\top,\nil,\Skip)
 \]
 
-We have:
-\RLEQNS{
-       & \top
-\\ \nil &      & \alf
-\\     & \chaos
-\\ & \bot
-}
 \begin{code}
 n_top  = _top    ; top  = PVar n_top
 n_bot = _bot ; bot = PVar n_bot
 n_nil = bold "nil" ; nil = PVar n_nil
 n_skip = bold "skip"; skip = PVar n_skip
-n_alf = _alpha ; alf = PVar n_alf
-n_chaos = bold "chaos" ; chaos = PVar n_chaos
 \end{code}
 
-\begin{center}
-\begin{tabular}{|c|c|c|c|c|c|}
-  \hline
-    & assoc & comm & idem & unit & zero
-  \\\hline
-  $\sqcap$ & \checkmark & \checkmark & \checkmark & $\top$ & $\bot$
-  \\\hline
-  $\sqcup$ & \checkmark & \checkmark & \checkmark & $\bot$ & $\top$
-  \\\hline
-\end{tabular}
-\end{center}
-
+Complete, distributive lattice:
+$
+(\mathcal C,\sqcap,\sqcup,\bot,\top)
+$.
+We first setup meet and join as semi-lattice operators
+with smart builders that flatten nested usage, remove identities
+and collapse it all if any zeros occur.
 \begin{code}
 n_meet = _sqcap
 
@@ -91,6 +78,48 @@ joinEntry  :: (Ord s, Show s) =>                       Dict s
 joinBundle = opSemiLattice n_join top bot precAnd
 join = fst joinBundle
 joinEntry = snd joinBundle
+\end{code}
+All that really remains now are the distributivity laws.
+We defer those until we know which one we prefer
+(I guess we want to work with meets of joins,
+rather than the other way around).
+
+
+\RLEQNS{
+   c \sqsubseteq d &\defs& (c \sqcap d) = c
+\\ \bot \quad \sqsubseteq &c& \sqsubseteq \quad \top
+}
+
+
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|}
+  \hline
+    & assoc & comm & idem & unit & zero
+  \\\hline
+  $\sqcap$ & \checkmark & \checkmark & \checkmark & $\top$ & $\bot$
+  \\\hline
+  $\sqcup$ & \checkmark & \checkmark & \checkmark & $\bot$ & $\top$
+  \\\hline
+\end{tabular}
+\end{center}
+
+
+\HDRb{The Boolean Sub-algebra of Tests}
+
+\HDRb{Abstract Atomic Steps}
+
+\HDRb{Relational Atomic Steps}
+
+\HDRb{Relies and  Guarantees}
+
+\HDRb{Abstract Communication in Process Algebras}
+
+
+
+TO BE MOVED ELSEWHERE!!!
+\begin{code}
+n_alf = _alpha ; alf = PVar n_alf
+n_chaos = bold "chaos" ; chaos = PVar n_chaos
 \end{code}
 
 \HDRc{Primitive Atomic Commands}
@@ -258,7 +287,7 @@ seqEntry
 \\  &=& t \sqcap (\lnot t) \seq \bot
 }
 \begin{code}
-n_pre = mathSansBold "pre"
+n_pre = bold "pre"
 precPre = precNot -- for now
 expandPre d t = meet [ t, mkSeq (mkNot t) bot ]
 
@@ -276,13 +305,16 @@ preEntry = snd preBuild
 \\ &=& \tau(p) \sqcap \tau(\overline{p})\bot
 }
 \begin{code}
-n_assert = "{}"
+n_assert = bold "{}"
 assert t = Comp n_assert [t]
 
 precAssert = precNot -- for now
 ppAssert sCP d p [t]
  = paren p precAssert
-       $ pplist [ppa "{", sCP precPre 0 t, ppa "}" ]
+       $ pplist [ ppa (bold "{")
+                , sCP precPre 0 t
+                , ppa (bold "}")
+                ]
 ppAssert sCP d p _ = pps styleRed $ ppa ("invalid-"++n_assert)
 
 assertDefn d [t]
@@ -308,7 +340,7 @@ precBang = precNot -- for now
    \assume~ a &=& a \sqcap (!a) \bot
 }
 \begin{code}
-n_assume = mathSansBold "assume"
+n_assume = bold "assume"
 assume t = Comp n_assume [t]
 
 precAssume = precNot -- for now
