@@ -93,18 +93,66 @@ rfdbyEntry
    $ PredEntry subAny rfdbyPP [] rfdbyDefn rdfBySimp
 \end{code}
 
-\begin{center}
-\begin{tabular}{|c|c|c|c|c|c|}
-  \hline
-    & assoc & comm & idem & unit & zero
-  \\\hline
-  $\sqcap$ & \checkmark & \checkmark & \checkmark & $\top$ & $\bot$
-  \\\hline
-  $\sqcup$ & \checkmark & \checkmark & \checkmark & $\bot$ & $\top$
-  \\\hline
-\end{tabular}
-\end{center}
+Monoid:
+$
+  (\mathcal C, ;, \nil)
+$.
+\begin{code}
+n_seq = ";"
+(mkSeq, seqEntry) = opMonoid n_seq nil precOr
+\end{code}
 
+\RLEQNS{
+   (\bigsqcap C) ; d &=& \bigsqcap_{c \in C}(c;d)
+}
+\begin{code}
+seqReduce d _ (Comp sn [Comp mn mprs, pr])
+ | sn == n_seq && mn == n_meet
+   = Just ( n_meet++" left-distr thru "++n_seq
+          , meet (map distr mprs)
+          , True )
+ where distr mpr = mkSeq [mpr,pr]
+\end{code}
+
+\RLEQNS{
+   \top ; c &=& \top
+\\ \bot ; c &=& \bot
+}
+\begin{code}
+seqReduce d _ (Comp sn prs)
+ | sn == n_seq
+   = appLeftZeros [] prs
+ where
+   appLeftZeros _ []  =  Nothing
+   appLeftZeros srp (pr:prs)
+    | pr == top  =  Just ( n_top++" is left-zero for "++n_seq
+                         , mkSeq $ reverse (pr:srp)
+                         , True )
+    | pr == bot  =  Just ( n_bot++" is left-zero for "++n_seq
+                         , mkSeq $ reverse (pr:srp)
+                         , True )
+    | otherwise  =  appLeftZeros (pr:srp) prs
+\end{code}
+
+Close off this reduction and create a dict entry.
+\begin{code}
+seqReduce _ _ _ = Nothing
+
+seqRedEntry = entry laws $ LawEntry [seqReduce] [] []
+\end{code}
+\RLEQNS{
+   c^0 &\defs& \nil
+\\ c^{i+1} &\defs& c ; c^i
+}
+
+\RLEQNS{
+   c^\star &\defs& \nu x . \nil \sqcap c ; x
+\\ c^\omega &\defs& \mu x . \nil \sqcap c ;x
+\\ c^\infty &\defs& c^\omega ; \top
+\\ c^\omega &=& \nil \sqcap c ; c^\omega
+\\ c^\star &=& \nil \sqcap c ; c^\star
+\\ c^\infty &=& c ; c^\infty ~=~ c^i ; c^\infty ~=~ c^\infty ; d
+}
 
 \HDRb{The Boolean Sub-algebra of Tests}
 
@@ -265,17 +313,6 @@ tauEntry
        noEq
 \end{code}
 
-We need sequential composition (we keep the ; explicit):
-\begin{code}
-n_seq = ";" ; mkSeq t1 t2 = Comp n_seq [t1,t2]
-ppSeq sCP d p ts
- = paren p precOr  -- we assume seq is like or
-     $ ppopen (pad n_seq)
-     $ ppwalk 1 (sCP precOr) ts
-
-seqEntry
- = entry n_seq $ PredEntry subAny ppSeq [] noDefn noDefn
-\end{code}
 
 \RLEQNS{
    \pre~ t &=& t \sqcap \lnot t \bot
@@ -284,7 +321,7 @@ seqEntry
 \begin{code}
 n_pre = bold "pre"
 precPre = precNot -- for now
-expandPre d t = meet [ t, mkSeq (mkNot t) bot ]
+expandPre d t = meet [ t, mkSeq [mkNot t, bot] ]
 
 (pre, preEntry) = prefixPT n_pre precPre $ Just expandPre
 \end{code}
@@ -338,7 +375,7 @@ ppAssume sCP d p [t]
 ppAssume sCP d p _ = pps styleRed $ ppa ("invalid-"++n_assume)
 
 assumeDefn d [a]
-  = Just ( n_assume, meet [ a, mkSeq (bang a) bot ], True )
+  = Just ( n_assume, meet [ a, mkSeq [bang a, bot] ], True )
 
 assumeEntry
  = entry n_assume $ PredEntry subAny ppAssume [] assumeDefn noDefn
@@ -428,6 +465,8 @@ rgDict
     , meetEntry
     , joinEntry
     , rfdbyEntry
+    , seqEntry
+    , seqRedEntry
     , piEntry
     , epsEntry
     , iiEntry
