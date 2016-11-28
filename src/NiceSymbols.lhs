@@ -79,6 +79,16 @@ _parallel = "\8214"
 _Cap = "\8914"
 
 _overline str = "\ESC[9m"++follow str '\x35e'++"\ESC[0m"
+
+_supChar '2' = '\178'
+_supChar '3' = '\179'
+_supChar c 
+  | isDigit c = chr (ord c - ord '0' + 8304)
+  | isSpace c = c
+  | otherwise = '\175'
+
+_supStr s = map _supChar s
+_supNum n = _supStr $ show n
 #endif
 \end{code}
 
@@ -121,6 +131,10 @@ _parallel = "||"
 _Cap = "II"
 
 _overline str = "ovl("++str++")"
+
+_supStr = ('^':)
+_supNum n = _supStr $ show n
+
 #endif
 \end{code}
 
@@ -160,6 +174,7 @@ nice
    , ("_parallel", _parallel)
    , ("_Cap", _Cap)
    , ("_overline(p)", _overline "p")
+   , ("_supNum(42)", _supNum 42)
    ]
 
 niceRender w (_nm, nm)
