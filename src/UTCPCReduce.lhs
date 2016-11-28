@@ -25,7 +25,7 @@ lcred nm cmprs = Just ( nm, cmprs )
 \end{code}
 
 \begin{code}
-creduceUTCP :: (Show s, Ord s) => CRWFun s
+creduceUTCP :: CRWFun
 \end{code}
 
 \HDRc{pre- and before-substitutions}
@@ -33,16 +33,16 @@ A pre-substitution is one that replaces undashed variables with
 undashed expressions, while a before-substitution is further restricted
 to replacing undashed observables only.
 \begin{code}
-preSublet :: Ord s => ( String, Expr s ) -> Bool
+preSublet :: ( String, Expr ) -> Bool
 preSublet (v,e) = notDash v && notDashed e
 
-preSub :: Ord s => Substn s -> Bool
+preSub :: Substn -> Bool
 preSub = all preSublet
 
-beforeSublet :: Ord s => Dict s -> ( String, Expr s ) -> Bool
+beforeSublet :: Dict -> ( String, Expr ) -> Bool
 beforeSublet d (v,e) = isDyn d v && notDashed e
 
-beforeSub :: Ord s => Dict s -> Substn s -> Bool
+beforeSub :: Dict -> Substn -> Bool
 beforeSub d = all (beforeSublet d)
 \end{code}
 
@@ -219,7 +219,7 @@ creduceUTCP d mpr = Nothing
 
 
 \begin{code}
-lawsUTCPDict :: (Ord s, Show s) => Dict s
+lawsUTCPDict :: Dict
 lawsUTCPDict
  = makeDict
     [ ( "laws"

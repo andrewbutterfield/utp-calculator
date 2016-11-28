@@ -44,9 +44,8 @@ then returns a triple as follows:
 \]
 where $bits$ are any fragments of $A_i$ picked out by the recogniser.
 \begin{code}
-matchRecog :: (Ord s, Show s)
-           => Recogniser s -> [Pred s]
-           -> Maybe ([Pred s],(Pred s,[Pred s]),[Pred s])
+matchRecog :: Recogniser -> [Pred]
+           -> Maybe ([Pred],(Pred,[Pred]),[Pred])
 matchRecog recog prs
  = mR [] prs
  where
@@ -67,7 +66,7 @@ matchRecog recog prs
   e', \textrm{not ground} &\rightsquigarrow& \seqof{e'}
 }
 \begin{code}
-mtchDashedObsExpr :: Ord s => Dict s -> Recogniser s
+mtchDashedObsExpr :: Dict -> Recogniser
 mtchDashedObsExpr d a'@(Atm e')
                  = condBind (isDashed e' && notGround d e') [a']
 mtchDashedObsExpr _ _  = Nothing
@@ -81,7 +80,7 @@ isDashedObsExpr d = isJust . mtchDashedObsExpr d
   x'=k, x' \in Dyn', k \textrm{ ground} &\rightsquigarrow& \seqof{x',k}
 }
 \begin{code}
-mtchAfterEqToConst :: Ord s => Dict s -> Recogniser s
+mtchAfterEqToConst :: Dict -> Recogniser
 mtchAfterEqToConst d (Equal v@(Var x') k)
          = condBind (isDyn' d x' && isGround d k) [Atm v, Atm k]
 mtchAfterEqToConst _ _  = Nothing
@@ -96,7 +95,7 @@ $x = k$, where $x$ is an nominated observable, and $k$ is ground.
   x=k, x \textrm{ named}, k \textrm{ ground} &\rightsquigarrow& \seqof{x,k}
 }
 \begin{code}
-mtchNmdObsEqToConst :: Ord s => String -> Dict s -> Recogniser s
+mtchNmdObsEqToConst :: String -> Dict -> Recogniser
 mtchNmdObsEqToConst v d (Equal u@(Var x) k)
              =  condBind (v == x && isGround d k) [Atm u, Atm k]
 mtchNmdObsEqToConst _ _ _  =  Nothing
@@ -115,13 +114,13 @@ eqToSub (Equal (Var x) e) = (x,e)
 
 Lifting variable functions to expressions:
 \begin{code}
-allEV :: Ord s => (String -> Bool) -> Expr s -> Bool
+allEV :: (String -> Bool) -> Expr -> Bool
 allEV vp  (Var v) = vp v
 allEV vp  (App _ es) = all (allEV vp) es
 allEV vp  (Sub e sub) = allEV vp $ snd $ esubst sub e
 allEV vp  _ = True
 
-mapEV :: Ord s => (String -> String) -> Expr s -> Expr s
+mapEV :: (String -> String) -> Expr -> Expr
 mapEV f (Var v) = Var $ f v
 mapEV f (App fn es) = App fn $ map (mapEV f) es
 mapEV f (Sub e sub) = mapEV f $ snd $ esubst sub e
@@ -130,7 +129,7 @@ mapEV _ e = e
 
 Lifting variable functions to predicates:
 \begin{code}
-allPV :: Ord s => (String -> Bool) -> Pred s -> Bool
+allPV :: (String -> Bool) -> Pred -> Bool
 allPV vp T = True
 allPV vp F = True
 allPV vp (Equal e1 e2) = allEV vp e1 && allEV vp e2
@@ -142,19 +141,19 @@ allPV vp pr = False
 We also want to know when an expression is ``ground'',
 i.e., any free variables are limited to being the static parameters:
 \begin{code}
-isDashed, notDashed :: Ord s => Expr s -> Bool
+isDashed, notDashed :: Expr -> Bool
 isDashed = allEV isDash
 notDashed = allEV notDash
 
-isGround, notGround :: Ord s => Dict s -> Expr s -> Bool
+isGround, notGround :: Dict -> Expr -> Bool
 isGround d = allEV (isStc d)
 notGround d = not . isGround d
 
-unDash, dash :: Ord s => Expr s -> Expr s
+unDash, dash :: Expr -> Expr
 unDash = mapEV remDash
 dash = mapEV addDash
 
-isCondition :: Ord s => Pred s -> Bool
+isCondition :: Pred -> Bool
 isCondition = allPV notDash
 \end{code}
 
@@ -173,7 +172,7 @@ This means that \texttt{dftlyP} is not equal to \texttt{not . dftlyNotP}.
 
 Mostly, we want to know if $x \notin P$.
 \begin{code}
-dftlyNotInP :: Dict s -> String -> Pred s -> Bool
+dftlyNotInP :: Dict -> String -> Pred -> Bool
 
 dftlyNotInP d v (PVar p)
  = case plookup p d of
@@ -193,7 +192,7 @@ dftlyNotInP d v (PSub mpr sub) = False -- for now
 
 For expressions:
 \begin{code}
-dftlyNotInE :: Dict s -> String -> Expr s -> Bool
+dftlyNotInE :: Dict -> String -> Expr -> Bool
 dftlyNotInE d v (B _) = True
 dftlyNotInE d v (Var x) = v /= x
 dftlyNotInE d v (App _ es) = all (dftlyNotInE d v) es

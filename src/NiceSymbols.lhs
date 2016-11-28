@@ -39,8 +39,40 @@ styleShift code_A code_a c
    upperShift = code_A - ord 'A'
    lowerShift = code_a - ord 'a'
 
+mathBold     = map $ styleShift 119808 119834
 mathSansBold = map $ styleShift 120276 120302
+flags        = map $ styleShift 127462 127462
+test = map $ styleShift 119886 119886
 \end{code}
+
+\HDRb{Weight Conversions}
+
+\HDRc{Weight Conversion for Unix/OS X}
+
+\begin{code}
+#ifndef mingw32_HOST_OS
+
+eSGR n = "\ESC["++show n++"m"
+
+resetSGR = eSGR 0
+boldSGR  = eSGR 1
+ovlSGR   = eSGR 9
+
+bold str = boldSGR ++ str ++ resetSGR
+overline c = ovlSGR ++ c:resetSGR
+#endif
+\end{code}
+
+\HDRc{Weight ``Conversion'' for Windows}
+
+\begin{code}
+#ifdef mingw32_HOST_OS
+
+bold str = str
+#endif
+\end{code}
+
+
 \HDRb{Nice Symbols for OS X/Unix}
 
 \begin{code}
@@ -59,9 +91,10 @@ _top = "\x22A4"
 _bot = "\x22A5"
 _sqcap = "\8851"
 _sqcup = "\8852"
+_sqsubseteq = "\8849"
 
-_true = "\119957\119955\119958\119942"  -- bold true
-_false = "\119943\119938\119949\119956\119942" -- bold false
+_true = bold "true"
+_false = bold "false"
 _lnot = "\172"
 _land = "\8743"
 _lor = "\8744"
@@ -111,6 +144,7 @@ _top = "T"
 _bot = "_|_"
 _sqcap = "|~|"
 _sqcup = "|_|"
+_sqsubseteq = "|="
 
 _true = "true"  -- bold true
 _false = "false" -- bold false

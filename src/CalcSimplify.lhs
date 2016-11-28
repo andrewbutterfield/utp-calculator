@@ -40,7 +40,7 @@ for what has happened.
 
 The top-level expression simplifier.
 \begin{code}
-esimp :: (Eq s, Ord s, Show s) => Dict s -> Expr s -> (Bool, Expr s)
+esimp :: Dict -> Expr -> (Bool, Expr)
 esimp d (App fn es) = asimp d fn $ esimps d same [] es
 esimp d esub@(Sub e subs)
  = let
@@ -53,8 +53,7 @@ esimp d e = (same, e)
 
 Simplifying lists of expressions:
 \begin{code}
-esimps :: (Eq s, Ord s, Show s)
-       => Dict s -> Bool -> [Expr s]-> [Expr s] -> (Bool, [Expr s])
+esimps :: Dict -> Bool -> [Expr]-> [Expr] -> (Bool, [Expr])
 esimps d chgd se [] = (chgd, reverse se)
 esimps d chgd se (e:es)
  = let (chgd',e') = esimp d e
@@ -63,8 +62,7 @@ esimps d chgd se (e:es)
 
 \HDRc{Function Simplification}~
 \begin{code}
-asimp :: (Eq s, Ord s, Show s)
-      => Dict s -> String -> (Bool,[Expr s]) -> (Bool, Expr s)
+asimp :: Dict -> String -> (Bool,[Expr]) -> (Bool, Expr)
 asimp d fn (chgd,es)
  = case elookup fn d of
      Nothing  ->  (chgd, App fn es)
@@ -76,7 +74,7 @@ asimp d fn (chgd,es)
 
 \HDRc{Substitution Simplification}~
 \begin{code}
-ssimp :: (Eq s, Ord s, Show s) => Dict s -> Substn s -> (Bool,Substn s)
+ssimp :: Dict -> Substn -> (Bool,Substn)
 ssimp d subs
  = let
     (vs,es) = unzip subs
@@ -86,7 +84,7 @@ ssimp d subs
 
 \HDRc{Expression Substitution}~
 \begin{code}
-esubst :: Ord s => Substn s -> Expr s -> (Bool, Expr s)
+esubst :: Substn -> Expr -> (Bool, Expr)
 esubst sub (Var v) =  vsubst sub v
 esubst sub (App fn es)
  = let (esdiff, es') = essubst sub es
@@ -108,7 +106,7 @@ essubst sub (e:es)
 
 \HDRc{Variable Substitution}~
 \begin{code}
-vsubst :: Substn s -> String -> (Bool, Expr s)
+vsubst :: Substn -> String -> (Bool, Expr)
 vsubst [] v = (same, Var v)
 vsubst ((u,e):subs) v
  | u == v  =  (diff, e)
@@ -141,7 +139,7 @@ first in each w.l.o.g.:
                 z_1,\ldots,z_n}
 \end{eqnarray*}
 \begin{code}
-subcomp :: Ord s => Substn s -> Substn s -> Substn s
+subcomp :: Substn -> Substn -> Substn
 subcomp sub2 sub1
  = subsub++newsub
  where
@@ -150,7 +148,7 @@ subcomp sub2 sub1
    newsub = filter (not . covered vs') sub2
    covered vs' (v,e) = v `elem` vs'
 
-vesubst :: Ord s => Substn s -> (String, Expr s) -> (String, Expr s)
+vesubst :: Substn -> (String, Expr) -> (String, Expr)
 vesubst sub (v,e) = (v,snd $ esubst sub e)
 \end{code}
 
@@ -161,8 +159,7 @@ vesubst sub (v,e) = (v,snd $ esubst sub e)
 Now, the predicate simplifier:
 \begin{code}
 simplified = "simplify"
-simplify :: (Ord s, Show s)
-         => Dict s -> Mark -> MPred s -> Maybe (BeforeAfter s)
+simplify :: Dict -> Mark -> MPred -> Maybe (BeforeAfter)
 \end{code}
 
 \HDRc{Atomic Simplifier}\label{hc:simplify-atomic}
@@ -339,7 +336,7 @@ simplify _ _ _ = Nothing
 
 Sometimes we want to simply a \texttt{Pred} without any fuss:
 \begin{code}
-psimp :: (Ord s, Show s) => Dict s -> Pred s -> Pred s
+psimp :: Dict -> Pred -> Pred
 psimp d pr
  = case simplify d 0 $ buildMarks pr of
      Just (_,_,(pr',_))  ->  pr'
@@ -350,8 +347,7 @@ psimp d pr
 
 It is often worth running simplify twice!
 \begin{code}
-simplify2 :: (Ord s, Show s)
-          => Dict s -> Mark -> MPred s -> Maybe (BeforeAfter s)
+simplify2 :: Dict -> Mark -> MPred -> Maybe (BeforeAfter)
 simplify2 d m mpr
  = case simplify d m mpr of
     Nothing -> Nothing
@@ -365,11 +361,9 @@ simplify2 d m mpr
 \newpage
 \HDRc{Equality Predicate Simplification}~
 \begin{code}
-sEqual :: Eq s => Dict s -> Expr s -> Expr s -> (Bool, Pred s)
+sEqual :: Dict -> Expr -> Expr -> (Bool, Pred)
 
-sEqual d (St s1) (St s2)
- | s1 == s2     = (diff,T)
- | otherwise    = (diff,F)
+sEqual d St St  = (same, Equal St St) -- can't decide this now
 
 sEqual d (B t1) (B t2)
  | t1 == t2   =  (diff,T)
@@ -382,12 +376,12 @@ sEqual d (Z i1) (Z i2)
 sEqual d (Var v1) (Var v2)
  | v1 == v2   = (diff,T)
 
-sEqual d (St _) (B _) = (diff,F)
-sEqual d (B _) (St _) = (diff,F)
-sEqual d (Z _) (St _) = (diff,F)
-sEqual d (St _) (Z _) = (diff,F)
-sEqual d (Z _)  (B _) = (diff,F)
-sEqual d (B _)  (Z _) = (diff,F)
+sEqual d St    (B _) = (diff,F)
+sEqual d (B _) St    = (diff,F)
+sEqual d (Z _) St    = (diff,F)
+sEqual d St    (Z _) = (diff,F)
+sEqual d (Z _) (B _) = (diff,F)
+sEqual d (B _) (Z _) = (diff,F)
 
 sEqual d e1@(App nm1 args1) e2@(App nm2 args2)
  | nm1 == nm2
@@ -412,9 +406,8 @@ We note that some constructs
 cannot be substituted into until their definitions are expanded.
 
 \begin{code}
-psubst :: (Ord s, Show s)
-       => Mark -> Dict s -> Substn s -> MPred s
-       -> (Bool, MPred s)
+psubst :: Mark -> Dict -> Substn -> MPred
+       -> (Bool, MPred)
 
 psubst _ d _ mpr@(T,_) = (diff,mpr)
 psubst _ d _ mpr@(F,_) = (diff,mpr)
@@ -445,9 +438,8 @@ psubst m d sub (pr, mt)  =  (same, (mkPSub pr sub, MT [] [mt]))
 \end{code}
 Handling lists of predicates:
 \begin{code}
-pssubst :: (Ord s, Show s)
-        => Mark -> Dict s -> Substn s -> [MPred  s]
-        -> (Bool, [MPred s])
+pssubst :: Mark -> Dict -> Substn -> [MPred]
+        -> (Bool, [MPred])
 pssubst m d _ [] = (same,[])
 pssubst m d sub (mpr:mprs)
  = let
@@ -460,14 +452,14 @@ pssubst m d sub (mpr:mprs)
 \newpage
 We sometimes need to know when we can substitute:
 \begin{code}
-canSub :: Substn s -> Dict s -> String -> Bool
+canSub :: Substn -> Dict -> String -> Bool
 canSub subs d name
  = case plookup name d of
     Just (PredEntry cansub _ _ _ _)
        ->  cansub == anyVars || null (map fst subs \\ cansub)
     _  ->  False
 
-substitutable :: Dict s -> MPred s -> Bool
+substitutable :: Dict -> MPred -> Bool
 substitutable d (Comp name _,_)
  = case plookup name d of
     Just (PredEntry cansub _ _ _ _)  ->  not $ null cansub
@@ -480,12 +472,11 @@ substitutable _ _ = True
 
 We will generally have a list of invariants to check:
 \begin{code}
-chkInvariants :: (Ord s, Show s)
-             => Dict s
-             -> InvState s
+chkInvariants :: Dict
+             -> InvState
              -> Mark
-             -> MPred s
-             -> Maybe (BeforeAfter s)
+             -> MPred
+             -> Maybe (BeforeAfter)
 
 chkInvariants d [] m mpr = Nothing
 
@@ -506,11 +497,10 @@ bottom-up, like simplify,
 except we have a fixed simplification function
 and we don't enter expressions or go under substitutions.
 \begin{code}
-chkInvariant :: (Ord s, Show s)
-             => (Pred s -> Maybe Bool)
+chkInvariant :: (Pred -> Maybe Bool)
              -> Mark
-             -> MPred s
-             -> Maybe (BeforeAfter s)
+             -> MPred
+             -> Maybe (BeforeAfter)
 
 chkInvariant chk m mpr@(pr@(Comp name prs), mt@(MT ms mts))
  = let

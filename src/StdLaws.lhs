@@ -22,9 +22,9 @@ We just give a dictionary here for the standard composites.
 \HDRb{The Standard Dictionary}\label{hb:std-dict}
 
 \begin{code}
-stdDict :: (Ord s, Show s) => Dict s
+stdDict :: Dict
 stdDict
- = makeDict
+ = mergeDicts
     [ notEntry
     , andEntry
     , orEntry

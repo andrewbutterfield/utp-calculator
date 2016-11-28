@@ -1,7 +1,6 @@
 \HDRa{Rely-Guarantee Algebra}\label{ha:RGAlg}
 \begin{code}
 module RGAlgebra where
---import IOUtil
 import Utilities
 import qualified Data.Map as M
 import Data.List
@@ -20,12 +19,6 @@ import CalcRecogniser
 import CalcRun
 import StdSets
 import StdPredicates
--- import StdLaws
--- import CalcZipper
--- import CalcSteps
--- import StdUTPPredicates
--- import StdUTPLaws
--- import UTCPCReduce
 \end{code}
 
 \begin{code}
@@ -34,58 +27,149 @@ import StdPredicates
 \end{code}
 
 We rapid prototype the emerging Rely-Guarantee Algebra work.
+We organise this based on the FM2016 paper (citation needed).
 
-\HDRb{Definitions}
+\newpage
+\HDRb{Concurrent Refinement Algebra}
 
-\HDRc{Structure of concurrent program algebra}
+Concurrent Refinement Algebra (CRA):
+\[
+(\mathcal C,\sqcap,\sqcup,;,\parallel,\bot,\top,\nil,\Skip)
+\]
 
-We have:
-\RLEQNS{
-       & \top
-\\ \nil &      & \alf
-\\     & \chaos
-\\ & \bot
-}
 \begin{code}
 n_top  = _top    ; top  = PVar n_top
-n_nil = "nil" ; nil = PVar n_nil
-n_alf = _alpha ; alf = PVar n_alf
-n_chaos = "chaos" ; chaos = PVar n_chaos
 n_bot = _bot ; bot = PVar n_bot
+n_nil = bold "nil" ; nil = PVar n_nil
+n_skip = bold "skip"; skip = PVar n_skip
 \end{code}
 
-\begin{center}
-\begin{tabular}{|c|c|c|c|c|c|}
-  \hline
-    & assoc & comm & idem & unit & zero
-  \\\hline
-  $\sqcap$ & \checkmark & \checkmark & \checkmark & $\top$ & $\bot$
-  \\\hline
-  $\sqcup$ & \checkmark & \checkmark & \checkmark & $\bot$ & $\top$
-  \\\hline
-\end{tabular}
-\end{center}
-
+Complete, distributive lattice:
+$
+(\mathcal C,\sqcap,\sqcup,\bot,\top)
+$.
+We first setup meet and join as semi-lattice operators
+with smart builders that flatten nested usage, remove identities
+and collapse it all if any zeros occur.
 \begin{code}
 n_meet = _sqcap
-
-meetBundle :: (Ord s, Show s) => ( [Pred s] -> Pred s, Dict s)
-meet       :: (Ord s, Show s) =>   [Pred s] -> Pred s
-meetEntry  :: (Ord s, Show s) =>                       Dict s
-
-meetBundle = opSemiLattice n_meet bot top precOr
-meet = fst meetBundle
-meetEntry = snd meetBundle
+(meet, meetEntry) = opSemiLattice n_meet bot top precOr
 
 n_join = _sqcup
+(join, joinEntry) = opSemiLattice n_join top bot precAnd
+\end{code}
+All that really remains now are the distributivity laws.
+We defer those until we know which one we prefer
+(I guess we want to work with meets of joins,
+rather than the other way around).
 
-joinBundle :: (Ord s, Show s) => ( [Pred s] -> Pred s, Dict s)
-join       :: (Ord s, Show s) =>   [Pred s] -> Pred s
-joinEntry  :: (Ord s, Show s) =>                       Dict s
 
-joinBundle = opSemiLattice n_join top bot precAnd
-join = fst joinBundle
-joinEntry = snd joinBundle
+\RLEQNS{
+   c \sqsubseteq d &\defs& (c \sqcap d) = c
+\\ \bot \quad \sqsubseteq &c& \sqsubseteq \quad \top
+}
+\begin{code}
+n_rfdby = _sqsubseteq
+
+rfdby s p = Comp n_rfdby [s,p]
+
+rfdbyPP sCP d p [pr1,pr2] -- same precedence as implies
+ = paren p (precImp-1) -- bracket self
+     $ ppopen (pad n_rfdby) [ sCP precImp 1 pr1
+                            , sCP precImp 2 pr2 ]
+rfdbyPP sCP d p prs = pps styleRed $ ppa ("invalid-"++n_rfdby)
+
+rfdbyDefn d prs@[pr1,pr2]
+  = Just ( n_rfdby, mkEqv (meet prs) pr1, True )
+rfdbyDefn _ _ = Nothing
+
+rdfBySimp d [pr1,pr2]
+ | pr1 == bot  = Just ( n_bot++" refined by all", T, True )
+ | pr2 == top  = Just ( n_top++" refines all", T, True )
+rdfBySimp _ _ = Nothing
+
+rfdbyEntry
+ = entry n_rfdby
+   $ PredEntry subAny rfdbyPP [] rfdbyDefn rdfBySimp
+\end{code}
+
+Monoid:
+$
+  (\mathcal C, ;, \nil)
+$.
+\begin{code}
+n_seq = ";"
+(mkSeq, seqEntry) = opMonoid n_seq nil precOr
+\end{code}
+
+\RLEQNS{
+   (\bigsqcap C) ; d &=& \bigsqcap_{c \in C}(c;d)
+}
+\begin{code}
+seqReduce d _ (Comp sn [Comp mn mprs, pr])
+ | sn == n_seq && mn == n_meet
+   = Just ( n_meet++" left-distr thru "++n_seq
+          , meet (map distr mprs)
+          , True )
+ where distr mpr = mkSeq [mpr,pr]
+\end{code}
+
+\RLEQNS{
+   \top ; c &=& \top
+\\ \bot ; c &=& \bot
+}
+\begin{code}
+seqReduce d _ (Comp sn prs)
+ | sn == n_seq
+   = appLeftZeros [] prs
+ where
+   appLeftZeros _ []  =  Nothing
+   appLeftZeros srp (pr:prs)
+    | pr == top  =  Just ( n_top++" is left-zero for "++n_seq
+                         , mkSeq $ reverse (pr:srp)
+                         , True )
+    | pr == bot  =  Just ( n_bot++" is left-zero for "++n_seq
+                         , mkSeq $ reverse (pr:srp)
+                         , True )
+    | otherwise  =  appLeftZeros (pr:srp) prs
+\end{code}
+
+Close off this reduction and create a dict entry.
+\begin{code}
+seqReduce _ _ _ = Nothing
+
+seqRedEntry = entry laws $ LawEntry [seqReduce] [] []
+\end{code}
+\RLEQNS{
+   c^0 &\defs& \nil
+\\ c^{i+1} &\defs& c ; c^i
+}
+
+\RLEQNS{
+   c^\star &\defs& \nu x . \nil \sqcap c ; x
+\\ c^\omega &\defs& \mu x . \nil \sqcap c ;x
+\\ c^\infty &\defs& c^\omega ; \top
+\\ c^\omega &=& \nil \sqcap c ; c^\omega
+\\ c^\star &=& \nil \sqcap c ; c^\star
+\\ c^\infty &=& c ; c^\infty ~=~ c^i ; c^\infty ~=~ c^\infty ; d
+}
+
+\HDRb{The Boolean Sub-algebra of Tests}
+
+\HDRb{Abstract Atomic Steps}
+
+\HDRb{Relational Atomic Steps}
+
+\HDRb{Relies and  Guarantees}
+
+\HDRb{Abstract Communication in Process Algebras}
+
+
+
+TO BE MOVED ELSEWHERE!!!
+\begin{code}
+n_alf = _alpha ; alf = PVar n_alf
+n_chaos = bold "chaos" ; chaos = PVar n_chaos
 \end{code}
 
 \HDRc{Primitive Atomic Commands}
@@ -108,7 +192,6 @@ r     = Var "r"
 n_pi = _pi  -- pi
 mkpi r = App n_pi [r]
 
-piEntry :: (Show s) => Dict s
 piEntry
  = entry n_pi
    $ ExprEntry
@@ -128,7 +211,6 @@ piEntry
 n_eps = _epsilon -- lunate epsilon
 eps r = App n_eps [r]
 
-epsEntry :: (Show s) => Dict s
 epsEntry
  = entry n_eps
    $ ExprEntry
@@ -156,7 +238,6 @@ ii = App n_ii [] -- we want to define this
 iiPrint _ _ = n_ii
 iiDefn _ _  =  edefn n_ii $ mkpi _id
 
-iiEntry :: (Show s) => Dict s
 iiEntry
  = entry n_ii
    $ ExprEntry
@@ -177,7 +258,6 @@ piU = App n_piU []
 piUPrint _ _ = n_pi
 piUDefn _ _ = edefn _pi $ mkpi univ
 
-piUEntry :: (Show s) => Dict s
 piUEntry
  = entry n_piU
    $ ExprEntry
@@ -197,7 +277,6 @@ epsU = App n_epsU []
 epsUPrint _ _ = n_eps
 epsUDefn _ _ = edefn _epsilon $ eps univ
 
-epsUEntry :: (Show s) => Dict s
 epsUEntry
  = entry n_epsU
    $ ExprEntry
@@ -224,7 +303,6 @@ p = Var "p"
 n_tau = _tau  -- tau
 tau p = App n_tau [p]
 
-tauEntry :: (Show s) => Dict s
 tauEntry
  = entry n_tau
    $ ExprEntry
@@ -235,35 +313,17 @@ tauEntry
        noEq
 \end{code}
 
-We need sequential composition (we keep the ; explicit):
-\begin{code}
-n_seq = ";" ; mkSeq t1 t2 = Comp n_seq [t1,t2]
-ppSeq sCP d p ts
- = paren p precOr  -- we assume join is like or
-     $ ppopen (pad n_seq)
-     $ ppwalk 1 (sCP precOr) ts
-
-seqEntry :: (Ord s, Show s) => Dict s
-seqEntry
- = entry n_seq $ PredEntry subAny ppSeq [] noDefn noDefn
-\end{code}
 
 \RLEQNS{
    \pre~ t &=& t \sqcap \lnot t \bot
 \\  &=& t \sqcap (\lnot t) \seq \bot
 }
 \begin{code}
-n_pre = mathSansBold "pre"
+n_pre = bold "pre"
 precPre = precNot -- for now
-expandPre d t = meet [ t, mkSeq (mkNot t) bot ]
+expandPre d t = meet [ t, mkSeq [mkNot t, bot] ]
 
-preBuild :: (Ord s, Show s) => ( Pred s -> Pred s, Dict s )
-pre      :: (Ord s, Show s) =>   Pred s -> Pred s
-preEntry :: (Ord s, Show s) =>                     Dict s
-
-preBuild = prefixPT n_pre precPre $ Just expandPre
-pre      = fst preBuild
-preEntry = snd preBuild
+(pre, preEntry) = prefixPT n_pre precPre $ Just expandPre
 \end{code}
 
 \RLEQNS{
@@ -271,19 +331,21 @@ preEntry = snd preBuild
 \\ &=& \tau(p) \sqcap \tau(\overline{p})\bot
 }
 \begin{code}
-n_assert = "{}"
+n_assert = bold "{}"
 assert t = Comp n_assert [t]
 
 precAssert = precNot -- for now
 ppAssert sCP d p [t]
  = paren p precAssert
-       $ pplist [ppa "{", sCP precPre 0 t, ppa "}" ]
+       $ pplist [ ppa (bold "{")
+                , sCP precPre 0 t
+                , ppa (bold "}")
+                ]
 ppAssert sCP d p _ = pps styleRed $ ppa ("invalid-"++n_assert)
 
 assertDefn d [t]
   = Just ( n_assert, pre $ Atm $ tau p, True )
 
-assertEntry :: (Ord s, Show s) => Dict s
 assertEntry
  = entry n_assert $ PredEntry subAny ppAssert [] assertDefn noDefn
 \end{code}
@@ -303,7 +365,7 @@ precBang = precNot -- for now
    \assume~ a &=& a \sqcap (!a) \bot
 }
 \begin{code}
-n_assume = mathSansBold "assume"
+n_assume = bold "assume"
 assume t = Comp n_assume [t]
 
 precAssume = precNot -- for now
@@ -313,9 +375,8 @@ ppAssume sCP d p [t]
 ppAssume sCP d p _ = pps styleRed $ ppa ("invalid-"++n_assume)
 
 assumeDefn d [a]
-  = Just ( n_assume, meet [ a, mkSeq (bang a) bot ], True )
+  = Just ( n_assume, meet [ a, mkSeq [bang a, bot] ], True )
 
-assumeEntry :: (Ord s, Show s) => Dict s
 assumeEntry
  = entry n_assume $ PredEntry subAny ppAssume [] assumeDefn noDefn
 \end{code}
@@ -325,11 +386,11 @@ assumeEntry
 \HDRc{Reduction Steps}
 
 \begin{code}
-rgReduce :: (Ord s, Show s) => RWFun s
-         -- Dict s
-         -- -> [Pred s]  -- Invariants
-         -- -> Pred s    -- Target Predicate
-         -- -> Maybe (String, Pred s, Bool)
+rgReduce :: RWFun
+         -- Dict
+         -- -> [Pred]  -- Invariants
+         -- -> Pred    -- Target Predicate
+         -- -> Maybe (String, Pred, Bool)
 \end{code}
 
 \RLEQNS{
@@ -391,18 +452,21 @@ rgReduce _ _ _ = Nothing
 \HDRc{law Entry}
 
 \begin{code}
-lawEntry :: (Ord s, Show s) => Dict s
+lawEntry :: Dict
 lawEntry = entry laws $ LawEntry [rgReduce] [] []
 \end{code}
 
 \HDRb{RG Dictionary}
 \begin{code}
-rgDict :: (Ord s, Show s) => Dict s
+rgDict :: Dict
 rgDict
  = mergeDicts
     [ dictVersion "RGAlgebra 0.1"
     , meetEntry
     , joinEntry
+    , rfdbyEntry
+    , seqEntry
+    , seqRedEntry
     , piEntry
     , epsEntry
     , iiEntry
@@ -425,300 +489,14 @@ rgDict
 \HDRb{Top Level Support}
 
 \begin{code}
-rgshow :: (Show s, Ord s) => Pred s -> String
+rgshow :: Pred -> String
 rgshow = pdshow 80 rgDict noStyles
 
-rgput :: (Show s, Ord s) => Pred s -> IO ()
+rgput :: Pred -> IO ()
 rgput = putStrLn . rgshow
 
-rgeput :: (Show s, Ord s) => Expr s -> IO ()
+rgeput :: Expr -> IO ()
 rgeput = rgput . Atm
 
 rgcalc pr = calcREPL rgDict [] pr
 \end{code}
-
-\newpage
-\HDRb{Algebra Redux}
-
-
-\HDRc{From the FM2016 Tutorial}
-\RLEQNS{
-       & \top
-\\ \nil &      & \alf
-\\     & \chaos
-\\ & \bot
-}
-
-\begin{center}
-\begin{tabular}{|c|c|c|c|c|c|}
-  \hline
-    & assoc & comm & idem & unit & zero
-  \\\hline
-  $\sqcap$ & \checkmark & \checkmark & \checkmark & $\top$ & $\bot$
-  \\\hline
-  $\sqcup$ & \checkmark & \checkmark & \checkmark & $\bot$ & $\top$
-  \\\hline
-\end{tabular}
-\end{center}
-
-\RLEQNS{
-   r \subseteq \Sigma \times \Sigma
-\\ π(r) &=& \Pi(\sigma,\sigma'), (\sigma,\sigma') \in r
-\\ ϵ(r) &=& \mathcal{E}(\sigma,\sigma'), (\sigma,\sigma') \in r
-\\ \stutter &=& \pi(\id)
-\\ \pi &=& \pi(\univ)
-\\ \epsilon &=& \epsilon(\univ)
-\\ p &\subseteq& \Sigma
-\\ τ(p) &=& \mbox{if $p$ then terminate else $\top$}
-\\ \pre~ t &=& t \sqcap \lnot t \bot
-\\  &=& t \sqcap (\lnot t) \seq \bot
-\\ \setof p &=& \pre~\tau(p)
-\\ &=& \tau(p) \sqcap \tau(\overline{p})\bot
-\\ !  && \mbox{not sure what this is}
-\\ \assume~ a &=& a \sqcap (!a) \bot
-\\ \pi(\emp) &=& \top
-\\ \epsilon(\emp) &=& \top
-\\ \tau(\emp) &=& \top
-\\ \tau(\Sigma) &=& \nil
-\\ \tau(p_1) \sqcap \tau(p_2) &=& \tau(p_1 \cup p_2)
-\\ \tau(p_1) \sqcup \tau(p_2) &=& \tau(p_1 \cap p_2)
-\\                            &=& \tau(p_1)\tau(p_2)
-\\                            &=& \tau(p_1)\parallel\tau(p_2)
-\\ \lnot\tau(p) &=& \tau(\overline p)
-\\ \assume~\pi \sqcap \epsilon(r)
-   &=&
-   \pi \sqcap \epsilon(r) \sqcap \epsilon(\overline{r})\bot
-}
-
-\newpage
-\HDRb{From the FM2016 (joint-Best) Paper}
-
-\HDRc{Introduction}
-
-Assume $a$, $b$ atomic, $c$, $d$ arbitrary processes.
-\RLEQNS{
-   (a;c)\parallel(b;d) &=& (a\parallel b);(c\parallel d)
-\\ (a;c)\ileave(b;d) &=& a;(c\ileave b;d) \sqcap b;(a;c\ileave d)
-}
-
-\HDRc{Concurrent Refinement Algebra}~
-
-Concurrent Refinement Algebra (CRA):
-\[
-(\mathcal C,\sqcap,\sqcup,;,\parallel,\bot,\top,\nil,\Skip)
-\]
-Complete, distributive lattice:
-$
-(\mathcal C,\sqcap,\sqcup,\bot,\top)
-$.
-\RLEQNS{
-   c \sqsubseteq d &\defs& (c \sqcap d) = c
-\\ \bot \subseteq &c& \subseteq \top
-}
-Monoid:
-$
-  (\mathcal C, ;, \nil)
-$.
-\RLEQNS{
-   \top ; c &=& \top
-\\ \bot ; c &=& \bot
-\\ c ; \top &\neq& \top
-\\ c ;\bot &\neq& \bot
-\\ (\bigsqcap C) ; d &=& \bigsqcap_{c \in C}(c;d)
-\\ c^0 &\defs& \nil
-\\ c^{i+1} &\defs& c ; c^i
-\\ c^\star &\defs& \nu x . \nil \sqcap c ; x
-\\ c^\omega &\defs& \mu x . \nil \sqcap c ;x
-\\ c^\infty &\defs& c^\omega ; \top
-\\ c^\omega &=& \nil \sqcap c ; c^\omega
-\\ c^\star &=& \nil \sqcap c ; c^\star
-\\ c^\infty &=& c ; c^\infty ~=~ c^i ; c^\infty ~=~ c^\infty ; d
-}
-True in their relational model, but generally in CCS or CSP:
-\RLEQNS{
-   D \neq \setof{} &\implies& c;(\bigsqcap D) = \bigsqcap_{d \in D}(c;d)
-}
-It says that ; is \emph{conjunctive}.
-Needed for the following:
-\RLEQNS{
-   c^\omega &=& c^\star \sqcap c^\infty
-\\ c^\star &=& \bigsqcap_{i \in \Nat} c^i
-\\ c^\omega ; d &=& c^\star;d \sqcap c^\infty
-\\ c;c^\omega;d &=& c;c^\star;d \sqcap c^\infty
-}
-
-\HDRc{The Boolean Sub-algebra of Tests}~
-
-Test commands: $t \in \mathcal B \subseteq C$, extended algebra:
-\[
-(\mathcal C,\mathcal B,\sqcap,\sqcup,;,\parallel,\bot,\top,\nil,\Skip,\lnot)
-\]
-Test Boolean algebra --- sub-lattice of CRA:
-$
-(\mathcal B,\sqcap,\sqcup,\lnot,\top,\nil)
-$
-
-$\mathcal B$ closed under $\sqcap, \sqcup, ;, \parallel$.
-
-Assume $t \in \mathcal B$, arbitrary test.
-\RLEQNS{
-   t;t' &=& t \sqcup t'
-\\ t\parallel t' &=& t \sqcup t'
-\\ (t;c) \parallel (t;d) &=& t;(c\parallel d)
-\\ (t;c) \sqcup (t';d) &=& (t \sqcup t') ; (c \sqcup d)
-\\ \Assert~t &\defs& t \sqcap \lnot t ; \bot
-\\ \lnot \top &=& \nil
-}
-
-\HDRc{Abstract Atomic Steps}~
-
-Atomic Steps commands: $a,b \in \mathcal A \subseteq C$.
-
-Atomic Action Boolean algebra --- sub-lattice of CRA:
-$
-(\mathcal A,\sqcap,\sqcup,!,\top,\alf)
-$
-\RLEQNS{
-   \alf \sqcup \nil &=& \top
-}
-
-$\mathcal A$ closed under $\sqcap, \sqcup, \parallel$, but not $;$.
-
-\RLEQNS{
-   a \parallel \wait &=& a
-\\ a;c \parallel b;d &=& (a \parallel b);(c\parallel d)
-\\ a;c \sqcup b;d &=& (a \sqcup b);(c \sqcup d)
-\\ a;c \parallel \nil &=& \top
-\\ a;c \sqcup \nil &=& \top
-\\ a \sqcup !a &=& \top
-\\ a \sqcap !a &=& \alf
-\\ !\top &=& \alf
-\\ \assume~a &\defs& a \sqcap (!a);\bot
-}
-
-Given any $c$ there are $t$, $t'$, $I$, $a_i$ and $c_i$ such that:
-\RLEQNS{
-   c &=& t \sqcap t';\bot \sqcap \bigsqcap_{i \in I}(a_i ; c_i)
-\\ \Skip &\defs& \wait^\omega
-\\ \wait^\omega \parallel c &=& c
-\\ a^\star\parallel \nil &=& \nil
-\\ a^\omega\parallel \nil &=& \nil
-\\ a^\infty\parallel \nil &=& \top
-\\ a^i;c \parallel b^i;d &=& (a\parallel b)^i ; (c \parallel d)
-}
-If ; is conjunctive:
-\RLEQNS{
-   a^\star \parallel b^\star &=& (a \parallel b)^\star
-\\ a^\infty \parallel b^\infty &\defs?& (a \parallel b)^\infty
-\\ a^\star;c \parallel b^\star;d
-   &=&
-   (a \parallel b)^\star
-   ;
-   ( (c \parallel d)
-     \sqcap
-     (c \parallel b;b^\star;d)
-     \sqcap
-     (a;a^\star;c \parallel d) )
-\\ a^\star;c \parallel b^\infty
-   &=&
-   (a\parallel b)^\star; (c\parallel b^\infty)
-\\ a^\omega;c \parallel b^\omega;d
-   &=&
-   (a \parallel b)^\omega
-   ;
-   ( (c \parallel d)
-     \sqcap
-     (c \parallel b;b^\omega;d)
-     \sqcap
-     (a;a^\omega;c \parallel d) )
-\\ \action a &\defs& \wait^\omega ; a; \wait^\omega
-\\ \action a \parallel \action b
-   &=&
-   \action{a\parallel b}
-   \sqcap \action a ; \action b
-   \sqcap \action b ; \action a
-\\ a \ileave b &=& a;b \sqcap b;a
-}
-
-
-\HDRc{Relational Atomic Steps}~
-
-\RLEQNS{
-   \sigma &\in& \Sigma
-\\ r &\in& \Set(\Sigma\times\Sigma)
-\\ \pi &:& \Set(\Sigma\times\Sigma) \fun \mathcal A
-\\ \epsilon &:& \Set(\Sigma\times\Sigma) \fun \mathcal A
-\\ \pi(\emptyset) ~~= &\top& =~~ \epsilon(\emptyset)
-\\ \pi(r_1) \sqcup \epsilon(r_2) &=& \top
-}
-For $s \in \setof{\pi,\epsilon}$:
-\RLEQNS{
-   r_1=r_2 &\Leftrightarrow& s(r_1)=s(r_2)
-\\ s(r_1 \cup r_2) &=& s(r_1) \sqcap s(r_2)
-\\ s(r_1 \cap r_2) &=& s(r_1) \sqcup s(r_2)
-\\ r_1 \subseteq r_2 &\implies& s(r_2) \sqsubseteq s(r_1)
-}
-
-\RLEQNS{
-   p &\in& \Set\Sigma
-\\ \tau &:& \Set\Sigma \fun \mathcal B
-\\ \tau(\emptyset) &=& \top
-\\ \tau(\Sigma) &=& \nil
-\\ \{p\} &\defs& \Assert~\tau(p)
-\\     &  =  & \tau(p) \sqcap \tau(\lnot p);\bot
-\\ \{\emptyset\} &=& \bot
-\\ \{\Sigma\} &=& \nil
-}
-
-\HDRc{Relies and Guarantees}~
-
-\RLEQNS{
-   g &\in& \Set(\Sigma\times\Sigma)
-\\ (\piRestrict~g) &\defs& \pi(g) \sqcap \wait
-\\ \guar~g &\defs& (\piRestrict~g)^\omega
-\\ g_1 \subseteq q_2 &\implies& (\piRestrict~g_2) \sqsubseteq (\piRestrict~g_1)
-}
-
-\RLEQNS{
-   c \Cap \bot &=& \bot
-\\ (c \Cap c') \Cap c'' &=& c \Cap (c' \Cap c'')
-\\ c \Cap d &=& d \Cap c
-\\ c \Cap c &=& c
-\\ c \Cap (\bigsqcap D) &=& (\bigsqcap_{d \in D} c \Cap d), D \neq \setof{}
-\\ a \Cap b &=& a \sqcup b
-\\ t \Cap t' &=& t \sqcup t'
-\\ (a;c) \Cap (b;d) &=& (a \Cap b);(c \Cap d)
-\\ (a;c) \Cap \nil &=& \top
-\\ a^\infty \Cap b^\infty &=& (a \Cap b)^\infty
-\\ a \Cap \alf &=& a
-\\ \chaos &\defs& \alf^\omega
-\\ a^\omega \Cap b^\omega &=& (a \Cap b)^\omega
-\\ (\piRestrict~ g_1) \Cap (\piRestrict~g_2) &=& (\piRestrict(g_1 \cap g_2))
-\\ a^\omega \Cap (c;d) &=& (a^\omega \Cap c);(a^\omega \Cap d)
-\\ (guar~g) \Cap (c;d) &=& (\guar~g \Cap c) ; (\guar~g \Cap d)
-}
-
-\RLEQNS{
-   (\epsAssm~r) &\defs& \assume(!\epsilon(\overline r))
-\\ &=& !\epsilon(\overline r) \sqcap \epsilon(\overline r);\bot
-\\ \rely~r &\defs& (\epsAssm~r)^\omega
-\\ \assume~a \Cap \assume~b &=& \assume(a \sqcup b)
-\\ (\rely~r) \Cap (c;d) &=& (\rely~r \Cap c);(\rely~r \Cap d)
-}
-
-Rely-Guarantee quintuple: $\setof{p,r}c\setof{g,q}$
-
-\RLEQNS{
-   \term &\defs& \epsilon^\omega (\pi;\epsilon^\omega)^\star
-\\ ~[q] 
-   &\defs& 
-   \bigsqcap_{\sigma\in\Sigma}
-    \tau(\setof{\sigma}) 
-    ; \term 
-    ; \tau(\setof{\sigma'\in\Sigma|(\sigma,\sigma')\in q})
-\\ \setof{p,r}c\setof{g,q}
-   &\defs&
-   \{p\}(\rely~r \Cap \guar~g \Cap [q]) \sqsubseteq c
-}
-
-\HDRc{Abstract Communication in Process Algebras}~

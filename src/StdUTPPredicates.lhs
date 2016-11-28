@@ -9,6 +9,7 @@ import Debug.Trace
 import PrettyPrint
 import CalcTypes
 import CalcPredicates
+import DictAbstractions
 import StdPrecedences
 import StdPredicates
 import StdUTPPrecedences
@@ -81,7 +82,7 @@ ppNDC sCP d p prs
 
 simpNDC d mprs  = sLattice d "|~|-simplify" mkNDC mkBot mkTop mprs
 
-ndcEntry :: (Show s, Ord s) => (String, Entry s)
+ndcEntry :: (String, Entry)
 ndcEntry
  = ( nNDC
    , PredEntry ["*"] ppNDC [] (pNoChg nNDC) simpNDC )
@@ -111,7 +112,7 @@ simpRfdby d [T, pr2] = Just ("true-|=",T,diff)
 simpRfdby d [pr1, F] = Just ("|=-false",T,diff)
 simpRfdby d [pr1, pr2] = Nothing
 
-rfdbyEntry :: (Show s, Ord s) => (String, Entry s)
+rfdbyEntry :: (String, Entry)
 rfdbyEntry
  = ( nRfdby
    , PredEntry [] ppRfdby []
@@ -146,7 +147,7 @@ simpCond d [pr1, T, pr3] = Just ("true-cond",pr1,diff)
 simpCond d [pr1, F, pr3] = Just ("false-cond",pr3,diff)
 simpCond _ _ = Nothing
 
-condEntry :: (Show s, Ord s) => (String, Entry s)
+condEntry :: (String, Entry)
 condEntry
  = ( nCond
    , PredEntry ["*"] ppCond [] (pNoChg nCond) simpCond )
@@ -206,7 +207,7 @@ simpSeq d [ pr1, pr2 ]
 
  | otherwise   =  Nothing
 
-seqEntry :: (Show s, Ord s) => (String, Entry s)
+seqEntry :: (String, Entry)
 seqEntry
  = ( nSeq
    , PredEntry [] ppSeq [] (pNoChg nSeq) simpSeq )
@@ -234,7 +235,7 @@ simpIter d [pr1, F ]
  = Just ("c-*-false", mkAnd [mkNot pr1, mkSkip], diff)
 simpIter d [pr1, pr2 ] = Nothing
 
-iterEntry :: (Show s, Ord s) => (String, Entry s)
+iterEntry :: (String, Entry)
 iterEntry
  = ( nIter
    , PredEntry [] ppIter [] (pNoChg nIter) simpIter )
