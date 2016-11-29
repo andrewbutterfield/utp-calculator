@@ -247,4 +247,17 @@ isSubSeq sub seq
   vfySS bxs (s:ss) (x:xs)
    | s == x       =  vfySS bxs ss xs
    | otherwise    =  isSS sub bxs
+
+uniShow preamble subsetName
+ = do subsetData <- readFile subsetName
+      let codes = map getCode $ lines subsetData
+      putStrLn $ unlines $ map addpre codes
+ where addpre c = preamble++[c]
+
+getCode = chr . toHex . takeWhile (/=';')
+
+toHex = toH . reverse
+ where
+   toH "" = 0
+   toH (c:cs) = digitToInt c + 16 * toH cs
 \end{code}
