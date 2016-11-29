@@ -33,11 +33,20 @@ We organise this based on the FM2016 paper (citation needed).
 \newpage
 \HDRb{Concurrent Refinement Algebra}
 
+Commands: $c,d \in \mathcal C$
+\begin{code}
+carrierC = [_mathcal 'C']
+( c, cEntry )  = pvarEntry "c" [carrierC]
+( d, dEntry )  = pvarEntry "d" [carrierC]
+\end{code}
+We use the alphabet parameter to define membership
+of variables in various subsets of $\mathcal C$,
+as they are defined below.
+
 Concurrent Refinement Algebra (CRA):
 \[
 (\mathcal C,\sqcap,\sqcup,;,\parallel,\bot,\top,\nil,\Skip)
 \]
-
 \begin{code}
 n_top  = _top    ; top  = PVar n_top
 n_bot = _bot ; bot = PVar n_bot
@@ -100,7 +109,7 @@ $
 $.
 \begin{code}
 n_seq = ";"
-(mkSeq, seqEntry) = popMonoid n_seq nil precOr
+(mkSeq, seqEntry) = popMonoid n_seq nil precAnd
 \end{code}
 
 \RLEQNS{
@@ -210,6 +219,74 @@ conjSeqRedEntry = entry laws $ LawEntry [conjSeqReduce] [] []
 \end{code}
 
 \HDRb{The Boolean Sub-algebra of Tests}
+
+Test commands: $t \in \mathcal B \subseteq C$.
+\begin{code}
+carrierB = [_mathcal 'B']
+
+isTest d (PVar t)
+ = case plookup t d of
+    Just (PredEntry _ _ [carrier] _ _) -> carrier == carrierB
+    _                                  -> False
+isTest _ _ = False
+
+( t, tEntry )  = pvarEntry "t" [carrierB]
+( t', t'Entry )  = pvarEntry "t'" [carrierB]
+\end{code}
+Extended algebra:
+\[
+(\mathcal C,\mathcal B,\sqcap,\sqcup,;,\parallel,\bot,\top,\nil,\Skip,\lnot)
+\]
+Test Boolean algebra --- sub-lattice of CRA:
+$
+(\mathcal B,\sqcap,\sqcup,\lnot,\top,\nil)
+$
+
+$\mathcal B$ closed under $\sqcap, \sqcup, ;, \parallel$.
+\begin{code}
+n_par = _parallel
+( par, parEntry ) = popSemiG n_par precOr
+\end{code}
+
+Assume $t \in \mathcal B$, arbitrary test.
+\RLEQNS{
+   t;t' &=& t \sqcup t'
+\\ t\parallel t' &=& t \sqcup t'
+}
+\begin{code}
+testReduce d _ (Comp sn [t, t'])
+ | (sn == n_seq || sn == n_par) && isTest d t && isTest d t'
+   = Just ( "test-"++n_seq++" is "++n_join
+          , join [t,t']
+          , True )
+\end{code}
+
+\RLEQNS{
+   (t;c) \parallel (t;d) &=& t;(c\parallel d)
+\\ (t;c) \sqcup (t';d) &=& (t \sqcup t') ; (c \sqcup d)
+}
+\begin{code}
+testReduce rgd _ (Comp pn [Comp sn1 [t,c], Comp sn2 [t',d]])
+ | t == t' && pn == n_par && sn1 == n_seq && sn2 == n_seq
+   && isTest rgd t
+   = Just ( "test-"++n_par++"-distr"
+          , mkSeq [t,par [c,d]]
+          , True
+          )
+\end{code}
+\RLEQNS{
+   \Assert~t &\defs& t \sqcap \lnot t ; \bot
+\\ \lnot \top &=& \nil
+}
+\begin{code}
+-- to come
+\end{code}
+
+\begin{code}
+testReduce _ _ _ = Nothing
+
+testRedEntry = entry laws $ LawEntry [testReduce] [] []
+\end{code}
 
 \HDRb{Abstract Atomic Steps}
 
@@ -518,6 +595,7 @@ rgDict :: Dict
 rgDict
  = mergeDicts
     [ dictVersion "RGAlgebra 0.1"
+    , cEntry, dEntry
     , meetEntry
     , joinEntry
     , rfdbyEntry
@@ -525,6 +603,9 @@ rgDict
     , seqRedEntry
     , conjSeqRedEntry -- omit if doing CSP/CCS !!
     , repeatEntry
+    , tEntry, t'Entry
+    , parEntry
+    , testRedEntry
     , piEntry
     , epsEntry
     , iiEntry

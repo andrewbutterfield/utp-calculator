@@ -26,10 +26,12 @@ and well as predicate transformers of interest.
 First, we deal with simple ways to provide \texttt{PredEntry}
 for simple predicate variables:
 \begin{code}
-pvarEntry :: String -> [String] -> Dict
+pvarEntry :: String -> [String] -> (Pred, Dict)
 pvarEntry nm alf
- = entry nm
-   $ PredEntry [] ppPVar alf (pNoChg nm) (pNoChg nm)
+ = ( PVar nm
+   , entry nm
+      $ PredEntry [] ppPVar alf (pNoChg nm) (pNoChg nm)
+   )
  where ppPVar _ _ _ _ = ppa nm
 \end{code}
 
@@ -74,6 +76,36 @@ prefixPT n_PT precPT optDefnPT
 
 \newpage
 \HDRb{Binary Predicate Operator Abstractions}
+
+\HDRc{Semigroup Operators}
+
+\RLEQNS{
+   (a \oplus b) \oplus c &=& a \oplus (b \oplus c)
+}
+\begin{code}
+popSemiG :: String
+         -> Int
+         -> ( [Pred] -> Pred
+            , Dict)
+popSemiG n_SGR precSGR
+ = let
+
+     isSGR (Comp name _)  =  name == n_SGR
+     isSGR _              =  False
+
+     mkSGR [pr] = pr
+     mkSGR prs = mkAssoc n_SGR isSGR [] prs
+
+     ppSGR sCP d p [pr] = sCP p 1 pr
+     ppSGR sCP d p prs
+      = paren p precSGR
+          $ ppopen (pad n_SGR)
+          $ ppwalk 1 (sCP precSGR) prs
+
+
+   in ( mkSGR
+      , entry n_SGR $ PredEntry subAny ppSGR [] noDefn noDefn )
+\end{code}
 
 \HDRc{Monoid Operators}
 
