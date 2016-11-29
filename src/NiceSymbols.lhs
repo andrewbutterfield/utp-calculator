@@ -252,7 +252,7 @@ uniShow preamble subsetName
  = do subsetData <- readFile subsetName
       let codes = map getCode $ lines subsetData
       putStrLn $ unlines $ map addpre codes
- where addpre c = preamble++[c]
+ where addpre c = show (ord c) ++ " " ++ preamble++[c]
 
 getCode = chr . toHex . takeWhile (/=';')
 
