@@ -138,6 +138,7 @@ _supChar 'm' = '\7504'
 _supChar 'n' = '\8319'
 _supChar 'o' = '\7506'
 _supChar 'p' = '\7510'
+-- no q !
 _supChar 'r' = '\691'
 _supChar 's' = '\738'
 _supChar 't' = '\7511'
