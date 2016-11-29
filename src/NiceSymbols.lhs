@@ -86,6 +86,7 @@ _pi = "\x03C0"
 _epsilon = "\x03F5"
 _tau = "\x03C4"
 _Sigma = "\x2211"
+_omega = "\x1d714"
 
 _top = "\x22A4"
 _bot = "\x22A5"
@@ -110,6 +111,8 @@ _subseteq = "\8838"
 
 _parallel = "\8214"
 _Cap = "\8914"
+
+_infty = "\x221e"
 
 _overline str = "\ESC[9m"++follow str '\x35e'++"\ESC[0m"
 
@@ -149,10 +152,19 @@ _supChar 'x' = '\739'
 _supChar 'y' = '\696'
 _supChar 'z' = '\7611'
 
+_supChar '+' = '\8314'
+_supChar '-' = '\8315'
+_supChar '(' = '\8317'
+_supChar ')' = '\8318'
+
+_supChar ',' = ','
+_supChar '*' = '*'
+_supChar '\x221e' = '\x221e'  -- infty
+_supChar '\120596' = '\7514'  -- omega
+
 _supChar c
   | isDigit c = chr (ord c - ord '0' + 8304)
-  | isSpace c = c
-  | otherwise = '\175'
+  | otherwise = c
 
 _supStr s = map _supChar s
 _supNum n = _supStr $ show n
@@ -222,6 +234,7 @@ nice
    , ("_epsilon", _epsilon)
    , ("_tau", _tau)
    , ("_Sigma", _Sigma)
+   , ("_omega", _omega)
    , ("_top", _top)
    , ("_bot", _bot)
    , ("_sqcap", _sqcap)
@@ -241,6 +254,7 @@ nice
    , ("_subseteq", _subseteq)
    , ("_parallel", _parallel)
    , ("_Cap", _Cap)
+   , ("_infty",_infty)
    , ("_overline(p)", _overline "p")
    , ("_supNum(42)", _supNum 42)
    ]

@@ -238,7 +238,7 @@ unrollTst _ _ _ = Nothing
 
 \begin{code}
 lawsEntry :: (Ord s, Show s) => (String, Entry s)
-lawsEntry = ("laws",LawEntry [reduceStd] [creduceTest] [unrollTst])
+lawsEntry = (laws,LawEntry [reduceStd] [creduceTest] [unrollTst])
 
 lawsDict :: (Ord s, Show s) => Dict s
 lawsDict = makeDict [ lawsEntry ]

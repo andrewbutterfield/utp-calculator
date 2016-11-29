@@ -46,16 +46,16 @@ To support this
 we predefine some standard names for important alphabet subsets
 ($Alf,Obs,Obs',Mdl,Mdl',Scr,Scr',Dyn,Dyn',Stc$):
 \begin{code}
-aAlf  = "Alf"   -- entire alphabet
-aObs  = "Obs"   -- all undashed variables
-aObs' = "Obs'"  -- all dashed variables
-aMdl  = "Mdl"   -- all undashed model variables
-aMdl' = "Mdl'"  -- all dashed model variables
-aScr  = "Scr"   -- all undashed script variables
-aScr' = "Scr'"  -- all dashed script variables
-aDyn  = "Dyn"   -- all undashed dynamic observables
-aDyn' = "Dyn'"  -- all dashed dynamic observables
-aStc  = "Stc"   -- all undashed static parameters
+aAlf  = "\bAlf"   -- entire alphabet
+aObs  = "\bObs"   -- all undashed variables
+aObs' = "\bObs'"  -- all dashed variables
+aMdl  = "\bMdl"   -- all undashed model variables
+aMdl' = "\bMdl'"  -- all dashed model variables
+aScr  = "\bScr"   -- all undashed script variables
+aScr' = "\bScr'"  -- all dashed script variables
+aDyn  = "\bDyn"   -- all undashed dynamic observables
+aDyn' = "\bDyn'"  -- all dashed dynamic observables
+aStc  = "\bStc"   -- all undashed static parameters
 \end{code}
 
 We also need a special way to indicate when substitutability

@@ -34,7 +34,7 @@ pvarEntry nm alf
 \end{code}
 
 \newpage
-\HDRb{Unary Operator Abstractions}
+\HDRb{Predicate Abstractions}
 
 \HDRc{Prefix Predicate Transformer}
 
@@ -73,7 +73,7 @@ prefixPT n_PT precPT optDefnPT
 \end{code}
 
 \newpage
-\HDRb{Binary Operator Abstractions}
+\HDRb{Binary Predicate Operator Abstractions}
 
 \HDRc{Monoid Operators}
 
@@ -84,12 +84,12 @@ prefixPT n_PT precPT optDefnPT
 
 Associative binary operators with  unit elements.
 \begin{code}
-opMonoid :: String
+popMonoid :: String
          -> Pred
          -> Int
          -> ( [Pred] -> Pred
             , Dict)
-opMonoid n_MND unit precMND
+popMonoid n_MND unit precMND
  = let
 
      isMND (Comp name _)  =  name == n_MND
@@ -106,7 +106,7 @@ opMonoid n_MND unit precMND
           $ ppopen (pad n_MND)
           $ ppwalk 1 (sCP precMND) prs
 
-     simpMND d prs  = sMonoid d (n_MND++"-simplify") mkMND  unit prs
+     simpMND d prs  = psMonoid d (n_MND++"-simplify") mkMND  unit prs
 
    in ( mkMND
       , entry n_MND $ PredEntry subAny ppMND [] noDefn simpMND )
@@ -122,13 +122,13 @@ this embodies the following laws:
 \\ \bigotimes_{i \in \setof{1}} x_i &=& x_1
 }
 \begin{code}
-sMonoid :: Dict
-        -> String               -- op. name
-        -> ([Pred] -> Pred) -- op. builder
-        -> Pred               -- unit
-        -> [Pred]             -- op. arguments
-        -> RWResult
-sMonoid d tag op unit prs
+psMonoid :: Dict
+         -> String               -- op. name
+         -> ([Pred] -> Pred) -- op. builder
+         -> Pred               -- unit
+         -> [Pred]             -- op. arguments
+         -> RWResult
+psMonoid d tag op unit prs
  = ret $ simpM [] prs
  where
 
@@ -155,13 +155,13 @@ sMonoid d tag op unit prs
 
 Associative binary operators with both unit and zero elements.
 \begin{code}
-opSemiLattice :: String
+popSemiLattice :: String
               -> Pred
               -> Pred
               -> Int
               -> ( [Pred] -> Pred
                  , Dict)
-opSemiLattice n_SL zero unit precSL
+popSemiLattice n_SL zero unit precSL
  = let
 
      isSL (Comp name _)  =  name == n_SL
@@ -178,7 +178,7 @@ opSemiLattice n_SL zero unit precSL
           $ ppopen (pad n_SL)
           $ ppwalk 1 (sCP precSL) prs
 
-     simpSL d prs  = sLattice d (n_SL++"-simplify") mkSL zero unit prs
+     simpSL d prs  = psLattice d (n_SL++"-simplify") mkSL zero unit prs
 
    in ( mkSL
       , entry n_SL $ PredEntry subAny ppSL [] noDefn simpSL )
@@ -210,14 +210,14 @@ this embodies the following laws:
 \\ \bigotimes_{i \in \setof{1}} x_i &=& x_1
 }
 \begin{code}
-sLattice :: Dict
-         -> String               -- op. name
-         -> ([Pred] -> Pred) -- op. builder
-         -> Pred               -- zero
-         -> Pred               -- unit
-         -> [Pred]             -- op. arguments
-         -> RWResult
-sLattice d tag op zero unit prs
+psLattice :: Dict
+          -> String               -- op. name
+          -> ([Pred] -> Pred) -- op. builder
+          -> Pred               -- zero
+          -> Pred               -- unit
+          -> [Pred]             -- op. arguments
+          -> RWResult
+psLattice d tag op zero unit prs
  = ret $ simpL [] prs
  where
 
@@ -233,4 +233,26 @@ sLattice d tag op zero unit prs
     | prs' == prs  =  Nothing
     | null prs'    =  Just (tag, unit, diff )
     | otherwise    =  Just (tag, op prs', diff )
+\end{code}
+
+\newpage
+\HDRb{Expression Abstractions}
+
+\HDRc{Binary Operators}
+
+\begin{code}
+opNonAssoc :: String                  -- dictionary name
+           -> String                  -- infix symbol
+           -> ( Expr -> Expr -> Expr  -- op builder
+              , Dict )                -- dictionary entry
+opNonAssoc nm op
+ = ( mkOp, entryOp )
+ where
+   mkOp e1 e2 =  App nm [e1,e2]
+
+   ppOp d [e1,e2] = "("++edshow d e1++op++edshow d e2++")"
+   ppOp _ _ = "[invalid-"++op++"]"
+
+   entryOp
+    = entry nm $ ExprEntry subAny ppOp noDefn noEval noEq
 \end{code}

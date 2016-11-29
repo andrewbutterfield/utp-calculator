@@ -281,7 +281,7 @@ expDefs _ _ = Nothing
 doReduce :: Dict -> [Pred] -> Mark
            -> MPred -> Maybe (BeforeAfter)
 doReduce d invs m mpr
- = case M.lookup "laws" d of
+ = case M.lookup laws d of
     Just (LawEntry red _ _)  ->  doRed d m invs mpr red
     _                        ->  Nothing
 
@@ -300,7 +300,7 @@ doRed d m invs mpr@(ms,_) (rf:rfs)
 doCReduce :: Dict -> Mark
            -> MPred -> Maybe (BeforeAfters)
 doCReduce d m mpr
- = case M.lookup "laws" d of
+ = case M.lookup laws d of
     Just (LawEntry _ cred _)  ->  doCRed d m mpr cred
     _                         ->  Nothing
 
@@ -319,7 +319,7 @@ doCRed d m mpr (rf:rfs)
 doUnroll :: String -> Dict -> [Pred] -> Mark
            -> MPred -> Maybe (BeforeAfter)
 doUnroll ns d invs m mpr
- = case M.lookup "laws" d of
+ = case M.lookup laws d of
     Just (LawEntry _ _ unr)   ->  doUnr ns d m invs mpr unr
     _                         ->  Nothing
 

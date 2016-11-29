@@ -222,7 +222,7 @@ creduceUTCP d mpr = Nothing
 lawsUTCPDict :: Dict
 lawsUTCPDict
  = makeDict
-    [ ( "laws"
+    [ ( laws
       , LawEntry [reduceUTCP] [creduceUTCP] [])
     ]
 \end{code}

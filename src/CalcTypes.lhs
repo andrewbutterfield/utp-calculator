@@ -2,6 +2,7 @@
 \begin{code}
 module CalcTypes where
 import qualified Data.Map as M
+import Data.List
 import PrettyPrint
 \end{code}
 
@@ -311,8 +312,10 @@ seplist _ [xs] = xs
 seplist s (xs:xss) = xs ++ s:seplist s xss
 
 dictshow d
- = putStrLn $ unlines $ map entryShow $ M.assocs d
+ = putStrLn $ unlines $ map entryShow $ sortBy entryOrd $ M.assocs d
 
+entryOrd :: (String, a) -> (String, b) -> Ordering
+entryOrd (n1,_) (n2,_) = compare n1 n2
 entryShow ( n, e ) = n ++ " :- " ++ show e
 \end{code}
 

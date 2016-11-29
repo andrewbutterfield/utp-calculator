@@ -18,6 +18,7 @@ import CalcSimplify
 import CalcRecogniser
 import CalcRun
 import StdSets
+import StdExpressions
 import StdPredicates
 \end{code}
 
@@ -53,10 +54,10 @@ with smart builders that flatten nested usage, remove identities
 and collapse it all if any zeros occur.
 \begin{code}
 n_meet = _sqcap
-(meet, meetEntry) = opSemiLattice n_meet bot top precOr
+(meet, meetEntry) = popSemiLattice n_meet bot top precOr
 
 n_join = _sqcup
-(join, joinEntry) = opSemiLattice n_join top bot precAnd
+(join, joinEntry) = popSemiLattice n_join top bot precAnd
 \end{code}
 All that really remains now are the distributivity laws.
 We defer those until we know which one we prefer
@@ -99,7 +100,7 @@ $
 $.
 \begin{code}
 n_seq = ";"
-(mkSeq, seqEntry) = opMonoid n_seq nil precOr
+(mkSeq, seqEntry) = popMonoid n_seq nil precOr
 \end{code}
 
 \RLEQNS{
@@ -144,7 +145,23 @@ seqRedEntry = entry laws $ LawEntry [seqReduce] [] []
    c^0 &\defs& \nil
 \\ c^{i+1} &\defs& c ; c^i
 }
+\begin{code}
+n_repeat = "repeat"
+rep c e = Comp n_repeat [c,Atm e]
+repn c i = rep c $ Z i
+repv c n = rep c $ Var n
 
+
+precRep = precSub -- keep it tight
+ppRep sCP d p [c,Atm ix]
+ = paren p precRep
+     $ pplist [ sCP precImp 1 c
+              , ppa $ ppSuper d ix ]
+ppRep sCP d p _ = pps styleRed $ ppa ("invalid-"++n_repeat)
+
+repeatEntry
+ = entry n_repeat $ PredEntry subAny ppRep [] noDefn noDefn
+\end{code}
 \RLEQNS{
    c^\star &\defs& \nu x . \nil \sqcap c ; x
 \\ c^\omega &\defs& \mu x . \nil \sqcap c ;x
@@ -153,6 +170,44 @@ seqRedEntry = entry laws $ LawEntry [seqReduce] [] []
 \\ c^\star &=& \nil \sqcap c ; c^\star
 \\ c^\infty &=& c ; c^\infty ~=~ c^i ; c^\infty ~=~ c^\infty ; d
 }
+We just define these passively for now
+but don't implement any laws just yet.
+\begin{code}
+star c = repv c "*"
+omega c = repv c _omega
+nostop c = repv c _infty
+\end{code}
+
+
+True in their relational model, but not generally in CCS or CSP:
+\RLEQNS{
+   D \neq \setof{} &\implies& c;(\bigsqcap D) = \bigsqcap_{d \in D}(c;d)
+}
+It says that ; is \emph{conjunctive}.
+We put this and consequent laws their own dictionary ``laws'' entry,
+so it can used or ommitted as required.
+\begin{code}
+conjSeqReduce d _ (Comp sn [pr, Comp mn mprs])
+ | sn == n_seq && mn == n_meet
+   = Just ( n_meet++" right-distr thru "++n_seq
+          , meet (map distr mprs)
+          , True )
+ where distr mpr = mkSeq [pr, mpr]
+\end{code}
+Needed for the following:
+\RLEQNS{
+   c^\omega &=& c^\star \sqcap c^\infty
+\\ c^\star &=& \bigsqcap_{i \in \Nat} c^i
+\\ c^\omega ; d &=& c^\star;d \sqcap c^\infty
+\\ c;c^\omega;d &=& c;c^\star;d \sqcap c^\infty
+}
+For now we don't encode these laws as it is not clear
+which direction is most useful.
+\begin{code}
+conjSeqReduce _ _ _ = Nothing
+
+conjSeqRedEntry = entry laws $ LawEntry [conjSeqReduce] [] []
+\end{code}
 
 \HDRb{The Boolean Sub-algebra of Tests}
 
@@ -357,6 +412,7 @@ assertEntry
 n_bang = "!"
 precBang = precNot -- for now
 
+
 (bang,bangEntry) = prefixPT n_bang precBang Nothing
 \end{code}
 
@@ -467,6 +523,8 @@ rgDict
     , rfdbyEntry
     , seqEntry
     , seqRedEntry
+    , conjSeqRedEntry -- omit if doing CSP/CCS !!
+    , repeatEntry
     , piEntry
     , epsEntry
     , iiEntry
@@ -479,6 +537,7 @@ rgDict
     , assumeEntry
     , assertEntry
     , lawEntry
+    , stdExprDict
     , stdSetDict
     , stdPredDict
     ]

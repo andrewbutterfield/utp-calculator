@@ -18,8 +18,8 @@ import StdPrecedences
 
 Smart constructors and equality testing for substitutions.
 \begin{code}
-mkSub e []  = e
-mkSub e sub = Sub e $ sort sub
+mkSbs e []  = e
+mkSbs e sub = Sub e $ sort sub
 
 mkPSub :: Pred -> [(String, Expr)] -> Pred
 mkPSub pr []  = pr
@@ -124,8 +124,9 @@ entry s e = makeDict [(s, e)]
 dictVersion :: String -> Dict
 dictVersion vtxt = entry version $ AlfEntry [vtxt]
 
-version = "Version"
-laws = "laws" -- for "the" LawEntry
+-- we want these to sort before \ESC !
+version = "\bVersion"
+laws = "\blaws" -- for "the" LawEntry
 \end{code}
 
 When we merge dictionary entries
@@ -172,9 +173,9 @@ and a simple wrapper for evals that always do something
 \begin{code}
 none :: ( String, Expr)
 none = ( "", Undef )
-noeval :: [Expr] -> ( String, Expr)
+--noeval :: [Expr] -> ( String, Expr)
 noeval _ = none
-noEval :: Dict -> [Expr] -> (String, Expr)
+--noEval :: Dict -> [Expr] -> (String, Expr)
 noEval _ = noeval
 does :: String -> (Dict -> [Expr] -> Expr)
      -> Dict -> [Expr]
@@ -265,7 +266,7 @@ mshowp0 d _ p (Equal e1 e2, _)
                  [ppa $ edshow d e1, ppa $ edshow d e2]
 mshowp0 d _ p (Atm e, _) = ppa $ edshow d e
 mshowp0 d msf p (PSub pr sub, MT _ mts)
-   = pplist $ [ subCompShow msf mts d precSub 1 pr
+   = pplist $ [ subCompShow msf mts d precSbs 1 pr
               , ppa $ showSub d sub ]
 
 mshowp0 d msf p (Comp cname pargs, MT _ mts)
@@ -295,6 +296,8 @@ ppwalk i sCS (arg:args)  =  (sCS i arg) : ppwalk (i+1) sCS args
 
 showp :: Dict -> MarkStyle -> Int -> Pred -> PP
 showp d ms p pr = mshowp d ms p $ buildMarks pr
+
+ppSuper d e = _supStr $ edshow d e
 \end{code}
 
 \HDRb{Debugging Aids}

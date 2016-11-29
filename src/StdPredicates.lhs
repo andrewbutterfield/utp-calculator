@@ -79,7 +79,7 @@ notEntry
 }
 \begin{code}
 nAnd = _land
-(mkAnd, andEntry) = opSemiLattice nAnd F T precAnd
+(mkAnd, andEntry) = popSemiLattice nAnd F T precAnd
 \end{code}
 
 \HDRc{Disjunction}\label{hc:def-Or}
@@ -90,7 +90,7 @@ nAnd = _land
 }
 \begin{code}
 nOr = _lor
-(mkOr, orEntry) = opSemiLattice nOr T F precOr
+(mkOr, orEntry) = popSemiLattice nOr T F precOr
 \end{code}
 
 \newpage
