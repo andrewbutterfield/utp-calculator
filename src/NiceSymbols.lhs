@@ -115,7 +115,9 @@ _overline str = "\ESC[9m"++follow str '\x35e'++"\ESC[0m"
 
 _supChar '2' = '\178'
 _supChar '3' = '\179'
-_supChar c 
+_supChar 'i' = '\8305'
+_supChar 'n' = '\8319'
+_supChar c
   | isDigit c = chr (ord c - ord '0' + 8304)
   | isSpace c = c
   | otherwise = '\175'
@@ -218,4 +220,31 @@ niceRender w (_nm, nm)
 main
  = do putStrLn $ unlines $ map (niceRender maxw) nice
  where maxw = maximum $ map (length . fst) nice
+\end{code}
+
+\HDRc{UnicodeData.txt Utilities}
+
+The official Unicode reference is
+\verb"http://ftp.unicode.org/Public/UNIDATA/UnicodeData.txt"
+
+Here is code to extract subsets, based on sub-strings.
+\begin{code}
+uniSubset keep keepName
+ = do unicodeData <- readFile "UnicodeData.txt"
+      let keepData = filter keep $ lines unicodeData
+      writeFile keepName $ unlines keepData
+
+isSubSeq sub seq
+ = isSS sub seq
+ where
+  isSS [] _       = True
+  isSS _ []       = False
+  isSS (s:ss) (x:xs)
+   | s == x       =  vfySS xs ss xs
+   | otherwise    =  isSS sub xs
+  vfySS bxs [] _  =  True
+  vfySS bxs _ []  =  isSS sub bxs
+  vfySS bxs (s:ss) (x:xs)
+   | s == x       =  vfySS bxs ss xs
+   | otherwise    =  isSS sub bxs
 \end{code}
