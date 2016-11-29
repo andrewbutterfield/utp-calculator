@@ -1,0 +1,84 @@
+Basic properties of (binary) operators and relations
+======================================
+
+Independent
+-----------
+
+l-unit
+r-unit
+l-zero
+r-zero
+assoc
+comm
+idem
+dist.a.b
+absorb.a.b
+
+refl
+trans
+symm
+anti-symm
+
+glb
+lub
+bottom
+top
+
+
+Dependent
+---------
+
+<s> ranges over l,r
+<prop> ranges over properties: unit, zero, inv, ..
+
+<s>-inv ⇒ <s>-unit
+
+<prop> = l-<prop> ∧ r-<prop>
+
+bounded = bottom ∨ top
+
+Relationships
+-------------
+
+comm ∧ <s>-<prop> ⇒ <prop>
+
+Structures
+----------
+
+magma = true
+
+loop = unit ∧ inv
+
+semigroup = assoc
+
+monoid = semigroup ∧ unit
+
+group = monoid ∧ inv
+
+abelian-group = group ∧ comm
+
+semiring.1.2 =  monoid.1 ∧ comm.1 ∧ monoid.2 ∧ distr.2.1
+                 ∧ zero.2
+
+idem-semiring.1.2 = semiring.1.2  ∧  idem.1
+                  = join-semilattice.1.2  ∧ zero.1  ???
+
+ring.1.2 =  abelian-group.1 ∧ monoid.2 ∧ distr.2.1
+
+comm-ring.1.2 = ring.1.2 ∧ comm.2
+
+field.1.2 = group.1  ∧  group.2\0  ∧  distr.2.1  -- sort of...
+
+pre-order = refl  ∧  trans
+pord = pre-order  ∧ anti-sym
+
+
+semilattice = assoc ∧ comm ∧ idem
+bnd-semilattice = meet-semilattice ∧ unit
+ = monoid ∧ comm ∧ idem
+
+lattice.1.2 = semilattice.1 ∧ semilattice.2 ∧ absorb.1.2
+
+lattice.1.2 ⇒ idem.1 ∧ idem.2
+
+bnd-lattice.1.2 = lattice.1.2 ∧ unit.1 ∧ unit.2
