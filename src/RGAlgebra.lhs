@@ -224,6 +224,7 @@ conjSeqRedEntry = entry laws $ LawEntry [conjSeqReduce] [] []
 \HDRb{The Boolean Sub-algebra of Tests}
 
 Test commands: $t \in \mathcal B \subseteq C$.
+$\mathcal B$ closed under $\sqcap, \sqcup, ;, \parallel$.
 \begin{code}
 carrierB = [_mathcal 'B']
 
@@ -231,6 +232,8 @@ isTest d (PVar t)
  = case plookup t d of
     Just (PredEntry _ _ [carrier] _ _) -> carrier == carrierB
     _                                  -> False
+isTest d (Comp n prs)
+ | n `elem` [n_meet,n_join,n_seq,n_par] = all (isTest d) prs
 isTest _ _ = False
 
 ( t, tEntry )  = pvarEntry "t" [carrierB]
@@ -245,7 +248,6 @@ $
 (\mathcal B,\sqcap,\sqcup,\lnot,\top,\nil)
 $
 
-$\mathcal B$ closed under $\sqcap, \sqcup, ;, \parallel$.
 \begin{code}
 n_par = _parallel
 ( par, parEntry ) = popSemiG n_par precOr
@@ -322,9 +324,74 @@ testReduce _ _ _ = Nothing
 testRedEntry = entry laws $ LawEntry [testReduce] [] []
 \end{code}
 
-
+\newpage
 \HDRb{Abstract Atomic Steps}
 
+Atomic Step commands: $a,b \in \mathcal A \subseteq C$.
+
+$\mathcal A$ closed under $\sqcap, \sqcup, \parallel$, but not $;$.
+\begin{code}
+carrierA = [_mathcal 'A']
+
+isAtmStep d (PVar a)
+ = case plookup a d of
+    Just (PredEntry _ _ [carrier] _ _) -> carrier == carrierA
+    _                                  -> False
+isAtmStep d (Comp n prs)
+ | n `elem` [n_meet,n_join,n_par] = all (isAtmStep d) prs
+isAtmStep _ _ = False
+
+( a, aEntry ) = pvarEntry "a" [carrierA]
+( b, bEntry ) = pvarEntry "b" [carrierA]
+\end{code}
+
+Atomic Action Boolean algebra --- sub-lattice of CRA:
+$
+(\mathcal A,\sqcap,\sqcup,!,\top,\alf)
+$
+\begin{code}
+n_bang = "!"
+precBang = precNot -- for now
+
+(bang,bangEntry) = prefixPT n_bang precBang Nothing
+
+n_alf = bold _alpha
+( alf, alfEntry ) = pvarEntry n_alf [carrierA]
+\end{code}
+
+\RLEQNS{
+   \alf \sqcup \nil &=& \top
+}
+\begin{code}
+atmReduce d _ (Comp nj [a1,a2])
+ | nj == n_join
+   && (a1 == alf && a2 == nil || a1 == nil && a2 == alf)
+   = Just ( "joining "++n_alf++","++n_nil++" yields "++n_top
+          , top
+          , True )
+\end{code}
+
+\RLEQNS{
+   a \parallel \wait &=& a
+\\ a;c \parallel b;d &=& (a \parallel b);(c\parallel d)
+\\ a;c \sqcup b;d &=& (a \sqcup b);(c \sqcup d)
+\\ a;c \parallel \nil &=& \top
+\\ a;c \sqcup \nil &=& \top
+\\ a \sqcup !a &=& \top
+\\ a \sqcap !a &=& \alf
+\\ !\top &=& \alf
+\\ \assume~a &\defs& a \sqcap (!a);\bot
+}
+TODO!!!
+
+Now we wrap up
+\begin{code}
+atmReduce _ _ _ = Nothing
+
+atmRedEntry = entry laws $ LawEntry [atmReduce] [] []
+\end{code}
+
+\newpage
 \HDRb{Relational Atomic Steps}
 
 \HDRb{Relies and  Guarantees}
@@ -335,7 +402,6 @@ testRedEntry = entry laws $ LawEntry [testReduce] [] []
 
 TO BE MOVED ELSEWHERE!!!
 \begin{code}
-n_alf = _alpha ; alf = PVar n_alf
 n_chaos = bold "chaos" ; chaos = PVar n_chaos
 \end{code}
 
@@ -517,16 +583,6 @@ xxassertEntry
  = entry xxn_assert $ PredEntry subAny ppAssert [] assertDefn noDefn
 \end{code}
 
-\RLEQNS{
-   !  && \mbox{not sure what this is}
-}
-\begin{code}
-n_bang = "!"
-precBang = precNot -- for now
-
-
-(bang,bangEntry) = prefixPT n_bang precBang Nothing
-\end{code}
 
 
 \RLEQNS{
@@ -630,6 +686,8 @@ rgDict :: Dict
 rgDict
  = mergeDicts
     [ dictVersion "RGAlgebra 0.1"
+
+    -- Concurrent Refinement Algebra
     , cEntry, dEntry
     , meetEntry
     , joinEntry
@@ -638,10 +696,19 @@ rgDict
     , seqRedEntry
     , conjSeqRedEntry -- omit if doing CSP/CCS !!
     , repeatEntry
+
+    -- Test Sub-algebra
     , tEntry, t'Entry
     , parEntry
     , assertEntry
     , testRedEntry
+
+    -- Abstract Atomic Steps
+    , aEntry, bEntry
+    , alfEntry
+    , bangEntry
+    , atmRedEntry
+
     , piEntry
     , epsEntry
     , iiEntry
@@ -650,7 +717,6 @@ rgDict
     , tauEntry
     , seqEntry
     , preEntry
-    , bangEntry
     , assumeEntry
     -- , assertEntry
     , lawEntry
