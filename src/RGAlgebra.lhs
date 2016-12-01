@@ -73,10 +73,8 @@ We defer those until we know which one we prefer
 (I guess we want to work with meets of joins,
 rather than the other way around).
 
-
 \RLEQNS{
    c \sqsubseteq d &\defs& (c \sqcap d) = c
-\\ \bot \quad \sqsubseteq &c& \sqsubseteq \quad \top
 }
 \begin{code}
 n_rfdby = _sqsubseteq
@@ -92,7 +90,11 @@ rfdbyPP sCP d p prs = pps styleRed $ ppa ("invalid-"++n_rfdby)
 rfdbyDefn d prs@[pr1,pr2]
   = Just ( n_rfdby, mkEqv (meet prs) pr1, True )
 rfdbyDefn _ _ = Nothing
-
+\end{code}
+\RLEQNS{
+   \bot \quad \sqsubseteq &c& \sqsubseteq \quad \top
+}
+\begin{code}
 rdfBySimp d [pr1,pr2]
  | pr1 == bot  = Just ( n_bot++" refined by all", T, True )
  | pr2 == top  = Just ( n_top++" refines all", T, True )
@@ -102,7 +104,6 @@ rfdbyEntry
  = entry n_rfdby
    $ PredEntry subAny rfdbyPP [] rfdbyDefn rdfBySimp
 \end{code}
-
 Monoid:
 $
   (\mathcal C, ;, \nil)
@@ -133,7 +134,8 @@ seqReduce d _ (Comp sn prs)
  | sn == n_seq
    = appLeftZeros [] prs
  where
-   appLeftZeros _ []  =  Nothing
+   appLeftZeros _ []    =  Nothing
+   appLeftZeros _ [pr]  =  Nothing
    appLeftZeros srp (pr:prs)
     | pr == top  =  Just ( n_top++" is left-zero for "++n_seq
                          , mkSeq $ reverse (pr:srp)
@@ -187,7 +189,7 @@ omega c = repv c _omega
 nostop c = repv c _infty
 \end{code}
 
-
+\newpage
 True in their relational model, but not generally in CCS or CSP:
 \RLEQNS{
    D \neq \setof{} &\implies& c;(\bigsqcap D) = \bigsqcap_{d \in D}(c;d)
@@ -218,6 +220,7 @@ conjSeqReduce _ _ _ = Nothing
 conjSeqRedEntry = entry laws $ LawEntry [conjSeqReduce] [] []
 \end{code}
 
+\newpage
 \HDRb{The Boolean Sub-algebra of Tests}
 
 Test commands: $t \in \mathcal B \subseteq C$.
@@ -248,6 +251,20 @@ n_par = _parallel
 ( par, parEntry ) = popSemiG n_par precOr
 \end{code}
 
+
+\RLEQNS{
+   \Assert~t &\defs& t \sqcap \lnot t ; \bot
+}
+\begin{code}
+n_assert = bold "assert" ; precAssert = precNot
+
+defnAssert d t
+ | isTest d t = join [ t,  mkSeq [ mkNot t, bot ] ]
+-- !!!! might only be valid if isTest t
+
+( assert, assertEntry ) = prefixPT n_assert precAssert $ Just defnAssert
+\end{code}
+
 Assume $t \in \mathcal B$, arbitrary test.
 \RLEQNS{
    t;t' &=& t \sqcup t'
@@ -263,23 +280,40 @@ testReduce d _ (Comp sn [t, t'])
 
 \RLEQNS{
    (t;c) \parallel (t;d) &=& t;(c\parallel d)
-\\ (t;c) \sqcup (t';d) &=& (t \sqcup t') ; (c \sqcup d)
 }
 \begin{code}
 testReduce rgd _ (Comp pn [Comp sn1 [t,c], Comp sn2 [t',d]])
  | t == t' && pn == n_par && sn1 == n_seq && sn2 == n_seq
    && isTest rgd t
    = Just ( "test-"++n_par++"-distr"
-          , mkSeq [t,par [c,d]]
+          , mkSeq [ t, par [c,d] ]
           , True
           )
 \end{code}
+
+\newpage
 \RLEQNS{
-   \Assert~t &\defs& t \sqcap \lnot t ; \bot
-\\ \lnot \top &=& \nil
+   (t;c) \sqcup (t';d) &=& (t \sqcup t') ; (c \sqcup d)
 }
 \begin{code}
--- to come
+testReduce rgd _ (Comp jn [Comp sn1 [t,c], Comp sn2 [t',d]])
+ | jn == n_join && sn1 == n_seq && sn2 == n_seq
+   && isTest rgd t && isTest rgd t'
+   = Just ( "test-"++n_join++"-distr"
+          , mkSeq [ join [t,t'], join [c,d] ]
+          , True
+          )
+\end{code}
+
+\RLEQNS{
+   \lnot \top &=& \nil
+}
+\begin{code}
+testReduce d _ (Comp nn [tp])
+ | nn == nNot && tp == top
+   = Just ( nNot++" "++n_top++" is "++n_nil
+          , nil
+          , True )
 \end{code}
 
 \begin{code}
@@ -287,6 +321,7 @@ testReduce _ _ _ = Nothing
 
 testRedEntry = entry laws $ LawEntry [testReduce] [] []
 \end{code}
+
 
 \HDRb{Abstract Atomic Steps}
 
@@ -463,12 +498,12 @@ expandPre d t = meet [ t, mkSeq [mkNot t, bot] ]
 \\ &=& \tau(p) \sqcap \tau(\overline{p})\bot
 }
 \begin{code}
-n_assert = bold "{}"
-assert t = Comp n_assert [t]
+xxn_assert = bold "{}"
+xxassert t = Comp n_assert [t]
 
-precAssert = precNot -- for now
+xxprecAssert = precNot -- for now
 ppAssert sCP d p [t]
- = paren p precAssert
+ = paren p xxprecAssert
        $ pplist [ ppa (bold "{")
                 , sCP precPre 0 t
                 , ppa (bold "}")
@@ -476,10 +511,10 @@ ppAssert sCP d p [t]
 ppAssert sCP d p _ = pps styleRed $ ppa ("invalid-"++n_assert)
 
 assertDefn d [t]
-  = Just ( n_assert, pre $ Atm $ tau p, True )
+  = Just ( xxn_assert, pre $ Atm $ tau p, True )
 
-assertEntry
- = entry n_assert $ PredEntry subAny ppAssert [] assertDefn noDefn
+xxassertEntry
+ = entry xxn_assert $ PredEntry subAny ppAssert [] assertDefn noDefn
 \end{code}
 
 \RLEQNS{
@@ -605,6 +640,7 @@ rgDict
     , repeatEntry
     , tEntry, t'Entry
     , parEntry
+    , assertEntry
     , testRedEntry
     , piEntry
     , epsEntry
@@ -616,7 +652,7 @@ rgDict
     , preEntry
     , bangEntry
     , assumeEntry
-    , assertEntry
+    -- , assertEntry
     , lawEntry
     , stdExprDict
     , stdSetDict
