@@ -71,3 +71,14 @@ mapfst f = map $ appfst f
 mapsnd f = map $ appsnd f
 mapboth f g = map $ appboth f g
 \end{code}
+
+Test combinators
+\begin{code}
+someOf, allOf :: [a -> Bool] -> a -> Bool
+someOf ps x = or $ applyAll ps x
+allOf ps x = and $ applyAll ps x
+
+applyAll :: [a->Bool] -> a -> [Bool]
+applyAll [] _ = []
+applyAll (p:ps) x = p x : applyAll ps x
+\end{code}

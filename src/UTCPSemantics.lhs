@@ -115,9 +115,10 @@ alfUTCPDict
  =  dictAlpha `dictMrg` dictAtomic
  where
    dictAlpha = stdAlfDictGen ["s"] ["ls"] ["g","in","out"]
-   dictAtomic = mergeDicts [ pvarEntry "A" ss'
-                           , pvarEntry "B" ss'
-                           , pvarEntry "C" ss' ]
+   dictAtomic = mergeDicts
+                $ map snd [ pvarEntry "A" ss'
+                          , pvarEntry "B" ss'
+                          , pvarEntry "C" ss' ]
    ss' = ["s", "s'"]
 \end{code}
 

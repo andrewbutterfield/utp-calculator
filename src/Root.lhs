@@ -458,9 +458,10 @@ vAlfDict
  = dictMrg dictAlpha dictAtomic
  where
    dictAlpha = stdAlfDictGen ["s"] ["ls"] vStatic
-   dictAtomic = mergeDicts [ pvarEntry "a" ss'
-                           , pvarEntry "b" ss'
-                           , pvarEntry "c" ss' ]
+   dictAtomic = mergeDicts
+                $ map snd [ pvarEntry "a" ss'
+                          , pvarEntry "b" ss'
+                          , pvarEntry "c" ss' ]
    ss' = ["s", "s'"]
 
 vStatic = ["r"]
@@ -1693,7 +1694,7 @@ subII = PSub mkSkip [("r",r1')]
 noGood _ _ _ = Just False
 
 xcalc :: Pred -> IO ()
-xcalc = printREPL vDict [(noGood, F)] 
+xcalc = printREPL vDict [(noGood, F)]
 \end{code}
 
 \begin{code}

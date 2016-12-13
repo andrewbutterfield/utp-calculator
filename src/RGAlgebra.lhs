@@ -62,11 +62,11 @@ We first setup meet and join as semi-lattice operators
 with smart builders that flatten nested usage, remove identities
 and collapse it all if any zeros occur.
 \begin{code}
-n_meet = _sqcap
-(meet, meetEntry) = popSemiLattice n_meet bot top precOr
+n_meet = _sqcap ; precMeet = precOr + 1
+(meet, meetEntry) = popSemiLattice n_meet bot top precMeet
 
-n_join = _sqcup
-(join, joinEntry) = popSemiLattice n_join top bot precAnd
+n_join = _sqcup; precJoin = precAnd + 1
+(join, joinEntry) = popSemiLattice n_join top bot precJoin
 \end{code}
 All that really remains now are the distributivity laws.
 We defer those until we know which one we prefer
@@ -109,8 +109,8 @@ $
   (\mathcal C, ;, \nil)
 $.
 \begin{code}
-n_seq = ";"
-(mkSeq, seqEntry) = popMonoid n_seq nil precAnd
+n_seq = ";" ; precSeq = precJoin+1
+(mkSeq, seqEntry) = popMonoid n_seq nil precSeq
 \end{code}
 
 \RLEQNS{
@@ -345,6 +345,16 @@ isAtmStep _ _ = False
 ( b, bEntry ) = pvarEntry "b" [carrierA]
 \end{code}
 
+We want special handling for sequential compostions
+that start with an atomic action, followed by at least one command
+\begin{code}
+isAtomStartSeq d (Comp ns (a:_:_)) = ns == n_seq && isAtmStep d a
+isAtomStartSeq _ _ = False
+
+-- we assume the above is true
+splitAtomicStartSeq (Comp ns [a,c]) = (a,c)
+splitAtomicStartSeq (Comp ns (a:cs)) = (a,mkSeq cs)
+\end{code}
 Atomic Action Boolean algebra --- sub-lattice of CRA:
 $
 (\mathcal A,\sqcap,\sqcup,!,\top,\alf)
@@ -360,6 +370,14 @@ n_alf = bold _alpha
 \end{code}
 
 \RLEQNS{
+  \wait &\defs& \mbox{atomic parallel identity}
+}
+\begin{code}
+n_atmParId = map _mathcal "E" ; atmParId = PVar n_atmParId
+\end{code}
+
+
+\RLEQNS{
    \alf \sqcup \nil &=& \top
 }
 \begin{code}
@@ -373,18 +391,53 @@ atmReduce d _ (Comp nj [a1,a2])
 
 \RLEQNS{
    a \parallel \wait &=& a
-\\ a;c \parallel b;d &=& (a \parallel b);(c\parallel d)
+\\ \wait \parallel \wait &=& \wait \qquad \mbox{--- we assume !!!}
+}
+\begin{code}
+atmReduce d _ (Comp np as)
+ | np == n_par && all (someOf [(== atmParId), isAtmStep d]) as
+   && as' /= as
+   = Just ( "atomic-step "++n_par++"-unit"
+          , apar as'
+          , True )
+ where
+   as' = filter (/= atmParId) as
+   apar [] = atmParId
+   apar as = par as
+\end{code}
+
+\RLEQNS{
+   a;c \parallel b;d &=& (a \parallel b);(c\parallel d)
 \\ a;c \sqcup b;d &=& (a \sqcup b);(c \sqcup d)
-\\ a;c \parallel \nil &=& \top
+}
+\begin{code}
+atmReduce d _ (Comp np acs)
+ | np == n_par && all (isAtomStartSeq d) acs
+  = Just( "atomic-"++n_seq++"-"++n_par++"-distr"
+        , mkSeq [par as,par css]
+        , True )
+ where
+   (as,css) = unzip $ map splitAtomicStartSeq acs
+atmReduce d _ (Comp nj acs)
+ | nj == n_join && all (isAtomStartSeq d) acs
+  = Just( "atomic-"++n_seq++"-"++n_join++"-distr"
+        , mkSeq [join as,join css]
+        , True )
+ where
+   (as,css) = unzip $ map splitAtomicStartSeq acs
+\end{code}
+
+TODO!!!
+\RLEQNS{
+   a;c \parallel \nil &=& \top
 \\ a;c \sqcup \nil &=& \top
 \\ a \sqcup !a &=& \top
 \\ a \sqcap !a &=& \alf
 \\ !\top &=& \alf
 \\ \assume~a &\defs& a \sqcap (!a);\bot
 }
-TODO!!!
 
-Now we wrap up
+Now we wrap up atomic action reduction.
 \begin{code}
 atmReduce _ _ _ = Nothing
 

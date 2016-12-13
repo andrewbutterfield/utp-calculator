@@ -170,7 +170,7 @@ _supStr s = map _supChar s
 _supNum n = _supStr $ show n
 
 -- _mathcal 'B' = '\x212c' -- not great!
--- _mathcal 'E' = '\x2130'
+_mathcal 'E' = '\x2130'
 -- _mathcal 'F' = '\x2131'
 -- _mathcal 'H' = '\x210b'
 -- _mathcal 'I' = '\x2110'
