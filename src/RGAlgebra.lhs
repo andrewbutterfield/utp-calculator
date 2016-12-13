@@ -53,6 +53,11 @@ n_bot = _bot ; bot = PVar n_bot
 n_nil = bold "nil" ; nil = PVar n_nil
 n_skip = bold "skip"; skip = PVar n_skip
 \end{code}
+We don't implement this now---not sure this is always useful
+\RLEQNS{
+   \Skip &=& \wait^\omega
+}
+
 
 Complete, distributive lattice:
 $
@@ -376,6 +381,35 @@ n_alf = bold _alpha
 n_atmParId = map _mathcal "E" ; atmParId = PVar n_atmParId
 \end{code}
 
+\newpage
+
+\RLEQNS{
+   \assume~ a &=& a \sqcap (!a) \bot
+}
+\begin{code}
+n_assume = bold "assume"
+assume t = Comp n_assume [t]
+
+precAssume = precNot -- for now
+ppAssume sCP d p [t]
+ = paren p precAssume
+       $ pplist [ppa n_assume, ppa " ", sCP precPre 1 t]
+ppAssume sCP d p _ = pps styleRed $ ppa ("invalid-"++n_assume)
+
+assumeDefn d [a]
+  = Just ( n_assume, meet [ a, mkSeq [bang a, bot] ], True )
+
+assumeEntry
+ = entry n_assume $ PredEntry subAny ppAssume [] assumeDefn noDefn
+\end{code}
+
+
+
+\HDRc{Atomic Step Reductions}
+
+\begin{code}
+atmReduce :: RWFun
+\end{code}
 
 \RLEQNS{
    \alf \sqcup \nil &=& \top
@@ -406,6 +440,7 @@ atmReduce d _ (Comp np as)
    apar as = par as
 \end{code}
 
+\newpage
 \RLEQNS{
    a;c \parallel b;d &=& (a \parallel b);(c\parallel d)
 \\ a;c \sqcup b;d &=& (a \sqcup b);(c \sqcup d)
@@ -487,38 +522,10 @@ atmReduce d _ (Comp nb [t])
           , True )
 \end{code}
 
-
-Now we wrap up atomic action reduction.
-\begin{code}
-atmReduce _ _ _ = Nothing
-
-atmRedEntry = entry laws $ LawEntry [atmReduce] [] []
-\end{code}
-
-\newpage
-\RLEQNS{
-   \assume~ a &=& a \sqcap (!a) \bot
-}
-\begin{code}
-n_assume = bold "assume"
-assume t = Comp n_assume [t]
-
-precAssume = precNot -- for now
-ppAssume sCP d p [t]
- = paren p precAssume
-       $ pplist [ppa n_assume, ppa " ", sCP precPre 1 t]
-ppAssume sCP d p _ = pps styleRed $ ppa ("invalid-"++n_assume)
-
-assumeDefn d [a]
-  = Just ( n_assume, meet [ a, mkSeq [bang a, bot] ], True )
-
-assumeEntry
- = entry n_assume $ PredEntry subAny ppAssume [] assumeDefn noDefn
-\end{code}
-
+STILL TO BE DONE!!!!
 
 \RLEQNS{
-   \Skip &=& \wait^\omega
+   \Skip \parallel c &=& c
 \\ \wait^\omega \parallel c &=& c
    & \mbox{atomic identity iteration}
 \\ a^* \parallel \nil &=& \nil
@@ -532,7 +539,17 @@ assumeEntry
    (a \parallel b)^i ; (c \parallel d)
 }
 
-Assuming $;$ is conjunctive:
+
+Now we wrap up atomic action reduction.
+\begin{code}
+atmReduce _ _ _ = Nothing
+
+atmRedEntry = entry laws $ LawEntry [atmReduce] [] []
+\end{code}
+
+
+
+Assuming $;$ is conjunctive (use a seperate reduction function):
 \RLEQNS{
    a^* \parallel b^* &=& (a \parallel b)^*
 \\ a^\infty \parallel b^\infty &=& (a \parallel b)^\infty
