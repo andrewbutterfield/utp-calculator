@@ -53,10 +53,6 @@ n_bot = _bot ; bot = PVar n_bot
 n_nil = bold "nil" ; nil = PVar n_nil
 n_skip = bold "skip"; skip = PVar n_skip
 \end{code}
-We don't implement this now---not sure this is always useful
-\RLEQNS{
-   \Skip &=& \wait^\omega
-}
 
 
 Complete, distributive lattice:
@@ -192,6 +188,7 @@ but don't implement any laws just yet.
 star c = repv c "*"
 omega c = repv c _omega
 nostop c = repv c _infty
+infty = nostop
 \end{code}
 
 \newpage
@@ -346,6 +343,10 @@ isAtmStep d (Comp n prs)
  | n `elem` [n_meet,n_join,n_par] = all (isAtmStep d) prs
 isAtmStep _ _ = False
 
+isAtmRep d (Comp nr [a,i])
+ | nr == n_repeat && isAtmStep d a  =  True
+isAtmRep _ _                        =  False
+
 ( a, aEntry ) = pvarEntry "a" [carrierA]
 ( b, bEntry ) = pvarEntry "b" [carrierA]
 \end{code}
@@ -379,6 +380,13 @@ n_alf = bold _alpha
 }
 \begin{code}
 n_atmParId = map _mathcal "E" ; atmParId = PVar n_atmParId
+\end{code}
+We don't implement this now---not sure this is always useful
+\RLEQNS{
+   \Skip &=& \wait^\omega
+}
+\begin{code}
+skipDef = rep atmParId (Var _omega)
 \end{code}
 
 \newpage
@@ -522,22 +530,46 @@ atmReduce d _ (Comp nb [t])
           , True )
 \end{code}
 
-STILL TO BE DONE!!!!
 
 \RLEQNS{
    \Skip \parallel c &=& c
 \\ \wait^\omega \parallel c &=& c
    & \mbox{atomic identity iteration}
+}
+\begin{code}
+atmReduce d _ (Comp np [c1,c2])
+ | np == n_par && c1 == skip
+   = Just ( n_par++"-unit", c2, True )
+ | np == n_par && c2 == skip
+   = Just ( n_par++"-unit", c1, True )
+ | np == n_par && c1 == skipDef
+   = Just ( "atomic-identity-iteration", c2, True )
+ | np == n_par && c2 == skipDef
+   = Just ( "atomic-identity-iteration", c1, True )
+\end{code}
+
+\RLEQNS{
 \\ a^* \parallel \nil &=& \nil
    & \mbox{atomic iteration nil}
 \\ a^\omega \parallel \nil &=& \nil
    & \mbox{atomic iteration nil}
 \\ a^\infty \parallel \nil &=& \nil
    & \mbox{atomic iteration nil}
-\\ a^i ; c \parallel b^i ; d
+}
+\begin{code}
+atmReduce d _ (Comp np [a1,a2])
+ | np == n_par && isAtmRep d a1 && a2 == nil
+   = Just ( "atomic-iteration-nil", nil, True )
+ | np == n_par && isAtmRep d a2 && a1 == nil
+   = Just ( "atomic-iteration-nil", nil, True )
+\end{code}
+
+\RLEQNS{
+a^i ; c \parallel b^i ; d
    &=&
    (a \parallel b)^i ; (c \parallel d)
 }
+STILL TO BE DONE!!!!
 
 
 Now we wrap up atomic action reduction.
