@@ -427,15 +427,66 @@ atmReduce d _ (Comp nj acs)
    (as,css) = unzip $ map splitAtomicStartSeq acs
 \end{code}
 
-TODO!!!
 \RLEQNS{
    a;c \parallel \nil &=& \top
 \\ a;c \sqcup \nil &=& \top
-\\ a \sqcup !a &=& \top
-\\ a \sqcap !a &=& \alf
-\\ !\top &=& \alf
-\\ \assume~a &\defs& a \sqcap (!a);\bot
 }
+\begin{code}
+atmReduce d _ (Comp nm [c1,c2])
+ | nm == n_par
+   &&
+   ( isAtomStartSeq d c1 && c2 == nil
+     ||
+     isAtomStartSeq d c2 && c1 == nil )
+   = Just ( "atom-seq-"++n_par++"-zero"
+          , top
+          , True )
+ | nm == n_meet
+   &&
+   ( isAtomStartSeq d c1 && c2 == nil
+     ||
+     isAtomStartSeq d c2 && c1 == nil )
+   = Just ( "atom-seq-"++n_meet++"-zero"
+          , top
+          , True )
+\end{code}
+
+\RLEQNS{
+   a \sqcup !a &=& \top
+\\ a \sqcap !a &=& \alf
+}
+\begin{code}
+atmReduce d _ (Comp nm [a, Comp nb [b]])
+ | nm == n_join && nb == n_bang && isAtmStep d a && a == b
+   = Just ( "atomic-"++n_join++"-!-inv"
+          , top
+          , True )
+ | nm == n_meet && nb == n_bang && isAtmStep d a && a == b
+   = Just ( "atomic-"++n_meet++"-!-inv"
+          , alf
+          , True )
+atmReduce d _ (Comp nm [Comp nb [b], a])
+ | nm == n_join && nb == n_bang && isAtmStep d a && a == b
+   = Just ( "atomic-"++n_join++"-!-inv"
+          , top
+          , True )
+ | nm == n_meet && nb == n_bang && isAtmStep d a && a == b
+   = Just ( "atomic-"++n_meet++"-!-inv"
+          , alf
+          , True )
+\end{code}
+
+\RLEQNS{
+  !\top &=& \alf
+}
+\begin{code}
+atmReduce d _ (Comp nb [t])
+ | nb == n_bang && t == top
+   = Just ( "!"++n_top++" is "++n_alf
+          , alf
+          , True )
+\end{code}
+
 
 Now we wrap up atomic action reduction.
 \begin{code}
@@ -443,6 +494,84 @@ atmReduce _ _ _ = Nothing
 
 atmRedEntry = entry laws $ LawEntry [atmReduce] [] []
 \end{code}
+
+\newpage
+\RLEQNS{
+   \assume~ a &=& a \sqcap (!a) \bot
+}
+\begin{code}
+n_assume = bold "assume"
+assume t = Comp n_assume [t]
+
+precAssume = precNot -- for now
+ppAssume sCP d p [t]
+ = paren p precAssume
+       $ pplist [ppa n_assume, ppa " ", sCP precPre 1 t]
+ppAssume sCP d p _ = pps styleRed $ ppa ("invalid-"++n_assume)
+
+assumeDefn d [a]
+  = Just ( n_assume, meet [ a, mkSeq [bang a, bot] ], True )
+
+assumeEntry
+ = entry n_assume $ PredEntry subAny ppAssume [] assumeDefn noDefn
+\end{code}
+
+
+\RLEQNS{
+   \Skip &=& \wait^\omega
+\\ \wait^\omega \parallel c &=& c
+   & \mbox{atomic identity iteration}
+\\ a^* \parallel \nil &=& \nil
+   & \mbox{atomic iteration nil}
+\\ a^\omega \parallel \nil &=& \nil
+   & \mbox{atomic iteration nil}
+\\ a^\infty \parallel \nil &=& \nil
+   & \mbox{atomic iteration nil}
+\\ a^i ; c \parallel b^i ; d
+   &=&
+   (a \parallel b)^i ; (c \parallel d)
+}
+
+Assuming $;$ is conjunctive:
+\RLEQNS{
+   a^* \parallel b^* &=& (a \parallel b)^*
+\\ a^\infty \parallel b^\infty &=& (a \parallel b)^\infty
+\\ a^* ; d \parallel b^* ; d
+   &=&
+   (a \parallel b)^*
+   ;
+   ( (c \parallel d)
+     \sqcap
+     (c \parallel b;b^*;d)
+     \sqcap
+     (a;a^*;c \parallel d)
+   )
+   & \mbox{atomic iteration finite}
+\\ a^* ; c \parallel b^\infty
+   &=& (a \parallel b)^* ; (c \parallel b^\infty)
+\\ && \mbox{atomic iteration finite infinite}
+\\ a^\omega ; d \parallel b^\omega ; d
+   &=&
+   (a \parallel b)^\omega
+   ;
+   ( (c \parallel d)
+     \sqcap
+     (c \parallel b;b^\omega;d)
+     \sqcap
+     (a;a^\omega;c \parallel d)
+   )
+   & \mbox{atomic iteration either}
+\\ \action a \parallel \action b
+   &=&
+   \action{a \parallel b}
+   \sqcap
+   \action a ; \action b
+   \sqcap
+   \action b ; \action a
+   & \mbox{atomic interleaving}
+\\ a \ileave b &=& a;b \sqcap b;a
+}
+
 
 \newpage
 \HDRb{Relational Atomic Steps}
@@ -638,25 +767,7 @@ xxassertEntry
 
 
 
-\RLEQNS{
-   \assume~ a &=& a \sqcap (!a) \bot
-}
-\begin{code}
-n_assume = bold "assume"
-assume t = Comp n_assume [t]
 
-precAssume = precNot -- for now
-ppAssume sCP d p [t]
- = paren p precAssume
-       $ pplist [ppa n_assume, ppa " ", sCP precPre 1 t]
-ppAssume sCP d p _ = pps styleRed $ ppa ("invalid-"++n_assume)
-
-assumeDefn d [a]
-  = Just ( n_assume, meet [ a, mkSeq [bang a, bot] ], True )
-
-assumeEntry
- = entry n_assume $ PredEntry subAny ppAssume [] assumeDefn noDefn
-\end{code}
 
 \HDRb{Laws}
 
