@@ -113,6 +113,7 @@ _parallel = "\8214"
 _Cap = "\8914"
 
 _infty = "\x221e"
+_star = "\9733"
 
 _overline str = "\ESC[9m"++follow str '\x35e'++"\ESC[0m"
 
@@ -161,6 +162,7 @@ _supChar ',' = ','
 _supChar '*' = '*'
 _supChar '\x221e' = '\x221e'  -- infty
 _supChar '\120596' = '\7514'  -- omega
+_supChar '\9733' = '*'    -- star
 
 _supChar c
   | isDigit c = chr (ord c - ord '0' + 8304)

@@ -163,11 +163,6 @@ rep c e = Comp n_repeat [c,Atm e]
 repn c i = rep c $ Z i
 repv c n = rep c $ Var n
 
-repFactor (Comp nr [a,Atm i])
- | nr == n_repeat  =  i
- | otherwise  =  Z 1
-
-
 precRep = precSub -- keep it tight
 ppRep sCP d p [c,Atm ix]
  = paren p precRep
@@ -178,6 +173,25 @@ ppRep sCP d p _ = pps styleRed $ ppa ("invalid-"++n_repeat)
 repeatEntry
  = entry n_repeat $ PredEntry subAny ppRep [] noDefn noDefn
 \end{code}
+It can be useful to be able to assess if we have
+a repeat, and if it is finite:
+\begin{code}
+repFactor (Comp nr [a,Atm f])
+ | nr == n_repeat  =  f
+repFactor _        =  Z 1
+
+isFiniteRep (Z i)    =  i >= 0
+isFiniteRep (Var v)  =  not (v `elem` [_omega,_infty])
+isFiniteRep _        =  False
+\end{code}
+The ability to terminate immediately is also useful:
+\begin{code}
+canDoZero (Comp nr [a,Atm (Var v)])
+ | nr == n_repeat && v `elem` [_star,_omega]  =  True
+canDoZero _                                   = False
+\end{code}
+
+
 \RLEQNS{
    c^\star &\defs& \nu x . \nil \sqcap c ; x
 \\ c^\omega &\defs& \mu x . \nil \sqcap c ;x
@@ -189,7 +203,7 @@ repeatEntry
 We just define these passively for now
 but don't implement any laws just yet.
 \begin{code}
-star c = repv c "*"
+star c = repv c _star
 omega c = repv c _omega
 nostop c = repv c _infty
 infty = nostop
@@ -557,16 +571,31 @@ atmReduce d _ (Comp np [c1,c2])
    & \mbox{atomic iteration nil}
 \\ a^\omega \parallel \nil &=& \nil
    & \mbox{atomic iteration nil}
-\\ a^\infty \parallel \nil &=& \nil
+}
+\begin{code}
+atmReduce d _ (Comp np [a1,a2])
+ | np == n_par && isAtmRep d a1 && canDoZero a1
+   && a2 == nil
+     = Just ( "atomic-iteration-nil", nil, True )
+ | np == n_par && isAtmRep d a2 && canDoZero a2
+   && a1 == nil
+     = Just ( "atomic-iteration-nil", nil, True )
+\end{code}
+
+\RLEQNS{
+   a^\infty \parallel \nil &=& \top
    & \mbox{atomic iteration nil}
 }
 \begin{code}
 atmReduce d _ (Comp np [a1,a2])
- | np == n_par && isAtmRep d a1 && a2 == nil
-   = Just ( "atomic-iteration-nil", nil, True )
- | np == n_par && isAtmRep d a2 && a1 == nil
-   = Just ( "atomic-iteration-nil", nil, True )
+ | np == n_par && isAtmRep d a1 && repFactor a1 == (Var _infty)
+   && a2 == nil
+     = Just ( "atomic-iteration-nil", top, True )
+ | np == n_par && isAtmRep d a2 && repFactor a2 == (Var _infty)
+   && a1 == nil
+     = Just ( "atomic-iteration-nil", top, True )
 \end{code}
+An open question: is  $a^i \parallel \nil = \top$ for all $i \neq 0$?
 
 \RLEQNS{
 a^i ; c \parallel b^i ; d
@@ -579,7 +608,7 @@ atmReduce rgd _ (Comp np [ (Comp ns1 [ai,c])
  | np == n_par
    && ns1 == n_seq && ns2 == n_seq
    && isAtmRep rgd ai && isAtmRep rgd bi
-   && i == repFactor bi
+   && isFiniteRep i && i == repFactor bi
    = Just ( "atomic-sync", mkSeq [ rep (par [a,b]) i, par [c,d] ], True )
  where i = repFactor ai
 \end{code}
@@ -594,9 +623,24 @@ atmRedEntry = entry laws $ LawEntry [atmReduce] [] []
 
 
 \newpage
-Assuming $;$ is conjunctive (use a seperate reduction function):
+Assuming $;$ is conjunctive (use a seperate reduction function).
+\begin{code}
+conjAtmReduce :: RWFun
+\end{code}
+
 \RLEQNS{
    a^* \parallel b^* &=& (a \parallel b)^*
+}
+\begin{code}
+conjAtmReduce d _ (Comp np [ai, bi])
+ | np == n_par
+   && isAtmRep d ai && isAtmRep d bi
+   && s == Var _star && s == repFactor bi
+   = Just ( "parallel-star", rep (par [a,b]) s, True )
+ where s = repFactor ai
+\end{code}
+
+\RLEQNS{
 \\ a^\infty \parallel b^\infty &=& (a \parallel b)^\infty
 \\ a^* ; d \parallel b^* ; d
    &=&
@@ -633,6 +677,14 @@ Assuming $;$ is conjunctive (use a seperate reduction function):
    & \mbox{atomic interleaving}
 \\ a \ileave b &=& a;b \sqcap b;a
 }
+TODO !!!
+
+Now we wrap up conjunctive atomic action reduction.
+\begin{code}
+conjAtmReduce _ _ _ = Nothing
+
+conjAtmRedEntry = entry laws $ LawEntry [conjAtmReduce] [] []
+\end{code}
 
 
 \newpage
@@ -934,6 +986,7 @@ rgDict
     , alfEntry
     , bangEntry
     , atmRedEntry
+    , conjAtmRedEntry -- omit if doing CSP/CCS !!
 
     , piEntry
     , epsEntry
