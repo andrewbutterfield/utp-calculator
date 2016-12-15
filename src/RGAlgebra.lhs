@@ -163,11 +163,15 @@ rep c e = Comp n_repeat [c,Atm e]
 repn c i = rep c $ Z i
 repv c n = rep c $ Var n
 
+repFactor (Comp nr [a,Atm i])
+ | nr == n_repeat  =  i
+ | otherwise  =  Z 1
+
 
 precRep = precSub -- keep it tight
 ppRep sCP d p [c,Atm ix]
  = paren p precRep
-     $ pplist [ sCP precImp 1 c
+     $ pplist [ sCP precRep 1 c
               , ppa $ ppSuper d ix ]
 ppRep sCP d p _ = pps styleRed $ ppa ("invalid-"++n_repeat)
 
@@ -251,8 +255,8 @@ $
 $
 
 \begin{code}
-n_par = _parallel
-( par, parEntry ) = popSemiG n_par precOr
+n_par = _parallel ; precPar = precOr
+( par, parEntry ) = popSemiG n_par precPar
 \end{code}
 
 
@@ -569,7 +573,16 @@ a^i ; c \parallel b^i ; d
    &=&
    (a \parallel b)^i ; (c \parallel d)
 }
-STILL TO BE DONE!!!!
+\begin{code}
+atmReduce rgd _ (Comp np [ (Comp ns1 [ai,c])
+                         , (Comp ns2 [bi,d]) ])
+ | np == n_par
+   && ns1 == n_seq && ns2 == n_seq
+   && isAtmRep rgd ai && isAtmRep rgd bi
+   && i == repFactor bi
+   = Just ( "atomic-sync", mkSeq [ rep (par [a,b]) i, par [c,d] ], True )
+ where i = repFactor ai
+\end{code}
 
 
 Now we wrap up atomic action reduction.
@@ -580,7 +593,7 @@ atmRedEntry = entry laws $ LawEntry [atmReduce] [] []
 \end{code}
 
 
-
+\newpage
 Assuming $;$ is conjunctive (use a seperate reduction function):
 \RLEQNS{
    a^* \parallel b^* &=& (a \parallel b)^*
