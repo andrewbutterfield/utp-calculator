@@ -174,7 +174,8 @@ repeatEntry
  = entry n_repeat $ PredEntry subAny ppRep [] noDefn noDefn
 \end{code}
 It can be useful to be able to assess if we have
-a repeat, and if it is finite:
+a repeat, and if it is finite (will terminate)
+or fixed (always terminates after the same number of repeats).
 \begin{code}
 repFactor (Comp nr [a,Atm f])
  | nr == n_repeat  =  f
@@ -183,6 +184,10 @@ repFactor _        =  Z 1
 isFiniteRep (Z i)    =  i >= 0
 isFiniteRep (Var v)  =  not (v `elem` [_omega,_infty])
 isFiniteRep _        =  False
+
+isFixedRep (Z i)    =  i >= 0
+isFixedRep (Var v)  =  not (v `elem` [_star,_omega,_infty])
+isFixedRep _        =  False
 \end{code}
 The ability to terminate immediately is also useful:
 \begin{code}
@@ -608,7 +613,7 @@ atmReduce rgd _ (Comp np [ (Comp ns1 [ai,c])
  | np == n_par
    && ns1 == n_seq && ns2 == n_seq
    && isAtmRep rgd ai && isAtmRep rgd bi
-   && isFiniteRep i && i == repFactor bi
+   && isFixedRep i && i == repFactor bi
    = Just ( "atomic-sync", mkSeq [ rep (par [a,b]) i, par [c,d] ], True )
  where i = repFactor ai
 \end{code}
@@ -630,19 +635,22 @@ conjAtmReduce :: RWFun
 
 \RLEQNS{
    a^* \parallel b^* &=& (a \parallel b)^*
+\\ a^\infty \parallel b^\infty &=& (a \parallel b)^\infty
 }
 \begin{code}
 conjAtmReduce d _ (Comp np [ai, bi])
  | np == n_par
    && isAtmRep d ai && isAtmRep d bi
-   && s == Var _star && s == repFactor bi
-   = Just ( "parallel-star", rep (par [a,b]) s, True )
- where s = repFactor ai
+   && (s == Var _star || s == Var _infty)
+   && s == repFactor bi
+   = Just ( "parallel-"++sym, rep (par [a,b]) s, True )
+ where
+   s = repFactor ai
+   (Var sym) = s
 \end{code}
 
 \RLEQNS{
-\\ a^\infty \parallel b^\infty &=& (a \parallel b)^\infty
-\\ a^* ; d \parallel b^* ; d
+   a^* ; c \parallel b^* ; d
    &=&
    (a \parallel b)^*
    ;
@@ -653,10 +661,7 @@ conjAtmReduce d _ (Comp np [ai, bi])
      (a;a^*;c \parallel d)
    )
    & \mbox{atomic iteration finite}
-\\ a^* ; c \parallel b^\infty
-   &=& (a \parallel b)^* ; (c \parallel b^\infty)
-\\ && \mbox{atomic iteration finite infinite}
-\\ a^\omega ; d \parallel b^\omega ; d
+\\ a^\omega ; c \parallel b^\omega ; d
    &=&
    (a \parallel b)^\omega
    ;
@@ -667,7 +672,54 @@ conjAtmReduce d _ (Comp np [ai, bi])
      (a;a^\omega;c \parallel d)
    )
    & \mbox{atomic iteration either}
-\\ \action a \parallel \action b
+}
+\begin{code}
+conjAtmReduce rgd _ (Comp np [ Comp ns1 [ai, c]
+                             , Comp ns2 [bi, d] ])
+ | np==n_par && ns1==n_seq && ns2==n_seq
+   && isAtmRep rgd ai && isAtmRep rgd bi
+   && (s == Var _star || s == Var _omega)
+   && s == repFactor bi
+   = Just ( "atomic-iteration-"++sym
+          , mkSeq
+             [ rep (par [a,b]) s
+             , meet
+                [ par [c,d]
+                , par [c, mkSeq [b,bi,d]]
+                , par [mkSeq [a,ai,c], d]
+                ]
+             ]
+          , True )
+ where
+   s = repFactor ai
+   (Var sym) = s
+\end{code}
+
+\newpage
+\RLEQNS{
+   a^* ; c \parallel b^\infty
+   &=& (a \parallel b)^* ; (c \parallel b^\infty)
+\\ && \mbox{atomic iteration finite infinite}
+}
+\begin{code}
+conjAtmReduce d _ (Comp np [Comp ns [ai,c], bi])
+ | np == n_par
+   && isAtmRep d ai && isAtmRep d bi
+   && repFactor ai == Var _star
+   && repFactor bi == Var _infty
+   = Just ( "atomic-iteration-finite-infinite"
+          , mkSeq [ star (par [a,b])
+                  , par [c, infty b]
+                  ]
+          , True )
+ where
+   s = repFactor ai
+   (Comp _ (a:_)) = ai
+   (Comp _ (b:_)) = bi
+\end{code}
+
+\RLEQNS{
+   \action a \parallel \action b
    &=&
    \action{a \parallel b}
    \sqcap
@@ -675,9 +727,22 @@ conjAtmReduce d _ (Comp np [ai, bi])
    \sqcap
    \action b ; \action a
    & \mbox{atomic interleaving}
-\\ a \ileave b &=& a;b \sqcap b;a
 }
-TODO !!!
+\begin{code}
+conjAtmReduce d _ (Comp np [ acta@(Comp na1 [a])
+                           , actb@(Comp na2 [b]) ])
+ | np==n_par && na1==n_action && na2==n_action
+   =  Just ( "atomic-interleaving"
+           , meet [ action $ par [a,b]
+                  , mkSeq [ acta, actb ]
+                  , mkSeq [ actb, acta ] ]
+           , True )
+\end{code}
+
+\RLEQNS{
+   a \ileave b &=& a;b \sqcap b;a
+}
+We leave this for now.
 
 Now we wrap up conjunctive atomic action reduction.
 \begin{code}
@@ -686,6 +751,25 @@ conjAtmReduce _ _ _ = Nothing
 conjAtmRedEntry = entry laws $ LawEntry [conjAtmReduce] [] []
 \end{code}
 
+We need to define the notion of an \emph{action}:
+\RLEQNS{
+   \action a &=& \wait^\omega ; a ; \wait^\omega
+}
+\begin{code}
+n_action = [_langle,_rangle] ; precAction = precNot
+action a = Comp n_action [a]
+
+ppAction sCP d p [a]
+ = pplist [ppa [_langle], sCP 0 1 a, ppa [_rangle] ]
+
+defnAction d [a]
+ = Just ( n_action
+        , mkSeq [ omega atmParId, a, omega atmParId ]
+        , True )
+
+actionEntry = entry n_action
+              $ PredEntry subAny ppAction [] defnAction noDefn
+\end{code}
 
 \newpage
 \HDRb{Relational Atomic Steps}
@@ -985,6 +1069,7 @@ rgDict
     , aEntry, bEntry
     , alfEntry
     , bangEntry
+    , actionEntry
     , atmRedEntry
     , conjAtmRedEntry -- omit if doing CSP/CCS !!
 

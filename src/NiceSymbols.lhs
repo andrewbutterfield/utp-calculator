@@ -109,6 +109,9 @@ _setminus = "\8726"
 _in = "\8712"
 _subseteq = "\8838"
 
+_langle = '\x27e8'
+_rangle = '\x27e9'
+
 _parallel = "\8214"
 _Cap = "\8914"
 
@@ -222,8 +225,14 @@ _setminus = "\\"
 _in = "in"
 _subseteq = "subset"
 
+_langle = '<'
+_rangle = '>'
+
 _parallel = "||"
 _Cap = "II"
+
+_infty = "inf"
+_star = "*"
 
 _overline str = "ovl("++str++")"
 
