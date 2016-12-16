@@ -174,12 +174,24 @@ repeatEntry
  = entry n_repeat $ PredEntry subAny ppRep [] noDefn noDefn
 \end{code}
 It can be useful to be able to assess if we have
-a repeat, and if it is finite (will terminate)
-or fixed (always terminates after the same number of repeats).
+a repeat, and to access its parts.
 \begin{code}
+isRep (Comp nr [_,_]) = nr == n_repeat
+isRep _               = False
+
 repFactor (Comp nr [a,Atm f])
  | nr == n_repeat  =  f
 repFactor _        =  Z 1
+
+repBody (Comp nr [a,_])
+ | nr == n_repeat  =  a
+repBody p          =  p
+\end{code}
+
+Given an repeat index,
+is it finite (will terminate)
+or fixed (always terminates after the same number of repeats)?
+\begin{code}
 
 isFiniteRep (Z i)    =  i >= 0
 isFiniteRep (Var v)  =  not (v `elem` [_omega,_infty])
@@ -402,8 +414,10 @@ n_alf = bold _alpha
   \wait &\defs& \mbox{atomic parallel identity}
 }
 \begin{code}
-n_atmParId = map _mathcal "E" ; atmParId = PVar n_atmParId
+n_atmParId = map _mathcal "E"
+( atmParId, atmParIdEntry ) = pvarEntry n_atmParId [carrierA]
 \end{code}
+
 We don't implement this now---not sure this is always useful
 \RLEQNS{
    \Skip &=& \wait^\omega
@@ -608,13 +622,16 @@ a^i ; c \parallel b^i ; d
    (a \parallel b)^i ; (c \parallel d)
 }
 \begin{code}
-atmReduce rgd _ (Comp np [ (Comp ns1 [ai,c])
-                         , (Comp ns2 [bi,d]) ])
+atmReduce d _ (Comp np [ (Comp ns1 (ai:cs))
+                       , (Comp ns2 (bi:ds))])
  | np == n_par
    && ns1 == n_seq && ns2 == n_seq
-   && isAtmRep rgd ai && isAtmRep rgd bi
+   && isAtmRep d ai && isAtmRep d bi
    && isFixedRep i && i == repFactor bi
-   = Just ( "atomic-sync", mkSeq [ rep (par [a,b]) i, par [c,d] ], True )
+   = Just ( "atomic-sync"
+          , mkSeq [ rep (par [a,b]) i
+                  , par [ mkSeq cs, mkSeq ds] ]
+          , True )
  where i = repFactor ai
 \end{code}
 
@@ -674,25 +691,29 @@ conjAtmReduce d _ (Comp np [ai, bi])
    & \mbox{atomic iteration either}
 }
 \begin{code}
-conjAtmReduce rgd _ (Comp np [ Comp ns1 [ai, c]
-                             , Comp ns2 [bi, d] ])
+conjAtmReduce d _ (Comp np [ Comp ns1 (ai:cs)
+                           , Comp ns2 (bi:ds) ])
  | np==n_par && ns1==n_seq && ns2==n_seq
-   && isAtmRep rgd ai && isAtmRep rgd bi
+   && isAtmRep d ai && isAtmRep d bi
    && (s == Var _star || s == Var _omega)
    && s == repFactor bi
    = Just ( "atomic-iteration-"++sym
           , mkSeq
              [ rep (par [a,b]) s
              , meet
-                [ par [c,d]
-                , par [c, mkSeq [b,bi,d]]
-                , par [mkSeq [a,ai,c], d]
+                [ par [cs',ds']
+                , par [cs', mkSeq (b:bi:ds)]
+                , par [mkSeq (a:ai:cs), ds']
                 ]
              ]
           , True )
  where
    s = repFactor ai
    (Var sym) = s
+   cs' = mkSeq cs
+   ds' = mkSeq ds
+   a = repBody ai
+   b = repBody bi
 \end{code}
 
 \newpage
@@ -702,20 +723,20 @@ conjAtmReduce rgd _ (Comp np [ Comp ns1 [ai, c]
 \\ && \mbox{atomic iteration finite infinite}
 }
 \begin{code}
-conjAtmReduce d _ (Comp np [Comp ns [ai,c], bi])
+conjAtmReduce d _ (Comp np [Comp ns (ai:cs), bi])
  | np == n_par
    && isAtmRep d ai && isAtmRep d bi
    && repFactor ai == Var _star
    && repFactor bi == Var _infty
    = Just ( "atomic-iteration-finite-infinite"
           , mkSeq [ star (par [a,b])
-                  , par [c, infty b]
+                  , par [mkSeq cs, infty b]
                   ]
           , True )
  where
    s = repFactor ai
-   (Comp _ (a:_)) = ai
-   (Comp _ (b:_)) = bi
+   a = repBody ai
+   b = repBody bi
 \end{code}
 
 \RLEQNS{
@@ -1047,7 +1068,7 @@ lawEntry = entry laws $ LawEntry [rgReduce] [] []
 rgDict :: Dict
 rgDict
  = mergeDicts
-    [ dictVersion "RGAlgebra 0.1"
+    [ dictVersion "RGAlgebra 0.2"
 
     -- Concurrent Refinement Algebra
     , cEntry, dEntry
@@ -1069,6 +1090,7 @@ rgDict
     , aEntry, bEntry
     , alfEntry
     , bangEntry
+    , atmParIdEntry
     , actionEntry
     , atmRedEntry
     , conjAtmRedEntry -- omit if doing CSP/CCS !!
