@@ -13,8 +13,8 @@ import CalcPredicates
 import CalcSteps
 import StdPredicates
 import StdLaws
---import StdUTPPredicates
---import StdUTPLaws
+import StdUTPPredicates
+import StdUTPLaws
 import UTCPLaws
 import UTCPCReduce
 import UTCPSemantics
@@ -47,6 +47,7 @@ dictUTCP :: Dict
 dictUTCP
  = foldl1 dictMrg [ makeDict [(version,AlfEntry [versionUTCP])]
                   , stdDict
+                  , stdUTPDict
                   , alfUTCPDict
                   , setUTCPDict
                   , genUTCPDict
