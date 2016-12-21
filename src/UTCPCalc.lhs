@@ -17,6 +17,7 @@ import StdLaws
 --import StdUTPLaws
 import UTCPLaws
 import UTCPCReduce
+import UTCPSemantics
 import CalcRun
 \end{code}
 
@@ -42,7 +43,7 @@ dop = piter [cp,p]
 \HDRb{The UTCP Theory}
 Our theory:
 \begin{code}
-dictUTCP :: (Eq s, Ord s, Show s) => Dict s
+dictUTCP :: Dict
 dictUTCP
  = foldl1 dictMrg [ makeDict [(version,AlfEntry [versionUTCP])]
                   , stdDict
@@ -55,6 +56,6 @@ dictUTCP
 
 showUTCP pr = plainShow 80 dictUTCP pr
 
-calc :: (Ord s, Show s) => Pred s -> IO (CalcLog s)
-calc = calcREPL dictUTCP noInvariant . buildMarks
+calc :: Pred -> IO CalcLog
+calc = calcREPL dictUTCP [] -- . buildMarks
 \end{code}
