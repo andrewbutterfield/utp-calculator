@@ -35,7 +35,7 @@ We organise this based on the FM2016 paper (citation needed).
 
 Commands: $c,d \in \mathcal C$
 \begin{code}
-carrierC = [_mathcal 'C']
+carrierC = [NiceSymbols._mathcal 'C']
 ( c, cEntry )  = pvarEntry "c" [carrierC]
 ( d, dEntry )  = pvarEntry "d" [carrierC]
 \end{code}
