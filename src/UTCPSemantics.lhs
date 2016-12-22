@@ -3,7 +3,7 @@
 module UTCPSemantics where
 import Utilities
 import Data.List
-import PrettyPrint
+import CalcPPrint
 import CalcTypes
 import CalcAlphabets
 import CalcPredicates

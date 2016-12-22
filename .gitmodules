@@ -1,0 +1,3 @@
+[submodule "proglogcalc"]
+	path = proglogcalc
+	url = https://github.com/andrewbutterfield/proglogcalc.git
