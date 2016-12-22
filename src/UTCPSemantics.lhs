@@ -146,7 +146,7 @@ and is not the label (or labels) of ``whatever comes after''.
 
 \begin{figure}[h]
   \centering
-\includegraphics{images/atomic-action.eps}
+\includegraphics{../images/atomic-action.eps}
   \caption{Atomic Action view of the world}
   \label{fig:atom-act:view}
 \end{figure}
@@ -415,7 +415,7 @@ So, in effect, we need an outcome as follows (\figref{fig:seq-idea:view}):
 
 \begin{figure}[h]
   \centering
-\includegraphics{images/seq-Comp-idea.eps}
+\includegraphics{../images/seq-Comp-idea.eps}
   \caption{Sequential Composition view of the world}
   \label{fig:seq-idea:view}
 \end{figure}
@@ -445,7 +445,7 @@ which now has a generator static parameter $g$ in addition to $in$ and $out$
 (See \figref{fig:par-prog:view}).
 \begin{figure}[tb]
   \centering
-\includegraphics{images/parallel-program.eps}
+\includegraphics{../images/parallel-program.eps}
   \caption{Concurrent Program view of the world}
   \label{fig:par-prog:view}
 \end{figure}
@@ -505,10 +505,10 @@ along with a suggestive diagrammatic notation:
 \RLEQNS{
 \\ \ell_g &\defs& new_1(g)
 \\ \g:    &\defs& new_2(g)
-\\        &     &          & \includegraphics{images/new-label.eps}
+\\        &     &          & \includegraphics{../images/new-label.eps}
 \\ \g1    &\defs& split_1(g)
 \\ \g2    &\defs& split_2(g)
-\\        &     &          & \includegraphics{images/split-gen.eps}
+\\        &     &          & \includegraphics{../images/split-gen.eps}
 }
 
 
@@ -531,7 +531,7 @@ So the expression $\ell_{g1:2:}$ (\figref{fig:label-gen-xampl}) denotes
 }
 \begin{figure}[h]
   \centering
-\includegraphics{images/label-gen-example.eps}
+\includegraphics{../images/label-gen-example.eps}
   \caption{Label generation example: $\ell_{g1:2:}$}
   \label{fig:label-gen-xampl}
 \end{figure}
@@ -585,7 +585,7 @@ as we did with $in$ and $out$ (\figref{fig:seq-actual:view}).
 
 \begin{figure}[htb]
   \centering
-\includegraphics{images/seq-Comp-actual.eps}
+\includegraphics{../images/seq-Comp-actual.eps}
   \caption{Sequential Composition actual construction}
   \label{fig:seq-actual:view}
 \end{figure}
@@ -649,7 +649,7 @@ and generate two labels
 from each before passing them ($\g{1::},\g{2::}$) into $P$ and $Q$.
 
 \begin{center}
-\includegraphics{images/parallel-label-gen.eps}
+\includegraphics{../images/parallel-label-gen.eps}
 \end{center}
 \begin{code}
 g1   = split1 g
@@ -681,7 +681,7 @@ and $Merge(\ell_{g1:},\ell_{g2:})$
 (\figref{fig:par-actual:view}).
 \begin{figure}[h]
   \centering
-\includegraphics{images/par-Comp-actual.eps}
+\includegraphics{../images/par-Comp-actual.eps}
   \caption{
      Parallel Composition actual construction (omitting generators).
      The $s$ box is dashed to emphasise its global nature,
@@ -750,7 +750,7 @@ converts $in$ into $\ell_{g1}$ or $\ell_{g2}$ as determined by the condition
 (\figref{fig:cond-actual:view}).
 \begin{figure}[h]
   \centering
-\includegraphics{images/conditional-actual.eps}
+\includegraphics{../images/conditional-actual.eps}
   \caption{Conditional actual construction (omitting generators)}
   \label{fig:cond-actual:view}
 \end{figure}
@@ -805,7 +805,7 @@ as we view it as a conditional loop unrolling
 
 \begin{figure}[h]
   \centering
-\includegraphics{images/iteration-actual.eps}
+\includegraphics{../images/iteration-actual.eps}
   \caption{Iteration actual construction (omitting generators)}
   \label{fig:iter-actual:view}
 \end{figure}
