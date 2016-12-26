@@ -7,7 +7,7 @@ import Data.List
 import Data.Char
 import Data.Maybe
 import NiceSymbols
-import PrettyPrint
+import CalcPPrint
 import CalcTypes
 import StdPrecedences
 import CalcPredicates
@@ -35,7 +35,7 @@ We organise this based on the FM2016 paper (citation needed).
 
 Commands: $c,d \in \mathcal C$
 \begin{code}
-carrierC = [_mathcal 'C']
+carrierC = [NiceSymbols._mathcal 'C']
 ( c, cEntry )  = pvarEntry "c" [carrierC]
 ( d, dEntry )  = pvarEntry "d" [carrierC]
 \end{code}

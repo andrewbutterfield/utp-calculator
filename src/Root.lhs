@@ -7,7 +7,7 @@ import Data.List
 import Data.Char
 import Data.Maybe
 import POrd
-import PrettyPrint
+import CalcPPrint
 import CalcTypes
 import StdPrecedences
 import CalcPredicates

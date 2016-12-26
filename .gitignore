@@ -1,3 +1,5 @@
 papers/UTP2016/upload
 upload.zip
 *.gz
+*-eps-converted-to.pdf
+.stack-work

@@ -1,0 +1,89 @@
+\documentclass[12pt,fleqn]{article}
+\usepackage[a4paper, margin=1.1in]{geometry}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{stmaryrd}
+\usepackage{views}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage[utf8]{inputenc}
+\usepackage{listings}
+\usepackage{lstlhs}
+\usepackage{UTPCalc}
+\usepackage{RGAlg}
+\usepackage{mathpartir}
+\usepackage{epstopdf}
+\usepackage{doclevels}
+\usepackage{hyperref}
+\allowdisplaybreaks[2]
+% ----------------------------------------------------------------
+
+\parindent=0pt % I hate first line indentation
+\parskip=3pt   % I like a visual white gap between paragraphs
+
+\setcounter{tocdepth}{4}
+\setcounter{secnumdepth}{4}
+
+
+\newif\ifDraft
+\Drafttrue  % comment out to turn off note/draft-mode
+\ifDraft
+  \def\NOTE#1{\textbf{Note: }\textsl{#1}}
+  \def\DRAFT#1{\textbf{Draft: }\textit{#1}}
+\else
+  \def\NOTE#1{}
+  \def\DRAFT#1{}
+\fi
+
+\bibliographystyle{alpha}
+
+\title{UTPCalc --- A calculator for UTP Predicates}%
+\author{
+   Andrew Butterfield
+      \thanks{\noindent This work was supported, in part, by Science Foundation Ireland grant 10/CE/I1855
+      \newline \hspace*{1.8em} to Lero - the Irish Software Engineering Research Centre (www.lero.ie)}%
+}%
+\date{\today}%
+
+\parindent=0pt % I hate first line indentation
+\parskip=3pt   % I like a visual white gap between paragraphs
+
+\mathchardef\spot="320F
+\mathcode`\@=\spot
+%\mathcode`\|=\mid
+
+\setcounter{tocdepth}{4}
+
+\begin{document}
+
+\input{Definitions}
+
+\maketitle
+\tableofcontents
+
+\newpage
+\input{Intro}
+
+\newpage
+\input{../src/UTCPSemantics.lhs}
+\newpage
+\input{../src/UTCPLaws.lhs}
+\newpage
+\input{../src/UTCPCReduce.lhs}
+\newpage
+\input{../src/UTCPCalc.lhs}
+\newpage
+\input{../src/Views.lhs}
+\newpage
+\input{../src/Views}
+\newpage
+\input{../src/Root.lhs}
+\newpage
+\input{../src/RGAlgebra.lhs}
+\newpage
+\input{../src/RGAlgebra}
+
+\newpage
+\bibliography{UTPCALC}
+
+\end{document}
