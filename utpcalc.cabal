@@ -22,7 +22,6 @@ library
   build-depends:  base, containers, nicesymbols, proglogcalc
   hs-source-dirs:     src/
                       proglogcalc/src
-                      nicesymbols/src
                       
   default-language:   Haskell2010
 
