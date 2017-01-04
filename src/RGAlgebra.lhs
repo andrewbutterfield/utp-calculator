@@ -28,8 +28,11 @@ import StdPredicates
 \end{code}
 
 We rapid prototype the emerging Rely-Guarantee Algebra work.
-We organise this based on the FM2016 paper (citation needed).
+We organise this based on the FM2016 paper and related material (citation needed).
 
+\begin{code}
+rgVersion = "0.3"
+\end{code}
 \newpage
 \HDRb{Concurrent Refinement Algebra}
 
@@ -796,11 +799,14 @@ conjAtmRedEntry = entry laws $ LawEntry [conjAtmReduce] [] []
 \HDRb{Relational Atomic Steps}
 
 \RLEQNS{
-   r \subseteq \Sigma \times \Sigma
+   r &\subseteq& \Sigma \times \Sigma
+\\ \varnothing &\in& \Sigma \times \Sigma
+\\ \varnothing &\subseteq& r
 }
 \begin{code}
 n_Sigma = _Sigma ; sigma = Var n_Sigma
-r     = Var "r"
+r = Var "r"
+n_emptyrel = _varnothing ; emptyrel = Var _varnothing
 \end{code}
 
 \RLEQNS{
@@ -812,13 +818,50 @@ n_pi_fun = bold _pi ; pi_fun r = Atm $ App n_pi_fun [r]
 n_eps_fun = bold _epsilon ; eps_fun r = Atm $ App n_eps_fun [r]
 \end{code}
 
+
+\begin{code}
+relAtmReduce :: RWFun
+\end{code}
+
 \RLEQNS{
    \boldsymbol\pi(\varnothing)
    & = ~~ \top ~~ = &
    \boldsymbol\epsilon(\varnothing)
 }
 \begin{code}
-n_emptyrel = _varnothing ; emptyrel = Var _varnothing
+relAtmReduce d _ (Atm (App nm [r]))
+ | (nm==n_pi_fun || nm==n_eps_fun) && r == emptyrel
+   = Just ( "infeasible-empty-rel", top, True )
+\end{code}
+
+\RLEQNS{
+   \boldsymbol\pi(r_1) \sqcup \boldsymbol\epsilon(r_2) &=& \top
+}
+\begin{code}
+relAtmReduce d _ (Comp nj [Atm (App n1 [_]), Atm (App n2 [_])])
+ | nj==n_join && 
+   ( n1==n_pi_fun && n2==n_eps_fun
+    ||  
+     n2==n_pi_fun && n1==n_eps_fun
+   )
+   = Just ( "disjoint-"++n_pi_fun++"-"++n_eps_fun++"-images"
+          , top, True )
+\end{code}
+
+\RLEQNS{
+   r_1 = r_2 &\Leftrightarrow& \boldsymbol\pi(r_1) = \boldsymbol\pi(r_2)
+\\ \boldsymbol\pi(r_1 \cup r_2) &=& \boldsymbol\pi(r_1) \sqcap \boldsymbol\pi(r_2)
+\\ \boldsymbol\pi(r_1 \cap r_2) &=& \boldsymbol\pi(r_1) \sqcup \boldsymbol\pi(r_2)
+\\ r_1 \subseteq r_2 &\implies& \boldsymbol\pi(r_2) \sqsubseteq \boldsymbol\pi(r_1)
+}
+and similarly for $\boldsymbol\epsilon$.
+We don't implement these right now, until we get a better feel for which way
+round works best, in what scenarios.
+
+\begin{code}
+relAtmReduce _ _ _ = Nothing
+
+relAtmRedEntry = entry laws $ LawEntry [relAtmReduce] [] []
 \end{code}
 
 \HDRb{Relies and  Guarantees}
@@ -1087,7 +1130,7 @@ lawEntry = entry laws $ LawEntry [rgReduce] [] []
 rgDict :: Dict
 rgDict
  = mergeDicts
-    [ dictVersion "RGAlgebra 0.2"
+    [ dictVersion ("RGAlgebra "++rgVersion)
 
     -- Concurrent Refinement Algebra
     , cEntry, dEntry
@@ -1113,6 +1156,9 @@ rgDict
     , actionEntry
     , atmRedEntry
     , conjAtmRedEntry -- omit if doing CSP/CCS !!
+    
+    -- Relational Atomic Steps
+    , relAtmRedEntry
 
     , piEntry
     , epsEntry
@@ -1124,7 +1170,7 @@ rgDict
     , preEntry
     , assumeEntry
     -- , assertEntry
-    , lawEntry
+    -- , lawEntry
     , stdExprDict
     , stdSetDict
     , stdPredDict
