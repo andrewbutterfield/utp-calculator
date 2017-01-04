@@ -378,9 +378,10 @@ vAlfDict
  = dictMrg dictAlpha dictAtomic
  where
    dictAlpha = stdAlfDictGen ["s"] ["ls"] vStatic
-   dictAtomic = mergeDicts [ pvarEntry "a" ss'
-                           , pvarEntry "b" ss'
-                           , pvarEntry "c" ss' ]
+   dictAtomic = mergeDicts 
+                $ map snd [ pvarEntry "a" ss'
+                          , pvarEntry "b" ss'
+                          , pvarEntry "c" ss' ]
    ss' = ["s", "s'"]
 
 vStatic = ["g","in","out"]

@@ -35,7 +35,7 @@ We organise this based on the FM2016 paper (citation needed).
 
 Commands: $c,d \in \mathcal C$
 \begin{code}
-carrierC = [NiceSymbols._mathcal 'C']
+carrierC = [_mathcal 'C']
 ( c, cEntry )  = pvarEntry "c" [carrierC]
 ( d, dEntry )  = pvarEntry "d" [carrierC]
 \end{code}
@@ -643,6 +643,26 @@ atmReduce _ _ _ = Nothing
 atmRedEntry = entry laws $ LawEntry [atmReduce] [] []
 \end{code}
 
+We need to define the notion of an \emph{action}:
+\RLEQNS{
+   \action a &=& \wait^\omega ; a ; \wait^\omega
+}
+\begin{code}
+n_action = _langle++_rangle ; precAction = precNot
+action a = Comp n_action [a]
+
+ppAction sCP d p [a]
+ = pplist [ppa _langle, sCP 0 1 a, ppa _rangle ]
+
+defnAction d [a]
+ = Just ( n_action
+        , mkSeq [ omega atmParId, a, omega atmParId ]
+        , True )
+
+actionEntry = entry n_action
+              $ PredEntry subAny ppAction [] defnAction noDefn
+\end{code}
+
 
 \newpage
 Assuming $;$ is conjunctive (use a seperate reduction function).
@@ -770,26 +790,6 @@ Now we wrap up conjunctive atomic action reduction.
 conjAtmReduce _ _ _ = Nothing
 
 conjAtmRedEntry = entry laws $ LawEntry [conjAtmReduce] [] []
-\end{code}
-
-We need to define the notion of an \emph{action}:
-\RLEQNS{
-   \action a &=& \wait^\omega ; a ; \wait^\omega
-}
-\begin{code}
-n_action = [_langle,_rangle] ; precAction = precNot
-action a = Comp n_action [a]
-
-ppAction sCP d p [a]
- = pplist [ppa [_langle], sCP 0 1 a, ppa [_rangle] ]
-
-defnAction d [a]
- = Just ( n_action
-        , mkSeq [ omega atmParId, a, omega atmParId ]
-        , True )
-
-actionEntry = entry n_action
-              $ PredEntry subAny ppAction [] defnAction noDefn
 \end{code}
 
 \newpage
