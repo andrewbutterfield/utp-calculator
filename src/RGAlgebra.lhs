@@ -783,7 +783,7 @@ conjAtmReduce d _ (Comp np [ acta@(Comp na1 [a])
 \RLEQNS{
    a \ileave b &=& a;b \sqcap b;a
 }
-We leave this for now.
+We leave this for now
 
 Now we wrap up conjunctive atomic action reduction.
 \begin{code}
@@ -794,6 +794,32 @@ conjAtmRedEntry = entry laws $ LawEntry [conjAtmReduce] [] []
 
 \newpage
 \HDRb{Relational Atomic Steps}
+
+\RLEQNS{
+   r \subseteq \Sigma \times \Sigma
+}
+\begin{code}
+n_Sigma = _Sigma ; sigma = Var n_Sigma
+r     = Var "r"
+\end{code}
+
+\RLEQNS{
+   \boldsymbol\pi, \boldsymbol\epsilon
+   &:& \power(\Sigma\times\Sigma) \fun \mathcal A
+}
+\begin{code}
+n_pi_fun = bold _pi ; pi_fun r = Atm $ App n_pi_fun [r]
+n_eps_fun = bold _epsilon ; eps_fun r = Atm $ App n_eps_fun [r]
+\end{code}
+
+\RLEQNS{
+   \boldsymbol\pi(\varnothing)
+   & = ~~ \top ~~ = &
+   \boldsymbol\epsilon(\varnothing)
+}
+\begin{code}
+n_emptyrel = _varnothing ; emptyrel = Var _varnothing
+\end{code}
 
 \HDRb{Relies and  Guarantees}
 
@@ -809,13 +835,6 @@ n_chaos = bold "chaos" ; chaos = PVar n_chaos
 \HDRc{Primitive Atomic Commands}
 
 
-\RLEQNS{
-   r \subseteq \Sigma \times \Sigma
-}
-\begin{code}
-n_Sigma = _Sigma ; sigma = Var n_Sigma
-r     = Var "r"
-\end{code}
 
 
 

@@ -10,29 +10,34 @@ The final uploaded version of the UTP2016 paper, before publisher proofing, is a
 Subsequent commits reflect on-going development
 up to the tag `RGAlgebra-0.2`
 
-At present there is no commit in the repo that matches the calculator example shown in the paper. We hope to rectify this shortly.
+There is no commit indicated in the repo that matches the calculator example shown in the paper. An attempt was made to find such a commit it seems not to exist.
 
-From this point on the general library modules
-that make up the calculator are moving to a new location under a new name:
+The general library modules
+that make up the calculator have moved to a new location (Github) under a new name:
 
-proglogcalc : Programmable Logic Calculator.
+`proglogcalc` : Programmable Logic Calculator.
 
-This repo will be re-configured to use proglogcalc as a submodule and will continue to be used to support my UTP theory building work. 
+This repo has been re-configured to use proglogcalc as a submodule and will continue to be used to support my UTP theory building work. 
 
 
 ### How do I get set up? ###
 
-Simple, go into /src and run:
+1. Use git to pull the proglogcalc submodule
+2. To build, use `stack ghci`
+3. From within the interpreter just use `:l ModuleName`, where ModuleName is one of the following:
+  1. `Views` - an inital UTP semantics for the basline Command language in the POPL13 Views paper.
+  2. `UTCPLaws` - UTP semantics for Unifying Theories of COncurrent Programming
+  3. Root - revisiting the semantics in `Views`/`UTCPLaws` with a simpler label generation scheme
+  4. `RGAlgebra` - axiomatising the Rely/Guarantee Algebra presented by Ian Hayes at. al at FM2016 in Cyprus.
 
-ghci UTCPCalc.lhs
-
+At the time of writing, `Views` and `UTCP*` are deprecated whilst `Root` and `RGAlgebra` are current.
 
 
 
 ### Contribution guidelines ###
 
 This repo will not accept outside contributions.
-The new proglogcalc repo will.
+The new `proglogcalc` repo will.
 
 ### Who do I talk to? ###
 
