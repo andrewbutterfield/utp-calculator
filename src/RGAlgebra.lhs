@@ -839,9 +839,9 @@ relAtmReduce d _ (Atm (App nm [r]))
 }
 \begin{code}
 relAtmReduce d _ (Comp nj [Atm (App n1 [_]), Atm (App n2 [_])])
- | nj==n_join && 
+ | nj==n_join &&
    ( n1==n_pi_fun && n2==n_eps_fun
-    ||  
+    ||
      n2==n_pi_fun && n1==n_eps_fun
    )
    = Just ( "disjoint-"++n_pi_fun++"-"++n_eps_fun++"-images"
@@ -865,6 +865,21 @@ relAtmRedEntry = entry laws $ LawEntry [relAtmReduce] [] []
 \end{code}
 
 \HDRb{Relies and  Guarantees}
+
+\begin{code}
+g = PVar "g"
+\end{code}
+
+\RLEQNS{
+   (\piRestrict~g) &\defs& \boldsymbol\pi(g) \sqcap \wait
+}
+\begin{code}
+n_pirestrict = _pi++'-':bold "restrict"
+pirestrict g = Comp n_pirestrict [g]
+\end{code}
+\RLEQNS{
+   \guar~g &\defs& (\piRestrict~g)^\omega
+}
 
 \HDRb{Abstract Communication in Process Algebras}
 
@@ -1156,7 +1171,7 @@ rgDict
     , actionEntry
     , atmRedEntry
     , conjAtmRedEntry -- omit if doing CSP/CCS !!
-    
+
     -- Relational Atomic Steps
     , relAtmRedEntry
 
