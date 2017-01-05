@@ -377,6 +377,8 @@ isAtmStep d (PVar a)
  = case plookup a d of
     Just (PredEntry _ _ [carrier] _ _) -> carrier == carrierA
     _                                  -> False
+isAtmStep d (Comp n [Atm _]) -- n_pi/eps_fun defined later on
+ | n  `elem` [n_pi_fun,n_eps_fun]  =  True
 isAtmStep d (Comp n prs)
  | n `elem` [n_meet,n_join,n_par] = all (isAtmStep d) prs
 isAtmStep _ _ = False
@@ -441,7 +443,7 @@ assume t = Comp n_assume [t]
 precAssume = precNot -- for now
 ppAssume sCP d p [t]
  = paren p precAssume
-       $ pplist [ppa n_assume, ppa " ", sCP precPre 1 t]
+       $ pplist [ppa n_assume, ppa " ", sCP precAssume 1 t]
 ppAssume sCP d p _ = pps styleRed $ ppa ("invalid-"++n_assume)
 
 assumeDefn d [a]
@@ -813,11 +815,11 @@ n_emptyrel = _varnothing ; emptyrel = Var _varnothing
    \boldsymbol\pi, \boldsymbol\epsilon
    &:& \power(\Sigma\times\Sigma) \fun \mathcal A
 }
+These are defined as atomic steps in \texttt{isAtmStep} above.
 \begin{code}
 n_pi_fun = bold _pi ; pi_fun r = Atm $ App n_pi_fun [r]
 n_eps_fun = bold _epsilon ; eps_fun r = Atm $ App n_eps_fun [r]
 \end{code}
-
 
 \begin{code}
 relAtmReduce :: RWFun
@@ -867,7 +869,7 @@ relAtmRedEntry = entry laws $ LawEntry [relAtmReduce] [] []
 \HDRb{Relies and  Guarantees}
 
 \begin{code}
-g = PVar "g"
+g = Var "g"
 \end{code}
 
 \RLEQNS{
@@ -875,10 +877,81 @@ g = PVar "g"
 }
 \begin{code}
 n_pirestrict = _pi++'-':bold "restrict"
-pirestrict g = Comp n_pirestrict [g]
+pirestrict g = Comp n_pirestrict [Atm g]
+
+ppPiR sCP d _ [gpr]
+ = ppclosed "(" ")" " " [ppa n_pirestrict, sCP 0 1 gpr]
+
+piRDefn d [Atm g]
+ = Just ( "n_pirestrict", meet [pi_fun g, atmParId], True )
+piRDefn _ _ = Nothing
+
+piResEntry
+ = entry n_pirestrict $ PredEntry subAny ppPiR [] piRDefn noDefn
 \end{code}
+
+
 \RLEQNS{
    \guar~g &\defs& (\piRestrict~g)^\omega
+}
+\begin{code}
+n_guar = bold "guar"
+guar g = Comp n_guar [Atm g]
+
+precGuar = precSub -- keep it tight
+ppGuar sCP d p [gpr]
+ = paren p precGuar
+    $ ppopen " " [ppa n_guar, sCP precGuar 1 gpr]
+
+guarDefn d [Atm g]
+ = Just ( "n_guar", omega $ pirestrict g, True )
+guarDefn _ _ = Nothing
+
+guarEntry
+ = entry n_guar $ PredEntry subAny ppGuar [] guarDefn noDefn
+\end{code}
+
+Weak conjunction on commands $\Cap$:
+\begin{code}
+n_wkconj = _Cap ; wkconj = Comp n_wkconj
+
+precWkConj = precJoin
+ppWkConj sCP d p [pr] = sCP p 1 pr
+ppWkConj sCP d p prs
+ = paren p precWkConj
+     $ ppopen (pad n_wkconj)
+     $ ppwalk 1 (sCP precWkConj) prs
+
+wkconjEntry
+ = entry n_wkconj $ PredEntry subAny ppWkConj [] noDefn noDefn
+\end{code}
+
+\RLEQNS{
+   c_1 \Cap (c_2 \Cap c_3) &=& (c_1 \Cap c_2) \Cap c_3
+\\ c \Cap d &=& d \Cap c
+\\ c \Cap c &=& c
+\\ c \Cap \bot &=& \bot
+\\ a \Cap b &=& a \sqcup b
+\\ t \Cap t' &=& t \sqcup t'
+\\ (a;c) \Cap (b;d) = (a \Cap b) ; (c \Cap d)
+\\ (a;c) \Cap \nil &=& \top
+\\ a^\infty \Cap b^\infty &=& (a \Cap b)^\infty
+\\ a \Cap \alf &=& a
+\\ \chaos &\defs& \alf^\omega
+\\ c \Cap \chaos &=& c
+}
+
+WILL BE NEEDED HERE SHORTLY
+\begin{code}
+n_chaos = bold "chaos" ; chaos = PVar n_chaos
+\end{code}
+
+\RLEQNS{
+   a^\omega \Cap b^\omega &=& (a \Cap b)^\omega
+   & \mbox{atomic-iteration-conjunction}
+\\ a^\omega \Cap (c;d) &=& (a^\omega \Cap c);(a^\omega \Cap d)
+   & \mbox{atomic-infinite-distribution}
+\\ (\guar~g) \Cap (c;d) &=& ((\guar~g)\Cap c);((\guar~g)\Cap d)
 }
 
 \HDRb{Abstract Communication in Process Algebras}
@@ -886,9 +959,6 @@ pirestrict g = Comp n_pirestrict [g]
 
 
 TO BE MOVED ELSEWHERE!!!
-\begin{code}
-n_chaos = bold "chaos" ; chaos = PVar n_chaos
-\end{code}
 
 \HDRc{Primitive Atomic Commands}
 
@@ -896,249 +966,249 @@ n_chaos = bold "chaos" ; chaos = PVar n_chaos
 
 
 
-\RLEQNS{
-     π(r) &=& \Pi(\sigma,\sigma'), (\sigma,\sigma') \in r
-}
-\begin{code}
-n_pi = _pi  -- pi
-mkpi r = App n_pi [r]
+%\RLEQNS{
+%     π(r) &=& \Pi(\sigma,\sigma'), (\sigma,\sigma') \in r
+%}
+%\begin{code}
+%n_pi = _pi  -- pi
+%mkpi r = App n_pi [r]
+%
+%piEntry
+% = entry n_pi
+%   $ ExprEntry
+%       subAny
+%       (defEPrint n_pi)
+%       noDefn
+%       (justMakes $ App n_pi)
+%       noEq
+%\end{code}
+%
+%
+%
+%\RLEQNS{
+%   ϵ(r) &=& \mathcal{E}(\sigma,\sigma'), (\sigma,\sigma') \in r
+%}
+%\begin{code}
+%n_eps = _epsilon -- lunate epsilon
+%eps r = App n_eps [r]
+%
+%epsEntry
+% = entry n_eps
+%   $ ExprEntry
+%       subAny
+%       (defEPrint n_eps)
+%       noDefn
+%       (justMakes $ App n_eps)
+%       noEq
+%\end{code}
 
-piEntry
- = entry n_pi
-   $ ExprEntry
-       subAny
-       (defEPrint n_pi)
-       noDefn
-       (justMakes $ App n_pi)
-       noEq
-\end{code}
-
-
-
-\RLEQNS{
-   ϵ(r) &=& \mathcal{E}(\sigma,\sigma'), (\sigma,\sigma') \in r
-}
-\begin{code}
-n_eps = _epsilon -- lunate epsilon
-eps r = App n_eps [r]
-
-epsEntry
- = entry n_eps
-   $ ExprEntry
-       subAny
-       (defEPrint n_eps)
-       noDefn
-       (justMakes $ App n_eps)
-       noEq
-\end{code}
-
-Simple relations and predicates: \id, \univ, $\emp$
-\begin{code}
-n_id   = "id"   ; _id  = Var n_id
-n_univ = "univ" ; univ = Var n_univ
-n_emp  = "{}"   ; emp  = Var n_emp
-\end{code}
-
-
-\RLEQNS{
-   \stutter &=& \pi(\id)
-}
-\begin{code}
-n_ii = "ii"
-ii = App n_ii [] -- we want to define this
-iiPrint _ _ = n_ii
-iiDefn _ _  =  edefn n_ii $ mkpi _id
-
-iiEntry
- = entry n_ii
-   $ ExprEntry
-       subAny
-       iiPrint
-       iiDefn
-       (justMakes $ App n_ii)
-       noEq
-\end{code}
-
-
-\RLEQNS{
-   \pi &=& \pi(\univ)
-}
-\begin{code}
-n_piU = _pi++"U"
-piU = App n_piU []
-piUPrint _ _ = n_pi
-piUDefn _ _ = edefn _pi $ mkpi univ
-
-piUEntry
- = entry n_piU
-   $ ExprEntry
-       subAny
-       piUPrint
-       piUDefn
-       (justMakes $ App n_piU)
-       noEq
-\end{code}
-
-\RLEQNS{
-   \epsilon &=& \epsilon(\univ)
-}
-\begin{code}
-n_epsU = _epsilon++"U"
-epsU = App n_epsU []
-epsUPrint _ _ = n_eps
-epsUDefn _ _ = edefn _epsilon $ eps univ
-
-epsUEntry
- = entry n_epsU
-   $ ExprEntry
-       subAny
-       epsUPrint
-       epsUDefn
-       (justMakes $ App n_epsU)
-       noEq
-\end{code}
-
-\HDRc{Tests as a Boolean Algebra}
-
-\RLEQNS{
-   p &\subseteq& \Sigma
-}
-\begin{code}
-p = Var "p"
-\end{code}
-
-\RLEQNS{
-     τ(p) &=& \mbox{if $p$ then terminate else $\top$}
-}
-\begin{code}
-n_tau = _tau  -- tau
-tau p = App n_tau [p]
-
-tauEntry
- = entry n_tau
-   $ ExprEntry
-       subAny
-       (defEPrint n_tau)
-       noDefn
-       (justMakes $ App n_tau)
-       noEq
-\end{code}
-
-
-\RLEQNS{
-   \pre~ t &=& t \sqcap \lnot t \bot
-\\  &=& t \sqcap (\lnot t) \seq \bot
-}
-\begin{code}
-n_pre = bold "pre"
-precPre = precNot -- for now
-expandPre d t = meet [ t, mkSeq [mkNot t, bot] ]
-
-(pre, preEntry) = prefixPT n_pre precPre $ Just expandPre
-\end{code}
-
-\RLEQNS{
-   \setof p &=& \pre~\tau(p)
-\\ &=& \tau(p) \sqcap \tau(\overline{p})\bot
-}
-\begin{code}
-xxn_assert = bold "{}"
-xxassert t = Comp n_assert [t]
-
-xxprecAssert = precNot -- for now
-ppAssert sCP d p [t]
- = paren p xxprecAssert
-       $ pplist [ ppa (bold "{")
-                , sCP precPre 0 t
-                , ppa (bold "}")
-                ]
-ppAssert sCP d p _ = pps styleRed $ ppa ("invalid-"++n_assert)
-
-assertDefn d [t]
-  = Just ( xxn_assert, pre $ Atm $ tau p, True )
-
-xxassertEntry
- = entry xxn_assert $ PredEntry subAny ppAssert [] assertDefn noDefn
-\end{code}
-
-
-
-
-
-\HDRb{Laws}
-
-\HDRc{Reduction Steps}
-
-\begin{code}
-rgReduce :: RWFun
-         -- Dict
-         -- -> [Pred]  -- Invariants
-         -- -> Pred    -- Target Predicate
-         -- -> Maybe (String, Pred, Bool)
-\end{code}
-
-\RLEQNS{
-   \pi(\emp) &=& \top
-\\ \epsilon(\emp) &=& \top
-\\ \tau(\emp) &=& \top
-}
-\begin{code}
-rgReduce d _ (Atm (App anm [Var enm]))
- | enm == n_emp &&
-   (anm == n_pi || anm == n_eps || anm == n_tau)
-   = Just ( "Empty Rel is infeasible", top, True)
-\end{code}
-
-\RLEQNS{
-   \tau(\Sigma) &=& \nil
-}
-\begin{code}
-rgReduce d _ (Atm (App tnm [Var enm]))
- | tnm == n_tau && enm == n_Sigma
-   = Just ( n_tau++" of "++n_Sigma, nil, True )
-\end{code}
-\RLEQNS{
-   \tau(p_1) \sqcap \tau(p_2) &=& \tau(p_1 \cup p_2)
-\\ \tau(p_1) \sqcup \tau(p_2) &=& \tau(p_1 \cap p_2)
-\\                            &=& \tau(p_1)\tau(p_2)
-\\                            &=& \tau(p_1)\parallel\tau(p_2)
-}
-\begin{code}
-rgReduce d _ (Atm (App nop [ App tn1 [p1]      --  tau(p1)
-                           , App tn2 [p2] ]))  --  tau(p2)
- | nop == n_meet && tn1 == n_tau && tn2 == n_tau
-    = Just("meet of "++n_tau, Atm (tau (p1 `u` p2)), True )
- | nop == n_join && tn1 == n_tau && tn2 == n_tau
-    = Just("join of "++n_tau, Atm (tau (p1 `i` p2)), True )
-\end{code}
-
-\RLEQNS{
-   \lnot\tau(p) &=& \tau(\overline p)
-}
-\begin{code}
-rgReduce d _ (Comp nn [Atm (App tnm [p])])
- | nn == nNot && tnm == n_tau
-   = Just( nNot++"-"++n_tau, Atm (App tnm [complement p]), True )
-\end{code}
-
-\RLEQNS{
-   \assume~\pi \sqcap \epsilon(r)
-   &=&
-   \pi \sqcap \epsilon(r) \sqcap \epsilon(\overline{r})\bot
-}
+%Simple relations and predicates: \id, \univ, $\emp$
+%\begin{code}
+%n_id   = "id"   ; _id  = Var n_id
+%n_univ = "univ" ; univ = Var n_univ
+%n_emp  = "{}"   ; emp  = Var n_emp
+%\end{code}
+%
+%
+%\RLEQNS{
+%   \stutter &=& \pi(\id)
+%}
+%\begin{code}
+%n_ii = "ii"
+%ii = App n_ii [] -- we want to define this
+%iiPrint _ _ = n_ii
+%iiDefn _ _  =  edefn n_ii $ mkpi _id
+%
+%iiEntry
+% = entry n_ii
+%   $ ExprEntry
+%       subAny
+%       iiPrint
+%       iiDefn
+%       (justMakes $ App n_ii)
+%       noEq
+%\end{code}
+%
+%
+%\RLEQNS{
+%   \pi &=& \pi(\univ)
+%}
+%\begin{code}
+%n_piU = _pi++"U"
+%piU = App n_piU []
+%piUPrint _ _ = n_pi
+%piUDefn _ _ = edefn _pi $ mkpi univ
+%
+%piUEntry
+% = entry n_piU
+%   $ ExprEntry
+%       subAny
+%       piUPrint
+%       piUDefn
+%       (justMakes $ App n_piU)
+%       noEq
+%\end{code}
+%
+%\RLEQNS{
+%   \epsilon &=& \epsilon(\univ)
+%}
+%\begin{code}
+%n_epsU = _epsilon++"U"
+%epsU = App n_epsU []
+%epsUPrint _ _ = n_eps
+%epsUDefn _ _ = edefn _epsilon $ eps univ
+%
+%epsUEntry
+% = entry n_epsU
+%   $ ExprEntry
+%       subAny
+%       epsUPrint
+%       epsUDefn
+%       (justMakes $ App n_epsU)
+%       noEq
+%\end{code}
+%
+%\HDRc{Tests as a Boolean Algebra}
+%
+%\RLEQNS{
+%   p &\subseteq& \Sigma
+%}
+%\begin{code}
+%p = Var "p"
+%\end{code}
+%
+%\RLEQNS{
+%     τ(p) &=& \mbox{if $p$ then terminate else $\top$}
+%}
+%\begin{code}
+%n_tau = _tau  -- tau
+%tau p = App n_tau [p]
+%
+%tauEntry
+% = entry n_tau
+%   $ ExprEntry
+%       subAny
+%       (defEPrint n_tau)
+%       noDefn
+%       (justMakes $ App n_tau)
+%       noEq
+%\end{code}
+%
+%
+%\RLEQNS{
+%   \pre~ t &=& t \sqcap \lnot t \bot
+%\\  &=& t \sqcap (\lnot t) \seq \bot
+%}
+%\begin{code}
+%n_pre = bold "pre"
+%precPre = precNot -- for now
+%expandPre d t = meet [ t, mkSeq [mkNot t, bot] ]
+%
+%(pre, preEntry) = prefixPT n_pre precPre $ Just expandPre
+%\end{code}
+%
+%\RLEQNS{
+%   \setof p &=& \pre~\tau(p)
+%\\ &=& \tau(p) \sqcap \tau(\overline{p})\bot
+%}
+%\begin{code}
+%xxn_assert = bold "{}"
+%xxassert t = Comp n_assert [t]
+%
+%xxprecAssert = precNot -- for now
+%ppAssert sCP d p [t]
+% = paren p xxprecAssert
+%       $ pplist [ ppa (bold "{")
+%                , sCP precPre 0 t
+%                , ppa (bold "}")
+%                ]
+%ppAssert sCP d p _ = pps styleRed $ ppa ("invalid-"++n_assert)
+%
+%assertDefn d [t]
+%  = Just ( xxn_assert, pre $ Atm $ tau p, True )
+%
+%xxassertEntry
+% = entry xxn_assert $ PredEntry subAny ppAssert [] assertDefn noDefn
+%\end{code}
+%
+%
 
 
-The final catch-all pattern:
-\begin{code}
-rgReduce _ _ _ = Nothing
-\end{code}
 
-\HDRc{law Entry}
-
-\begin{code}
-lawEntry :: Dict
-lawEntry = entry laws $ LawEntry [rgReduce] [] []
-\end{code}
+%\HDRb{Laws}
+%
+%\HDRc{Reduction Steps}
+%
+%\begin{code}
+%rgReduce :: RWFun
+%         -- Dict
+%         -- -> [Pred]  -- Invariants
+%         -- -> Pred    -- Target Predicate
+%         -- -> Maybe (String, Pred, Bool)
+%\end{code}
+%
+%\RLEQNS{
+%   \pi(\emp) &=& \top
+%\\ \epsilon(\emp) &=& \top
+%\\ \tau(\emp) &=& \top
+%}
+%\begin{code}
+%rgReduce d _ (Atm (App anm [Var enm]))
+% | enm == n_emp &&
+%   (anm == n_pi || anm == n_eps || anm == n_tau)
+%   = Just ( "Empty Rel is infeasible", top, True)
+%\end{code}
+%
+%\RLEQNS{
+%   \tau(\Sigma) &=& \nil
+%}
+%\begin{code}
+%rgReduce d _ (Atm (App tnm [Var enm]))
+% | tnm == n_tau && enm == n_Sigma
+%   = Just ( n_tau++" of "++n_Sigma, nil, True )
+%\end{code}
+%\RLEQNS{
+%   \tau(p_1) \sqcap \tau(p_2) &=& \tau(p_1 \cup p_2)
+%\\ \tau(p_1) \sqcup \tau(p_2) &=& \tau(p_1 \cap p_2)
+%\\                            &=& \tau(p_1)\tau(p_2)
+%\\                            &=& \tau(p_1)\parallel\tau(p_2)
+%}
+%\begin{code}
+%rgReduce d _ (Atm (App nop [ App tn1 [p1]      --  tau(p1)
+%                           , App tn2 [p2] ]))  --  tau(p2)
+% | nop == n_meet && tn1 == n_tau && tn2 == n_tau
+%    = Just("meet of "++n_tau, Atm (tau (p1 `u` p2)), True )
+% | nop == n_join && tn1 == n_tau && tn2 == n_tau
+%    = Just("join of "++n_tau, Atm (tau (p1 `i` p2)), True )
+%\end{code}
+%
+%\RLEQNS{
+%   \lnot\tau(p) &=& \tau(\overline p)
+%}
+%\begin{code}
+%rgReduce d _ (Comp nn [Atm (App tnm [p])])
+% | nn == nNot && tnm == n_tau
+%   = Just( nNot++"-"++n_tau, Atm (App tnm [complement p]), True )
+%\end{code}
+%
+%\RLEQNS{
+%   \assume~\pi \sqcap \epsilon(r)
+%   &=&
+%   \pi \sqcap \epsilon(r) \sqcap \epsilon(\overline{r})\bot
+%}
+%
+%
+%The final catch-all pattern:
+%\begin{code}
+%rgReduce _ _ _ = Nothing
+%\end{code}
+%
+%\HDRc{law Entry}
+%
+%\begin{code}
+%lawEntry :: Dict
+%lawEntry = entry laws $ LawEntry [rgReduce] [] []
+%\end{code}
 
 \HDRb{RG Dictionary}
 \begin{code}
@@ -1175,17 +1245,23 @@ rgDict
     -- Relational Atomic Steps
     , relAtmRedEntry
 
-    , piEntry
-    , epsEntry
-    , iiEntry
-    , piUEntry
-    , epsUEntry
-    , tauEntry
-    , seqEntry
-    , preEntry
-    , assumeEntry
+    -- Relies and Guarantees
+    , piResEntry
+    , guarEntry
+    , wkconjEntry
+
+    --, piEntry
+    --, epsEntry
+--     , iiEntry
+--     , piUEntry
+--     , epsUEntry
+--     , tauEntry
+--     , seqEntry
+--     , preEntry
+--     , assumeEntry
     -- , assertEntry
     -- , lawEntry
+
     , stdExprDict
     , stdSetDict
     , stdPredDict
