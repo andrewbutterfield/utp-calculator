@@ -67,10 +67,10 @@ with smart builders that flatten nested usage, remove identities
 and collapse it all if any zeros occur.
 \begin{code}
 n_meet = _sqcap ; precMeet = precOr + 1
-(meet, meetEntry) = popSemiLattice n_meet bot top precMeet
+(meet, meetEntry) = popSemiLatticeAI n_meet bot top precMeet
 
 n_join = _sqcup; precJoin = precAnd + 1
-(join, joinEntry) = popSemiLattice n_join top bot precJoin
+(join, joinEntry) = popSemiLatticeAI n_join top bot precJoin
 \end{code}
 All that really remains now are the distributivity laws.
 We defer those until we know which one we prefer
@@ -872,6 +872,8 @@ relAtmRedEntry = entry laws $ LawEntry [relAtmReduce] [] []
 g = Var "g"
 \end{code}
 
+\HDRc{The guarantee command}
+
 \RLEQNS{
    (\piRestrict~g) &\defs& \boldsymbol\pi(g) \sqcap \wait
 }
@@ -911,54 +913,105 @@ guarEntry
  = entry n_guar $ PredEntry subAny ppGuar [] guarDefn noDefn
 \end{code}
 
-Weak conjunction on commands $\Cap$:
+First, we define $\chaos$:
+\RLEQNS{
+  \chaos &\defs& \alf^\omega
+}
+We won't support expanding its definition right now.
 \begin{code}
-n_wkconj = _Cap ; wkconj = Comp n_wkconj
-
-precWkConj = precJoin
-ppWkConj sCP d p [pr] = sCP p 1 pr
-ppWkConj sCP d p prs
- = paren p precWkConj
-     $ ppopen (pad n_wkconj)
-     $ ppwalk 1 (sCP precWkConj) prs
-
-wkconjEntry
- = entry n_wkconj $ PredEntry subAny ppWkConj [] noDefn noDefn
+n_chaos = bold "chaos" ; chaos = PVar n_chaos
 \end{code}
 
+Weak conjunction on commands $\Cap$:
 \RLEQNS{
    c_1 \Cap (c_2 \Cap c_3) &=& (c_1 \Cap c_2) \Cap c_3
 \\ c \Cap d &=& d \Cap c
 \\ c \Cap c &=& c
 \\ c \Cap \bot &=& \bot
-\\ a \Cap b &=& a \sqcup b
-\\ t \Cap t' &=& t \sqcup t'
-\\ (a;c) \Cap (b;d) = (a \Cap b) ; (c \Cap d)
-\\ (a;c) \Cap \nil &=& \top
-\\ a^\infty \Cap b^\infty &=& (a \Cap b)^\infty
-\\ a \Cap \alf &=& a
-\\ \chaos &\defs& \alf^\omega
 \\ c \Cap \chaos &=& c
 }
 
-WILL BE NEEDED HERE SHORTLY
 \begin{code}
-n_chaos = bold "chaos" ; chaos = PVar n_chaos
+n_wkconj = _Cap ; precWkConj = precJoin + 1
+(wkconj, wkconjEntry)
+          = popSemiLatticeAI n_wkconj bot chaos precWkConj
+\end{code}
+
+We now define some weak-conjunction laws:
+\begin{code}
+wkconjRed :: RWFun
 \end{code}
 
 \RLEQNS{
-   a^\omega \Cap b^\omega &=& (a \Cap b)^\omega
+   a \Cap \alf &=& a
+}
+\begin{code}
+wkconjRed d _ (Comp nwc [a1, a2])
+ | nwc==n_wkconj
+   && ( isAtmStep d a1 && a2==alf)
+      =  Just ( n_wkconj++"-step-unit", a1, True )
+ | nwc==n_wkconj
+   && ( isAtmStep d a2 && a1==alf)
+      =  Just ( n_wkconj++"-step-unit", a2, True )
+\end{code}
+
+\RLEQNS{
+   (a;c) \Cap \nil &=& \top
+}
+\begin{code}
+wkconjRed d _ (Comp nwc [Comp ns (a:c), nl])
+ | nwc==n_wkconj && ns==n_seq && isAtmStep d a && nl==nil
+     = Just ( "step-"++n_wkconj++"-"++n_nil++"-infeasible"
+            , top, True )
+wkconjRed d _ (Comp nwc [nl, Comp ns (a:c)])
+ | nwc==n_wkconj && ns==n_seq && isAtmStep d a && nl==nil
+     = Just ( "step-"++n_wkconj++"-"++n_nil++"-infeasible"
+            , top, True )
+\end{code}
+
+\RLEQNS{
+   (\guar~g) \Cap (c;d) &=& ((\guar~g)\Cap c);((\guar~g)\Cap d)
+}
+\begin{code}
+wkconjRed d _ (Comp nwc [gg@(Comp ng [Atm _]), Comp ns (c:ds)])
+ | nwc==n_wkconj && ng==n_guar && ns==n_seq
+   = Just ( "weak-"++n_guar++"-;-distr"
+          , Comp ns [ wkconj [gg,c]
+                    , wkconj [gg,mkSeq ds] ]
+          , True )
+wkconjRed d _ (Comp nwc [Comp ns (c:ds), gg@(Comp ng [Atm _])])
+ | nwc==n_wkconj && ng==n_guar && ns==n_seq
+   = Just ( "weak-"++n_guar++"-;-distr"
+          , Comp ns [ wkconj [gg,c]
+                    , wkconj [gg,mkSeq ds] ]
+          , True )
+\end{code}
+
+
+
+Laws yet to be implemented:
+\RLEQNS{
+   a \Cap b &=& a \sqcup b
+\\ t \Cap t' &=& t \sqcup t'
+\\ (a;c) \Cap (b;d) &=& (a \Cap b) ; (c \Cap d)
+\\ a^\infty \Cap b^\infty &=& (a \Cap b)^\infty
+\\ a^\omega \Cap b^\omega &=& (a \Cap b)^\omega
    & \mbox{atomic-iteration-conjunction}
 \\ a^\omega \Cap (c;d) &=& (a^\omega \Cap c);(a^\omega \Cap d)
    & \mbox{atomic-infinite-distribution}
-\\ (\guar~g) \Cap (c;d) &=& ((\guar~g)\Cap c);((\guar~g)\Cap d)
 }
 
+\begin{code}
+wkconjRed _ _ _ = Nothing
+
+wkconjRedEntry = entry laws $ LawEntry [wkconjRed] [] []
+\end{code}
+
+\HDRc{The rely command}
+
+\HDRc{Rely/Guarantee Logic}
+
 \HDRb{Abstract Communication in Process Algebras}
-
-
-
-TO BE MOVED ELSEWHERE!!!
 
 \HDRc{Primitive Atomic Commands}
 
@@ -1249,6 +1302,7 @@ rgDict
     , piResEntry
     , guarEntry
     , wkconjEntry
+    , wkconjRedEntry
 
     --, piEntry
     --, epsEntry
