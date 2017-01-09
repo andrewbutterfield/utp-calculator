@@ -31,7 +31,7 @@ We rapid prototype the emerging Rely-Guarantee Algebra work.
 We organise this based on the FM2016 paper and related material (citation needed).
 
 \begin{code}
-rgVersion = "0.3"
+rgVersion = "0.4"
 \end{code}
 \newpage
 \HDRb{Concurrent Refinement Algebra}
@@ -106,7 +106,8 @@ rdfBySimp _ _ = Nothing
 
 rfdbyEntry
  = entry n_rfdby
-   $ PredEntry subAny rfdbyPP [] rfdbyDefn rdfBySimp
+   $ PredEntry subAny rfdbyPP [] noDefn noDefn
+    -- rfdbyDefn rdfBySimp  -- ommitted for now....
 \end{code}
 Monoid:
 $
@@ -300,8 +301,7 @@ n_par = _parallel ; precPar = precOr
 \begin{code}
 n_assert = bold "assert" ; precAssert = precNot
 
-defnAssert d t
- | isTest d t = join [ t,  mkSeq [ mkNot t, bot ] ]
+defnAssert d t = join [ t,  mkSeq [ mkNot t, bot ] ]
 -- !!!! might only be valid if isTest t
 
 ( assert, assertEntry ) = prefixPT n_assert precAssert $ Just defnAssert
@@ -409,7 +409,17 @@ $
 n_bang = "!"
 precBang = precNot -- for now
 
-(bang,bangEntry) = prefixPT n_bang precBang Nothing
+(bang,bangEntry0) = prefixPT n_bang precBang Nothing
+
+bangbangGone :: Rewrite
+bangbangGone _ [Comp nb [pr]]
+ | nb == n_bang
+   = Just ( n_bang++"-involution"
+          , pr
+          , True )
+bangbangGone _ _ = Nothing
+
+bangEntry = updateDict n_bang (prsimpUpdate bangbangGone) bangEntry0
 
 n_alf = bold _alpha
 ( alf, alfEntry ) = pvarEntry n_alf [carrierA]
@@ -810,9 +820,13 @@ n_Sigma = _Sigma ; sigma = Var n_Sigma
 r = Var "r"
 n_emptyrel = _varnothing ; emptyrel = Var _varnothing
 \end{code}
+We can also get the negation of a relation: $\overline r$:
+\begin{code}
+n_negrel = _overline " " ; negrel r = App n_negrel [r]
+\end{code}
 
 \RLEQNS{
-   \boldsymbol\pi, \boldsymbol\epsilon
+   \boldpi, \boldsymbol\epsilon
    &:& \power(\Sigma\times\Sigma) \fun \mathcal A
 }
 These are defined as atomic steps in \texttt{isAtmStep} above.
@@ -826,7 +840,7 @@ relAtmReduce :: RWFun
 \end{code}
 
 \RLEQNS{
-   \boldsymbol\pi(\varnothing)
+   \boldpi(\varnothing)
    & = ~~ \top ~~ = &
    \boldsymbol\epsilon(\varnothing)
 }
@@ -837,7 +851,7 @@ relAtmReduce d _ (Atm (App nm [r]))
 \end{code}
 
 \RLEQNS{
-   \boldsymbol\pi(r_1) \sqcup \boldsymbol\epsilon(r_2) &=& \top
+   \boldpi(r_1) \sqcup \boldsymbol\epsilon(r_2) &=& \top
 }
 \begin{code}
 relAtmReduce d _ (Comp nj [Atm (App n1 [_]), Atm (App n2 [_])])
@@ -851,10 +865,10 @@ relAtmReduce d _ (Comp nj [Atm (App n1 [_]), Atm (App n2 [_])])
 \end{code}
 
 \RLEQNS{
-   r_1 = r_2 &\Leftrightarrow& \boldsymbol\pi(r_1) = \boldsymbol\pi(r_2)
-\\ \boldsymbol\pi(r_1 \cup r_2) &=& \boldsymbol\pi(r_1) \sqcap \boldsymbol\pi(r_2)
-\\ \boldsymbol\pi(r_1 \cap r_2) &=& \boldsymbol\pi(r_1) \sqcup \boldsymbol\pi(r_2)
-\\ r_1 \subseteq r_2 &\implies& \boldsymbol\pi(r_2) \sqsubseteq \boldsymbol\pi(r_1)
+   r_1 = r_2 &\Leftrightarrow& \boldpi(r_1) = \boldpi(r_2)
+\\ \boldpi(r_1 \cup r_2) &=& \boldpi(r_1) \sqcap \boldpi(r_2)
+\\ \boldpi(r_1 \cap r_2) &=& \boldpi(r_1) \sqcup \boldpi(r_2)
+\\ r_1 \subseteq r_2 &\implies& \boldpi(r_2) \sqsubseteq \boldpi(r_1)
 }
 and similarly for $\boldsymbol\epsilon$.
 We don't implement these right now, until we get a better feel for which way
@@ -868,14 +882,15 @@ relAtmRedEntry = entry laws $ LawEntry [relAtmReduce] [] []
 
 \HDRb{Relies and  Guarantees}
 
+
+\HDRc{The guarantee command}
+
 \begin{code}
 g = Var "g"
 \end{code}
 
-\HDRc{The guarantee command}
-
 \RLEQNS{
-   (\piRestrict~g) &\defs& \boldsymbol\pi(g) \sqcap \wait
+   (\piRestrict~g) &\defs& \boldpi(g) \sqcap \wait
 }
 \begin{code}
 n_pirestrict = _pi++'-':bold "restrict"
@@ -885,7 +900,7 @@ ppPiR sCP d _ [gpr]
  = ppclosed "(" ")" " " [ppa n_pirestrict, sCP 0 1 gpr]
 
 piRDefn d [Atm g]
- = Just ( "n_pirestrict", meet [pi_fun g, atmParId], True )
+ = Just ( n_pirestrict, meet [pi_fun g, atmParId], True )
 piRDefn _ _ = Nothing
 
 piResEntry
@@ -906,7 +921,7 @@ ppGuar sCP d p [gpr]
     $ ppopen " " [ppa n_guar, sCP precGuar 1 gpr]
 
 guarDefn d [Atm g]
- = Just ( "n_guar", omega $ pirestrict g, True )
+ = Just ( n_guar, omega $ pirestrict g, True )
 guarDefn _ _ = Nothing
 
 guarEntry
@@ -932,7 +947,7 @@ Weak conjunction on commands $\Cap$:
 }
 
 \begin{code}
-n_wkconj = _Cap ; precWkConj = precJoin + 1
+n_wkconj = _Cap ; precWkConj = precJoin - 1
 (wkconj, wkconjEntry)
           = popSemiLatticeAI n_wkconj bot chaos precWkConj
 \end{code}
@@ -940,6 +955,20 @@ n_wkconj = _Cap ; precWkConj = precJoin + 1
 We now define some weak-conjunction laws:
 \begin{code}
 wkconjRed :: RWFun
+\end{code}
+
+For non-empty $D$:
+\RLEQNS{
+   c \Cap (\bigsqcap D) &=& (\bigsqcap_{d \in D} c \Cap d)
+}
+\begin{code}
+wkconjRed d _ (Comp nwc [ c
+                        , Comp nm ds@(_:_) ])
+ | nwc==n_wkconj && nm==n_meet
+   = Just ( n_wkconj++"-"++n_meet++"-distr"
+          , meet $ map (conj c) ds
+          , True )
+ where conj c d = wkconj [c,d]
 \end{code}
 
 \RLEQNS{
@@ -1007,21 +1036,118 @@ wkconjRed _ _ _ = Nothing
 wkconjRedEntry = entry laws $ LawEntry [wkconjRed] [] []
 \end{code}
 
+\newpage
 \HDRc{The rely command}
 
+\RLEQNS{
+   (\epsAssm~r) &\defs& \assume(!\boldeps(\overline r))
+\\ &=& !\boldeps(\overline r) \sqcap \boldeps(\overline r);\bot
+}
+
+\begin{code}
+n_epsassume = _epsilon++'-':bold "assm"
+epsassume r = Comp n_epsassume [Atm r]
+
+ppEpsA sCP d _ [rpr]
+ = ppclosed "(" ")" " " [ppa n_epsassume, sCP 0 1 rpr]
+
+epsADefn d [Atm r]
+ = Just ( n_epsassume, assume $ bang $ eps_fun $ negrel r, True )
+epsADefn _ _ = Nothing
+
+epsAsmEntry
+ = entry n_epsassume $ PredEntry subAny ppEpsA [] epsADefn noDefn
+\end{code}
+
+\RLEQNS{
+   \rely~r &\defs& (\epsAssm~r)^\omega
+}
+\begin{code}
+n_rely = bold "rely"
+rely r = Comp n_rely [Atm r]
+
+precRely = precSub -- keep it tight
+ppRely sCP d p [rpr]
+ = paren p precRely
+    $ ppopen " " [ppa n_rely, sCP precRely 1 rpr]
+
+relyDefn d [Atm r]
+ = Just ( n_rely, omega $ epsassume r, True )
+relyDefn _ _ = Nothing
+
+relyEntry
+ = entry n_rely $ PredEntry subAny ppRely [] relyDefn noDefn
+\end{code}
+
+Now some laws/calcs:
+\RLEQNS{
+   (\epsAssm~r_1) \Cap (\epsAssm~r_2)
+   &=& \assume(!\boldeps(\overline{r_1}) \sqcup !\boldeps(\overline{r_2}))
+\\ &=& \assume(!\boldeps(\overline{r_1 \cap r_2}))
+\\ &=& (\epsAssm(r_1 \cap r_2))
+\\ (\rely~r) \Cap (c;d)
+   &=&
+   (\rely~r \Cap c) ; (\rely~r \Cap d)
+}
+
+\newpage
 \HDRc{Rely/Guarantee Logic}
+
+\RLEQNS{
+   \setof{p,r}c\setof{g,q}
+   &=&
+   (\Assert~ p)((\rely~ r)\Cap(\guar~g)\Cap[q]) \sqsubseteq c
+}
+\begin{code}
+n_5 = "5"
+quintuple p r c g q = Comp n_5 [p,Atm r,c,Atm g,q]
+
+pp5 sCP d _ [p,r,c,g,q]
+ = pplist [ ppAssertions [sCP 0 1 p, sCP 0 2 r ]
+          , sCP 0 3 c
+          , ppAssertions [sCP 0 4 g, sCP 0 5 q ]
+          ]
+ where ppAssertions = ppclosed "{" "}" ","
+
+defn5 d  [p, Atm r, c, Atm g, q]
+ = Just ( "quintuple"
+        , mkSeq [ assert  p
+                ,  wkconj [rely r, guar g, sat q]
+                ]
+          `rfdby`
+          c
+        , True )
+
+quinEntry = entry n_5 $ PredEntry subAny pp5 [] defn5 noDefn
+\end{code}
+We note that the notation $[q]$ is not used or defined elsewhere!
+\begin{code}
+n_sat = "[]" ;  sat q = Comp n_sat [q]
+
+ppSat sCP d p [q]
+ = ppclosed "[" "]" "" [sCP 0 1 q]
+
+satEntry = entry n_sat $ PredEntry subAny ppSat [] noDefn noDefn
+\end{code}
+
+\newpage
 
 \HDRb{Abstract Communication in Process Algebras}
 
-\HDRc{Primitive Atomic Commands}
+\HDRc{Communication in CCS}
 
+\HDRc{Communication in CSP}
 
+\HDRc{Communication in SCCS}
 
+\newpage
+\HDRb{Material from FM2016 Tutorial}
 
+T o be reconciled with the above.
 
-%\RLEQNS{
-%     π(r) &=& \Pi(\sigma,\sigma'), (\sigma,\sigma') \in r
-%}
+\RLEQNS{
+     π(r) &=& \Pi(\sigma,\sigma'), (\sigma,\sigma') \in r
+}
 %\begin{code}
 %n_pi = _pi  -- pi
 %mkpi r = App n_pi [r]
@@ -1038,9 +1164,9 @@ wkconjRedEntry = entry laws $ LawEntry [wkconjRed] [] []
 %
 %
 %
-%\RLEQNS{
-%   ϵ(r) &=& \mathcal{E}(\sigma,\sigma'), (\sigma,\sigma') \in r
-%}
+\RLEQNS{
+   ϵ(r) &=& \mathcal{E}(\sigma,\sigma'), (\sigma,\sigma') \in r
+}
 %\begin{code}
 %n_eps = _epsilon -- lunate epsilon
 %eps r = App n_eps [r]
@@ -1055,7 +1181,7 @@ wkconjRedEntry = entry laws $ LawEntry [wkconjRed] [] []
 %       noEq
 %\end{code}
 
-%Simple relations and predicates: \id, \univ, $\emp$
+Simple relations and predicates: \id, \univ, $\emp$
 %\begin{code}
 %n_id   = "id"   ; _id  = Var n_id
 %n_univ = "univ" ; univ = Var n_univ
@@ -1063,9 +1189,9 @@ wkconjRedEntry = entry laws $ LawEntry [wkconjRed] [] []
 %\end{code}
 %
 %
-%\RLEQNS{
-%   \stutter &=& \pi(\id)
-%}
+\RLEQNS{
+   \stutter &=& \pi(\id)
+}
 %\begin{code}
 %n_ii = "ii"
 %ii = App n_ii [] -- we want to define this
@@ -1083,9 +1209,9 @@ wkconjRedEntry = entry laws $ LawEntry [wkconjRed] [] []
 %\end{code}
 %
 %
-%\RLEQNS{
-%   \pi &=& \pi(\univ)
-%}
+\RLEQNS{
+   \pi &=& \pi(\univ)
+}
 %\begin{code}
 %n_piU = _pi++"U"
 %piU = App n_piU []
@@ -1102,9 +1228,9 @@ wkconjRedEntry = entry laws $ LawEntry [wkconjRed] [] []
 %       noEq
 %\end{code}
 %
-%\RLEQNS{
-%   \epsilon &=& \epsilon(\univ)
-%}
+\RLEQNS{
+   \epsilon &=& \epsilon(\univ)
+}
 %\begin{code}
 %n_epsU = _epsilon++"U"
 %epsU = App n_epsU []
@@ -1123,16 +1249,16 @@ wkconjRedEntry = entry laws $ LawEntry [wkconjRed] [] []
 %
 %\HDRc{Tests as a Boolean Algebra}
 %
-%\RLEQNS{
-%   p &\subseteq& \Sigma
-%}
+\RLEQNS{
+   p &\subseteq& \Sigma
+}
 %\begin{code}
 %p = Var "p"
 %\end{code}
 %
-%\RLEQNS{
-%     τ(p) &=& \mbox{if $p$ then terminate else $\top$}
-%}
+\RLEQNS{
+     τ(p) &=& \mbox{if $p$ then terminate else $\top$}
+}
 %\begin{code}
 %n_tau = _tau  -- tau
 %tau p = App n_tau [p]
@@ -1148,10 +1274,10 @@ wkconjRedEntry = entry laws $ LawEntry [wkconjRed] [] []
 %\end{code}
 %
 %
-%\RLEQNS{
-%   \pre~ t &=& t \sqcap \lnot t \bot
-%\\  &=& t \sqcap (\lnot t) \seq \bot
-%}
+\RLEQNS{
+   \pre~ t &=& t \sqcap \lnot t \bot
+\\  &=& t \sqcap (\lnot t) \seq \bot
+}
 %\begin{code}
 %n_pre = bold "pre"
 %precPre = precNot -- for now
@@ -1160,10 +1286,10 @@ wkconjRedEntry = entry laws $ LawEntry [wkconjRed] [] []
 %(pre, preEntry) = prefixPT n_pre precPre $ Just expandPre
 %\end{code}
 %
-%\RLEQNS{
-%   \setof p &=& \pre~\tau(p)
-%\\ &=& \tau(p) \sqcap \tau(\overline{p})\bot
-%}
+\RLEQNS{
+   \setof p &=& \pre~\tau(p)
+\\ &=& \tau(p) \sqcap \tau(\overline{p})\bot
+}
 %\begin{code}
 %xxn_assert = bold "{}"
 %xxassert t = Comp n_assert [t]
@@ -1200,11 +1326,11 @@ wkconjRedEntry = entry laws $ LawEntry [wkconjRed] [] []
 %         -- -> Maybe (String, Pred, Bool)
 %\end{code}
 %
-%\RLEQNS{
-%   \pi(\emp) &=& \top
-%\\ \epsilon(\emp) &=& \top
-%\\ \tau(\emp) &=& \top
-%}
+\RLEQNS{
+   \pi(\emp) &=& \top
+\\ \epsilon(\emp) &=& \top
+\\ \tau(\emp) &=& \top
+}
 %\begin{code}
 %rgReduce d _ (Atm (App anm [Var enm]))
 % | enm == n_emp &&
@@ -1212,20 +1338,20 @@ wkconjRedEntry = entry laws $ LawEntry [wkconjRed] [] []
 %   = Just ( "Empty Rel is infeasible", top, True)
 %\end{code}
 %
-%\RLEQNS{
-%   \tau(\Sigma) &=& \nil
-%}
+\RLEQNS{
+   \tau(\Sigma) &=& \nil
+}
 %\begin{code}
 %rgReduce d _ (Atm (App tnm [Var enm]))
 % | tnm == n_tau && enm == n_Sigma
 %   = Just ( n_tau++" of "++n_Sigma, nil, True )
 %\end{code}
-%\RLEQNS{
-%   \tau(p_1) \sqcap \tau(p_2) &=& \tau(p_1 \cup p_2)
-%\\ \tau(p_1) \sqcup \tau(p_2) &=& \tau(p_1 \cap p_2)
-%\\                            &=& \tau(p_1)\tau(p_2)
-%\\                            &=& \tau(p_1)\parallel\tau(p_2)
-%}
+\RLEQNS{
+   \tau(p_1) \sqcap \tau(p_2) &=& \tau(p_1 \cup p_2)
+\\ \tau(p_1) \sqcup \tau(p_2) &=& \tau(p_1 \cap p_2)
+\\                            &=& \tau(p_1)\tau(p_2)
+\\                            &=& \tau(p_1)\parallel\tau(p_2)
+}
 %\begin{code}
 %rgReduce d _ (Atm (App nop [ App tn1 [p1]      --  tau(p1)
 %                           , App tn2 [p2] ]))  --  tau(p2)
@@ -1235,20 +1361,20 @@ wkconjRedEntry = entry laws $ LawEntry [wkconjRed] [] []
 %    = Just("join of "++n_tau, Atm (tau (p1 `i` p2)), True )
 %\end{code}
 %
-%\RLEQNS{
-%   \lnot\tau(p) &=& \tau(\overline p)
-%}
+\RLEQNS{
+   \lnot\tau(p) &=& \tau(\overline p)
+}
 %\begin{code}
 %rgReduce d _ (Comp nn [Atm (App tnm [p])])
 % | nn == nNot && tnm == n_tau
 %   = Just( nNot++"-"++n_tau, Atm (App tnm [complement p]), True )
 %\end{code}
 %
-%\RLEQNS{
-%   \assume~\pi \sqcap \epsilon(r)
-%   &=&
-%   \pi \sqcap \epsilon(r) \sqcap \epsilon(\overline{r})\bot
-%}
+\RLEQNS{
+   \assume~\pi \sqcap \epsilon(r)
+   &=&
+   \pi \sqcap \epsilon(r) \sqcap \epsilon(\overline{r})\bot
+}
 %
 %
 %The final catch-all pattern:
@@ -1289,6 +1415,7 @@ rgDict
     -- Abstract Atomic Steps
     , aEntry, bEntry
     , alfEntry
+    , assumeEntry
     , bangEntry
     , atmParIdEntry
     , actionEntry
@@ -1303,6 +1430,10 @@ rgDict
     , guarEntry
     , wkconjEntry
     , wkconjRedEntry
+    , epsAsmEntry
+    , relyEntry
+    , satEntry
+    , quinEntry
 
     --, piEntry
     --, epsEntry
@@ -1337,4 +1468,6 @@ rgeput :: Expr -> IO ()
 rgeput = rgput . Atm
 
 rgcalc pr = calcREPL rgDict [] pr
+
+rglog = putStrLn . calcPrint
 \end{code}
