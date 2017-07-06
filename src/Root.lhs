@@ -450,7 +450,7 @@ out = Var "out"
 \end{code}
 
 We define our dictionary alphabet entries,
-and also declare that the predicate variables $a$, $a$ and $a$
+and also declare that the predicate variables $a$, $b$ and $c$
 will refer to atomic state-changes,
 and so only have alphabet $\setof{s,s'}$.
 \begin{code}
@@ -850,7 +850,7 @@ $.
 \\ &=& I \land (\Skip \lor C \lor \dots C^{k-1} \lor C^k\seq\bigvee C^i)
 \\ &=& I \land (~(\bigvee_{i < k} C^i) \lor (\bigvee_{i \geq k} C^i)~)
 }
-We assume $\seq$ binds tighter then $\lor$.
+We assume $\seq$ binds tighter than $\lor$.
 \begin{code}
 wUnroll :: String -> RWFun
 -- to be re-done properly if ever it is required
