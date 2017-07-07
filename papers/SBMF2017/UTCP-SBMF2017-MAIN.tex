@@ -1,0 +1,66 @@
+\documentclass{llncs}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{views}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{UTPCalc}
+\usepackage{listings}
+\usepackage{PML}
+%\usepackage{mathpartir}
+\usepackage{epstopdf}
+\usepackage{hyperref}
+\allowdisplaybreaks[2]
+\newif\ifColour
+%\Colourtrue
+\ifColour
+\usepackage{clstlhs}
+\else
+\usepackage{lstlhs}
+\fi
+% ----------------------------------------------------------------
+
+
+\newif\ifDraft
+%\Drafttrue  % comment out to turn off note/draft-mode
+\ifDraft
+  \def\NOTE#1{\textbf{Note: }\textsl{#1}}
+  \def\DRAFT#1{\textbf{[Draft: }\textsc{#1}\textbf{]}}
+\else
+  \def\NOTE#1{}
+  \def\DRAFT#1{}
+\fi
+
+\title{UTCP: compositional semantics for shared-variable concurrency}%
+\author{
+Andrew Butterfield
+\thanks{%
+This work was supported, in part,
+by Science Foundation Ireland grants 10/CE/I1855 and
+to Lero - the Irish Software Engineering Research Centre (www.lero.ie)}%
+}
+\institute{
+Trinity College Dublin
+}
+\date{\today}%
+
+\mathchardef\spot="320F
+\mathcode`\@=\spot
+\mathcode`\|=\mid
+
+
+\begin{document}
+
+\maketitle
+
+\input{Abstract}
+%\newpage % to allow figures on top of first page below during drafting
+
+\input{Intro}
+\input{Root}
+
+
+\bibliographystyle{splncs03}
+\bibliography{UTCP-SBMF2017-MAIN}
+
+\end{document}

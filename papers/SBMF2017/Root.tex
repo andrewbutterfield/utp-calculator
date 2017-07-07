@@ -1,0 +1,539 @@
+\section{Root}\label{ha:Root}
+
+We do a quick run-down of the Commands\cite{conf/popl/Dinsdale-YoungBGPY13}.
+
+\subsection{Syntax}
+
+\def\Atm#1{\langle#1\rangle}
+\def\rr#1{r{\scriptstyle{#1}}}
+
+\begin{eqnarray*}
+   a &\in& \Atom
+\\ C &::=&
+ \Atm a \mid \cskip \mid C \cseq C \mid C+C \mid C \parallel C \mid C^*
+\\ g &:& Gen
+\\ \ell &:& Lbl
+\\ G &::=&  g \mid G_{:} \mid G_1 \mid G_2
+\\ L &::=& \ell_G
+\end{eqnarray*}
+
+
+\subsection{Domains}
+
+
+\subsubsection{Rooted Paths}
+
+This Root file is a re-work of the Views semantics
+replacing label generators by ``rooted'' label-paths.
+
+We start by defining three basic ways to transform a rooted path:
+``step'' ($:$);
+``split-one'' ($1$);
+and ``split-two'' ($2$).
+\RLEQNS{
+   S &\defs& \setof{:,1,2}
+}
+
+We now define a rooted path as an expression of the form
+of the variable $r$ followed by zero or more $S$ transforms.
+\RLEQNS{
+   \sigma,\varsigma &\defs& S^*
+\\ R &::=& r | R S
+\\   & = & r\sigma
+}
+These have to be expressions as we shall want to substitute for $r$
+in them.
+
+\subsubsection{Path Ordering}
+\RLEQNS{
+   R &\le& R\sigma
+\\ R1\sigma &<& R\!:\!\varsigma
+\\ R2\sigma &<& R\!:\!\varsigma
+}
+\RLEQNS{
+   r &\le& r\sigma
+}
+\RLEQNS{
+   R1\sigma &<& R\!:\!\varsigma
+}
+\RLEQNS{
+   R2\sigma &<& R\!:\!\varsigma
+}
+\RLEQNS{
+   R &\le& R\sigma
+}
+
+\subsection{Shorthands}
+
+We support a shorthand (that views a set as its own collection
+of corresponding $n$-ary characteristic functions)
+that denotes $x \in S$ by $S(x)$ and $ X \subseteq S$ by $S(X)$,
+and omits $\{$ and $\}$ from around enumerations when context makes
+it clear a set is expected
+
+\begin{eqnarray*}
+   ls(\ell) &\defs& \ell \in ls
+\\ ls(L) &\defs& L \subseteq ls
+\\ ls(\B\ell) &\defs& \ell \notin ls
+\\ ls(\B L) &\defs& L \cap ls = \emptyset
+\end{eqnarray*}
+
+
+\paragraph{Set Swapping}
+
+We update a set by removing some elements
+and replacing them with new ones:
+\RLEQNS{
+   A \ominus (B,C) &\defs& (A \setminus B) \cup C
+}
+
+\subsection{Alphabet}
+
+\begin{eqnarray*}
+   s, s' &:& \mathcal S
+\\ ls, ls' &:& \mathcal P (R)
+\\ r &:& R
+\end{eqnarray*}
+
+We define our dictionary alphabet entries,
+and also declare that the predicate variables $a$, $b$ and $c$
+will refer to atomic state-changes,
+and so only have alphabet $\setof{s,s'}$.
+
+\subsection{``Standard'' UTP Constructs}
+
+\begin{eqnarray*}
+   P \cond c Q
+   &\defs&
+   c \land P \lor \lnot c \land Q
+\\ P ; Q
+   &\defs&
+   \exists s_m,ls_m \bullet P[s_m,ls_m/s',ls'] \land Q[s_m,ls_m/s,ls]
+\\ c * P
+   &=&
+   P ; c * P \cond c \Skip
+\end{eqnarray*}
+
+We need to update some definitions from standard UTP as follows:
+
+\paragraph{Updating UTP Skip ($\Skip$)}\label{hd:updating-UTP-II}
+
+We know have a concrete definition for $\Skip$,
+as well as a known alphabet.
+\RLEQNS{
+   \Skip &=& ls'=ls \land s'=s
+\\ \alpha \Skip &=& \setof{ls,ls',s,s'}
+}
+
+\subsection{WwW Basic Shorthands}
+
+Atomic actions have a basic behaviour that is described by
+\[
+ls(E) \land s' \in \sem a s \land ls' = (ls\setminus E) \cup N
+\]
+where $E$ is the set of necessary enabling labels,
+$a$ is a relation over shared state,
+and $N$ is the set of new labels deposited upon completion.
+We shall abstract the above as
+\[
+A(E|a|N)
+\]
+There is a slightly more general form that removes labels
+that may differ from those doing the enabling:
+\[
+ls(E) \land s' \in \sem a s \land ls' = (ls\setminus R) \cup A
+\]
+where $R$ and $A$ are sets of labels respectively removed, then added
+on the action is complete.
+We abstract this as
+\[
+  X(E|a|R|A)
+\]
+and note that
+\[
+  A(E|a|N) = X(E|a|E|N).
+\]
+
+
+\subsubsection{Generic Atomic Behaviour}
+
+\begin{eqnarray*}
+   X(E|ss'|R|A)
+   &\defs&
+   ls(E) \land [ss'] \land ls'=(ls\setminus R)\cup A
+\end{eqnarray*}
+
+We do want the following simplification:
+\begin{eqnarray*}
+  X(E|a|E|N) &=& A(E|a|N)
+\end{eqnarray*}
+
+\begin{eqnarray*}
+   A(E|ss'|N)
+   &\defs&
+   X(E|ss'|E|N)
+\end{eqnarray*}
+
+
+\subsubsection{Coding Label-Set Invariants}
+
+We have a key invariant as part of the healthiness
+condition associated with every semantic predicate,
+namely that the labels $r$ and $\rr:$ never occur in  $ls$ at
+the same time:
+\[
+ ( r \in ls \implies \rr: \notin ls )
+ \land
+ ( \rr: \in ls \implies r \notin ls )
+\]
+This is the Label Exclusivity invariant.
+
+Given the way we shall use substitution of $r$ by
+other rooted paths, for sub-components,
+we shall see that we will get a number of instances of this.
+We adopt a shorthand notation,
+so that the above invariant is simply
+\[
+  [r|\rr:]
+\]
+So we define the following general shorthand:
+\RLEQNS{
+   ~[L_1|L_2|\dots|L_n]
+   &\defs&
+   \forall_{i,j \in 1\dots n}
+    @
+    i \neq j \implies
+     ( L_i \cap ls \neq \emptyset \implies L_j \cap ls = \emptyset )
+\\ \multicolumn{3}{c}{\elabel{short-lbl-exclusive}}
+}
+What needs to be kept in mind regarding this shorthand notation
+is that $ls$ is mentioned under the hood,
+and it is really all about what can be present in the global label-set
+at any instant in time.
+
+
+Now, we need to define invariant satisfaction.
+Our invariant applies to $A$ and $X$ atomic actions:
+\RLEQNS{
+   A(E|a|N) \textbf{ sat } I
+   &\defs&
+   E \textbf{ lsat } I \land N \textbf{ lsat } I
+\\ X(E|a|R|A)  \textbf{ sat } I
+   &\defs&
+   E \textbf{ lsat } I \land A \textbf{ lsat } I
+}
+
+Now we have to define \textbf{lsat}:
+\RLEQNS{
+   \textbf{lsat}_S [L_1|\dots|L_n]
+   &\defs&
+   \#(filter ~\textbf{lsat'}_S \seqof{L_1,\ldots,L_n}) < 2
+\\ \textbf{lsat'}_S \setof{\ell_1,\dots,\ell_n}
+  &\defs&
+  \exists i @ \textbf{lsat''}_S \ell_i
+\\ \textbf{lsat''}_S \ell &\defs& \ell \in S
+}
+
+\subsubsection{Invariant Trimming}
+
+We can use the invariant to trim removal sets,
+given an enabling label or label-set.
+\RLEQNS{
+   I \textbf{ invTrims } X(E|a|E,L|A)
+   &\defs&
+   \lnot(\setof{E,L} \textbf{ lsat } I)
+}
+
+\subsubsection{Wheels within Wheels}\label{hc:WwW}
+
+The wheels-within-wheels healthiness condition
+insists that $r$ and $\rr:$ are never simultaneously in
+the label-set $ls$,
+and that our semantic predicates are closed under mumbling.
+\RLEQNS{
+   \W(C)
+   &\defs&
+   [r|\rr:] \land \left(~\bigvee_{i\in 0\dots} C^i~\right)
+\\ ii &\defs& s'=s
+}
+
+Unrolling $\W(C)$, using $I$ for $[r|\rr:]$,
+and noting that
+$
+\bigvee_{i \in \Nat} C^i
+= \Skip \lor (C\seq\bigvee_{i \in \Nat} C^i)
+$.
+\RLEQNS{
+   \W(C) &=& I \land \bigvee C^i
+\\ &=& I \land (\Skip \lor C\seq\bigvee C^i)
+\\ &=& I \land (\Skip \lor C\seq((\Skip \lor C\seq\bigvee C^i)))
+\\ &=& I \land (\Skip \lor C \lor C^2\seq\bigvee C^i)
+\\ &=& I \land (\Skip \lor C \lor C^2\seq((\Skip \lor C\seq\bigvee C^i)))
+\\ &=& I \land (\Skip \lor C \lor C^2 \lor C^3\seq\bigvee C^i)
+\\ &\vdots&
+\\ &=& I \land (\Skip \lor C \lor \dots C^{k-1} \lor C^k\seq\bigvee C^i)
+\\ &=& I \land (~(\bigvee_{i < k} C^i) \lor (\bigvee_{i \geq k} C^i)~)
+}
+We assume $\seq$ binds tighter than $\lor$.
+
+\subsection{WwW Semantic Definitions}
+
+The definitions, using the new shorthands:
+\RLEQNS{
+   \W(C) &\defs& [r|\rr:]
+                 \land
+                 \left(\bigvee_{i\in 0\dots} C^i\right)
+\\ ii &\defs& s'=s
+\\
+\\ \Atm a &\defs&\W(A(r|a|\rr:))
+\\
+\\ \cskip
+   &\defs&
+   \Atm{ii}
+}
+The following are all under review (they lack sufficient invariants).
+\RLEQNS{
+   C \cseq D
+   &\defs&
+   \W(~    A(r|ii|\rr1)
+      \lor C[\rr1/r]
+      \lor A(\rr{1:}|ii|\rr2)
+      \lor D[\rr2/r]
+      \lor A(\rr{2:}|ii|\rr:) ~)
+\\
+\\ C + D
+   &\defs&
+   \W(\quad {}\phlor A(r|ii|\rr1) \lor A(r|ii|\rr2)
+\\ && \qquad {} \lor
+   C[\rr1/r] \lor D[\rr2/r]
+\\ && \qquad {} \lor A(\rr{1:}|ii|\rr:) \lor A(\rr{2:}|ii|\rr:) ~)
+\\
+\\ C \parallel D
+   &\defs&
+   \W(\quad\phlor A(r|ii|\rr1,\rr2)
+\\ && \qquad {}\lor
+   C[\rr1/r]
+   \lor D[\rr2/r]
+\\ && \qquad {}\lor
+   A(\rr{1:},\rr{2:}|ii|\rr:)~)
+\\
+\\ C^*
+   &\defs&
+   \W(\quad  \phlor A(r|ii|\rr1) \lor A(\rr1|ii|\rr:)
+\\ && \qquad {}\lor C[\rr1/r]    \lor A(\rr{1:}|ii|\rr1) ~)
+}
+
+\subsubsection{Coding Atomic Semantics}
+
+\RLEQNS{
+   \Atm a &\defs&\W(A(r|a|\rr:))
+}
+
+\newpage
+\subsubsection{Coding Skip}
+
+\RLEQNS{
+   ii &\defs& s'=s
+\\ \cskip
+   &\defs&
+   \Atm{ii}
+}
+
+
+\subsubsection{Coding Sequential Composition}
+
+\RLEQNS{
+   C \cseq D
+   &\defs& [r|\rr1|\rr{1:}|\rr2|\rr{2:}|\rr:] \land {}
+\\ && \W(\quad {}\phlor A(r|ii|\rr1)
+\\ && \qquad {} \lor C[\rr1/r]
+\\ && \qquad {} \lor A(\rr{1:}|ii|\rr2)
+\\ && \qquad {} \lor D[\rr2/r]
+\\ && \qquad {} \lor A(\rr{2:}|ii|\rr:)~)
+}
+
+\subsubsection{Coding (Non-Det.) Choice}
+
+\RLEQNS{
+   C + D
+   &\defs& [r|\rr1|\rr{1:}|\rr2|\rr{2:}|\rr:] \land {}
+\\&& \W(\quad {}\phlor A(r|ii|\rr1) \lor A(r|ii|\rr2)
+\\ && \qquad {} \lor
+   C[\rr1/r] \lor D[\rr2/r]
+\\ && \qquad {} \lor A(\rr{1:}|ii|\rr:) \lor A(\rr{2:}|ii|\rr:) ~)
+}
+
+\subsubsection{Coding Parallel Composition}
+
+\RLEQNS{
+   C \parallel D
+   &\defs& ~
+   [r|\rr1,\rr2,\rr{1:},\rr{2:}|\rr:] \land
+   [\rr1|\rr{1:}] \land
+   [\rr2|\rr{2:}] \land {}
+\\&& \W(\quad\phlor A(r|ii|\rr1,\rr2)
+\\ && \qquad {}\lor
+   C[\rr1/r]
+   \lor D[\rr2/r]
+\\ && \qquad {}\lor
+   A(\rr{1:},\rr{2:}|ii|\rr:)~)
+}
+
+\subsubsection{Coding Iteration}
+
+\RLEQNS{
+   C^*
+   &\defs& [r|\rr2|\rr1|\rr{1:}|\rr:] \land {}
+\\&& \W(\quad  \phlor A(r|ii|\rr2)
+\\ && \qquad {}\lor A(\rr2|ii|\rr1)
+               \lor C[\rr1/r]
+               \lor A(\rr{1:}|ii|\rr2)
+\\ && \qquad {}\lor A(\rr2|ii|\rr:) ~)
+}
+
+
+\subsection{Reductions for WWW}\label{hb:WWW-reduce}
+
+\subsubsection{Recognisers for WWW}\label{hc:v-recog}
+
+\RLEQNS{
+   ls'=ls\ominus(S_1,S_2)
+   &\rightsquigarrow&
+   \seqof{S_1,S_2}
+   & \ecite{sswap-$;$-prop.}
+}
+
+\paragraph{$A$ then $A$}
+
+\RLEQNS{
+  && A(E_1|a|N_1) \seq A(E_2|b|N_2)
+\EQ{proof in Views.tex }
+\\&& X(E_1 \cup (E_2\setminus N_1)
+       |a\seq b
+       |E_1 \cup E_2
+       |N_1 \setminus E_2 \cup  N_2)
+       \land (E_2\setminus N_1) \cap E_1 = \emptyset
+}
+
+\paragraph{$X$ then $A$}
+
+\RLEQNS{
+  && X(E_1|a|R_1|A_1) \seq A(E_2|b|N_2)
+\EQ{proof in Views.tex }
+\\&& X(E_1 \cup (E_2\setminus A_1)
+       |a\seq b
+       |R_1 \cup E_2
+       |A_1 \setminus E_2 \cup  N_2)
+       \land (E_2\setminus A_1) \cap R_1 = \emptyset
+}
+
+\paragraph{$A$ then $X$}
+
+\RLEQNS{
+  && A(E_1|a|N_1) \seq X(E_2|b|R_2|A_2)
+\EQ{proof in Views.tex}
+\\&& X(E_1 \cup (E_2 \setminus N_1)
+      | a\seq b
+      | E_1 \cup R_2
+      | N_1 \setminus R_2 \cup A_2)
+     \land
+     (E_2 \setminus N_1) \cap E_1 = \emptyset
+}
+
+\paragraph{$X$ then $X$}
+
+\RLEQNS{
+  && X(E_1|a|R_1|A_1) \seq X(E_2|b|R_2|A_2)
+\EQ{proof in Views.tex }
+\\&& X(E_1 \cup (E_2\setminus A_1)
+       |a\seq b
+       |R_1 \cup R_2
+       |A_1 \setminus R_2 \cup  A_2)
+       \land (E_2\setminus A_1) \cap R_1 = \emptyset
+}
+
+\paragraph{$I$ collapses $X$ to $A$}
+\RLEQNS{
+   \lnot(\setof{E,L} \textbf{ lsat } I)
+   &\implies&  X(E|a|E,L|N) = A(E|a|N)
+}
+Given $I$ and $X(E|a|R|A)$, we proceed as follows:
+\begin{enumerate}
+  \item Let $D = R \setminus E$
+  \item Compute
+    $D' =
+       \setof{  d | d \in D,
+                    \lnot (E\cup\setof d \textbf{ lsat } I)}
+    $
+  \item
+    If $D = D'$ then return $A(E|a|A)$
+  \item
+    Else, return $X(E|a|E\cup(D \setminus D')|A)$.
+\end{enumerate}
+
+\paragraph{General Stuff}~
+
+If $a$ and $b$ have alphabet $\setof{s,s'}$,
+then
+$(a \seq b)[G,L,M/g,in,out) = a\seq b$.
+
+\subsection{Loop Unrolling for Views}\label{hb:WWW-unroll}
+
+Iteration  satisfies the loop-unrolling law:
+\[
+  c * P  \quad=\quad (P ; c * P ) \cond c \Skip
+\]
+But we also support several styles and degrees of unrolling:
+\begin{eqnarray*}
+   c*P
+   &=_0& (P\seq c*P) \cond c \Skip
+\\ &=_1& \lnot c \land \Skip
+         \lor
+         c \land P ; c * P
+\\ &=_2& \lnot c \land \Skip
+         \lor
+         c \land P ; \lnot c \land \Skip
+         \lor
+         c \land P ; c \land P ; c * P
+\\ &=_3& \lnot c \land \Skip
+         \lor
+         c \land P ; \lnot c \land \Skip
+         \lor
+         c \land P ; c \land P ; \lnot c \land \Skip
+         \lor
+         c \land P ; c \land P ; c \land P ; c *P
+\\ && \vdots
+\\ &=_n& \left(
+           \bigvee_{i=0}^{n-1}  (c \land P)^i \seq \lnot c \land \Skip
+         \right)
+         \lor
+         (c \land P)^n \seq c *P
+\end{eqnarray*}
+
+
+\subsection{Calculation Results}
+
+Given the idiom $\true * (\Skip \lor Q)$
+we look for pre-computed $Q$-cores,
+noting that our final semantics will have the form
+\[
+  I \land ( \Skip \lor Q \lor Q^2 \lor \dots Q^k)
+\]
+where $I$ is the label-set invariant
+and $Q^i = \false$ for all $i > k$.
+
+When we change from:
+\RLEQNS{
+   \W(C) &\defs& \true * (\Skip \lor C)
+\\ \Atm a &\defs&\W(A(in|a|out)) \land [in|out]
+}
+\noindent
+to:
+\RLEQNS{
+   \W(C) &\defs& \true * C
+\\ \Atm a &\defs&\W(\Skip \lor A(in|a|out)) \land [in|out]
+}
+\noindent
+the calculation outcomes
+for \texttt{athenb}, \texttt{aorb}, \texttt{awithb} and \texttt{itera} are unchanged,
+and consequently so are all the other calculations.
