@@ -443,10 +443,6 @@ dictVE = rPathDict `dictMrg` vSetDict
 s   = Var "s"  ; s'  = Var "s'"
 ls  = Var "ls" ; ls' = Var "ls'"
 r   = Var "r"
--- deprecated:
-g   = Var "g"
-inp = Var "in" -- "in" is a Haskell keyword
-out = Var "out"
 \end{code}
 
 We define our dictionary alphabet entries,
@@ -986,7 +982,7 @@ ppVSkip d ms p mprs = pps styleRed $ ppa ("invalid-"++nVSkip)
 
 defnVSkip d [] = ldefn nVSkip $ wp $ mkA r ii r'
 
-invVSkip = leInv [leElem inp, leElem out]
+invVSkip = leInv [leElem r, leElem r']
 
 vSkipEntry :: (String, Entry)
 vSkipEntry
@@ -1453,7 +1449,7 @@ vReduce vd invs (Comp nx [ Atm e   -- X(E
 
 If $a$ and $b$ have alphabet $\setof{s,s'}$,
 then
-$(a \seq b)[G,L,M/g,in,out) = a\seq b$.
+$(a \seq b)[G,L,M/g,r,r') = a\seq b$.
 \begin{code}
 vReduce d _ (PSub ab@(Comp ns [PVar a, PVar b]) sub)
  | ns == nSeq && isSS' a && isSS' b && isStaticSub sub
@@ -1615,11 +1611,11 @@ vLoopEntry = entry laws $ LawEntry [] [] [wUnroll,vUnroll]
 \end{code}
 
 
-\HDRb{Dictionary for Views}\label{hb:View-Dict}
+\HDRb{Dictionary for Roots}\label{hb:Root-Dict}
 
 \begin{code}
-vDict :: Dict
-vDict
+rDict :: Dict
+rDict
  =  dictVersion "Views 0.3"
      -- supersede dictVP below as calcs rollout
     `dictMrg` dictVPCalc
@@ -1639,39 +1635,39 @@ vDict
 
 
 \begin{code}
-vshow :: Pred -> String
-vshow = pmdshow 80 vDict noStyles . buildMarks
+rshow :: Pred -> String
+rshow = pmdshow 80 rDict noStyles . buildMarks
 
-vput :: Pred -> IO ()
-vput = putStrLn . vshow
+rput :: Pred -> IO ()
+rput = putStrLn . rshow
 
-vcalc pr = calcREPL vDict [noInvariant]  pr
+rcalc pr = calcREPL rDict [noInvariant]  pr
 
 ivcalc inv pr
- = calcREPL vDict [(labelSetInv, inv)]  pr
+ = calcREPL rDict [(labelSetInv, inv)]  pr
 
 ivscalc invs pr
- = calcREPL vDict (map lsi invs) pr
+ = calcREPL rDict (map lsi invs) pr
  where lsi inv = (labelSetInv, inv)
 
 
-vputcalc :: Pred -> IO ()
-vputcalc pr = printREPL vDict [noInvariant] pr
+rputcalc :: Pred -> IO ()
+rputcalc pr = printREPL rDict [noInvariant] pr
 
 ivputc inv pr
- = printREPL vDict [(labelSetInv, inv)] pr
+ = printREPL rDict [(labelSetInv, inv)] pr
 
-vsavecalc fp pr
- = do calc <- vcalc pr
+rsavecalc fp pr
+ = do calc <- rcalc pr
       saveCalc fp calc
 
-vsimp :: Pred -> (String, Pred)
-vsimp pr
-  = case simplify vDict 42 $ buildMarks pr of
+rsimp :: Pred -> (String, Pred)
+rsimp pr
+  = case simplify rDict 42 $ buildMarks pr of
      Nothing               ->  ("", pr)
      Just (_,what,(pr',_)) ->  (what,pr')
-vsimp2 :: (String, Pred) -> (String, Pred)
-vsimp2 = vsimp . snd
+rsimp2 :: (String, Pred) -> (String, Pred)
+rsimp2 = rsimp . snd
 
 vcsave fp inv pr
  = do calc <- ivcalc inv pr
@@ -1694,29 +1690,29 @@ subII = PSub mkSkip [("r",r1')]
 noGood _ _ _ = Just False
 
 xcalc :: Pred -> IO ()
-xcalc = printREPL vDict [(noGood, F)]
+xcalc = printREPL rDict [(noGood, F)]
 \end{code}
 
 \begin{code}
 --defvseq :: [Pred] -> Pred
-defvseq = defnVSeq (vDict :: Dict)
+defvseq = defnVSeq (rDict :: Dict)
 --athenbBody :: Pred
 athenbBody = case defvseq [actionA,actionB] of
               Just (_,Comp _ [body],_)  ->  body
               _                         ->  PVar "??"
 
 testpr = PSub (mkOr [pr, mkSeq pr pr]) [("r",r1)]
- where pr = mkA inp ii out
+ where pr = mkA r ii r'
 
 disp Nothing = putStrLn "\nNo change"
 disp (Just (before,_,after))
  = do putStrLn ""
-      vput $ fst before
+      rput $ fst before
       putStrLn "\n\tbecomes\n"
-      vput $ fst after
+      rput $ fst after
 
 test :: Maybe BeforeAfter
-test = simplify vDict 42 $ buildMarks testpr
+test = simplify rDict 42 $ buildMarks testpr
 \end{code}
 
 \newpage
@@ -1734,13 +1730,13 @@ and $Q^i = \false$ for all $i > k$.
 When we change from:
 \RLEQNS{
    \W(C) &\defs& \true * (\Skip \lor C)
-\\ \Atm a &\defs&\W(A(in|a|out)) \land [in|out]
+\\ \Atm a &\defs&\W(A(r|a|r')) \land [r|r']
 }
 \noindent
 to:
 \RLEQNS{
    \W(C) &\defs& \true * C
-\\ \Atm a &\defs&\W(\Skip \lor A(in|a|out)) \land [in|out]
+\\ \Atm a &\defs&\W(\Skip \lor A(r|a|r')) \land [r|r']
 }
 \noindent
 the calculation outcomes
@@ -1750,18 +1746,18 @@ and consequently so are all the other calculations.
 \HDRc{Atomic Actions}
 
 \begin{verbatim}
-invAtom = [in|out]
+invAtom = [r|r']
 \end{verbatim}
 \begin{code}
 actionA = atom a
 actionB = atom b
 \end{code}
 \begin{verbatim}
-Q(actionA) = A(in|a|out)
+Q(actionA) = A(r|a|r')
 \end{verbatim}
 \begin{code}
-q_actionA = mkA inp a out
-q_actionB = mkA inp b out
+q_actionA = mkA r a r'
+q_actionB = mkA r b r'
 \end{code}
 \begin{verbatim}
 q_actionA^2 = false
@@ -1776,18 +1772,18 @@ v_actionB
 \end{code}
 \begin{verbatim}
 v_actionA
- = [in|out] /\
-   ( II \/ A(in|a|out) )
+ = [r|r'] /\
+   ( II \/ A(r|a|r') )
 \end{verbatim}
 
 \newpage
 \HDRc{Sequential Composition}
 
 \begin{verbatim}
-invVSeq = [in|lg|out]
-invVAtom = [in|out]
-invVAtom.a = [in|lg]
-invVatom.b = [lg|out]
+invVSeq = [r|lg|r']
+invVAtom = [r|r']
+invVAtom.a = [r|lg]
+invVatom.b = [lg|r']
 \end{verbatim}
 \begin{code}
 athenb = actionA `vseq` actionB
@@ -1891,7 +1887,7 @@ v_athenb = mkAnd [invVSeq, q_athenb_all ]
 \HDRc{Non-deterministic Choice}
 
 \begin{verbatim}
-invVChc = [in|lg1|lg2|out]
+invVChc = [r|lg1|lg2|r']
 \end{verbatim}
 \begin{code}
 aorb = actionA `vchc` actionB
@@ -1959,7 +1955,7 @@ v_aorb = mkAnd [ invVChc, q_aorb_all ]
 \HDRc{Parallel Composition}
 
 \begin{verbatim}
-invVPar = [in|[lg1|lg1:],[lg2|lg2:]|out]
+invVPar = [r|[lg1|lg1:],[lg2|lg2:]|r']
 \end{verbatim}
 \begin{code}
 awithb = actionA `vpar` actionB
@@ -2040,24 +2036,24 @@ v_awithb = mkAnd [ invVPar, q_awithb_all ]
 \end{code}
 \begin{verbatim}
 v_awithb
- = [in|[lg1|lg1:],[lg2|lg2:]|out] /\
-   ( II \/ A(in|ii|lg1,lg2)           \/ A(lg1:,lg2:|ii|out)
+ = [r|[lg1|lg1:],[lg2|lg2:]|r'] /\
+   ( II \/ A(r|ii|lg1,lg2)           \/ A(lg1:,lg2:|ii|r')
         \/ A(lg1|a|lg1:)              \/ A(lg2|b|lg2:)
-        \/ A(in|a|lg1:,lg2)           \/ A(in|b|lg2:,lg1)
+        \/ A(r|a|lg1:,lg2)           \/ A(r|b|lg2:,lg1)
         \/ A(lg1,lg2|b ; a|lg1:,lg2:) \/ A(lg1,lg2|a ; b|lg1:,lg2:)
-        \/ A(lg2:,lg1|a|out)          \/ A(lg1:,lg2|b|out)
-        \/ A(in|b ; a|lg1:,lg2:)      \/ A(in|a ; b|lg1:,lg2:)
-        \/ A(lg1,lg2|b ; a|out)       \/ A(lg1,lg2|a ; b|out)
-        \/ A(in|b ; a|out)            \/ A(in|a ; b|out) )
+        \/ A(lg2:,lg1|a|r')          \/ A(lg1:,lg2|b|r')
+        \/ A(r|b ; a|lg1:,lg2:)      \/ A(r|a ; b|lg1:,lg2:)
+        \/ A(lg1,lg2|b ; a|r')       \/ A(lg1,lg2|a ; b|r')
+        \/ A(r|b ; a|r')            \/ A(r|a ; b|r') )
 \end{verbatim}
 
 \newpage
 \HDRc{ Atomic Iteration}
 
 \begin{verbatim}
-invVIter = [in|lg|out]
-invVAtom = [in|out]
-invVatom.a [lg|in]
+invVIter = [r|lg|r']
+invVAtom = [r|r']
+invVatom.a [lg|r]
 \end{verbatim}
 \begin{code}
 itera = viter actionA
