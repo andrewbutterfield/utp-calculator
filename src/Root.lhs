@@ -42,6 +42,7 @@ We do a quick run-down of the Commands\cite{conf/popl/Dinsdale-YoungBGPY13}.
 
 \def\Atm#1{\langle#1\rangle}
 \def\rr#1{r{\scriptstyle{#1}}}
+\def\RR#1{R{\scriptstyle{#1}}}
 
 \begin{eqnarray*}
    a &\in& \Atom
@@ -74,40 +75,40 @@ Initially we work up some stuff directly in Haskell,
 not using the \texttt{Expr} or \texttt{Pred} types.
 
 We start by defining three basic ways to transform a rooted path:
-``step'' ($:$);
+``done'' ($\bullet$);
 ``split-one'' ($1$);
 and ``split-two'' ($2$).
 \RLEQNS{
-   S &\defs& \setof{:,1,2}
+   S &\defs& \setof{1,2}
 }
 \begin{code}
 showConst str _ _ = str  -- constant pretty-printer
 evalConst _ = noeval -- constant (non-)evaluator
 
-stepn   = ":" ; step   = App stepn   []
+donen   = "*" ; step   = App donen   []
 split1n = "1" ; split1 = App split1n []
 split2n = "2" ; split2 = App split2n []
 
 stepEntry
- = ( stepn,   ExprEntry [] (showConst stepn) noDefn  evalConst noEq )
+ = ( donen,   ExprEntry [] (showConst donen) noDefn  evalConst noEq )
 split1Entry
  = ( split1n, ExprEntry [] (showConst split1n) noDefn evalConst noEq )
 split2Entry
  = ( split2n, ExprEntry [] (showConst split2n) noDefn evalConst noEq )
 
-data RootStep = Step | Split1 | Split2 deriving (Eq,Ord)
+data RootStep = Done | Split1 | Split2 deriving (Eq,Ord)
 instance Show RootStep where
- show Step = ":"
+ show Done = "*"
  show Split1 = "1"
  show Split2 = "2"
 \end{code}
 
 We now define a rooted path as an expression of the form
-of the variable $r$ followed by zero or more $S$ transforms.
+of the variable $r$ followed by zero or more $S$ transforms,
+optionaly finished off with a done marker.
 \RLEQNS{
    \sigma,\varsigma &\defs& S^*
-\\ R &::=& r | R S
-\\   & = & r\sigma
+\\ R &::=& r\sigma | r\sigma\bullet
 }
 These have to be expressions as we shall want to substitute for $r$
 in them.
@@ -138,55 +139,12 @@ instance Read RootPath where
 
 readPath path "" = (RootPath $ reverse path,"")
 readPath path str@(c:cs)
- | c == ':'   =  readPath (Step:path) cs
+ | c == '*'   =  readPath (Done:path) cs
  | c == '1'   =  readPath (Split1:path) cs
  | c == '2'   =  readPath (Split2:path) cs
  | otherwise  =  (RootPath $ reverse path,str)
 \end{code}
 
-\newpage
-\HDRc{Path Ordering}
-\RLEQNS{
-   R &\le& R\sigma
-\\ R1\sigma &<& R\!:\!\varsigma
-\\ R2\sigma &<& R\!:\!\varsigma
-}
-\begin{code}
-instance POrd RootPath where
-  pcmp (RootPath rp1) (RootPath rp2) = compRP rp1 rp2
-
-compRP :: [RootStep] -> [RootStep] -> POrdering
-\end{code}
-\RLEQNS{
-   r &\le& r\sigma
-}
-\begin{code}
-compRP  [] [] = PEQ
-compRP [] (_:_) = PLT
-compRP (_:_) [] = PGT
-\end{code}
-\RLEQNS{
-   R1\sigma &<& R\!:\!\varsigma
-}
-\begin{code}
-compRP (Split1:_) (Step:_) = PLT
-compRP (Step:_) (Split1:_) = PGT
-\end{code}
-\RLEQNS{
-   R2\sigma &<& R\!:\!\varsigma
-}
-\begin{code}
-compRP (Split2:_) (Step:_) = PLT
-compRP (Step:_) (Split2:_) = PGT
-\end{code}
-\RLEQNS{
-   R &\le& R\sigma
-}
-\begin{code}
-compRP (s1:ss1) (s2:ss2)
- | s1 == s2  =  compRP ss1 ss2
- | otherwise =  PNC
-\end{code}
 
 Build the rooted paths dictionary:
 \begin{code}
@@ -628,12 +586,12 @@ vAEntry
 
 We have a key invariant as part of the healthiness
 condition associated with every semantic predicate,
-namely that the labels $r$ and $\rr:$ never occur in  $ls$ at
+namely that the labels $r$ and $\rr\bullet$ never occur in  $ls$ at
 the same time:
 \[
- ( r \in ls \implies \rr: \notin ls )
+ ( r \in ls \implies \rr\bullet \notin ls )
  \land
- ( \rr: \in ls \implies r \notin ls )
+ ( \rr\bullet \in ls \implies r \notin ls )
 \]
 This is the Label Exclusivity invariant.
 
@@ -643,7 +601,7 @@ we shall see that we will get a number of instances of this.
 We adopt a shorthand notation,
 so that the above invariant is simply
 \[
-  [r|\rr:]
+  [r|\rr\bullet]
 \]
 So we define the following general shorthand:
 \RLEQNS{
@@ -796,15 +754,16 @@ someInvFails d invs ena other = findFail (set [ena,other]) invs
 \HDRc{Wheels within Wheels}\label{hc:WwW}
 
 The wheels-within-wheels healthiness condition
-insists that $r$ and $\rr:$ are never simultaneously in
+insists that $r$ and $\rr\bullet$ are never simultaneously in
 the label-set $ls$,
 and that our semantic predicates are closed under mumbling.
 \RLEQNS{
    \W(C)
    &\defs&
-   [r|\rr:] \land \left(~\bigvee_{i\in 0\dots} C^i~\right)
+   [r|\rr\bullet] \land \left(~\bigvee_{i\in 0\dots} C^i~\right)
 \\ ii &\defs& s'=s
 }
+We will code a version that keeps the top-level invariant out of the picture,
 \begin{code}
 nW = "W"
 isW (Comp n [_]) | n==nW = True; isW _ = False
@@ -818,10 +777,26 @@ ppW _ _ _ _ = pps styleRed $ ppa ("invalid-"++nW)
 r' = rstep r
 invWWW = leInv [r,r']
 
--- we don't want to expand the definition of this, or simplify it
+-- we don't want to expand the definition of this
 defnW = pNoChg nW
-simpW = pNoChg nW
+\end{code}
 
+We want to simplify $\W$ with the obvious generalisation of the following
+``nested $\W$-absorption'' law:
+\RLEQNS{
+  \W(P \lor \W(Q)) &=& \W(P \lor Q)
+}
+\begin{code}
+simpW d [pr]  =  case deepUnwrap nOr nW pr of
+                  Nothing   ->  Nothing
+                  Just pr'  ->  Just ( "nested W-absorption"
+                                     , mkW pr'
+                                     , True                  )
+simpW _ _ = Nothing
+\end{code}
+
+Now, the dictionary entry
+\begin{code}
 vWEntry :: (String, Entry)
 vWEntry
  = ( nW
@@ -829,7 +804,7 @@ vWEntry
 \end{code}
 
 \newpage
-Unrolling $\W(C)$, using $I$ for $[r|\rr:]$,
+Unrolling $\W(C)$, using $I$ for $[r|\rr\bullet]$,
 and noting that
 $
 \bigvee_{i \in \Nat} C^i
@@ -876,12 +851,10 @@ wUnroll _ _ _ _ = Nothing
 
 The definitions, using the new shorthands:
 \RLEQNS{
-   \W(C) &\defs& [r|\rr:]
-                 \land
-                 \left(\bigvee_{i\in 0\dots} C^i\right)
+   \W(C) &\defs& \left(\bigvee_{i\in 0\dots} C^i\right)
 \\ ii &\defs& s'=s
 \\
-\\ \Atm a &\defs&\W(A(r|a|\rr:))
+\\ \Atm a &\defs&\W(A(r|a|\rr\bullet))
 \\
 \\ \cskip
    &\defs&
@@ -893,16 +866,16 @@ The following are all under review (they lack sufficient invariants).
    &\defs&
    \W(~    A(r|ii|\rr1)
       \lor C[\rr1/r]
-      \lor A(\rr{1:}|ii|\rr2)
+      \lor A(\rr{1\bullet}|ii|\rr2)
       \lor D[\rr2/r]
-      \lor A(\rr{2:}|ii|\rr:) ~)
+      \lor A(\rr{2\bullet}|ii|\rr\bullet) ~)
 \\
 \\ C + D
    &\defs&
    \W(\quad {}\phlor A(r|ii|\rr1) \lor A(r|ii|\rr2)
 \\ && \qquad {} \lor
    C[\rr1/r] \lor D[\rr2/r]
-\\ && \qquad {} \lor A(\rr{1:}|ii|\rr:) \lor A(\rr{2:}|ii|\rr:) ~)
+\\ && \qquad {} \lor A(\rr{1\bullet}|ii|\rr\bullet) \lor A(\rr{2\bullet}|ii|\rr\bullet) ~)
 \\
 \\ C \parallel D
    &\defs&
@@ -911,19 +884,19 @@ The following are all under review (they lack sufficient invariants).
    C[\rr1/r]
    \lor D[\rr2/r]
 \\ && \qquad {}\lor
-   A(\rr{1:},\rr{2:}|ii|\rr:)~)
+   A(\rr{1\bullet},\rr{2\bullet}|ii|\rr\bullet)~)
 \\
 \\ C^*
    &\defs&
-   \W(\quad  \phlor A(r|ii|\rr1) \lor A(\rr1|ii|\rr:)
-\\ && \qquad {}\lor C[\rr1/r]    \lor A(\rr{1:}|ii|\rr1) ~)
+   \W(\quad  \phlor A(r|ii|\rr1) \lor A(\rr1|ii|\rr\bullet)
+\\ && \qquad {}\lor C[\rr1/r]    \lor A(\rr{1\bullet}|ii|\rr1) ~)
 }
 
 \newpage
 \HDRc{Coding Atomic Semantics}
 
 \RLEQNS{
-   \Atm a &\defs&\W(A(r|a|\rr:))
+   \Atm a &\defs&\W(A(r|a|\rr\bullet))
 }
 
 \begin{code}
@@ -945,15 +918,12 @@ vAtmEntry
    , PredEntry ["s","s'"] ppAtom [] defnAtom (pNoChg nAtom) )
 \end{code}
 
-Running the calculator on $\Atm a$ results in the following:
-\begin{verbatim}
-[r|r:] /\ (II \/ A(r|a|r:))
-\end{verbatim}
-So we add a variant dictionary entry:
+Calculation on $\Atm a$ results in $\Skip \lor A(r|a|\rr\bullet)$,
+o we add a variant dictionary entry:
 \begin{code}
 defnAtomCalc d [a]
  = ldefn (nAtom++" calculation")
-         $ mkAnd [invWWW, mkOr [mkSkip, mkA r a r']]
+         $ mkOr [mkSkip, mkA r a r']
 
 vAtmCalcEntry :: (String, Entry)
 vAtmCalcEntry
@@ -1019,12 +989,12 @@ vSkipCalcEntry
 
 \RLEQNS{
    C \cseq D
-   &\defs& [r|\rr1|\rr{1:}|\rr2|\rr{2:}|\rr:] \land {}
+   &\defs& [r|\rr1|\rr{1\bullet}|\rr2|\rr{2\bullet}|\rr\bullet] \land {}
 \\ && \W(\quad {}\phlor A(r|ii|\rr1)
 \\ && \qquad {} \lor C[\rr1/r]
-\\ && \qquad {} \lor A(\rr{1:}|ii|\rr2)
+\\ && \qquad {} \lor A(\rr{1\bullet}|ii|\rr2)
 \\ && \qquad {} \lor D[\rr2/r]
-\\ && \qquad {} \lor A(\rr{2:}|ii|\rr:)~)
+\\ && \qquad {} \lor A(\rr{2\bullet}|ii|\rr\bullet)~)
 }
 \begin{code}
 nVSeq = "VSeq"
@@ -1067,11 +1037,11 @@ vSeqEntry
 
 \RLEQNS{
    C + D
-   &\defs& [r|\rr1|\rr{1:}|\rr2|\rr{2:}|\rr:] \land {}
+   &\defs& [r|\rr1|\rr{1\bullet}|\rr2|\rr{2\bullet}|\rr\bullet] \land {}
 \\&& \W(\quad {}\phlor A(r|ii|\rr1) \lor A(r|ii|\rr2)
 \\ && \qquad {} \lor
    C[\rr1/r] \lor D[\rr2/r]
-\\ && \qquad {} \lor A(\rr{1:}|ii|\rr:) \lor A(\rr{2:}|ii|\rr:) ~)
+\\ && \qquad {} \lor A(\rr{1\bullet}|ii|\rr\bullet) \lor A(\rr{2\bullet}|ii|\rr\bullet) ~)
 }
 \begin{code}
 nVChc = "VChc"
@@ -1113,15 +1083,15 @@ vChcEntry
 \RLEQNS{
    C \parallel D
    &\defs& ~
-   [r|\rr1,\rr2,\rr{1:},\rr{2:}|\rr:] \land
-   [\rr1|\rr{1:}] \land
-   [\rr2|\rr{2:}] \land {}
+   [r|\rr1,\rr2,\rr{1\bullet},\rr{2\bullet}|\rr\bullet] \land
+   [\rr1|\rr{1\bullet}] \land
+   [\rr2|\rr{2\bullet}] \land {}
 \\&& \W(\quad\phlor A(r|ii|\rr1,\rr2)
 \\ && \qquad {}\lor
    C[\rr1/r]
    \lor D[\rr2/r]
 \\ && \qquad {}\lor
-   A(\rr{1:},\rr{2:}|ii|\rr:)~)
+   A(\rr{1\bullet},\rr{2\bullet}|ii|\rr\bullet)~)
 }
 \begin{code}
 nVPar = "VPar"
@@ -1166,12 +1136,12 @@ vParEntry
 
 \RLEQNS{
    C^*
-   &\defs& [r|\rr2|\rr1|\rr{1:}|\rr:] \land {}
+   &\defs& [r|\rr2|\rr1|\rr{1\bullet}|\rr\bullet] \land {}
 \\&& \W(\quad  \phlor A(r|ii|\rr2)
 \\ && \qquad {}\lor A(\rr2|ii|\rr1)
                \lor C[\rr1/r]
-               \lor A(\rr{1:}|ii|\rr2)
-\\ && \qquad {}\lor A(\rr2|ii|\rr:) ~)
+               \lor A(\rr{1\bullet}|ii|\rr2)
+\\ && \qquad {}\lor A(\rr2|ii|\rr\bullet) ~)
 }
 \begin{code}
 nVIter = "VIter"
@@ -1682,6 +1652,7 @@ vcsave fp inv pr
 pP = PVar "P" ; pQ = PVar "Q"  -- general programs
 a = PVar "a"
 b = PVar "b"
+c = PVar "c"
 
 subII :: Pred
 subII = PSub mkSkip [("r",r1')]
@@ -1751,6 +1722,7 @@ invAtom = [r|r']
 \begin{code}
 actionA = atom a
 actionB = atom b
+actionC = atom c
 \end{code}
 \begin{verbatim}
 Q(actionA) = A(r|a|r')
@@ -2178,4 +2150,37 @@ Now the pattern repeats, with a \verb"q_itera_n" cycle of length 3
 
 \begin{code}
 iterseq = viter v_athenb
+\end{code}
+
+\newpage
+\HDRb{Code for generic library somewhere}
+
+Deep unwrapping:
+$$T( \dots \oplus T(P) \oplus \dots) = T(\dots \oplus P \oplus \dots).$$
+Here we have the predicate represetning $\dots \oplus T(P) \oplus \dots$.
+\begin{code}
+deepUnwrap :: String  -- top-level connective
+           -> String  -- unwrap target
+           -> Pred  -- list of predicates
+           -> Maybe Pred -- outcome, if any change
+deepUnwrap nConn nTarget (Comp nm [pr]) -- immediate nesting of T
+ | nm == nTarget  =  case deepUnwrap nConn nTarget pr of
+                      Nothing  ->  Just pr
+                      jpr'     ->  jpr'
+deepUnwrap nConn nTarget (Comp nm prs) -- top-level connective
+ | nm == nConn  =  case deepUnwraps nConn nTarget False [] prs of
+                      Nothing    ->  Nothing
+                      Just prs'  ->  Just $ Comp nConn prs'
+deepUnwrap _ _ _ = Nothing
+\end{code}
+
+Tail recursive unwrap of predicate list:
+\begin{code}
+deepUnwraps nConn nTarget chgd srp' []
+ | chgd       =  Just $ reverse srp'
+ | otherwise  =  Nothing
+deepUnwraps nConn nTarget chgd srp' (pr:prs)
+ = case deepUnwrap nConn nTarget pr of
+     Nothing   ->  deepUnwraps nConn nTarget chgd (pr:srp')  prs
+     Just pr'  ->  deepUnwraps nConn nTarget True (pr':srp') prs
 \end{code}
