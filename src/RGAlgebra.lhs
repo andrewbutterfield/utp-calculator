@@ -38,7 +38,7 @@ rgVersion = "0.4"
 
 Commands: $c,d \in \mathcal C$
 \begin{code}
-carrierC = [_mathcal 'C']
+carrierC = _mathcal "C"
 ( c, cEntry )  = pvarEntry "c" [carrierC]
 ( d, dEntry )  = pvarEntry "d" [carrierC]
 \end{code}
@@ -267,7 +267,7 @@ conjSeqRedEntry = entry laws $ LawEntry [conjSeqReduce] [] []
 Test commands: $t \in \mathcal B \subseteq C$.
 $\mathcal B$ closed under $\sqcap, \sqcup, ;, \parallel$.
 \begin{code}
-carrierB = [_mathcal 'B']
+carrierB = _mathcal "B"
 
 isTest d (PVar t)
  = case plookup t d of
@@ -371,7 +371,7 @@ Atomic Step commands: $a,b \in \mathcal A \subseteq C$.
 
 $\mathcal A$ closed under $\sqcap, \sqcup, \parallel$, but not $;$.
 \begin{code}
-carrierA = [_mathcal 'A']
+carrierA = _mathcal "A"
 
 isAtmStep d (PVar a)
  = case plookup a d of
@@ -429,7 +429,7 @@ n_alf = bold _alpha
   \wait &\defs& \mbox{atomic parallel identity}
 }
 \begin{code}
-n_atmParId = map _mathcal "E"
+n_atmParId = _mathcal "E"
 ( atmParId, atmParIdEntry ) = pvarEntry n_atmParId [carrierA]
 \end{code}
 

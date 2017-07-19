@@ -919,7 +919,7 @@ vAtmEntry
 \end{code}
 
 Calculation on $\Atm a$ results in $\Skip \lor A(r|a|\rr\bullet)$,
-o we add a variant dictionary entry:
+so we add a variant dictionary entry:
 \begin{code}
 defnAtomCalc d [a]
  = ldefn (nAtom++" calculation")
@@ -964,15 +964,12 @@ nii= "ii"
 ii = PVar nii
 \end{code}
 The calculation of $\Atm{ii}$ also leads us to the following calculation
-for \verb"<skip>":
-\begin{verbatim}
-[r|r:] /\ (II \/ A(r|ii|r:))
-\end{verbatim}
-So we add a variant dictionary entry:
+for \verb"<skip>": $\Skip \lor A(r|ii|r')$,
+so we add a variant dictionary entry:
 \begin{code}
 defnVSkipCalc d []
  = ldefn (nVSkip++" calculation")
-         $ mkAnd [ invWWW,mkOr [mkSkip, mkA r ii r']]
+         $ mkOr [mkSkip, mkA r ii r']
 
 vSkipCalcEntry :: (String, Entry)
 vSkipCalcEntry
@@ -996,6 +993,7 @@ vSkipCalcEntry
 \\ && \qquad {} \lor D[\rr2/r]
 \\ && \qquad {} \lor A(\rr{2\bullet}|ii|\rr\bullet)~)
 }
+Ignoring invariants for now.
 \begin{code}
 nVSeq = "VSeq"
 isVSeq (Comp n [_,_]) | n==nVSeq = True; isVSeq _ = False
@@ -1023,8 +1021,7 @@ pSeq p q
         , PSub q [("r",r2)]
         , mkA r2' ii r' ]
 
-defnVSeq d [p,q] = ldefn shVSeq $ mkAnd [ invVSeq
-                                        , wp $ pSeq p q ]
+defnVSeq d [p,q] = ldefn shVSeq $ wp $ pSeq p q
 vSeqEntry :: (String, Entry)
 vSeqEntry
  = ( nVSeq
@@ -1043,6 +1040,7 @@ vSeqEntry
    C[\rr1/r] \lor D[\rr2/r]
 \\ && \qquad {} \lor A(\rr{1\bullet}|ii|\rr\bullet) \lor A(\rr{2\bullet}|ii|\rr\bullet) ~)
 }
+Ignoring invariants for now.
 \begin{code}
 nVChc = "VChc"
 isVChc (Comp n [_,_]) | n==nVChc = True; isVChc _ = False
@@ -1067,8 +1065,7 @@ pChc p q
         , mkA r2' ii r' ]
 
 defnVChc d [p,q]
- = ldefn shVChc $ mkAnd [ invVChc
-                        , wp $ pChc p q ]
+ = ldefn shVChc $ wp $ pChc p q
 
 vChcEntry :: (String, Entry)
 vChcEntry
@@ -1093,6 +1090,7 @@ vChcEntry
 \\ && \qquad {}\lor
    A(\rr{1\bullet},\rr{2\bullet}|ii|\rr\bullet)~)
 }
+Ignoring invariants for now.
 \begin{code}
 nVPar = "VPar"
 isVPar (Comp n [_,_]) | n==nVPar = True; isVPar _ = False
@@ -1122,8 +1120,7 @@ pPar p q
            , mkA (set [r1',r2']) ii r' ]
 
 defnVPar d [p,q]
- = ldefn shVPar $ mkAnd [ invVPar
-                        , wp $ pPar p q ]
+ = ldefn shVPar $ wp $ pPar p q
 
 vParEntry :: (String, Entry)
 vParEntry
@@ -1143,6 +1140,7 @@ vParEntry
                \lor A(\rr{1\bullet}|ii|\rr2)
 \\ && \qquad {}\lor A(\rr2|ii|\rr\bullet) ~)
 }
+Ignoring invariants for now.
 \begin{code}
 nVIter = "VIter"
 isVIter (Comp n [_]) | n==nVIter = True; isVIter _ = False
@@ -1166,8 +1164,7 @@ pIter p
         , mkA r2 ii r' ]
 
 defnVIter d [p]
- = ldefn shVIter $ mkAnd [ invVIter
-                         , wp $ pIter p ]
+ = ldefn shVIter $ wp $ pIter p 
 
 vIterEntry :: (String, Entry)
 vIterEntry
