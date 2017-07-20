@@ -1,0 +1,59 @@
+RAW
+
+<a> ;; (<b> ;; <c>)
+=
+W(
+     A(r|ii|r1)
+   ∨ II ∨ A(r1|a|r1*)
+   ∨ A(r1*|ii|r2)
+   ∨    A(r2|ii[r2/r]|r21)
+      ∨ II ∨ A(r21|b|r21*)
+      ∨ A(r21*|ii[r2/r]|r22)
+      ∨ II ∨ A(r22|c|r22*)
+      ∨ A(r22*|ii[r2/r]|r2*)
+   ∨ A(r2*|ii|r*)
+)
+
+(<a> ;; <b>) ;; <c>
+=
+W(
+     A(r|ii|r1)
+   ∨    A(r1|ii[r1/r]|r11)
+      ∨ II ∨ A(r11|a|r11*)
+      ∨ A(r11*|ii[r1/r]|r12)
+      ∨ II ∨ A(r12|b|r12*)
+      ∨ A(r12*|ii[r1/r]|r1*)
+   ∨ A(r1*|ii|r2)
+   ∨ II ∨ A(r2|c|r2*)
+   ∨ A(r2*|ii|r*)
+)
+
+PROCESSED
+
+<a> ;; (<b> ;; <c>)
+=
+W(   II
+   ∨ A(r|ii|r1)
+   ∨ A(r1|a|r1*)
+   ∨ A(r1*|ii|r2)
+   ∨ A(r2|ii|r21)
+   ∨ A(r21|b|r21*)
+   ∨ A(r21*|ii|r22)
+   ∨ A(r22|c|r22*)
+   ∨ A(r22*|ii|r2*)
+   ∨ A(r2*|ii|r*)
+)
+
+(<a> ;; <b>) ;; <c>
+=
+W(   II
+   ∨ A(r|ii|r1)
+   ∨ A(r1|ii|r11)
+   ∨ A(r11|a|r11*)
+   ∨ A(r11*|ii|r12)
+   ∨ A(r12|b|r12*)
+   ∨ A(r12*|ii|r1*)
+   ∨ A(r1*|ii|r2)
+   ∨ A(r2|c|r2*)
+   ∨ A(r2*|ii|r*)
+)

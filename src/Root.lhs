@@ -800,7 +800,7 @@ Now, the dictionary entry
 vWEntry :: (String, Entry)
 vWEntry
  = ( nW
-   , PredEntry [] ppW vObs defnW simpW )
+   , PredEntry ["r"] ppW vObs defnW simpW )
 \end{code}
 
 \newpage
@@ -1164,7 +1164,7 @@ pIter p
         , mkA r2 ii r' ]
 
 defnVIter d [p]
- = ldefn shVIter $ wp $ pIter p 
+ = ldefn shVIter $ wp $ pIter p
 
 vIterEntry :: (String, Entry)
 vIterEntry
