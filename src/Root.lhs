@@ -408,6 +408,11 @@ and also declare that the predicate variables $a$, $b$ and $c$
 will refer to atomic state-changes,
 and so only have alphabet $\setof{s,s'}$.
 \begin{code}
+vStatic = ["r"]
+vDynamic = ["ls","ls'","s","s'"]
+vObs = vDynamic ++ vStatic
+ss' = ["s", "s'"]
+
 vAlfDict
  = dictMrg dictAlpha dictAtomic
  where
@@ -416,11 +421,6 @@ vAlfDict
                 $ map snd [ pvarEntry "a" ss'
                           , pvarEntry "b" ss'
                           , pvarEntry "c" ss' ]
-   ss' = ["s", "s'"]
-
-vStatic = ["r"]
-vDynamic = ["ls","ls'","s","s'"]
-vObs = vDynamic ++ vStatic
 \end{code}
 
 \newpage
@@ -502,26 +502,26 @@ and note that
 \HDRc{Generic Atomic Behaviour}
 
 \begin{eqnarray*}
-   X(E|ss'|R|A)
+   X(E|a|R|A)
    &\defs&
-   ls(E) \land [ss'] \land ls'=(ls\setminus R)\cup A
+   ls(E) \land [a] \land ls'=(ls\setminus R)\cup A
 \end{eqnarray*}
 
 \begin{code}
 nX = "X"
 isX (_,Comp n [_,_,_,_]) | n==nX = True; isX _ = False
 
-mkX e ss' r a  = Comp nX [Atm e, ss', Atm r, Atm a]
+mkX e act r a  = Comp nX [Atm e, act, Atm r, Atm a]
 
 pFlatShow d (Atm (App ns es))
  | ns == setn  = flatSet d es
 pFlatShow d (Atm e) = flatSet d [e]
 pFlatShow _ _ = "?"
 
-ppX sCP vd p prs@[e,ss',r,a]
+ppX sCP vd p prs@[e,act,r,a]
  = ppclosed "X(" ")" "|"
     [ ppa $ pFlatShow vd e
-    , sCP 0 2 ss'
+    , sCP 0 2 act
     , ppa $ pFlatShow vd r
     , ppa $ pFlatShow vd a ]
 ppX _ _ _ _ = pps styleRed $ ppa ("invalid-"++nX)
@@ -552,21 +552,21 @@ vXEntry
 \end{code}
 
 \begin{eqnarray*}
-   A(E|ss'|N)
+   A(E|a|N)
    &\defs&
-   X(E|ss'|E|N)
+   X(E|a|E|N)
 \end{eqnarray*}
 
 \begin{code}
 nA = "A"
 isA (Comp n [_,_,_]) | n==nA = True; isA _ = False
 
-mkA e ss' n  = Comp nA [Atm e, ss', Atm n]
+mkA e act n  = Comp nA [Atm e, act, Atm n]
 
-ppA sCP vd p mprs@[e,ss',n]
+ppA sCP vd p mprs@[e,act,n]
  = ppclosed "A(" ")" "|"
     [ ppa $ pFlatShow vd e
-    , sCP 0 2 ss'
+    , sCP 0 2 act
     , ppa $ pFlatShow vd n ]
 ppA _ _ _ _ = pps styleRed $ ppa ("invalid-"++nA)
 
@@ -960,8 +960,14 @@ vSkipEntry
    , PredEntry ["s","s'"] ppVSkip [] defnVSkip (pNoChg nSkip) )
 
 -- atomic skip
-nii= "ii"
+nii = "ii"
 ii = PVar nii
+ppii d ms p [] = ppa nii
+
+iiCalcEntry :: (String, Entry)
+iiCalcEntry
+ = ( nii
+   , PredEntry [] ppii ss' (pNoChg nii) (pNoChg nii) )
 \end{code}
 The calculation of $\Atm{ii}$ also leads us to the following calculation
 for \verb"<skip>": $\Skip \lor A(r|ii|r')$,
@@ -1189,6 +1195,7 @@ dictVP = makeDict [ vXEntry
                   -- , vIJoinEntry
                   , vAtmEntry
                   , vSkipEntry
+                  , iiCalcEntry
                   , vSeqEntry
                   , vChcEntry
                   , vParEntry
@@ -1422,7 +1429,6 @@ vReduce d _ (PSub ab@(Comp ns [PVar a, PVar b]) sub)
  | ns == nSeq && isSS' a && isSS' b && isStaticSub sub
    =  lred "a;b is static-free" ab
  where
-   ss' = ["s","s'"]
    isSS' nm = case M.lookup nm d of
      Just (PredEntry _ _ alf _ _)  ->  null (alf \\ ss')
      Just (AlfEntry alf)           ->  null (alf \\ ss')
