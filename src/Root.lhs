@@ -791,7 +791,7 @@ as well as the ``$\W-\Skip$ absorption law''
   \W(\Skip \lor P) &=& \W(P)
 }
 \begin{code}
-simpW d [pr]  =  case deepUnwrap nOr nW nSkip pr of
+simpW d [pr]  =  case deepUnwrap nOr mkOr nW nSkip pr of
                   Nothing   ->  Nothing
                   Just pr'  ->  Just ( "nested W-absorption"
                                      , mkW pr'
@@ -2170,32 +2170,33 @@ Deep unwrapping:
 Here we have the predicate representing $\dots \oplus T(P) \oplus \dots$.
 \begin{code}
 deepUnwrap :: String  -- top-level connective (oplus)
+           -> ([Pred]->Pred) -- connective builder
            -> String  -- unwrap target (T)
            -> String  -- unit (U)
            -> Pred  -- predicate (P1 oplus P2 oplus ... oplus Pn)
            -> Maybe Pred -- outcome, if any change
-deepUnwrap nConn nTarget nUnit (Comp nm [pr]) -- immediate nesting of T
- | nm == nTarget  =  case deepUnwrap nConn nTarget nUnit pr of
+deepUnwrap nConn mkConn nTarget nUnit (Comp nm [pr]) -- immediate nesting of T
+ | nm == nTarget  =  case deepUnwrap nConn mkConn nTarget nUnit pr of
                       Nothing  ->  Just pr
                       jpr'     ->  jpr'
-deepUnwrap nConn nTarget nUnit (Comp nt [u@(Comp nu [])]) -- just U
+deepUnwrap nConn mkConn nTarget nUnit (Comp nt [u@(Comp nu [])]) -- just U
  | nt == nTarget && nu == nUnit  =  Just u
-deepUnwrap nConn nTarget nUnit (Comp nm prs) -- top-level connective
- | nm == nConn  =  case deepUnwraps nConn nTarget nUnit False [] prs of
+deepUnwrap nConn mkConn nTarget nUnit (Comp nm prs) -- top-level connective
+ | nm == nConn  =  case deepUnwraps nConn mkConn nTarget nUnit False [] prs of
                       Nothing    ->  Nothing
-                      Just prs'  ->  Just $ Comp nConn prs'
-deepUnwrap _ _ _ _ = Nothing
+                      Just prs'  ->  Just $ mkConn prs'
+deepUnwrap _ _ _ _ _ = Nothing
 \end{code}
 
 Tail recursive unwrap of predicate list:
 \begin{code}
-deepUnwraps nConn nTarget nUnit chgd srp' []
+deepUnwraps nConn mkConn nTarget nUnit chgd srp' []
  | chgd       =  Just $ reverse srp'
  | otherwise  =  Nothing
-deepUnwraps nConn nTarget nUnit chgd srp' (pr:prs)
- | pHasName nUnit pr  =  deepUnwraps nConn nTarget nUnit True srp' prs
+deepUnwraps nConn mkConn nTarget nUnit chgd srp' (pr:prs)
+ | pHasName nUnit pr  =  deepUnwraps nConn mkConn nTarget nUnit True srp' prs
  | otherwise
-   = case deepUnwrap nConn nTarget nUnit pr of
-       Nothing   ->  deepUnwraps nConn nTarget nUnit chgd (pr:srp')  prs
-       Just pr'  ->  deepUnwraps nConn nTarget nUnit True (pr':srp') prs
+   = case deepUnwrap nConn mkConn nTarget nUnit pr of
+       Nothing   ->  deepUnwraps nConn mkConn nTarget nUnit chgd (pr:srp')  prs
+       Just pr'  ->  deepUnwraps nConn mkConn nTarget nUnit True (pr':srp') prs
 \end{code}

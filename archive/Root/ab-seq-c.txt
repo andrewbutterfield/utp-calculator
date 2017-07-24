@@ -1,0 +1,71 @@
+
+UTP-Calc v0.2, Views 0.3, std-utp 0.2, std 0.2, std-expr 0.1, std-set 0.1, std-pred 0.2
+
+<a> ;; <b> ;; <c>
+ = « Expanded defn. of ;; »
+W(A(r|ii|r1) ∨ (<a> ;; <b>)[r1/r] ∨ A(r1*|ii|r2) ∨ <c>[r2/r] ∨ A(r2*|ii|r*))
+ = « Expanded defn. of ;; »
+W(
+     A(r|ii|r1)
+   ∨ W(A(r|ii|r1) ∨ <a>[r1/r] ∨ A(r1*|ii|r2) ∨ <b>[r2/r] ∨ A(r2*|ii|r*))[r1/r]
+   ∨ A(r1*|ii|r2)
+   ∨ <c>[r2/r]
+   ∨ A(r2*|ii|r*)
+)
+ = « Expanded defn. of Atom calculation »
+W(
+     A(r|ii|r1)
+   ∨ W(
+          A(r|ii|r1)
+        ∨ (II ∨ A(r|a|r*))[r1/r]
+        ∨ A(r1*|ii|r2)
+        ∨ <b>[r2/r]
+        ∨ A(r2*|ii|r*)
+     )
+     [r1/r]
+   ∨ A(r1*|ii|r2)
+   ∨ <c>[r2/r]
+   ∨ A(r2*|ii|r*)
+)
+ = « Expanded defn. of Atom calculation »
+W(
+     A(r|ii|r1)
+   ∨ W(
+          A(r|ii|r1)
+        ∨ (II ∨ A(r|a|r*))[r1/r]
+        ∨ A(r1*|ii|r2)
+        ∨ (II ∨ A(r|b|r*))[r2/r]
+        ∨ A(r2*|ii|r*)
+     )
+     [r1/r]
+   ∨ A(r1*|ii|r2)
+   ∨ <c>[r2/r]
+   ∨ A(r2*|ii|r*)
+)
+ = « Expanded defn. of Atom calculation »
+W(
+     A(r|ii|r1)
+   ∨ W(
+          A(r|ii|r1)
+        ∨ II[r1/r] ∨ A(r1|a[r1/r]|r1*)
+        ∨ A(r1*|ii|r2)
+        ∨ II[r2/r] ∨ A(r2|b[r2/r]|r2*)
+        ∨ A(r2*|ii|r*)
+     )
+     [r1/r]
+   ∨ A(r1*|ii|r2)
+   ∨ (II ∨ A(r|c|r*))[r2/r]
+   ∨ A(r2*|ii|r*)
+)
+ = « simplify »
+W(
+     A(r|ii|r1)
+   ∨ A(r1|ii|r11)
+   ∨ A(r11|a|r11*)
+   ∨ A(r11*|ii|r12)
+   ∨ A(r12|b|r12*)
+   ∨ A(r12*|ii|r1*)
+   ∨ A(r1*|ii|r2)
+   ∨ A(r2|c|r2*)
+   ∨ A(r2*|ii|r*)
+)
