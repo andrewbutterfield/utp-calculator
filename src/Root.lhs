@@ -1770,9 +1770,9 @@ athenb = actionA `vseq` actionB
 
 \begin{verbatim}
 athenb
- = W(A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*))
+ = W(A(r|ii|r1) \/ A(r1|a|r1*) \/ A(r1*|ii|r2) \/ A(r2|b|r2*) \/ A(r2*|ii|r*))
 Q(athenb)
-  = A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+  = A(r|ii|r1) \/ A(r1|a|r1*) \/ A(r1*|ii|r2) \/ A(r2|b|r2*) \/ A(r2*|ii|r*)
 \end{verbatim}
 We note that the result is virtually identical to that of the label-generator
 version!
@@ -1788,9 +1788,9 @@ q_athenb
 \begin{verbatim}
 q_athenb^2 =
    A(r  |ii;a|r1*)
- ∨ A(r1 |a;ii|r2)
- ∨ A(r1*|ii;b|r2*)
- ∨ A(r2 |b;ii|r*)
+ \/ A(r1 |a;ii|r2)
+ \/ A(r1*|ii;b|r2*)
+ \/ A(r2 |b;ii|r*)
 \end{verbatim}
 Again, this is the same as the label-generated version!
 \begin{code}
@@ -1940,9 +1940,9 @@ awithb = actionA `vpar` actionB
 \begin{verbatim}
 Q(awithb)
   =   A(r|ii|r1,r2)
-    ∨ A(r1|a|r1*)
-    ∨ A(r2|b|r2*)
-    ∨ A(r1*,r2*|ii|r*))
+    \/ A(r1|a|r1*)
+    \/ A(r2|b|r2*)
+    \/ A(r1*,r2*|ii|r*))
 \end{verbatim}
 \begin{code}
 q_awithb
