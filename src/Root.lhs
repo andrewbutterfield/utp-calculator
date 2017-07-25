@@ -380,7 +380,7 @@ vSetDict
 
 
 
-\HDRc{The Expression Dictionary}\label{hc:WWW-expr-dict}
+\HDRc{The Expression Dictionary}\label{hc:Root-expr-dict}
 
 \begin{code}
 dictVE :: Dict
@@ -1185,7 +1185,7 @@ vIterEntry
 
 
 \newpage
-\HDRc{The Predicate Dictionary}\label{hc:WWW-pred-dict}
+\HDRc{The Predicate Dictionary}\label{hc:Root-pred-dict}
 
 \begin{code}
 dictVP, dictVPCalc :: Dict
@@ -1213,7 +1213,7 @@ dictVPCalc = makeDict [ vAtmCalcEntry
 
 
 
-\HDRb{Reductions for WWW}\label{hb:WWW-reduce}
+\HDRb{Reductions for WWW}\label{hb:Root-reduce}
 
 \HDRc{Recognisers for WWW}\label{hc:v-recog}
 
@@ -1490,7 +1490,7 @@ Default case: no change.
 vReduce _ _ _ = Nothing
 \end{code}
 
-\HDRc{The Reduction Entry}\label{hc:WWW-reduce-ent}
+\HDRc{The Reduction Entry}\label{hc:Root-reduce-ent}
 
 \begin{code}
 vRedEntry :: Dict
@@ -1498,7 +1498,7 @@ vRedEntry = entry laws $ LawEntry [vReduce] [] []
 \end{code}
 
 
-\HDRb{Conditional Reductions for WWW}\label{hb:WWW-creduce}
+\HDRb{Conditional Reductions for Root}\label{hb:Root-creduce}
 
 \begin{code}
 vCReduce :: CRWFun
@@ -1509,14 +1509,14 @@ Default case: no change.
 vCReduce _ mpr = Nothing
 \end{code}
 
-\HDRc{The Conditional Reduction Entry}\label{hc:WWW-reduce-ent}
+\HDRc{The Conditional Reduction Entry}\label{hc:Root-reduce-ent}
 
 \begin{code}
 vCRedEntry :: Dict
 vCRedEntry = entry laws $ LawEntry [] [vCReduce] []
 \end{code}
 
-\HDRb{Loop Unrolling for Views}\label{hb:WWW-unroll}
+\HDRb{Loop Unrolling for Views}\label{hb:Root-unroll}
 
 Iteration  satisfies the loop-unrolling law:
 \[
@@ -1580,7 +1580,7 @@ vUnroll ns d _ iter@(Comp nm  [c, pr])
 vUnroll _ _ _ _ = Nothing
 \end{code}
 
-\HDRc{The Unroll Entry}\label{hc:WWW-reduce-ent}
+\HDRc{The Unroll Entry}\label{hc:Root-reduce-ent}
 
 \begin{code}
 vLoopEntry :: Dict
@@ -1593,7 +1593,7 @@ vLoopEntry = entry laws $ LawEntry [] [] [wUnroll,vUnroll]
 \begin{code}
 rDict :: Dict
 rDict
- =  dictVersion "Views 0.3"
+ =  dictVersion "Root 0.3"
      -- supersede dictVP below as calcs rollout
     `dictMrg` dictVPCalc
     `dictMrg` vAlfDict
@@ -1608,7 +1608,7 @@ rDict
 \end{code}
 
 
-\HDRb{WWW Calculator}\label{hb:WWW-CALC}
+\HDRb{Root Calculator}\label{hb:Root-CALC}
 
 
 \begin{code}
@@ -1759,7 +1759,7 @@ v_actionA
 \HDRc{Sequential Composition}
 
 \begin{verbatim}
-invVSeq = [r|lg|r']
+invVSeq = [r|r']
 invVAtom = [r|r']
 invVAtom.a = [r|lg]
 invVatom.b = [lg|r']
@@ -1769,14 +1769,13 @@ athenb = actionA `vseq` actionB
 \end{code}
 
 \begin{verbatim}
+athenb
+ = W(A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*))
 Q(athenb)
-    A(r|ii|r1)
- \/ A(r1|a|r1:)
- \/ A(r1:|ii|r2)
- \/ A(r2|b|r2:)
- \/ A(r2:|ii|r:)
+  = A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
 \end{verbatim}
-we strip out the invariant and skip parts
+We note that the result is virtually identical to that of the label-generator
+version!
 \begin{code}
 q_athenb
  = mkOr [ mkA r ii r1
@@ -1788,13 +1787,12 @@ q_athenb
 
 \begin{verbatim}
 q_athenb^2 =
-    A(r|ii;a|r1:)
- \/ A(r1|a;ii|r2)
- \/ A(r1:|ii;b|r2:)
- \/ A(r2|b;ii|r:)
+   A(r  |ii;a|r1*)
+ ∨ A(r1 |a;ii|r2)
+ ∨ A(r1*|ii;b|r2*)
+ ∨ A(r2 |b;ii|r*)
 \end{verbatim}
-The invariant means that the removal of $\ell_g$ above is redundant,
-so the $X$ becomes an $A$
+Again, this is the same as the label-generated version!
 \begin{code}
 q_athenb_2
  = mkOr [ mkA r   a r1'
@@ -1802,7 +1800,7 @@ q_athenb_2
         , mkA r1' b r2'
         , mkA r2  b r' ]
 \end{code}
-
+We
 \begin{verbatim}
 q_athenb^3 =
     A(r|ii ; a|r2)
@@ -1934,17 +1932,17 @@ v_aorb = mkAnd [ invVChc, q_aorb_all ]
 \HDRc{Parallel Composition}
 
 \begin{verbatim}
-invVPar = [r|[lg1|lg1:],[lg2|lg2:]|r']
+invVPar = [r|r1,r1',r2,r2'|r'] /\ [r1|r1*] /\ [r1|r2*]
 \end{verbatim}
 \begin{code}
 awithb = actionA `vpar` actionB
 \end{code}
 \begin{verbatim}
 Q(awithb)
-  =    A(r|ii|r1,r2)
-       \/ A(r1|a|r1:)
-       \/ A(r2|b|r2:)
-       \/ A(r1:,r2:|ii|r:)
+  =   A(r|ii|r1,r2)
+    ∨ A(r1|a|r1*)
+    ∨ A(r2|b|r2*)
+    ∨ A(r1*,r2*|ii|r*))
 \end{verbatim}
 \begin{code}
 q_awithb

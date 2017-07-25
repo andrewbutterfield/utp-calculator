@@ -1,0 +1,19 @@
+
+UTP-Calc v0.2, Root 0.3, std-utp 0.2, std 0.2, std-expr 0.1, std-set 0.1, std-pred 0.2
+
+W(<a> || <b>)
+ = « Expanded defn. of || »
+W(W(A(r|ii|r1,r2) ∨ <a>[r1/r] ∨ <b>[r2/r] ∨ A(r1*,r2*|ii|r*)))
+ = « Expanded defn. of Atom calculation »
+W(W(A(r|ii|r1,r2) ∨ (II ∨ A(r|a|r*))[r1/r] ∨ <b>[r2/r] ∨ A(r1*,r2*|ii|r*)))
+ = « Expanded defn. of Atom calculation »
+W(
+  W(
+       A(r|ii|r1,r2)
+     ∨ (II ∨ A(r|a|r*))[r1/r]
+     ∨ (II ∨ A(r|b|r*))[r2/r]
+     ∨ A(r1*,r2*|ii|r*)
+  )
+)
+ = « simplify »
+W(A(r|ii|r1,r2) ∨ A(r1|a|r1*) ∨ A(r2|b|r2*) ∨ A(r1*,r2*|ii|r*))

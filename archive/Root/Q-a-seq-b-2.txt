@@ -1,0 +1,1147 @@
+
+UTP-Calc v0.2, Root 0.3, std-utp 0.2, std 0.2, std-expr 0.1, std-set 0.1, std-pred 0.2
+
+   A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+ ; A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+ = « ;-or-distr »
+   (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r|ii|r1))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r1|a|r1*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r1*|ii|r2))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2|b|r2*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2*|ii|r*))
+ = « or-;-distr »
+      (A(r|ii|r1) ; A(r|ii|r1))
+    ∨ (A(r1|a|r1*) ; A(r|ii|r1))
+    ∨ (A(r1*|ii|r2) ; A(r|ii|r1))
+    ∨ (A(r2|b|r2*) ; A(r|ii|r1))
+    ∨ (A(r2*|ii|r*) ; A(r|ii|r1))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r1|a|r1*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r1*|ii|r2))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2|b|r2*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2*|ii|r*))
+ = « A-then-A »
+      X(r|ii ; ii|r|r1) ∧ (r I r) = {}
+    ∨ (A(r1|a|r1*) ; A(r|ii|r1))
+    ∨ (A(r1*|ii|r2) ; A(r|ii|r1))
+    ∨ (A(r2|b|r2*) ; A(r|ii|r1))
+    ∨ (A(r2*|ii|r*) ; A(r|ii|r1))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r1|a|r1*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r1*|ii|r2))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2|b|r2*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2*|ii|r*))
+ = « Inv collapses X to A »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ (A(r1|a|r1*) ; A(r|ii|r1))
+    ∨ (A(r1*|ii|r2) ; A(r|ii|r1))
+    ∨ (A(r2|b|r2*) ; A(r|ii|r1))
+    ∨ (A(r2*|ii|r*) ; A(r|ii|r1))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r1|a|r1*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r1*|ii|r2))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2|b|r2*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2*|ii|r*))
+ = « A-then-A »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ X(r,r1|a ; ii|r,r1|r1,r1*) ∧ (r I r1) = {}
+    ∨ (A(r1*|ii|r2) ; A(r|ii|r1))
+    ∨ (A(r2|b|r2*) ; A(r|ii|r1))
+    ∨ (A(r2*|ii|r*) ; A(r|ii|r1))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r1|a|r1*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r1*|ii|r2))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2|b|r2*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2*|ii|r*))
+ = « Inv collapses X to A »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ A(r,r1|a ; ii|r1,r1*) ∧ (r I r1) = {}
+    ∨ (A(r1*|ii|r2) ; A(r|ii|r1))
+    ∨ (A(r2|b|r2*) ; A(r|ii|r1))
+    ∨ (A(r2*|ii|r*) ; A(r|ii|r1))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r1|a|r1*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r1*|ii|r2))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2|b|r2*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2*|ii|r*))
+ = « A-then-A »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ A(r,r1|a ; ii|r1,r1*) ∧ (r I r1) = {}
+    ∨ X(r,r1*|ii ; ii|r,r1*|r1,r2) ∧ (r I r1*) = {}
+    ∨ (A(r2|b|r2*) ; A(r|ii|r1))
+    ∨ (A(r2*|ii|r*) ; A(r|ii|r1))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r1|a|r1*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r1*|ii|r2))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2|b|r2*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2*|ii|r*))
+ = « Inv collapses X to A »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ A(r,r1|a ; ii|r1,r1*) ∧ (r I r1) = {}
+    ∨ A(r,r1*|ii ; ii|r1,r2) ∧ (r I r1*) = {}
+    ∨ (A(r2|b|r2*) ; A(r|ii|r1))
+    ∨ (A(r2*|ii|r*) ; A(r|ii|r1))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r1|a|r1*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r1*|ii|r2))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2|b|r2*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2*|ii|r*))
+ = « A-then-A »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ A(r,r1|a ; ii|r1,r1*) ∧ (r I r1) = {}
+    ∨ A(r,r1*|ii ; ii|r1,r2) ∧ (r I r1*) = {}
+    ∨ X(r,r2|b ; ii|r,r2|r1,r2*) ∧ (r I r2) = {}
+    ∨ (A(r2*|ii|r*) ; A(r|ii|r1))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r1|a|r1*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r1*|ii|r2))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2|b|r2*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2*|ii|r*))
+ = « Inv collapses X to A »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ A(r,r1|a ; ii|r1,r1*) ∧ (r I r1) = {}
+    ∨ A(r,r1*|ii ; ii|r1,r2) ∧ (r I r1*) = {}
+    ∨ A(r,r2|b ; ii|r1,r2*) ∧ (r I r2) = {}
+    ∨ (A(r2*|ii|r*) ; A(r|ii|r1))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r1|a|r1*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r1*|ii|r2))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2|b|r2*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2*|ii|r*))
+ = « A-then-A »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ A(r,r1|a ; ii|r1,r1*) ∧ (r I r1) = {}
+    ∨ A(r,r1*|ii ; ii|r1,r2) ∧ (r I r1*) = {}
+    ∨ A(r,r2|b ; ii|r1,r2*) ∧ (r I r2) = {}
+    ∨ X(r,r2*|ii ; ii|r,r2*|r*,r1) ∧ (r I r2*) = {}
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r1|a|r1*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r1*|ii|r2))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2|b|r2*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2*|ii|r*))
+ = « Inv collapses X to A »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ A(r,r1|a ; ii|r1,r1*) ∧ (r I r1) = {}
+    ∨ A(r,r1*|ii ; ii|r1,r2) ∧ (r I r1*) = {}
+    ∨ A(r,r2|b ; ii|r1,r2*) ∧ (r I r2) = {}
+    ∨ A(r,r2*|ii ; ii|r*,r1) ∧ (r I r2*) = {}
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r1|a|r1*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r1*|ii|r2))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2|b|r2*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2*|ii|r*))
+ = « or-;-distr »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ A(r,r1|a ; ii|r1,r1*) ∧ (r I r1) = {}
+    ∨ A(r,r1*|ii ; ii|r1,r2) ∧ (r I r1*) = {}
+    ∨ A(r,r2|b ; ii|r1,r2*) ∧ (r I r2) = {}
+    ∨ A(r,r2*|ii ; ii|r*,r1) ∧ (r I r2*) = {}
+ ∨    (A(r|ii|r1) ; A(r1|a|r1*))
+    ∨ (A(r1|a|r1*) ; A(r1|a|r1*))
+    ∨ (A(r1*|ii|r2) ; A(r1|a|r1*))
+    ∨ (A(r2|b|r2*) ; A(r1|a|r1*))
+    ∨ (A(r2*|ii|r*) ; A(r1|a|r1*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r1*|ii|r2))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2|b|r2*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2*|ii|r*))
+ = « A-then-A »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ A(r,r1|a ; ii|r1,r1*) ∧ (r I r1) = {}
+    ∨ A(r,r1*|ii ; ii|r1,r2) ∧ (r I r1*) = {}
+    ∨ A(r,r2|b ; ii|r1,r2*) ∧ (r I r2) = {}
+    ∨ A(r,r2*|ii ; ii|r*,r1) ∧ (r I r2*) = {}
+ ∨    X(r|ii ; a|r,r1|r1*) ∧ ({} I r) = {}
+    ∨ (A(r1|a|r1*) ; A(r1|a|r1*))
+    ∨ (A(r1*|ii|r2) ; A(r1|a|r1*))
+    ∨ (A(r2|b|r2*) ; A(r1|a|r1*))
+    ∨ (A(r2*|ii|r*) ; A(r1|a|r1*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r1*|ii|r2))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2|b|r2*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2*|ii|r*))
+ = « Inv collapses X to A »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ A(r,r1|a ; ii|r1,r1*) ∧ (r I r1) = {}
+    ∨ A(r,r1*|ii ; ii|r1,r2) ∧ (r I r1*) = {}
+    ∨ A(r,r2|b ; ii|r1,r2*) ∧ (r I r2) = {}
+    ∨ A(r,r2*|ii ; ii|r*,r1) ∧ (r I r2*) = {}
+ ∨    A(r|ii ; a|r1*) ∧ ({} I r) = {}
+    ∨ (A(r1|a|r1*) ; A(r1|a|r1*))
+    ∨ (A(r1*|ii|r2) ; A(r1|a|r1*))
+    ∨ (A(r2|b|r2*) ; A(r1|a|r1*))
+    ∨ (A(r2*|ii|r*) ; A(r1|a|r1*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r1*|ii|r2))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2|b|r2*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2*|ii|r*))
+ = « A-then-A »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ A(r,r1|a ; ii|r1,r1*) ∧ (r I r1) = {}
+    ∨ A(r,r1*|ii ; ii|r1,r2) ∧ (r I r1*) = {}
+    ∨ A(r,r2|b ; ii|r1,r2*) ∧ (r I r2) = {}
+    ∨ A(r,r2*|ii ; ii|r*,r1) ∧ (r I r2*) = {}
+ ∨    A(r|ii ; a|r1*) ∧ ({} I r) = {}
+    ∨ X(r1|a ; a|r1|r1*) ∧ (r1 I r1) = {}
+    ∨ (A(r1*|ii|r2) ; A(r1|a|r1*))
+    ∨ (A(r2|b|r2*) ; A(r1|a|r1*))
+    ∨ (A(r2*|ii|r*) ; A(r1|a|r1*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r1*|ii|r2))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2|b|r2*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2*|ii|r*))
+ = « Inv collapses X to A »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ A(r,r1|a ; ii|r1,r1*) ∧ (r I r1) = {}
+    ∨ A(r,r1*|ii ; ii|r1,r2) ∧ (r I r1*) = {}
+    ∨ A(r,r2|b ; ii|r1,r2*) ∧ (r I r2) = {}
+    ∨ A(r,r2*|ii ; ii|r*,r1) ∧ (r I r2*) = {}
+ ∨    A(r|ii ; a|r1*) ∧ ({} I r) = {}
+    ∨ A(r1|a ; a|r1*) ∧ (r1 I r1) = {}
+    ∨ (A(r1*|ii|r2) ; A(r1|a|r1*))
+    ∨ (A(r2|b|r2*) ; A(r1|a|r1*))
+    ∨ (A(r2*|ii|r*) ; A(r1|a|r1*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r1*|ii|r2))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2|b|r2*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2*|ii|r*))
+ = « A-then-A »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ A(r,r1|a ; ii|r1,r1*) ∧ (r I r1) = {}
+    ∨ A(r,r1*|ii ; ii|r1,r2) ∧ (r I r1*) = {}
+    ∨ A(r,r2|b ; ii|r1,r2*) ∧ (r I r2) = {}
+    ∨ A(r,r2*|ii ; ii|r*,r1) ∧ (r I r2*) = {}
+ ∨    A(r|ii ; a|r1*) ∧ ({} I r) = {}
+    ∨ A(r1|a ; a|r1*) ∧ (r1 I r1) = {}
+    ∨ X(r1,r1*|ii ; a|r1,r1*|r2,r1*) ∧ (r1 I r1*) = {}
+    ∨ (A(r2|b|r2*) ; A(r1|a|r1*))
+    ∨ (A(r2*|ii|r*) ; A(r1|a|r1*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r1*|ii|r2))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2|b|r2*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2*|ii|r*))
+ = « Inv collapses X to A »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ A(r,r1|a ; ii|r1,r1*) ∧ (r I r1) = {}
+    ∨ A(r,r1*|ii ; ii|r1,r2) ∧ (r I r1*) = {}
+    ∨ A(r,r2|b ; ii|r1,r2*) ∧ (r I r2) = {}
+    ∨ A(r,r2*|ii ; ii|r*,r1) ∧ (r I r2*) = {}
+ ∨    A(r|ii ; a|r1*) ∧ ({} I r) = {}
+    ∨ A(r1|a ; a|r1*) ∧ (r1 I r1) = {}
+    ∨ A(r1,r1*|ii ; a|r2,r1*) ∧ (r1 I r1*) = {}
+    ∨ (A(r2|b|r2*) ; A(r1|a|r1*))
+    ∨ (A(r2*|ii|r*) ; A(r1|a|r1*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r1*|ii|r2))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2|b|r2*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2*|ii|r*))
+ = « A-then-A »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ A(r,r1|a ; ii|r1,r1*) ∧ (r I r1) = {}
+    ∨ A(r,r1*|ii ; ii|r1,r2) ∧ (r I r1*) = {}
+    ∨ A(r,r2|b ; ii|r1,r2*) ∧ (r I r2) = {}
+    ∨ A(r,r2*|ii ; ii|r*,r1) ∧ (r I r2*) = {}
+ ∨    A(r|ii ; a|r1*) ∧ ({} I r) = {}
+    ∨ A(r1|a ; a|r1*) ∧ (r1 I r1) = {}
+    ∨ A(r1,r1*|ii ; a|r2,r1*) ∧ (r1 I r1*) = {}
+    ∨ X(r1,r2|b ; a|r1,r2|r1*,r2*) ∧ (r1 I r2) = {}
+    ∨ (A(r2*|ii|r*) ; A(r1|a|r1*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r1*|ii|r2))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2|b|r2*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2*|ii|r*))
+ = « Inv collapses X to A »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ A(r,r1|a ; ii|r1,r1*) ∧ (r I r1) = {}
+    ∨ A(r,r1*|ii ; ii|r1,r2) ∧ (r I r1*) = {}
+    ∨ A(r,r2|b ; ii|r1,r2*) ∧ (r I r2) = {}
+    ∨ A(r,r2*|ii ; ii|r*,r1) ∧ (r I r2*) = {}
+ ∨    A(r|ii ; a|r1*) ∧ ({} I r) = {}
+    ∨ A(r1|a ; a|r1*) ∧ (r1 I r1) = {}
+    ∨ A(r1,r1*|ii ; a|r2,r1*) ∧ (r1 I r1*) = {}
+    ∨ A(r1,r2|b ; a|r1*,r2*) ∧ (r1 I r2) = {}
+    ∨ (A(r2*|ii|r*) ; A(r1|a|r1*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r1*|ii|r2))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2|b|r2*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2*|ii|r*))
+ = « A-then-A »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ A(r,r1|a ; ii|r1,r1*) ∧ (r I r1) = {}
+    ∨ A(r,r1*|ii ; ii|r1,r2) ∧ (r I r1*) = {}
+    ∨ A(r,r2|b ; ii|r1,r2*) ∧ (r I r2) = {}
+    ∨ A(r,r2*|ii ; ii|r*,r1) ∧ (r I r2*) = {}
+ ∨    A(r|ii ; a|r1*) ∧ ({} I r) = {}
+    ∨ A(r1|a ; a|r1*) ∧ (r1 I r1) = {}
+    ∨ A(r1,r1*|ii ; a|r2,r1*) ∧ (r1 I r1*) = {}
+    ∨ A(r1,r2|b ; a|r1*,r2*) ∧ (r1 I r2) = {}
+    ∨ X(r1,r2*|ii ; a|r1,r2*|r*,r1*) ∧ (r1 I r2*) = {}
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r1*|ii|r2))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2|b|r2*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2*|ii|r*))
+ = « Inv collapses X to A »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ A(r,r1|a ; ii|r1,r1*) ∧ (r I r1) = {}
+    ∨ A(r,r1*|ii ; ii|r1,r2) ∧ (r I r1*) = {}
+    ∨ A(r,r2|b ; ii|r1,r2*) ∧ (r I r2) = {}
+    ∨ A(r,r2*|ii ; ii|r*,r1) ∧ (r I r2*) = {}
+ ∨    A(r|ii ; a|r1*) ∧ ({} I r) = {}
+    ∨ A(r1|a ; a|r1*) ∧ (r1 I r1) = {}
+    ∨ A(r1,r1*|ii ; a|r2,r1*) ∧ (r1 I r1*) = {}
+    ∨ A(r1,r2|b ; a|r1*,r2*) ∧ (r1 I r2) = {}
+    ∨ A(r1,r2*|ii ; a|r*,r1*) ∧ (r1 I r2*) = {}
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r1*|ii|r2))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2|b|r2*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2*|ii|r*))
+ = « or-;-distr »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ A(r,r1|a ; ii|r1,r1*) ∧ (r I r1) = {}
+    ∨ A(r,r1*|ii ; ii|r1,r2) ∧ (r I r1*) = {}
+    ∨ A(r,r2|b ; ii|r1,r2*) ∧ (r I r2) = {}
+    ∨ A(r,r2*|ii ; ii|r*,r1) ∧ (r I r2*) = {}
+ ∨    A(r|ii ; a|r1*) ∧ ({} I r) = {}
+    ∨ A(r1|a ; a|r1*) ∧ (r1 I r1) = {}
+    ∨ A(r1,r1*|ii ; a|r2,r1*) ∧ (r1 I r1*) = {}
+    ∨ A(r1,r2|b ; a|r1*,r2*) ∧ (r1 I r2) = {}
+    ∨ A(r1,r2*|ii ; a|r*,r1*) ∧ (r1 I r2*) = {}
+ ∨    (A(r|ii|r1) ; A(r1*|ii|r2))
+    ∨ (A(r1|a|r1*) ; A(r1*|ii|r2))
+    ∨ (A(r1*|ii|r2) ; A(r1*|ii|r2))
+    ∨ (A(r2|b|r2*) ; A(r1*|ii|r2))
+    ∨ (A(r2*|ii|r*) ; A(r1*|ii|r2))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2|b|r2*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2*|ii|r*))
+ = « A-then-A »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ A(r,r1|a ; ii|r1,r1*) ∧ (r I r1) = {}
+    ∨ A(r,r1*|ii ; ii|r1,r2) ∧ (r I r1*) = {}
+    ∨ A(r,r2|b ; ii|r1,r2*) ∧ (r I r2) = {}
+    ∨ A(r,r2*|ii ; ii|r*,r1) ∧ (r I r2*) = {}
+ ∨    A(r|ii ; a|r1*) ∧ ({} I r) = {}
+    ∨ A(r1|a ; a|r1*) ∧ (r1 I r1) = {}
+    ∨ A(r1,r1*|ii ; a|r2,r1*) ∧ (r1 I r1*) = {}
+    ∨ A(r1,r2|b ; a|r1*,r2*) ∧ (r1 I r2) = {}
+    ∨ A(r1,r2*|ii ; a|r*,r1*) ∧ (r1 I r2*) = {}
+ ∨    X(r,r1*|ii ; ii|r,r1*|r1,r2) ∧ (r1* I r) = {}
+    ∨ (A(r1|a|r1*) ; A(r1*|ii|r2))
+    ∨ (A(r1*|ii|r2) ; A(r1*|ii|r2))
+    ∨ (A(r2|b|r2*) ; A(r1*|ii|r2))
+    ∨ (A(r2*|ii|r*) ; A(r1*|ii|r2))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2|b|r2*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2*|ii|r*))
+ = « Inv collapses X to A »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ A(r,r1|a ; ii|r1,r1*) ∧ (r I r1) = {}
+    ∨ A(r,r1*|ii ; ii|r1,r2) ∧ (r I r1*) = {}
+    ∨ A(r,r2|b ; ii|r1,r2*) ∧ (r I r2) = {}
+    ∨ A(r,r2*|ii ; ii|r*,r1) ∧ (r I r2*) = {}
+ ∨    A(r|ii ; a|r1*) ∧ ({} I r) = {}
+    ∨ A(r1|a ; a|r1*) ∧ (r1 I r1) = {}
+    ∨ A(r1,r1*|ii ; a|r2,r1*) ∧ (r1 I r1*) = {}
+    ∨ A(r1,r2|b ; a|r1*,r2*) ∧ (r1 I r2) = {}
+    ∨ A(r1,r2*|ii ; a|r*,r1*) ∧ (r1 I r2*) = {}
+ ∨    A(r,r1*|ii ; ii|r1,r2) ∧ (r1* I r) = {}
+    ∨ (A(r1|a|r1*) ; A(r1*|ii|r2))
+    ∨ (A(r1*|ii|r2) ; A(r1*|ii|r2))
+    ∨ (A(r2|b|r2*) ; A(r1*|ii|r2))
+    ∨ (A(r2*|ii|r*) ; A(r1*|ii|r2))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2|b|r2*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2*|ii|r*))
+ = « A-then-A »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ A(r,r1|a ; ii|r1,r1*) ∧ (r I r1) = {}
+    ∨ A(r,r1*|ii ; ii|r1,r2) ∧ (r I r1*) = {}
+    ∨ A(r,r2|b ; ii|r1,r2*) ∧ (r I r2) = {}
+    ∨ A(r,r2*|ii ; ii|r*,r1) ∧ (r I r2*) = {}
+ ∨    A(r|ii ; a|r1*) ∧ ({} I r) = {}
+    ∨ A(r1|a ; a|r1*) ∧ (r1 I r1) = {}
+    ∨ A(r1,r1*|ii ; a|r2,r1*) ∧ (r1 I r1*) = {}
+    ∨ A(r1,r2|b ; a|r1*,r2*) ∧ (r1 I r2) = {}
+    ∨ A(r1,r2*|ii ; a|r*,r1*) ∧ (r1 I r2*) = {}
+ ∨    A(r,r1*|ii ; ii|r1,r2) ∧ (r1* I r) = {}
+    ∨ X(r1|a ; ii|r1,r1*|r2) ∧ ({} I r1) = {}
+    ∨ (A(r1*|ii|r2) ; A(r1*|ii|r2))
+    ∨ (A(r2|b|r2*) ; A(r1*|ii|r2))
+    ∨ (A(r2*|ii|r*) ; A(r1*|ii|r2))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2|b|r2*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2*|ii|r*))
+ = « Inv collapses X to A »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ A(r,r1|a ; ii|r1,r1*) ∧ (r I r1) = {}
+    ∨ A(r,r1*|ii ; ii|r1,r2) ∧ (r I r1*) = {}
+    ∨ A(r,r2|b ; ii|r1,r2*) ∧ (r I r2) = {}
+    ∨ A(r,r2*|ii ; ii|r*,r1) ∧ (r I r2*) = {}
+ ∨    A(r|ii ; a|r1*) ∧ ({} I r) = {}
+    ∨ A(r1|a ; a|r1*) ∧ (r1 I r1) = {}
+    ∨ A(r1,r1*|ii ; a|r2,r1*) ∧ (r1 I r1*) = {}
+    ∨ A(r1,r2|b ; a|r1*,r2*) ∧ (r1 I r2) = {}
+    ∨ A(r1,r2*|ii ; a|r*,r1*) ∧ (r1 I r2*) = {}
+ ∨    A(r,r1*|ii ; ii|r1,r2) ∧ (r1* I r) = {}
+    ∨ A(r1|a ; ii|r2) ∧ ({} I r1) = {}
+    ∨ (A(r1*|ii|r2) ; A(r1*|ii|r2))
+    ∨ (A(r2|b|r2*) ; A(r1*|ii|r2))
+    ∨ (A(r2*|ii|r*) ; A(r1*|ii|r2))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2|b|r2*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2*|ii|r*))
+ = « A-then-A »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ A(r,r1|a ; ii|r1,r1*) ∧ (r I r1) = {}
+    ∨ A(r,r1*|ii ; ii|r1,r2) ∧ (r I r1*) = {}
+    ∨ A(r,r2|b ; ii|r1,r2*) ∧ (r I r2) = {}
+    ∨ A(r,r2*|ii ; ii|r*,r1) ∧ (r I r2*) = {}
+ ∨    A(r|ii ; a|r1*) ∧ ({} I r) = {}
+    ∨ A(r1|a ; a|r1*) ∧ (r1 I r1) = {}
+    ∨ A(r1,r1*|ii ; a|r2,r1*) ∧ (r1 I r1*) = {}
+    ∨ A(r1,r2|b ; a|r1*,r2*) ∧ (r1 I r2) = {}
+    ∨ A(r1,r2*|ii ; a|r*,r1*) ∧ (r1 I r2*) = {}
+ ∨    A(r,r1*|ii ; ii|r1,r2) ∧ (r1* I r) = {}
+    ∨ A(r1|a ; ii|r2) ∧ ({} I r1) = {}
+    ∨ X(r1*|ii ; ii|r1*|r2) ∧ (r1* I r1*) = {}
+    ∨ (A(r2|b|r2*) ; A(r1*|ii|r2))
+    ∨ (A(r2*|ii|r*) ; A(r1*|ii|r2))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2|b|r2*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2*|ii|r*))
+ = « Inv collapses X to A »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ A(r,r1|a ; ii|r1,r1*) ∧ (r I r1) = {}
+    ∨ A(r,r1*|ii ; ii|r1,r2) ∧ (r I r1*) = {}
+    ∨ A(r,r2|b ; ii|r1,r2*) ∧ (r I r2) = {}
+    ∨ A(r,r2*|ii ; ii|r*,r1) ∧ (r I r2*) = {}
+ ∨    A(r|ii ; a|r1*) ∧ ({} I r) = {}
+    ∨ A(r1|a ; a|r1*) ∧ (r1 I r1) = {}
+    ∨ A(r1,r1*|ii ; a|r2,r1*) ∧ (r1 I r1*) = {}
+    ∨ A(r1,r2|b ; a|r1*,r2*) ∧ (r1 I r2) = {}
+    ∨ A(r1,r2*|ii ; a|r*,r1*) ∧ (r1 I r2*) = {}
+ ∨    A(r,r1*|ii ; ii|r1,r2) ∧ (r1* I r) = {}
+    ∨ A(r1|a ; ii|r2) ∧ ({} I r1) = {}
+    ∨ A(r1*|ii ; ii|r2) ∧ (r1* I r1*) = {}
+    ∨ (A(r2|b|r2*) ; A(r1*|ii|r2))
+    ∨ (A(r2*|ii|r*) ; A(r1*|ii|r2))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2|b|r2*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2*|ii|r*))
+ = « A-then-A »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ A(r,r1|a ; ii|r1,r1*) ∧ (r I r1) = {}
+    ∨ A(r,r1*|ii ; ii|r1,r2) ∧ (r I r1*) = {}
+    ∨ A(r,r2|b ; ii|r1,r2*) ∧ (r I r2) = {}
+    ∨ A(r,r2*|ii ; ii|r*,r1) ∧ (r I r2*) = {}
+ ∨    A(r|ii ; a|r1*) ∧ ({} I r) = {}
+    ∨ A(r1|a ; a|r1*) ∧ (r1 I r1) = {}
+    ∨ A(r1,r1*|ii ; a|r2,r1*) ∧ (r1 I r1*) = {}
+    ∨ A(r1,r2|b ; a|r1*,r2*) ∧ (r1 I r2) = {}
+    ∨ A(r1,r2*|ii ; a|r*,r1*) ∧ (r1 I r2*) = {}
+ ∨    A(r,r1*|ii ; ii|r1,r2) ∧ (r1* I r) = {}
+    ∨ A(r1|a ; ii|r2) ∧ ({} I r1) = {}
+    ∨ A(r1*|ii ; ii|r2) ∧ (r1* I r1*) = {}
+    ∨ X(r2,r1*|b ; ii|r2,r1*|r2,r2*) ∧ (r1* I r2) = {}
+    ∨ (A(r2*|ii|r*) ; A(r1*|ii|r2))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2|b|r2*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2*|ii|r*))
+ = « Inv collapses X to A »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ A(r,r1|a ; ii|r1,r1*) ∧ (r I r1) = {}
+    ∨ A(r,r1*|ii ; ii|r1,r2) ∧ (r I r1*) = {}
+    ∨ A(r,r2|b ; ii|r1,r2*) ∧ (r I r2) = {}
+    ∨ A(r,r2*|ii ; ii|r*,r1) ∧ (r I r2*) = {}
+ ∨    A(r|ii ; a|r1*) ∧ ({} I r) = {}
+    ∨ A(r1|a ; a|r1*) ∧ (r1 I r1) = {}
+    ∨ A(r1,r1*|ii ; a|r2,r1*) ∧ (r1 I r1*) = {}
+    ∨ A(r1,r2|b ; a|r1*,r2*) ∧ (r1 I r2) = {}
+    ∨ A(r1,r2*|ii ; a|r*,r1*) ∧ (r1 I r2*) = {}
+ ∨    A(r,r1*|ii ; ii|r1,r2) ∧ (r1* I r) = {}
+    ∨ A(r1|a ; ii|r2) ∧ ({} I r1) = {}
+    ∨ A(r1*|ii ; ii|r2) ∧ (r1* I r1*) = {}
+    ∨ A(r2,r1*|b ; ii|r2,r2*) ∧ (r1* I r2) = {}
+    ∨ (A(r2*|ii|r*) ; A(r1*|ii|r2))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2|b|r2*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2*|ii|r*))
+ = « A-then-A »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ A(r,r1|a ; ii|r1,r1*) ∧ (r I r1) = {}
+    ∨ A(r,r1*|ii ; ii|r1,r2) ∧ (r I r1*) = {}
+    ∨ A(r,r2|b ; ii|r1,r2*) ∧ (r I r2) = {}
+    ∨ A(r,r2*|ii ; ii|r*,r1) ∧ (r I r2*) = {}
+ ∨    A(r|ii ; a|r1*) ∧ ({} I r) = {}
+    ∨ A(r1|a ; a|r1*) ∧ (r1 I r1) = {}
+    ∨ A(r1,r1*|ii ; a|r2,r1*) ∧ (r1 I r1*) = {}
+    ∨ A(r1,r2|b ; a|r1*,r2*) ∧ (r1 I r2) = {}
+    ∨ A(r1,r2*|ii ; a|r*,r1*) ∧ (r1 I r2*) = {}
+ ∨    A(r,r1*|ii ; ii|r1,r2) ∧ (r1* I r) = {}
+    ∨ A(r1|a ; ii|r2) ∧ ({} I r1) = {}
+    ∨ A(r1*|ii ; ii|r2) ∧ (r1* I r1*) = {}
+    ∨ A(r2,r1*|b ; ii|r2,r2*) ∧ (r1* I r2) = {}
+    ∨ X(r1*,r2*|ii ; ii|r1*,r2*|r*,r2) ∧ (r1* I r2*) = {}
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2|b|r2*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2*|ii|r*))
+ = « Inv collapses X to A »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ A(r,r1|a ; ii|r1,r1*) ∧ (r I r1) = {}
+    ∨ A(r,r1*|ii ; ii|r1,r2) ∧ (r I r1*) = {}
+    ∨ A(r,r2|b ; ii|r1,r2*) ∧ (r I r2) = {}
+    ∨ A(r,r2*|ii ; ii|r*,r1) ∧ (r I r2*) = {}
+ ∨    A(r|ii ; a|r1*) ∧ ({} I r) = {}
+    ∨ A(r1|a ; a|r1*) ∧ (r1 I r1) = {}
+    ∨ A(r1,r1*|ii ; a|r2,r1*) ∧ (r1 I r1*) = {}
+    ∨ A(r1,r2|b ; a|r1*,r2*) ∧ (r1 I r2) = {}
+    ∨ A(r1,r2*|ii ; a|r*,r1*) ∧ (r1 I r2*) = {}
+ ∨    A(r,r1*|ii ; ii|r1,r2) ∧ (r1* I r) = {}
+    ∨ A(r1|a ; ii|r2) ∧ ({} I r1) = {}
+    ∨ A(r1*|ii ; ii|r2) ∧ (r1* I r1*) = {}
+    ∨ A(r2,r1*|b ; ii|r2,r2*) ∧ (r1* I r2) = {}
+    ∨ A(r1*,r2*|ii ; ii|r*,r2) ∧ (r1* I r2*) = {}
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2|b|r2*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2*|ii|r*))
+ = « or-;-distr »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ A(r,r1|a ; ii|r1,r1*) ∧ (r I r1) = {}
+    ∨ A(r,r1*|ii ; ii|r1,r2) ∧ (r I r1*) = {}
+    ∨ A(r,r2|b ; ii|r1,r2*) ∧ (r I r2) = {}
+    ∨ A(r,r2*|ii ; ii|r*,r1) ∧ (r I r2*) = {}
+ ∨    A(r|ii ; a|r1*) ∧ ({} I r) = {}
+    ∨ A(r1|a ; a|r1*) ∧ (r1 I r1) = {}
+    ∨ A(r1,r1*|ii ; a|r2,r1*) ∧ (r1 I r1*) = {}
+    ∨ A(r1,r2|b ; a|r1*,r2*) ∧ (r1 I r2) = {}
+    ∨ A(r1,r2*|ii ; a|r*,r1*) ∧ (r1 I r2*) = {}
+ ∨    A(r,r1*|ii ; ii|r1,r2) ∧ (r1* I r) = {}
+    ∨ A(r1|a ; ii|r2) ∧ ({} I r1) = {}
+    ∨ A(r1*|ii ; ii|r2) ∧ (r1* I r1*) = {}
+    ∨ A(r2,r1*|b ; ii|r2,r2*) ∧ (r1* I r2) = {}
+    ∨ A(r1*,r2*|ii ; ii|r*,r2) ∧ (r1* I r2*) = {}
+ ∨    (A(r|ii|r1) ; A(r2|b|r2*))
+    ∨ (A(r1|a|r1*) ; A(r2|b|r2*))
+    ∨ (A(r1*|ii|r2) ; A(r2|b|r2*))
+    ∨ (A(r2|b|r2*) ; A(r2|b|r2*))
+    ∨ (A(r2*|ii|r*) ; A(r2|b|r2*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2*|ii|r*))
+ = « A-then-A »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ A(r,r1|a ; ii|r1,r1*) ∧ (r I r1) = {}
+    ∨ A(r,r1*|ii ; ii|r1,r2) ∧ (r I r1*) = {}
+    ∨ A(r,r2|b ; ii|r1,r2*) ∧ (r I r2) = {}
+    ∨ A(r,r2*|ii ; ii|r*,r1) ∧ (r I r2*) = {}
+ ∨    A(r|ii ; a|r1*) ∧ ({} I r) = {}
+    ∨ A(r1|a ; a|r1*) ∧ (r1 I r1) = {}
+    ∨ A(r1,r1*|ii ; a|r2,r1*) ∧ (r1 I r1*) = {}
+    ∨ A(r1,r2|b ; a|r1*,r2*) ∧ (r1 I r2) = {}
+    ∨ A(r1,r2*|ii ; a|r*,r1*) ∧ (r1 I r2*) = {}
+ ∨    A(r,r1*|ii ; ii|r1,r2) ∧ (r1* I r) = {}
+    ∨ A(r1|a ; ii|r2) ∧ ({} I r1) = {}
+    ∨ A(r1*|ii ; ii|r2) ∧ (r1* I r1*) = {}
+    ∨ A(r2,r1*|b ; ii|r2,r2*) ∧ (r1* I r2) = {}
+    ∨ A(r1*,r2*|ii ; ii|r*,r2) ∧ (r1* I r2*) = {}
+ ∨    X(r,r2|ii ; b|r,r2|r1,r2*) ∧ (r2 I r) = {}
+    ∨ (A(r1|a|r1*) ; A(r2|b|r2*))
+    ∨ (A(r1*|ii|r2) ; A(r2|b|r2*))
+    ∨ (A(r2|b|r2*) ; A(r2|b|r2*))
+    ∨ (A(r2*|ii|r*) ; A(r2|b|r2*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2*|ii|r*))
+ = « Inv collapses X to A »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ A(r,r1|a ; ii|r1,r1*) ∧ (r I r1) = {}
+    ∨ A(r,r1*|ii ; ii|r1,r2) ∧ (r I r1*) = {}
+    ∨ A(r,r2|b ; ii|r1,r2*) ∧ (r I r2) = {}
+    ∨ A(r,r2*|ii ; ii|r*,r1) ∧ (r I r2*) = {}
+ ∨    A(r|ii ; a|r1*) ∧ ({} I r) = {}
+    ∨ A(r1|a ; a|r1*) ∧ (r1 I r1) = {}
+    ∨ A(r1,r1*|ii ; a|r2,r1*) ∧ (r1 I r1*) = {}
+    ∨ A(r1,r2|b ; a|r1*,r2*) ∧ (r1 I r2) = {}
+    ∨ A(r1,r2*|ii ; a|r*,r1*) ∧ (r1 I r2*) = {}
+ ∨    A(r,r1*|ii ; ii|r1,r2) ∧ (r1* I r) = {}
+    ∨ A(r1|a ; ii|r2) ∧ ({} I r1) = {}
+    ∨ A(r1*|ii ; ii|r2) ∧ (r1* I r1*) = {}
+    ∨ A(r2,r1*|b ; ii|r2,r2*) ∧ (r1* I r2) = {}
+    ∨ A(r1*,r2*|ii ; ii|r*,r2) ∧ (r1* I r2*) = {}
+ ∨    A(r,r2|ii ; b|r1,r2*) ∧ (r2 I r) = {}
+    ∨ (A(r1|a|r1*) ; A(r2|b|r2*))
+    ∨ (A(r1*|ii|r2) ; A(r2|b|r2*))
+    ∨ (A(r2|b|r2*) ; A(r2|b|r2*))
+    ∨ (A(r2*|ii|r*) ; A(r2|b|r2*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2*|ii|r*))
+ = « A-then-A »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ A(r,r1|a ; ii|r1,r1*) ∧ (r I r1) = {}
+    ∨ A(r,r1*|ii ; ii|r1,r2) ∧ (r I r1*) = {}
+    ∨ A(r,r2|b ; ii|r1,r2*) ∧ (r I r2) = {}
+    ∨ A(r,r2*|ii ; ii|r*,r1) ∧ (r I r2*) = {}
+ ∨    A(r|ii ; a|r1*) ∧ ({} I r) = {}
+    ∨ A(r1|a ; a|r1*) ∧ (r1 I r1) = {}
+    ∨ A(r1,r1*|ii ; a|r2,r1*) ∧ (r1 I r1*) = {}
+    ∨ A(r1,r2|b ; a|r1*,r2*) ∧ (r1 I r2) = {}
+    ∨ A(r1,r2*|ii ; a|r*,r1*) ∧ (r1 I r2*) = {}
+ ∨    A(r,r1*|ii ; ii|r1,r2) ∧ (r1* I r) = {}
+    ∨ A(r1|a ; ii|r2) ∧ ({} I r1) = {}
+    ∨ A(r1*|ii ; ii|r2) ∧ (r1* I r1*) = {}
+    ∨ A(r2,r1*|b ; ii|r2,r2*) ∧ (r1* I r2) = {}
+    ∨ A(r1*,r2*|ii ; ii|r*,r2) ∧ (r1* I r2*) = {}
+ ∨    A(r,r2|ii ; b|r1,r2*) ∧ (r2 I r) = {}
+    ∨ X(r1,r2|a ; b|r1,r2|r1*,r2*) ∧ (r2 I r1) = {}
+    ∨ (A(r1*|ii|r2) ; A(r2|b|r2*))
+    ∨ (A(r2|b|r2*) ; A(r2|b|r2*))
+    ∨ (A(r2*|ii|r*) ; A(r2|b|r2*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2*|ii|r*))
+ = « Inv collapses X to A »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ A(r,r1|a ; ii|r1,r1*) ∧ (r I r1) = {}
+    ∨ A(r,r1*|ii ; ii|r1,r2) ∧ (r I r1*) = {}
+    ∨ A(r,r2|b ; ii|r1,r2*) ∧ (r I r2) = {}
+    ∨ A(r,r2*|ii ; ii|r*,r1) ∧ (r I r2*) = {}
+ ∨    A(r|ii ; a|r1*) ∧ ({} I r) = {}
+    ∨ A(r1|a ; a|r1*) ∧ (r1 I r1) = {}
+    ∨ A(r1,r1*|ii ; a|r2,r1*) ∧ (r1 I r1*) = {}
+    ∨ A(r1,r2|b ; a|r1*,r2*) ∧ (r1 I r2) = {}
+    ∨ A(r1,r2*|ii ; a|r*,r1*) ∧ (r1 I r2*) = {}
+ ∨    A(r,r1*|ii ; ii|r1,r2) ∧ (r1* I r) = {}
+    ∨ A(r1|a ; ii|r2) ∧ ({} I r1) = {}
+    ∨ A(r1*|ii ; ii|r2) ∧ (r1* I r1*) = {}
+    ∨ A(r2,r1*|b ; ii|r2,r2*) ∧ (r1* I r2) = {}
+    ∨ A(r1*,r2*|ii ; ii|r*,r2) ∧ (r1* I r2*) = {}
+ ∨    A(r,r2|ii ; b|r1,r2*) ∧ (r2 I r) = {}
+    ∨ A(r1,r2|a ; b|r1*,r2*) ∧ (r2 I r1) = {}
+    ∨ (A(r1*|ii|r2) ; A(r2|b|r2*))
+    ∨ (A(r2|b|r2*) ; A(r2|b|r2*))
+    ∨ (A(r2*|ii|r*) ; A(r2|b|r2*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2*|ii|r*))
+ = « A-then-A »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ A(r,r1|a ; ii|r1,r1*) ∧ (r I r1) = {}
+    ∨ A(r,r1*|ii ; ii|r1,r2) ∧ (r I r1*) = {}
+    ∨ A(r,r2|b ; ii|r1,r2*) ∧ (r I r2) = {}
+    ∨ A(r,r2*|ii ; ii|r*,r1) ∧ (r I r2*) = {}
+ ∨    A(r|ii ; a|r1*) ∧ ({} I r) = {}
+    ∨ A(r1|a ; a|r1*) ∧ (r1 I r1) = {}
+    ∨ A(r1,r1*|ii ; a|r2,r1*) ∧ (r1 I r1*) = {}
+    ∨ A(r1,r2|b ; a|r1*,r2*) ∧ (r1 I r2) = {}
+    ∨ A(r1,r2*|ii ; a|r*,r1*) ∧ (r1 I r2*) = {}
+ ∨    A(r,r1*|ii ; ii|r1,r2) ∧ (r1* I r) = {}
+    ∨ A(r1|a ; ii|r2) ∧ ({} I r1) = {}
+    ∨ A(r1*|ii ; ii|r2) ∧ (r1* I r1*) = {}
+    ∨ A(r2,r1*|b ; ii|r2,r2*) ∧ (r1* I r2) = {}
+    ∨ A(r1*,r2*|ii ; ii|r*,r2) ∧ (r1* I r2*) = {}
+ ∨    A(r,r2|ii ; b|r1,r2*) ∧ (r2 I r) = {}
+    ∨ A(r1,r2|a ; b|r1*,r2*) ∧ (r2 I r1) = {}
+    ∨ X(r1*|ii ; b|r2,r1*|r2*) ∧ ({} I r1*) = {}
+    ∨ (A(r2|b|r2*) ; A(r2|b|r2*))
+    ∨ (A(r2*|ii|r*) ; A(r2|b|r2*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2*|ii|r*))
+ = « Inv collapses X to A »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ A(r,r1|a ; ii|r1,r1*) ∧ (r I r1) = {}
+    ∨ A(r,r1*|ii ; ii|r1,r2) ∧ (r I r1*) = {}
+    ∨ A(r,r2|b ; ii|r1,r2*) ∧ (r I r2) = {}
+    ∨ A(r,r2*|ii ; ii|r*,r1) ∧ (r I r2*) = {}
+ ∨    A(r|ii ; a|r1*) ∧ ({} I r) = {}
+    ∨ A(r1|a ; a|r1*) ∧ (r1 I r1) = {}
+    ∨ A(r1,r1*|ii ; a|r2,r1*) ∧ (r1 I r1*) = {}
+    ∨ A(r1,r2|b ; a|r1*,r2*) ∧ (r1 I r2) = {}
+    ∨ A(r1,r2*|ii ; a|r*,r1*) ∧ (r1 I r2*) = {}
+ ∨    A(r,r1*|ii ; ii|r1,r2) ∧ (r1* I r) = {}
+    ∨ A(r1|a ; ii|r2) ∧ ({} I r1) = {}
+    ∨ A(r1*|ii ; ii|r2) ∧ (r1* I r1*) = {}
+    ∨ A(r2,r1*|b ; ii|r2,r2*) ∧ (r1* I r2) = {}
+    ∨ A(r1*,r2*|ii ; ii|r*,r2) ∧ (r1* I r2*) = {}
+ ∨    A(r,r2|ii ; b|r1,r2*) ∧ (r2 I r) = {}
+    ∨ A(r1,r2|a ; b|r1*,r2*) ∧ (r2 I r1) = {}
+    ∨ A(r1*|ii ; b|r2*) ∧ ({} I r1*) = {}
+    ∨ (A(r2|b|r2*) ; A(r2|b|r2*))
+    ∨ (A(r2*|ii|r*) ; A(r2|b|r2*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2*|ii|r*))
+ = « A-then-A »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ A(r,r1|a ; ii|r1,r1*) ∧ (r I r1) = {}
+    ∨ A(r,r1*|ii ; ii|r1,r2) ∧ (r I r1*) = {}
+    ∨ A(r,r2|b ; ii|r1,r2*) ∧ (r I r2) = {}
+    ∨ A(r,r2*|ii ; ii|r*,r1) ∧ (r I r2*) = {}
+ ∨    A(r|ii ; a|r1*) ∧ ({} I r) = {}
+    ∨ A(r1|a ; a|r1*) ∧ (r1 I r1) = {}
+    ∨ A(r1,r1*|ii ; a|r2,r1*) ∧ (r1 I r1*) = {}
+    ∨ A(r1,r2|b ; a|r1*,r2*) ∧ (r1 I r2) = {}
+    ∨ A(r1,r2*|ii ; a|r*,r1*) ∧ (r1 I r2*) = {}
+ ∨    A(r,r1*|ii ; ii|r1,r2) ∧ (r1* I r) = {}
+    ∨ A(r1|a ; ii|r2) ∧ ({} I r1) = {}
+    ∨ A(r1*|ii ; ii|r2) ∧ (r1* I r1*) = {}
+    ∨ A(r2,r1*|b ; ii|r2,r2*) ∧ (r1* I r2) = {}
+    ∨ A(r1*,r2*|ii ; ii|r*,r2) ∧ (r1* I r2*) = {}
+ ∨    A(r,r2|ii ; b|r1,r2*) ∧ (r2 I r) = {}
+    ∨ A(r1,r2|a ; b|r1*,r2*) ∧ (r2 I r1) = {}
+    ∨ A(r1*|ii ; b|r2*) ∧ ({} I r1*) = {}
+    ∨ X(r2|b ; b|r2|r2*) ∧ (r2 I r2) = {}
+    ∨ (A(r2*|ii|r*) ; A(r2|b|r2*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2*|ii|r*))
+ = « Inv collapses X to A »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ A(r,r1|a ; ii|r1,r1*) ∧ (r I r1) = {}
+    ∨ A(r,r1*|ii ; ii|r1,r2) ∧ (r I r1*) = {}
+    ∨ A(r,r2|b ; ii|r1,r2*) ∧ (r I r2) = {}
+    ∨ A(r,r2*|ii ; ii|r*,r1) ∧ (r I r2*) = {}
+ ∨    A(r|ii ; a|r1*) ∧ ({} I r) = {}
+    ∨ A(r1|a ; a|r1*) ∧ (r1 I r1) = {}
+    ∨ A(r1,r1*|ii ; a|r2,r1*) ∧ (r1 I r1*) = {}
+    ∨ A(r1,r2|b ; a|r1*,r2*) ∧ (r1 I r2) = {}
+    ∨ A(r1,r2*|ii ; a|r*,r1*) ∧ (r1 I r2*) = {}
+ ∨    A(r,r1*|ii ; ii|r1,r2) ∧ (r1* I r) = {}
+    ∨ A(r1|a ; ii|r2) ∧ ({} I r1) = {}
+    ∨ A(r1*|ii ; ii|r2) ∧ (r1* I r1*) = {}
+    ∨ A(r2,r1*|b ; ii|r2,r2*) ∧ (r1* I r2) = {}
+    ∨ A(r1*,r2*|ii ; ii|r*,r2) ∧ (r1* I r2*) = {}
+ ∨    A(r,r2|ii ; b|r1,r2*) ∧ (r2 I r) = {}
+    ∨ A(r1,r2|a ; b|r1*,r2*) ∧ (r2 I r1) = {}
+    ∨ A(r1*|ii ; b|r2*) ∧ ({} I r1*) = {}
+    ∨ A(r2|b ; b|r2*) ∧ (r2 I r2) = {}
+    ∨ (A(r2*|ii|r*) ; A(r2|b|r2*))
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2*|ii|r*))
+ = « A-then-A »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ A(r,r1|a ; ii|r1,r1*) ∧ (r I r1) = {}
+    ∨ A(r,r1*|ii ; ii|r1,r2) ∧ (r I r1*) = {}
+    ∨ A(r,r2|b ; ii|r1,r2*) ∧ (r I r2) = {}
+    ∨ A(r,r2*|ii ; ii|r*,r1) ∧ (r I r2*) = {}
+ ∨    A(r|ii ; a|r1*) ∧ ({} I r) = {}
+    ∨ A(r1|a ; a|r1*) ∧ (r1 I r1) = {}
+    ∨ A(r1,r1*|ii ; a|r2,r1*) ∧ (r1 I r1*) = {}
+    ∨ A(r1,r2|b ; a|r1*,r2*) ∧ (r1 I r2) = {}
+    ∨ A(r1,r2*|ii ; a|r*,r1*) ∧ (r1 I r2*) = {}
+ ∨    A(r,r1*|ii ; ii|r1,r2) ∧ (r1* I r) = {}
+    ∨ A(r1|a ; ii|r2) ∧ ({} I r1) = {}
+    ∨ A(r1*|ii ; ii|r2) ∧ (r1* I r1*) = {}
+    ∨ A(r2,r1*|b ; ii|r2,r2*) ∧ (r1* I r2) = {}
+    ∨ A(r1*,r2*|ii ; ii|r*,r2) ∧ (r1* I r2*) = {}
+ ∨    A(r,r2|ii ; b|r1,r2*) ∧ (r2 I r) = {}
+    ∨ A(r1,r2|a ; b|r1*,r2*) ∧ (r2 I r1) = {}
+    ∨ A(r1*|ii ; b|r2*) ∧ ({} I r1*) = {}
+    ∨ A(r2|b ; b|r2*) ∧ (r2 I r2) = {}
+    ∨ X(r2,r2*|ii ; b|r2,r2*|r*,r2*) ∧ (r2 I r2*) = {}
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2*|ii|r*))
+ = « Inv collapses X to A »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ A(r,r1|a ; ii|r1,r1*) ∧ (r I r1) = {}
+    ∨ A(r,r1*|ii ; ii|r1,r2) ∧ (r I r1*) = {}
+    ∨ A(r,r2|b ; ii|r1,r2*) ∧ (r I r2) = {}
+    ∨ A(r,r2*|ii ; ii|r*,r1) ∧ (r I r2*) = {}
+ ∨    A(r|ii ; a|r1*) ∧ ({} I r) = {}
+    ∨ A(r1|a ; a|r1*) ∧ (r1 I r1) = {}
+    ∨ A(r1,r1*|ii ; a|r2,r1*) ∧ (r1 I r1*) = {}
+    ∨ A(r1,r2|b ; a|r1*,r2*) ∧ (r1 I r2) = {}
+    ∨ A(r1,r2*|ii ; a|r*,r1*) ∧ (r1 I r2*) = {}
+ ∨    A(r,r1*|ii ; ii|r1,r2) ∧ (r1* I r) = {}
+    ∨ A(r1|a ; ii|r2) ∧ ({} I r1) = {}
+    ∨ A(r1*|ii ; ii|r2) ∧ (r1* I r1*) = {}
+    ∨ A(r2,r1*|b ; ii|r2,r2*) ∧ (r1* I r2) = {}
+    ∨ A(r1*,r2*|ii ; ii|r*,r2) ∧ (r1* I r2*) = {}
+ ∨    A(r,r2|ii ; b|r1,r2*) ∧ (r2 I r) = {}
+    ∨ A(r1,r2|a ; b|r1*,r2*) ∧ (r2 I r1) = {}
+    ∨ A(r1*|ii ; b|r2*) ∧ ({} I r1*) = {}
+    ∨ A(r2|b ; b|r2*) ∧ (r2 I r2) = {}
+    ∨ A(r2,r2*|ii ; b|r*,r2*) ∧ (r2 I r2*) = {}
+ ∨ (  A(r|ii|r1) ∨ A(r1|a|r1*) ∨ A(r1*|ii|r2) ∨ A(r2|b|r2*) ∨ A(r2*|ii|r*)
+    ; A(r2*|ii|r*))
+ = « or-;-distr »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ A(r,r1|a ; ii|r1,r1*) ∧ (r I r1) = {}
+    ∨ A(r,r1*|ii ; ii|r1,r2) ∧ (r I r1*) = {}
+    ∨ A(r,r2|b ; ii|r1,r2*) ∧ (r I r2) = {}
+    ∨ A(r,r2*|ii ; ii|r*,r1) ∧ (r I r2*) = {}
+ ∨    A(r|ii ; a|r1*) ∧ ({} I r) = {}
+    ∨ A(r1|a ; a|r1*) ∧ (r1 I r1) = {}
+    ∨ A(r1,r1*|ii ; a|r2,r1*) ∧ (r1 I r1*) = {}
+    ∨ A(r1,r2|b ; a|r1*,r2*) ∧ (r1 I r2) = {}
+    ∨ A(r1,r2*|ii ; a|r*,r1*) ∧ (r1 I r2*) = {}
+ ∨    A(r,r1*|ii ; ii|r1,r2) ∧ (r1* I r) = {}
+    ∨ A(r1|a ; ii|r2) ∧ ({} I r1) = {}
+    ∨ A(r1*|ii ; ii|r2) ∧ (r1* I r1*) = {}
+    ∨ A(r2,r1*|b ; ii|r2,r2*) ∧ (r1* I r2) = {}
+    ∨ A(r1*,r2*|ii ; ii|r*,r2) ∧ (r1* I r2*) = {}
+ ∨    A(r,r2|ii ; b|r1,r2*) ∧ (r2 I r) = {}
+    ∨ A(r1,r2|a ; b|r1*,r2*) ∧ (r2 I r1) = {}
+    ∨ A(r1*|ii ; b|r2*) ∧ ({} I r1*) = {}
+    ∨ A(r2|b ; b|r2*) ∧ (r2 I r2) = {}
+    ∨ A(r2,r2*|ii ; b|r*,r2*) ∧ (r2 I r2*) = {}
+ ∨    (A(r|ii|r1) ; A(r2*|ii|r*))
+    ∨ (A(r1|a|r1*) ; A(r2*|ii|r*))
+    ∨ (A(r1*|ii|r2) ; A(r2*|ii|r*))
+    ∨ (A(r2|b|r2*) ; A(r2*|ii|r*))
+    ∨ (A(r2*|ii|r*) ; A(r2*|ii|r*))
+ = « A-then-A »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ A(r,r1|a ; ii|r1,r1*) ∧ (r I r1) = {}
+    ∨ A(r,r1*|ii ; ii|r1,r2) ∧ (r I r1*) = {}
+    ∨ A(r,r2|b ; ii|r1,r2*) ∧ (r I r2) = {}
+    ∨ A(r,r2*|ii ; ii|r*,r1) ∧ (r I r2*) = {}
+ ∨    A(r|ii ; a|r1*) ∧ ({} I r) = {}
+    ∨ A(r1|a ; a|r1*) ∧ (r1 I r1) = {}
+    ∨ A(r1,r1*|ii ; a|r2,r1*) ∧ (r1 I r1*) = {}
+    ∨ A(r1,r2|b ; a|r1*,r2*) ∧ (r1 I r2) = {}
+    ∨ A(r1,r2*|ii ; a|r*,r1*) ∧ (r1 I r2*) = {}
+ ∨    A(r,r1*|ii ; ii|r1,r2) ∧ (r1* I r) = {}
+    ∨ A(r1|a ; ii|r2) ∧ ({} I r1) = {}
+    ∨ A(r1*|ii ; ii|r2) ∧ (r1* I r1*) = {}
+    ∨ A(r2,r1*|b ; ii|r2,r2*) ∧ (r1* I r2) = {}
+    ∨ A(r1*,r2*|ii ; ii|r*,r2) ∧ (r1* I r2*) = {}
+ ∨    A(r,r2|ii ; b|r1,r2*) ∧ (r2 I r) = {}
+    ∨ A(r1,r2|a ; b|r1*,r2*) ∧ (r2 I r1) = {}
+    ∨ A(r1*|ii ; b|r2*) ∧ ({} I r1*) = {}
+    ∨ A(r2|b ; b|r2*) ∧ (r2 I r2) = {}
+    ∨ A(r2,r2*|ii ; b|r*,r2*) ∧ (r2 I r2*) = {}
+ ∨    X(r,r2*|ii ; ii|r,r2*|r*,r1) ∧ (r2* I r) = {}
+    ∨ (A(r1|a|r1*) ; A(r2*|ii|r*))
+    ∨ (A(r1*|ii|r2) ; A(r2*|ii|r*))
+    ∨ (A(r2|b|r2*) ; A(r2*|ii|r*))
+    ∨ (A(r2*|ii|r*) ; A(r2*|ii|r*))
+ = « Inv collapses X to A »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ A(r,r1|a ; ii|r1,r1*) ∧ (r I r1) = {}
+    ∨ A(r,r1*|ii ; ii|r1,r2) ∧ (r I r1*) = {}
+    ∨ A(r,r2|b ; ii|r1,r2*) ∧ (r I r2) = {}
+    ∨ A(r,r2*|ii ; ii|r*,r1) ∧ (r I r2*) = {}
+ ∨    A(r|ii ; a|r1*) ∧ ({} I r) = {}
+    ∨ A(r1|a ; a|r1*) ∧ (r1 I r1) = {}
+    ∨ A(r1,r1*|ii ; a|r2,r1*) ∧ (r1 I r1*) = {}
+    ∨ A(r1,r2|b ; a|r1*,r2*) ∧ (r1 I r2) = {}
+    ∨ A(r1,r2*|ii ; a|r*,r1*) ∧ (r1 I r2*) = {}
+ ∨    A(r,r1*|ii ; ii|r1,r2) ∧ (r1* I r) = {}
+    ∨ A(r1|a ; ii|r2) ∧ ({} I r1) = {}
+    ∨ A(r1*|ii ; ii|r2) ∧ (r1* I r1*) = {}
+    ∨ A(r2,r1*|b ; ii|r2,r2*) ∧ (r1* I r2) = {}
+    ∨ A(r1*,r2*|ii ; ii|r*,r2) ∧ (r1* I r2*) = {}
+ ∨    A(r,r2|ii ; b|r1,r2*) ∧ (r2 I r) = {}
+    ∨ A(r1,r2|a ; b|r1*,r2*) ∧ (r2 I r1) = {}
+    ∨ A(r1*|ii ; b|r2*) ∧ ({} I r1*) = {}
+    ∨ A(r2|b ; b|r2*) ∧ (r2 I r2) = {}
+    ∨ A(r2,r2*|ii ; b|r*,r2*) ∧ (r2 I r2*) = {}
+ ∨    A(r,r2*|ii ; ii|r*,r1) ∧ (r2* I r) = {}
+    ∨ (A(r1|a|r1*) ; A(r2*|ii|r*))
+    ∨ (A(r1*|ii|r2) ; A(r2*|ii|r*))
+    ∨ (A(r2|b|r2*) ; A(r2*|ii|r*))
+    ∨ (A(r2*|ii|r*) ; A(r2*|ii|r*))
+ = « A-then-A »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ A(r,r1|a ; ii|r1,r1*) ∧ (r I r1) = {}
+    ∨ A(r,r1*|ii ; ii|r1,r2) ∧ (r I r1*) = {}
+    ∨ A(r,r2|b ; ii|r1,r2*) ∧ (r I r2) = {}
+    ∨ A(r,r2*|ii ; ii|r*,r1) ∧ (r I r2*) = {}
+ ∨    A(r|ii ; a|r1*) ∧ ({} I r) = {}
+    ∨ A(r1|a ; a|r1*) ∧ (r1 I r1) = {}
+    ∨ A(r1,r1*|ii ; a|r2,r1*) ∧ (r1 I r1*) = {}
+    ∨ A(r1,r2|b ; a|r1*,r2*) ∧ (r1 I r2) = {}
+    ∨ A(r1,r2*|ii ; a|r*,r1*) ∧ (r1 I r2*) = {}
+ ∨    A(r,r1*|ii ; ii|r1,r2) ∧ (r1* I r) = {}
+    ∨ A(r1|a ; ii|r2) ∧ ({} I r1) = {}
+    ∨ A(r1*|ii ; ii|r2) ∧ (r1* I r1*) = {}
+    ∨ A(r2,r1*|b ; ii|r2,r2*) ∧ (r1* I r2) = {}
+    ∨ A(r1*,r2*|ii ; ii|r*,r2) ∧ (r1* I r2*) = {}
+ ∨    A(r,r2|ii ; b|r1,r2*) ∧ (r2 I r) = {}
+    ∨ A(r1,r2|a ; b|r1*,r2*) ∧ (r2 I r1) = {}
+    ∨ A(r1*|ii ; b|r2*) ∧ ({} I r1*) = {}
+    ∨ A(r2|b ; b|r2*) ∧ (r2 I r2) = {}
+    ∨ A(r2,r2*|ii ; b|r*,r2*) ∧ (r2 I r2*) = {}
+ ∨    A(r,r2*|ii ; ii|r*,r1) ∧ (r2* I r) = {}
+    ∨ X(r1,r2*|a ; ii|r1,r2*|r*,r1*) ∧ (r2* I r1) = {}
+    ∨ (A(r1*|ii|r2) ; A(r2*|ii|r*))
+    ∨ (A(r2|b|r2*) ; A(r2*|ii|r*))
+    ∨ (A(r2*|ii|r*) ; A(r2*|ii|r*))
+ = « Inv collapses X to A »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ A(r,r1|a ; ii|r1,r1*) ∧ (r I r1) = {}
+    ∨ A(r,r1*|ii ; ii|r1,r2) ∧ (r I r1*) = {}
+    ∨ A(r,r2|b ; ii|r1,r2*) ∧ (r I r2) = {}
+    ∨ A(r,r2*|ii ; ii|r*,r1) ∧ (r I r2*) = {}
+ ∨    A(r|ii ; a|r1*) ∧ ({} I r) = {}
+    ∨ A(r1|a ; a|r1*) ∧ (r1 I r1) = {}
+    ∨ A(r1,r1*|ii ; a|r2,r1*) ∧ (r1 I r1*) = {}
+    ∨ A(r1,r2|b ; a|r1*,r2*) ∧ (r1 I r2) = {}
+    ∨ A(r1,r2*|ii ; a|r*,r1*) ∧ (r1 I r2*) = {}
+ ∨    A(r,r1*|ii ; ii|r1,r2) ∧ (r1* I r) = {}
+    ∨ A(r1|a ; ii|r2) ∧ ({} I r1) = {}
+    ∨ A(r1*|ii ; ii|r2) ∧ (r1* I r1*) = {}
+    ∨ A(r2,r1*|b ; ii|r2,r2*) ∧ (r1* I r2) = {}
+    ∨ A(r1*,r2*|ii ; ii|r*,r2) ∧ (r1* I r2*) = {}
+ ∨    A(r,r2|ii ; b|r1,r2*) ∧ (r2 I r) = {}
+    ∨ A(r1,r2|a ; b|r1*,r2*) ∧ (r2 I r1) = {}
+    ∨ A(r1*|ii ; b|r2*) ∧ ({} I r1*) = {}
+    ∨ A(r2|b ; b|r2*) ∧ (r2 I r2) = {}
+    ∨ A(r2,r2*|ii ; b|r*,r2*) ∧ (r2 I r2*) = {}
+ ∨    A(r,r2*|ii ; ii|r*,r1) ∧ (r2* I r) = {}
+    ∨ A(r1,r2*|a ; ii|r*,r1*) ∧ (r2* I r1) = {}
+    ∨ (A(r1*|ii|r2) ; A(r2*|ii|r*))
+    ∨ (A(r2|b|r2*) ; A(r2*|ii|r*))
+    ∨ (A(r2*|ii|r*) ; A(r2*|ii|r*))
+ = « A-then-A »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ A(r,r1|a ; ii|r1,r1*) ∧ (r I r1) = {}
+    ∨ A(r,r1*|ii ; ii|r1,r2) ∧ (r I r1*) = {}
+    ∨ A(r,r2|b ; ii|r1,r2*) ∧ (r I r2) = {}
+    ∨ A(r,r2*|ii ; ii|r*,r1) ∧ (r I r2*) = {}
+ ∨    A(r|ii ; a|r1*) ∧ ({} I r) = {}
+    ∨ A(r1|a ; a|r1*) ∧ (r1 I r1) = {}
+    ∨ A(r1,r1*|ii ; a|r2,r1*) ∧ (r1 I r1*) = {}
+    ∨ A(r1,r2|b ; a|r1*,r2*) ∧ (r1 I r2) = {}
+    ∨ A(r1,r2*|ii ; a|r*,r1*) ∧ (r1 I r2*) = {}
+ ∨    A(r,r1*|ii ; ii|r1,r2) ∧ (r1* I r) = {}
+    ∨ A(r1|a ; ii|r2) ∧ ({} I r1) = {}
+    ∨ A(r1*|ii ; ii|r2) ∧ (r1* I r1*) = {}
+    ∨ A(r2,r1*|b ; ii|r2,r2*) ∧ (r1* I r2) = {}
+    ∨ A(r1*,r2*|ii ; ii|r*,r2) ∧ (r1* I r2*) = {}
+ ∨    A(r,r2|ii ; b|r1,r2*) ∧ (r2 I r) = {}
+    ∨ A(r1,r2|a ; b|r1*,r2*) ∧ (r2 I r1) = {}
+    ∨ A(r1*|ii ; b|r2*) ∧ ({} I r1*) = {}
+    ∨ A(r2|b ; b|r2*) ∧ (r2 I r2) = {}
+    ∨ A(r2,r2*|ii ; b|r*,r2*) ∧ (r2 I r2*) = {}
+ ∨    A(r,r2*|ii ; ii|r*,r1) ∧ (r2* I r) = {}
+    ∨ A(r1,r2*|a ; ii|r*,r1*) ∧ (r2* I r1) = {}
+    ∨ X(r1*,r2*|ii ; ii|r1*,r2*|r*,r2) ∧ (r2* I r1*) = {}
+    ∨ (A(r2|b|r2*) ; A(r2*|ii|r*))
+    ∨ (A(r2*|ii|r*) ; A(r2*|ii|r*))
+ = « Inv collapses X to A »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ A(r,r1|a ; ii|r1,r1*) ∧ (r I r1) = {}
+    ∨ A(r,r1*|ii ; ii|r1,r2) ∧ (r I r1*) = {}
+    ∨ A(r,r2|b ; ii|r1,r2*) ∧ (r I r2) = {}
+    ∨ A(r,r2*|ii ; ii|r*,r1) ∧ (r I r2*) = {}
+ ∨    A(r|ii ; a|r1*) ∧ ({} I r) = {}
+    ∨ A(r1|a ; a|r1*) ∧ (r1 I r1) = {}
+    ∨ A(r1,r1*|ii ; a|r2,r1*) ∧ (r1 I r1*) = {}
+    ∨ A(r1,r2|b ; a|r1*,r2*) ∧ (r1 I r2) = {}
+    ∨ A(r1,r2*|ii ; a|r*,r1*) ∧ (r1 I r2*) = {}
+ ∨    A(r,r1*|ii ; ii|r1,r2) ∧ (r1* I r) = {}
+    ∨ A(r1|a ; ii|r2) ∧ ({} I r1) = {}
+    ∨ A(r1*|ii ; ii|r2) ∧ (r1* I r1*) = {}
+    ∨ A(r2,r1*|b ; ii|r2,r2*) ∧ (r1* I r2) = {}
+    ∨ A(r1*,r2*|ii ; ii|r*,r2) ∧ (r1* I r2*) = {}
+ ∨    A(r,r2|ii ; b|r1,r2*) ∧ (r2 I r) = {}
+    ∨ A(r1,r2|a ; b|r1*,r2*) ∧ (r2 I r1) = {}
+    ∨ A(r1*|ii ; b|r2*) ∧ ({} I r1*) = {}
+    ∨ A(r2|b ; b|r2*) ∧ (r2 I r2) = {}
+    ∨ A(r2,r2*|ii ; b|r*,r2*) ∧ (r2 I r2*) = {}
+ ∨    A(r,r2*|ii ; ii|r*,r1) ∧ (r2* I r) = {}
+    ∨ A(r1,r2*|a ; ii|r*,r1*) ∧ (r2* I r1) = {}
+    ∨ A(r1*,r2*|ii ; ii|r*,r2) ∧ (r2* I r1*) = {}
+    ∨ (A(r2|b|r2*) ; A(r2*|ii|r*))
+    ∨ (A(r2*|ii|r*) ; A(r2*|ii|r*))
+ = « A-then-A »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ A(r,r1|a ; ii|r1,r1*) ∧ (r I r1) = {}
+    ∨ A(r,r1*|ii ; ii|r1,r2) ∧ (r I r1*) = {}
+    ∨ A(r,r2|b ; ii|r1,r2*) ∧ (r I r2) = {}
+    ∨ A(r,r2*|ii ; ii|r*,r1) ∧ (r I r2*) = {}
+ ∨    A(r|ii ; a|r1*) ∧ ({} I r) = {}
+    ∨ A(r1|a ; a|r1*) ∧ (r1 I r1) = {}
+    ∨ A(r1,r1*|ii ; a|r2,r1*) ∧ (r1 I r1*) = {}
+    ∨ A(r1,r2|b ; a|r1*,r2*) ∧ (r1 I r2) = {}
+    ∨ A(r1,r2*|ii ; a|r*,r1*) ∧ (r1 I r2*) = {}
+ ∨    A(r,r1*|ii ; ii|r1,r2) ∧ (r1* I r) = {}
+    ∨ A(r1|a ; ii|r2) ∧ ({} I r1) = {}
+    ∨ A(r1*|ii ; ii|r2) ∧ (r1* I r1*) = {}
+    ∨ A(r2,r1*|b ; ii|r2,r2*) ∧ (r1* I r2) = {}
+    ∨ A(r1*,r2*|ii ; ii|r*,r2) ∧ (r1* I r2*) = {}
+ ∨    A(r,r2|ii ; b|r1,r2*) ∧ (r2 I r) = {}
+    ∨ A(r1,r2|a ; b|r1*,r2*) ∧ (r2 I r1) = {}
+    ∨ A(r1*|ii ; b|r2*) ∧ ({} I r1*) = {}
+    ∨ A(r2|b ; b|r2*) ∧ (r2 I r2) = {}
+    ∨ A(r2,r2*|ii ; b|r*,r2*) ∧ (r2 I r2*) = {}
+ ∨    A(r,r2*|ii ; ii|r*,r1) ∧ (r2* I r) = {}
+    ∨ A(r1,r2*|a ; ii|r*,r1*) ∧ (r2* I r1) = {}
+    ∨ A(r1*,r2*|ii ; ii|r*,r2) ∧ (r2* I r1*) = {}
+    ∨ X(r2|b ; ii|r2,r2*|r*) ∧ ({} I r2) = {}
+    ∨ (A(r2*|ii|r*) ; A(r2*|ii|r*))
+ = « Inv collapses X to A »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ A(r,r1|a ; ii|r1,r1*) ∧ (r I r1) = {}
+    ∨ A(r,r1*|ii ; ii|r1,r2) ∧ (r I r1*) = {}
+    ∨ A(r,r2|b ; ii|r1,r2*) ∧ (r I r2) = {}
+    ∨ A(r,r2*|ii ; ii|r*,r1) ∧ (r I r2*) = {}
+ ∨    A(r|ii ; a|r1*) ∧ ({} I r) = {}
+    ∨ A(r1|a ; a|r1*) ∧ (r1 I r1) = {}
+    ∨ A(r1,r1*|ii ; a|r2,r1*) ∧ (r1 I r1*) = {}
+    ∨ A(r1,r2|b ; a|r1*,r2*) ∧ (r1 I r2) = {}
+    ∨ A(r1,r2*|ii ; a|r*,r1*) ∧ (r1 I r2*) = {}
+ ∨    A(r,r1*|ii ; ii|r1,r2) ∧ (r1* I r) = {}
+    ∨ A(r1|a ; ii|r2) ∧ ({} I r1) = {}
+    ∨ A(r1*|ii ; ii|r2) ∧ (r1* I r1*) = {}
+    ∨ A(r2,r1*|b ; ii|r2,r2*) ∧ (r1* I r2) = {}
+    ∨ A(r1*,r2*|ii ; ii|r*,r2) ∧ (r1* I r2*) = {}
+ ∨    A(r,r2|ii ; b|r1,r2*) ∧ (r2 I r) = {}
+    ∨ A(r1,r2|a ; b|r1*,r2*) ∧ (r2 I r1) = {}
+    ∨ A(r1*|ii ; b|r2*) ∧ ({} I r1*) = {}
+    ∨ A(r2|b ; b|r2*) ∧ (r2 I r2) = {}
+    ∨ A(r2,r2*|ii ; b|r*,r2*) ∧ (r2 I r2*) = {}
+ ∨    A(r,r2*|ii ; ii|r*,r1) ∧ (r2* I r) = {}
+    ∨ A(r1,r2*|a ; ii|r*,r1*) ∧ (r2* I r1) = {}
+    ∨ A(r1*,r2*|ii ; ii|r*,r2) ∧ (r2* I r1*) = {}
+    ∨ A(r2|b ; ii|r*) ∧ ({} I r2) = {}
+    ∨ (A(r2*|ii|r*) ; A(r2*|ii|r*))
+ = « A-then-A »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ A(r,r1|a ; ii|r1,r1*) ∧ (r I r1) = {}
+    ∨ A(r,r1*|ii ; ii|r1,r2) ∧ (r I r1*) = {}
+    ∨ A(r,r2|b ; ii|r1,r2*) ∧ (r I r2) = {}
+    ∨ A(r,r2*|ii ; ii|r*,r1) ∧ (r I r2*) = {}
+ ∨    A(r|ii ; a|r1*) ∧ ({} I r) = {}
+    ∨ A(r1|a ; a|r1*) ∧ (r1 I r1) = {}
+    ∨ A(r1,r1*|ii ; a|r2,r1*) ∧ (r1 I r1*) = {}
+    ∨ A(r1,r2|b ; a|r1*,r2*) ∧ (r1 I r2) = {}
+    ∨ A(r1,r2*|ii ; a|r*,r1*) ∧ (r1 I r2*) = {}
+ ∨    A(r,r1*|ii ; ii|r1,r2) ∧ (r1* I r) = {}
+    ∨ A(r1|a ; ii|r2) ∧ ({} I r1) = {}
+    ∨ A(r1*|ii ; ii|r2) ∧ (r1* I r1*) = {}
+    ∨ A(r2,r1*|b ; ii|r2,r2*) ∧ (r1* I r2) = {}
+    ∨ A(r1*,r2*|ii ; ii|r*,r2) ∧ (r1* I r2*) = {}
+ ∨    A(r,r2|ii ; b|r1,r2*) ∧ (r2 I r) = {}
+    ∨ A(r1,r2|a ; b|r1*,r2*) ∧ (r2 I r1) = {}
+    ∨ A(r1*|ii ; b|r2*) ∧ ({} I r1*) = {}
+    ∨ A(r2|b ; b|r2*) ∧ (r2 I r2) = {}
+    ∨ A(r2,r2*|ii ; b|r*,r2*) ∧ (r2 I r2*) = {}
+ ∨    A(r,r2*|ii ; ii|r*,r1) ∧ (r2* I r) = {}
+    ∨ A(r1,r2*|a ; ii|r*,r1*) ∧ (r2* I r1) = {}
+    ∨ A(r1*,r2*|ii ; ii|r*,r2) ∧ (r2* I r1*) = {}
+    ∨ A(r2|b ; ii|r*) ∧ ({} I r2) = {}
+    ∨ X(r2*|ii ; ii|r2*|r*) ∧ (r2* I r2*) = {}
+ = « Inv collapses X to A »
+      A(r|ii ; ii|r1) ∧ (r I r) = {}
+    ∨ A(r,r1|a ; ii|r1,r1*) ∧ (r I r1) = {}
+    ∨ A(r,r1*|ii ; ii|r1,r2) ∧ (r I r1*) = {}
+    ∨ A(r,r2|b ; ii|r1,r2*) ∧ (r I r2) = {}
+    ∨ A(r,r2*|ii ; ii|r*,r1) ∧ (r I r2*) = {}
+ ∨    A(r|ii ; a|r1*) ∧ ({} I r) = {}
+    ∨ A(r1|a ; a|r1*) ∧ (r1 I r1) = {}
+    ∨ A(r1,r1*|ii ; a|r2,r1*) ∧ (r1 I r1*) = {}
+    ∨ A(r1,r2|b ; a|r1*,r2*) ∧ (r1 I r2) = {}
+    ∨ A(r1,r2*|ii ; a|r*,r1*) ∧ (r1 I r2*) = {}
+ ∨    A(r,r1*|ii ; ii|r1,r2) ∧ (r1* I r) = {}
+    ∨ A(r1|a ; ii|r2) ∧ ({} I r1) = {}
+    ∨ A(r1*|ii ; ii|r2) ∧ (r1* I r1*) = {}
+    ∨ A(r2,r1*|b ; ii|r2,r2*) ∧ (r1* I r2) = {}
+    ∨ A(r1*,r2*|ii ; ii|r*,r2) ∧ (r1* I r2*) = {}
+ ∨    A(r,r2|ii ; b|r1,r2*) ∧ (r2 I r) = {}
+    ∨ A(r1,r2|a ; b|r1*,r2*) ∧ (r2 I r1) = {}
+    ∨ A(r1*|ii ; b|r2*) ∧ ({} I r1*) = {}
+    ∨ A(r2|b ; b|r2*) ∧ (r2 I r2) = {}
+    ∨ A(r2,r2*|ii ; b|r*,r2*) ∧ (r2 I r2*) = {}
+ ∨    A(r,r2*|ii ; ii|r*,r1) ∧ (r2* I r) = {}
+    ∨ A(r1,r2*|a ; ii|r*,r1*) ∧ (r2* I r1) = {}
+    ∨ A(r1*,r2*|ii ; ii|r*,r2) ∧ (r2* I r1*) = {}
+    ∨ A(r2|b ; ii|r*) ∧ ({} I r2) = {}
+    ∨ A(r2*|ii ; ii|r*) ∧ (r2* I r2*) = {}
+ = « simplify »
+      A(r,r1|a ; ii|r1,r1*)
+    ∨ A(r,r1*|ii ; ii|r1,r2)
+    ∨ A(r,r2|b ; ii|r1,r2*)
+    ∨ A(r,r2*|ii ; ii|r*,r1)
+ ∨    A(r|ii ; a|r1*)
+    ∨ A(r1,r1*|ii ; a|r2,r1*)
+    ∨ A(r1,r2|b ; a|r1*,r2*)
+    ∨ A(r1,r2*|ii ; a|r*,r1*)
+ ∨    A(r,r1*|ii ; ii|r1,r2)
+    ∨ A(r1|a ; ii|r2)
+    ∨ A(r2,r1*|b ; ii|r2,r2*)
+    ∨ A(r1*,r2*|ii ; ii|r*,r2)
+ ∨    A(r,r2|ii ; b|r1,r2*)
+    ∨ A(r1,r2|a ; b|r1*,r2*)
+    ∨ A(r1*|ii ; b|r2*)
+    ∨ A(r2,r2*|ii ; b|r*,r2*)
+ ∨    A(r,r2*|ii ; ii|r*,r1)
+    ∨ A(r1,r2*|a ; ii|r*,r1*)
+    ∨ A(r1*,r2*|ii ; ii|r*,r2)
+    ∨ A(r2|b ; ii|r*)
+ = « inv-chk : applicable deeper »
+   [1mfalse[0m ∨ [1mfalse[0m ∨ [1mfalse[0m ∨ [1mfalse[0m
+ ∨ A(r|ii ; a|r1*) ∨ [1mfalse[0m ∨ [1mfalse[0m ∨ [1mfalse[0m
+ ∨ [1mfalse[0m ∨ A(r1|a ; ii|r2) ∨ [1mfalse[0m ∨ [1mfalse[0m
+ ∨ [1mfalse[0m ∨ [1mfalse[0m ∨ A(r1*|ii ; b|r2*) ∨ [1mfalse[0m
+ ∨ [1mfalse[0m ∨ [1mfalse[0m ∨ [1mfalse[0m ∨ A(r2|b ; ii|r*)
+ = « simplify »
+A(r|ii ; a|r1*) ∨ A(r1|a ; ii|r2) ∨ A(r1*|ii ; b|r2*) ∨ A(r2|b ; ii|r*)
+ = « inv-chk : applicable deeper »
+A(r|ii ; a|r1*) ∨ A(r1|a ; ii|r2) ∨ A(r1*|ii ; b|r2*) ∨ A(r2|b ; ii|r*)
