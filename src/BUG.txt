@@ -29,3 +29,30 @@ Invariant:  [r|r1,r2,r1*,r2*|r*] ∧ [r1|r1*] ∧ [r2|r2*]
 *Root> rput invVPar
 [r|r1,r2,r1*,r2*|r*] ∧ [r1|r1*] ∧ [r2|r2*]
 *Root>
+
+
+It should go from
+
+[r|r1,r2,r1*,r2*|r*] ∧ [r1|r1*] ∧ [r2|r2*]
+
+A(r,r1|a ; ii|r1,r2,r1*) -- fail
+A(r,r2|b ; ii|r1,r2,r2*) -- fail
+A(r,r1*,r2*|ii ; ii|r*,r1,r2) -- fail
+A(r|ii ; a|r2,r1*) -- OK
+A(r1,r2|b ; a|r1*,r2*) -- OK
+A(r1,r1*,r2*|ii ; a|r*,r1*) -- fail
+A(r|ii ; b|r1,r2*) -- OK
+A(r1,r2|a ; b|r1*,r2*) -- OK
+A(r2,r1*,r2*|ii ; b|r*,r2*) -- fail
+A(r,r1*,r2*|ii ; ii|r*,r1,r2) -- fail
+A(r1,r2*|a ; ii|r*) -- OK
+A(r2,r1*|b ; ii|r*) -- OK
+
+to
+
+A(r|ii;a|r2,r1*)
+A(r1,r2|b;a|r1*,r2*)
+A(r|ii;b|r1,r2*)
+A(r1,r2|a;b|r1*,r2*)
+A(r1,r2*|a;ii|r*)
+A(r2,r1*|b;ii|r*) 
