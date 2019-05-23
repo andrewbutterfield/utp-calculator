@@ -3,3 +3,5 @@ upload.zip
 *.gz
 *-eps-converted-to.pdf
 .stack-work
+*.out
+UTPCALC.pdf

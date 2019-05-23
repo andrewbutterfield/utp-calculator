@@ -1,0 +1,18 @@
+My affiliation is incorrect - you have  the original line from
+Trinity College Dublin   to Trinity College, Dublin, Ireland
+
+The name of my institution for academic accreditation purposes is "Trinity College Dublin" - no comma between College and Dublin
+
+You can have  "Trinity College Dublin, Ireland"  if you want.
+
+On p5, the sentence just before the numbered listing (7th line) has a typo after the opening parenthesis "(he prompt..."
+This should be "(the prompt ..."
+
+On p13, 2nd line after code snippet at top    - spaces have been removed in a string
+
+In proof:  and so its use here is equivalent to ppa ";;", while ....
+
+In submitted paper: and so its use here is equivalent to ppa " ;; ", while ....
+
+The spaces in the quoted string around the ;; are important and should be re-inserted as the illustrate the behaviour of 'pad'
+which puts blanks around its arguments.
