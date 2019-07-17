@@ -3,3 +3,14 @@ upload.zip
 *.gz
 *-eps-converted-to.pdf
 .stack-work
+UTPCALC.fdb_latexmk
+UTPCALC.fls
+UTPCALC.log
+UTPCALC.pdf
+UTPCalc-MAIN.log
+UTPCalc-MAIN.pdf
+doc/UTPCALC.log
+doc/UTPCALC.pdf
+papers/UTP2016/LNCS-Springer_Copyright_Form.pdf
+papers/UTP2016/UTPCalc-UTP2016-MAIN.log
+papers/UTP2016/UTPCalc-UTP2016-revised.pdf
