@@ -1870,9 +1870,13 @@ invVChc = [r|lg1|lg2|r']
 aorb = actionA `vchc` actionB
 \end{code}
 \begin{verbatim}
-Q(aorb) = A(r|ii|r1) \/ A(r|ii|r2)
-          \/ A(r1|a|r1:) \/ A(r2|b|r2:)
-          \/ A(r1:|ii|r:) \/ A(r2:|ii|r:)
+Q(aorb) =
+A(r|ii|r1)
+A(r|ii|r2)
+A(r1|a|r1*)
+A(r2|b|r2*)
+A(r1*|ii|r*)
+A(r2*|ii|r*)
 \end{verbatim}
 \begin{code}
 q_aorb
@@ -1885,7 +1889,11 @@ q_aorb
 \end{code}
 
 \begin{verbatim}
-q_aorb^2 = A(r|a|r1:) \/ A(r|b|r2:) \/ A(r1|a|r:) \/ A(r2|b|r:)
+q_aorb^2 =
+A(r|ii ; a|r1*)
+A(r|ii ; b|r2*)
+A(r1|a ; ii|r*)
+A(r2|b ; ii|r*)
 \end{verbatim}
 \begin{code}
 q_aorb_2
@@ -1960,6 +1968,15 @@ q_awithb^2
  \/ A(r1,r2|ab|r1:,r2:)
  \/ A(r1,r2:|a|r:)
  \/ A(r2,r1:|b|r:)
+
+From BUG.txt with manual fix:
+
+A(r|ii;a|r2,r1*)
+A(r1,r2|b;a|r1*,r2*)
+A(r|ii;b|r1,r2*)
+A(r1,r2|a;b|r1*,r2*)
+A(r1,r2*|a;ii|r*)
+A(r2,r1*|b;ii|r*)
 \end{verbatim}
 
 
@@ -2043,6 +2060,13 @@ Q(itera)
  \/ A(r1|a|r1:)
  \/ A(r1:|ii|r2)
  \/ A(r2|ii|r:)
+
+A(r|ii|r2)
+A(r2|ii|r1)
+A(r1|a|r1*)
+A(r1*|ii|r2)
+A(r2|ii|r*))
+
 \end{verbatim}
 \begin{code}
 q_itera

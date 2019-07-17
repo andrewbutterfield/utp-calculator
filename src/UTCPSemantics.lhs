@@ -415,7 +415,7 @@ So, in effect, we need an outcome as follows (\figref{fig:seq-idea:view}):
 
 \begin{figure}[h]
   \centering
-\includegraphics{../images/seq-Comp-idea.eps}
+\includegraphics{../images/seq-comp-idea.eps}
   \caption{Sequential Composition view of the world}
   \label{fig:seq-idea:view}
 \end{figure}
