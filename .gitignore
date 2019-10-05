@@ -16,3 +16,7 @@ papers/UTP2016/UTPCalc-UTP2016-MAIN.log
 papers/UTP2016/UTPCalc-UTP2016-revised.pdf
 *.out
 UTPCALC.pdf
+UTPCalc-MAIN.aux
+UTPCalc-MAIN.fdb_latexmk
+UTPCalc-MAIN.fls
+UTPCalc-MAIN.toc
