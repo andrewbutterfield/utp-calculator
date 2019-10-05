@@ -2,15 +2,15 @@
 \usepackage[a4paper, margin=1.1in]{geometry}
 \usepackage{amssymb}
 \usepackage{amsmath}
-\usepackage{views}
+\usepackage{doc/views}
 \usepackage{graphicx}
 \usepackage{xcolor}
 \usepackage{listings}
 \usepackage{lstlhs}
-\usepackage{UTPCalc}
+\usepackage{doc/UTPCalc}
 \usepackage{mathpartir}
 \usepackage{epstopdf}
-\usepackage{doclevels}
+\usepackage{doc/doclevels}
 \usepackage{hyperref}
 \allowdisplaybreaks[2]
 % ----------------------------------------------------------------
@@ -52,80 +52,35 @@
 
 \begin{document}
 
-\input{Definitions}
+\input{doc/Definitions}
 
 \maketitle
 \tableofcontents
-%\newpage
-%\input{src/PrettyPrint.lhs}
-\newpage
-\input{src/CalcTypes.lhs}
-\newpage
-\input{src/CalcAlphabets.lhs}
-\newpage
-\input{src/CalcPredicates.lhs}
-\newpage
-\input{src/CalcSimplify.lhs}
-\newpage
-\input{src/CalcZipper.lhs}
-\newpage
-\input{src/CalcSteps.lhs}
-\newpage
-\input{src/CalcRecogniser.lhs}
-\newpage
-\input{src/CalcRun.lhs}
-\newpage
-\input{src/StdPrecedences.lhs}
-\newpage
-\input{src/StdPredicates.lhs}
-\newpage
-\input{src/StdLaws.lhs}
-%\newpage
-%\input{src/StdUTPPrecedences.lhs}
-%\newpage
-%\input{src/StdUTPPredicates.lhs}
-%\newpage
-%\input{src/StdUTPLaws.lhs}
-%     %
-%\appendix
 
+% \newpage
+% \input{src/POrd.lhs}
+% \newpage
+% \input{src/RGAlgebra}
 \newpage
-\input{src/CalcTypes}
-% Sequential PML
-%\newpage
-%\input{src/SeqPML.lhs}
-%% UTCP
-%\newpage
-%\input{src/UTCPSemantics.lhs}
-%\newpage
-%\input{src/UTCPLaws.lhs}
-%\newpage
-%\input{src/UTCPCReduce.lhs}
-%\newpage
-%\input{src/UTCPCalc.lhs}
-%     % Testing
-%\newpage
-%\input{src/TestCalc.lhs}
-     % While
-%\newpage
-%\input{src/While.lhs}
-     % Wheels Within Wheels
-%\newpage
-%\input{src/WWW.lhs}
-%\newpage
-%\input{src/Views.lhs}
-%\newpage
-%\input{src/Views}
-%\newpage
-%\input{src/scratch}
-%\newpage
-%\input{src/Scratch.lhs}
-%
-%\newpage
-%\input{src/DemoCalcHighlighting.lhs}
-%\newpage
-%\input{src/oldCalcPredicates.lhs}
-%
+\input{src/RGAlgebra.lhs}
+\newpage
+\input{src/UTCPSemantics.lhs}
+\newpage
+\input{src/UTCPLaws.lhs}
+\newpage
+\input{src/UTCPReduce.lhs}
+\newpage
+\input{src/UTCPCalc.lhs}
+\newpage
+\input{src/Root.lhs}
+\newpage
+\input{src/Views}
+\newpage
+\input{src/Views.lhs}
+\newpage
+\input{src/SemCalcs}
+
+
 \newpage
 \bibliography{UTPCalc-MAIN}
 
