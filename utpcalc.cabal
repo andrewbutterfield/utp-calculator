@@ -18,10 +18,32 @@ library
                     RGAlgebra
                     Views
 
+                    CalcAlphabets
+                    CalcPPrint
+                    CalcPredicates
+                    CalcRecogniser
+                    CalcRun
+                    CalcSimplify
+                    CalcSteps
+                    CalcSysTypes
+                    CalcTypes
+                    CalcZipper
+                    DictAbstractions
+                    POrd
+                    StdExpressions
+                    StdLaws
+                    StdPrecedences
+                    StdPredicates
+                    StdSets
+                    StdUTPLaws
+                    StdUTPPrecedences
+                    StdUTPPredicates
+                    Utilities
+
+
 
   build-depends:  base, containers, nicesymbols, proglogcalc
   hs-source-dirs:     src/
                       proglogcalc/src
-                      
-  default-language:   Haskell2010
 
+  default-language:   Haskell2010
