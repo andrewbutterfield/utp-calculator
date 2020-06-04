@@ -546,6 +546,7 @@ atmReduce d _ (Comp nm [c1,c2])
           , True )
 \end{code}
 
+what
 \RLEQNS{
    a \sqcup !a &=& \top
 \\ a \sqcap !a &=& \alf
@@ -1470,4 +1471,6 @@ rgeput = rgput . Atm
 rgcalc pr = calcREPL rgDict [] pr
 
 rglog = putStrLn . calcPrint
+
+rgcalcput pr = (rgcalc pr) >>= rglog
 \end{code}

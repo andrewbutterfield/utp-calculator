@@ -4,4 +4,10 @@
 %
 \usepackage{lsthaskell}
 
-\lstnewenvironment{code}{\lstset{language=haskell2010,frame=lines, morecomment=[is]--, morecomment=[is]{\{-}{-\}}}}\BODY{}
+\lstnewenvironment{code}
+{ \lstset{ language=haskell2010
+         ,frame=lines
+         , morecomment=[is]--
+         , morecomment=[is]{\{-}{-\}}
+         }
+} {}
