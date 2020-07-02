@@ -78,6 +78,7 @@ We start by defining three basic ways to transform a rooted path:
 ``done'' ($\bullet$);
 ``split-one'' ($1$);
 and ``split-two'' ($2$).
+We put the latter two in a set $S$:
 \RLEQNS{
    S &\defs& \setof{1,2}
 }
