@@ -17,6 +17,7 @@ library
                     Root
                     RGAlgebra
                     Views
+                    CCS2CSP
 
                     CalcAlphabets
                     CalcPPrint
