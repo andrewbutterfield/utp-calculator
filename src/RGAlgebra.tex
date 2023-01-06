@@ -23,13 +23,16 @@
 
 \RLEQNS{
    r \subseteq \Sigma \times \Sigma
-\\ π(r) &=& \Pi(\sigma,\sigma'), (\sigma,\sigma') \in r
-\\ ϵ(r) &=& \mathcal{E}(\sigma,\sigma'), (\sigma,\sigma') \in r
+% \\ π(r) &=& \Pi(\sigma,\sigma'), (\sigma,\sigma') \in r
+\\ \pi(r) &=& \Pi(\sigma,\sigma'), (\sigma,\sigma') \in r
+% \\ ϵ(r) &=& \mathcal{E}(\sigma,\sigma'), (\sigma,\sigma') \in r
+\\ \epsilon(r) &=& \mathcal{E}(\sigma,\sigma'), (\sigma,\sigma') \in r
 \\ \stutter &=& \pi(\id)
 \\ \pi &=& \pi(\univ)
 \\ \epsilon &=& \epsilon(\univ)
 \\ p &\subseteq& \Sigma
-\\ τ(p) &=& \mbox{if $p$ then terminate else $\top$}
+% \\ τ(p) &=& \mbox{if $p$ then terminate else $\top$}
+\\ \tau(p) &=& \mbox{if $p$ then terminate else $\top$}
 \\ \pre~ t &=& t \sqcap \lnot t \bot
 \\  &=& t \sqcap (\lnot t) \seq \bot
 \\ \setof p &=& \pre~\tau(p)

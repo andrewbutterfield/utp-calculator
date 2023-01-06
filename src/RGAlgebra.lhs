@@ -1144,10 +1144,13 @@ satEntry = entry n_sat $ PredEntry subAny ppSat [] noDefn noDefn
 \newpage
 \HDRb{Material from FM2016 Tutorial}
 
-T o be reconciled with the above.
+To be reconciled with the above.
 
+% \RLEQNS{
+%      π(r) &=& \Pi(\sigma,\sigma'), (\sigma,\sigma') \in r
+% }
 \RLEQNS{
-     π(r) &=& \Pi(\sigma,\sigma'), (\sigma,\sigma') \in r
+     \pi(r) &=& \Pi(\sigma,\sigma'), (\sigma,\sigma') \in r
 }
 %\begin{code}
 %n_pi = _pi  -- pi
@@ -1165,8 +1168,11 @@ T o be reconciled with the above.
 %
 %
 %
+% \RLEQNS{
+%    ϵ(r) &=& \mathcal{E}(\sigma,\sigma'), (\sigma,\sigma') \in r
+% }
 \RLEQNS{
-   ϵ(r) &=& \mathcal{E}(\sigma,\sigma'), (\sigma,\sigma') \in r
+   \epsilon(r) &=& \mathcal{E}(\sigma,\sigma'), (\sigma,\sigma') \in r
 }
 %\begin{code}
 %n_eps = _epsilon -- lunate epsilon
@@ -1257,8 +1263,11 @@ Simple relations and predicates: \id, \univ, $\emp$
 %p = Var "p"
 %\end{code}
 %
+% \RLEQNS{
+%      τ(p) &=& \mbox{if $p$ then terminate else $\top$}
+% }
 \RLEQNS{
-     τ(p) &=& \mbox{if $p$ then terminate else $\top$}
+     \tau(p) &=& \mbox{if $p$ then terminate else $\top$}
 }
 %\begin{code}
 %n_tau = _tau  -- tau
