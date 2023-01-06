@@ -21,3 +21,10 @@ UTPCalc-MAIN.fdb_latexmk
 UTPCalc-MAIN.fls
 UTPCalc-MAIN.toc
 *.code-workspace
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+MAIN.log
+*.fls
+*.toc
