@@ -7,13 +7,13 @@ Reykjavik, Iceland, June 4-5 2016, Revised Selected Papers*, LNCS 10134, Springe
 
 The final uploaded version of the UTP2016 paper, before publisher proofing, is at the `UTP2016-final` tag.
 
+The last code change made is at the `UTP2016-final-code` tag.
+
 Subsequent commits reflect on-going development
 up to the tag `RGAlgebra-0.2`
 
-There is no commit indicated in the repo that matches the calculator example shown in the paper. An attempt was made to find such a commit it seems not to exist.
-
 The general library modules
-that make up the calculator have moved to a new location (Github) under a new name:
+that make up the calculator have moved to a new Github repository under a new name:
 
 `proglogcalc` : Programmable Logic Calculator.
 
