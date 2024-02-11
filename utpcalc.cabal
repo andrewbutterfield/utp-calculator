@@ -1,51 +1,61 @@
-name:                utpcalc
-version:             0.4.0
-synopsis:            UTP Calculator
-license:             MIT
-license-file:        LICENSE
-author:              Andrew Butterfield
-maintainer:          Andrew.Butterfield@scsstcd.ie
-category:            Logic, Formal
-build-type:          Simple
-cabal-version:       >=1.10
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.35.1.
+--
+-- see: https://github.com/sol/hpack
+
+name:           utpcalc
+version:        0.4.0.0
+description:    Please see README.md here
+author:         Andrew Butterfield
+maintainer:     Andrew.Butterfield@scss.tcd.ie
+copyright:      (c) 2017-24 Andrew Butterfield
+license:        MIT
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
 
 library
-  exposed-modules:  UTCPSemantics
-                    UTCPLaws
-                    UTCPCReduce
-                    UTCPCalc
-                    Root
-                    RGAlgebra
-                    Views
-                    CCS2CSP
-
-                    CalcAlphabets
-                    CalcPPrint
-                    CalcPredicates
-                    CalcRecogniser
-                    CalcRun
-                    CalcSimplify
-                    CalcSteps
-                    CalcSysTypes
-                    CalcTypes
-                    CalcZipper
-                    DictAbstractions
-                    POrd
-                    StdExpressions
-                    StdLaws
-                    StdPrecedences
-                    StdPredicates
-                    StdSets
-                    StdUTPLaws
-                    StdUTPPrecedences
-                    StdUTPPredicates
-                    Utilities
-
-
-
-  build-depends:  base, containers, nicesymbols, proglogcalc
-  hs-source-dirs:     src/
-                      proglogcalc/src
-                      proglogcalc/nicesymbols/src
-
-  default-language:   Haskell2010
+  exposed-modules:
+      CCS2CSP
+      POrd
+      RGAlgebra
+      Root
+      UTCPCalc
+      UTCPCReduce
+      UTCPLaws
+      UTCPSemantics
+      Views
+      CalcAlphabets
+      CalcPPrint
+      CalcPredicates
+      CalcRecogniser
+      CalcRun
+      CalcSimplify
+      CalcSteps
+      CalcSysTypes
+      CalcTypes
+      CalcZipper
+      DictAbstractions
+      PLCDemo
+      StdExpressions
+      StdLaws
+      StdPrecedences
+      StdPredicates
+      StdSets
+      StdUTPLaws
+      StdUTPPrecedences
+      StdUTPPredicates
+      Symbols
+      Utilities
+  other-modules:
+      Paths_utpcalc
+  hs-source-dirs:
+      src
+      proglogcalc/src
+  build-depends:
+      base >=4.7 && <5
+    , containers
+    , proglogcalc
+  default-language: Haskell2010

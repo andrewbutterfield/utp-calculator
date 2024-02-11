@@ -41,7 +41,7 @@ resolver: lts-18.28
 # (e.g., acme-missiles-0.3)
 extra-deps:
     - proglogcalc
-    - proglogcalc/nicesymbols
+
 
 # Override default flag values for local packages and extra-deps
 flags: {}

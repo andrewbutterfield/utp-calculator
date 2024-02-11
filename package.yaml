@@ -1,0 +1,30 @@
+name:                utpcalc
+version:             0.4.0.0
+license:             MIT
+author:              "Andrew Butterfield"
+maintainer:          "Andrew.Butterfield@scss.tcd.ie"
+copyright:           "(c) 2017-24 Andrew Butterfield"
+
+extra-source-files:
+- README.md
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see README.md here
+
+dependencies:
+- base >= 4.7 && < 5
+- containers
+- proglogcalc
+
+library:
+  source-dirs: 
+  - src
+  - proglogcalc/src
+               
+ 
