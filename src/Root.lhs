@@ -74,8 +74,10 @@ replacing label generators by ``rooted'' label-paths.
 Initially we work up some stuff directly in Haskell,
 not using the \texttt{Expr} or \texttt{Pred} types.
 
+\def\rdone{\mathbf{!}}
+
 We start by defining three basic ways to transform a rooted path:
-``done'' ($\bullet$);
+``done'' ($\rdone$);
 ``split-one'' ($1$);
 and ``split-two'' ($2$).
 We put the latter two in a set $S$:
@@ -86,7 +88,7 @@ We put the latter two in a set $S$:
 showConst str _ _ = str  -- constant pretty-printer
 evalConst _ = noeval -- constant (non-)evaluator
 
-donen   = "*" ; step   = App donen   []
+donen   = "!" ; step   = App donen   []
 split1n = "1" ; split1 = App split1n []
 split2n = "2" ; split2 = App split2n []
 
@@ -109,7 +111,7 @@ of the variable $r$ followed by zero or more $S$ transforms,
 optionaly finished off with a done marker.
 \RLEQNS{
    \sigma,\varsigma &\defs& S^*
-\\ R &::=& r\sigma | r\sigma\bullet
+\\ R &::=& r\sigma | r\sigma\rdone
 }
 These have to be expressions as we shall want to substitute for $r$
 in them.
@@ -587,12 +589,12 @@ vAEntry
 
 We have a key invariant as part of the healthiness
 condition associated with every semantic predicate,
-namely that the labels $r$ and $\rr\bullet$ never occur in  $ls$ at
+namely that the labels $r$ and $\rr\rdone$ never occur in  $ls$ at
 the same time:
 \[
- ( r \in ls \implies \rr\bullet \notin ls )
+ ( r \in ls \implies \rr\rdone \notin ls )
  \land
- ( \rr\bullet \in ls \implies r \notin ls )
+ ( \rr\rdone \in ls \implies r \notin ls )
 \]
 This is the Label Exclusivity invariant.
 
@@ -602,7 +604,7 @@ we shall see that we will get a number of instances of this.
 We adopt a shorthand notation,
 so that the above invariant is simply
 \[
-  [r|\rr\bullet]
+  [r|\rr\rdone]
 \]
 So we define the following general shorthand:
 \RLEQNS{
@@ -755,13 +757,13 @@ someInvFails d invs ena other = findFail (set [ena,other]) invs
 \HDRc{Wheels within Wheels}\label{hc:WwW}
 
 The wheels-within-wheels healthiness condition
-insists that $r$ and $\rr\bullet$ are never simultaneously in
+insists that $r$ and $\rr\rdone$ are never simultaneously in
 the label-set $ls$,
 and that our semantic predicates are closed under mumbling.
 \RLEQNS{
    \W(C)
    &\defs&
-   [r|\rr\bullet] \land \left(~\bigvee_{i\in 0\dots} C^i~\right)
+   [r|\rr\rdone] \land \left(~\bigvee_{i\in 0\dots} C^i~\right)
 \\ ii &\defs& s'=s
 }
 We will code a version that keeps the top-level invariant out of the picture,
@@ -809,7 +811,7 @@ vWEntry
 \end{code}
 
 \newpage
-Unrolling $\W(C)$, using $I$ for $[r|\rr\bullet]$,
+Unrolling $\W(C)$, using $I$ for $[r|\rr\rdone]$,
 and noting that
 $
 \bigvee_{i \in \Nat} C^i
@@ -859,7 +861,7 @@ The definitions, using the new shorthands:
    \W(C) &\defs& \left(\bigvee_{i\in 0\dots} C^i\right)
 \\ ii &\defs& s'=s
 \\
-\\ \Atm a &\defs&\W(A(r|a|\rr\bullet))
+\\ \Atm a &\defs&\W(A(r|a|\rr\rdone))
 \\
 \\ \cskip
    &\defs&
@@ -871,16 +873,16 @@ The following are all under review (they lack sufficient invariants).
    &\defs&
    \W(~    A(r|ii|\rr1)
       \lor C[\rr1/r]
-      \lor A(\rr{1\bullet}|ii|\rr2)
+      \lor A(\rr{1\rdone}|ii|\rr2)
       \lor D[\rr2/r]
-      \lor A(\rr{2\bullet}|ii|\rr\bullet) ~)
+      \lor A(\rr{2\rdone}|ii|\rr\rdone) ~)
 \\
 \\ C + D
    &\defs&
    \W(\quad {}\phlor A(r|ii|\rr1) \lor A(r|ii|\rr2)
 \\ && \qquad {} \lor
    C[\rr1/r] \lor D[\rr2/r]
-\\ && \qquad {} \lor A(\rr{1\bullet}|ii|\rr\bullet) \lor A(\rr{2\bullet}|ii|\rr\bullet) ~)
+\\ && \qquad {} \lor A(\rr{1\rdone}|ii|\rr\rdone) \lor A(\rr{2\rdone}|ii|\rr\rdone) ~)
 \\
 \\ C \parallel D
    &\defs&
@@ -889,19 +891,19 @@ The following are all under review (they lack sufficient invariants).
    C[\rr1/r]
    \lor D[\rr2/r]
 \\ && \qquad {}\lor
-   A(\rr{1\bullet},\rr{2\bullet}|ii|\rr\bullet)~)
+   A(\rr{1\rdone},\rr{2\rdone}|ii|\rr\rdone)~)
 \\
 \\ C^*
    &\defs&
-   \W(\quad  \phlor A(r|ii|\rr1) \lor A(\rr1|ii|\rr\bullet)
-\\ && \qquad {}\lor C[\rr1/r]    \lor A(\rr{1\bullet}|ii|\rr1) ~)
+   \W(\quad  \phlor A(r|ii|\rr1) \lor A(\rr1|ii|\rr\rdone)
+\\ && \qquad {}\lor C[\rr1/r]    \lor A(\rr{1\rdone}|ii|\rr1) ~)
 }
 
 \newpage
 \HDRc{Coding Atomic Semantics}
 
 \RLEQNS{
-   \Atm a &\defs&\W(A(r|a|\rr\bullet))
+   \Atm a &\defs&\W(A(r|a|\rr\rdone))
 }
 
 \begin{code}
@@ -923,7 +925,7 @@ vAtmEntry
    , PredEntry ["s","s'"] ppAtom [] defnAtom (pNoChg nAtom) )
 \end{code}
 
-Calculation on $\Atm a$ results in $\Skip \lor A(r|a|\rr\bullet)$,
+Calculation on $\Atm a$ results in $\Skip \lor A(r|a|\rr\rdone)$,
 so we add a variant dictionary entry:
 \begin{code}
 defnAtomCalc d [a]
@@ -997,12 +999,12 @@ vSkipCalcEntry
 
 \RLEQNS{
    C \cseq D
-   &\defs& [r|\rr1|\rr{1\bullet}|\rr2|\rr{2\bullet}|\rr\bullet] \land {}
+   &\defs& [r|\rr1|\rr{1\rdone}|\rr2|\rr{2\rdone}|\rr\rdone] \land {}
 \\ && \W(\quad {}\phlor A(r|ii|\rr1)
 \\ && \qquad {} \lor C[\rr1/r]
-\\ && \qquad {} \lor A(\rr{1\bullet}|ii|\rr2)
+\\ && \qquad {} \lor A(\rr{1\rdone}|ii|\rr2)
 \\ && \qquad {} \lor D[\rr2/r]
-\\ && \qquad {} \lor A(\rr{2\bullet}|ii|\rr\bullet)~)
+\\ && \qquad {} \lor A(\rr{2\rdone}|ii|\rr\rdone)~)
 }
 Ignoring invariants for now.
 \begin{code}
@@ -1045,11 +1047,11 @@ vSeqEntry
 
 \RLEQNS{
    C + D
-   &\defs& [r|\rr1|\rr{1\bullet}|\rr2|\rr{2\bullet}|\rr\bullet] \land {}
+   &\defs& [r|\rr1|\rr{1\rdone}|\rr2|\rr{2\rdone}|\rr\rdone] \land {}
 \\&& \W(\quad {}\phlor A(r|ii|\rr1) \lor A(r|ii|\rr2)
 \\ && \qquad {} \lor
    C[\rr1/r] \lor D[\rr2/r]
-\\ && \qquad {} \lor A(\rr{1\bullet}|ii|\rr\bullet) \lor A(\rr{2\bullet}|ii|\rr\bullet) ~)
+\\ && \qquad {} \lor A(\rr{1\rdone}|ii|\rr\rdone) \lor A(\rr{2\rdone}|ii|\rr\rdone) ~)
 }
 Ignoring invariants for now.
 \begin{code}
@@ -1091,15 +1093,15 @@ vChcEntry
 \RLEQNS{
    C \parallel D
    &\defs& ~
-   [r|\rr1,\rr2,\rr{1\bullet},\rr{2\bullet}|\rr\bullet] \land
-   [\rr1|\rr{1\bullet}] \land
-   [\rr2|\rr{2\bullet}] \land {}
+   [r|\rr1,\rr2,\rr{1\rdone},\rr{2\rdone}|\rr\rdone] \land
+   [\rr1|\rr{1\rdone}] \land
+   [\rr2|\rr{2\rdone}] \land {}
 \\&& \W(\quad\phlor A(r|ii|\rr1,\rr2)
 \\ && \qquad {}\lor
    C[\rr1/r]
    \lor D[\rr2/r]
 \\ && \qquad {}\lor
-   A(\rr{1\bullet},\rr{2\bullet}|ii|\rr\bullet)~)
+   A(\rr{1\rdone},\rr{2\rdone}|ii|\rr\rdone)~)
 }
 Ignoring invariants for now.
 \begin{code}
@@ -1144,12 +1146,12 @@ vParEntry
 
 \RLEQNS{
    C^*
-   &\defs& [r|\rr2|\rr1|\rr{1\bullet}|\rr\bullet] \land {}
+   &\defs& [r|\rr2|\rr1|\rr{1\rdone}|\rr\rdone] \land {}
 \\&& \W(\quad  \phlor A(r|ii|\rr2)
 \\ && \qquad {}\lor A(\rr2|ii|\rr1)
                \lor C[\rr1/r]
-               \lor A(\rr{1\bullet}|ii|\rr2)
-\\ && \qquad {}\lor A(\rr2|ii|\rr\bullet) ~)
+               \lor A(\rr{1\rdone}|ii|\rr2)
+\\ && \qquad {}\lor A(\rr2|ii|\rr\rdone) ~)
 }
 Ignoring invariants for now.
 \begin{code}
