@@ -615,6 +615,8 @@ The definitions, using the new shorthands:
 \\       & & \textbf{provided } C = \Skip \lor D \textbf{ for some } D
 \\ ii &\defs& s'=s
 \\
+\\ \miracle &\defs&  \W(\false)
+\\
 \\ \Atm a &\defs&\W(\Skip \lor A(in|a|out)) \land [in|out]
 \\ \cskip
    &\defs&
@@ -840,6 +842,40 @@ someInvFails d invs ena other = findFail (set [ena,other]) invs
     | otherwise               =  findFail lpair  invs
 \end{code}
 
+\HDRc{Coding $\W$}
+
+\begin{code}
+wp x = Comp "W" [x]
+\end{code}
+
+\HDRc{Coding Miracle}
+
+\RLEQNS{
+\miracle &\defs&  \W(\false)
+}
+
+\begin{code}
+nMiracle = "miracle" -- internal abstract name
+isMiracle (Comp n [_]) | n==nMiracle = True; isMiracle _ = False
+
+mkMiracle = Comp nMiracle []
+
+ppMiracle d ms p [] = ppa "<miracle>"
+ppMiracle d ms p mprs = pps styleRed $ ppa ("invalid-"++nMiracle)
+
+
+defnMiracle d []
+ = ldefn nMiracle $ wp F
+
+invMiracle = idisj [ielem inp, ielem out]
+
+vMiracleEntry :: (String, Entry)
+vMiracleEntry
+ = ( nMiracle
+   , PredEntry ["s","s'"] ppMiracle [] defnMiracle (pNoChg nMiracle) )
+
+\end{code}
+
 \newpage
 \HDRc{Coding Atomic Semantics}
 
@@ -860,8 +896,6 @@ defnAtom d [a]
  = ldefn nAtom $ wp $ mkOr $ [mkSkip, mkA inp a out]
 
 invAtom = idisj [ielem inp, ielem out]
-
-wp x = Comp "W" [x]
 
 sinp = sngl inp
 sout = sngl out
@@ -1146,6 +1180,7 @@ dictVP = makeDict [ vXEntry
                   , vIElemEntry
                   , vIDisjEntry
                   , vIJoinEntry
+                  , vMiracleEntry
                   , vAtmEntry
                   , vSkipEntry
                   , vSeqEntry
