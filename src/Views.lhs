@@ -2199,3 +2199,42 @@ q_iterseq^4
    \/ X(lg|a ; b ; a|lg,lg:|lg:)
    \/ X(lg|a ; b ; a ; b|lg,lg:|in)
 \end{verbatim}
+
+
+\newpage
+\HDRc{Miracle as unit for nDC}
+
+We have laws regarding $A;A$, $A;X$, etc.
+I think we need laws also relating $A(\dots)$ and $X(\dots)$ to $C$
+and $C[\dots/\dots]$.
+ 
+\begin{verbatim}
+invVChc = [in|lg1|lg2|out]
+\end{verbatim}
+\begin{code}
+mkC = PVar "C"
+corm = mkC `vchc` mkMiracle
+cSub = PSub mkC [("g",g1'),("in",lg1)]
+\end{code}
+\begin{verbatim}
+Q(corm) =    A(in|ii|lg1) \/ C[g1:,lg1/g,in] 
+          \/ A(in|ii|lg2) \/ F[g2:,lg2/g,in]
+\end{verbatim}
+\begin{verbatim}
+q_corm
+ =    A(in|ii|lg1) 
+   \/ C[g1:,lg1/g,in] 
+   \/ A(in|ii|lg2)
+\end{verbatim}
+\begin{code}
+q_corm  = mkOr [ mkA inp ii lg1, cSub, mkA inp ii lg2 ]
+\end{code}
+
+\begin{verbatim}
+q_corm^2
+ =   (C[g1:,lg1/g,in] ; A(in|ii|lg1))
+   \/ (A(in|ii|lg1) ; C[g1:,lg1/g,in])
+   \/ (C[g1:,lg1/g,in] ; C[g1:,lg1/g,in])
+   \/ (A(in|ii|lg2) ; C[g1:,lg1/g,in])
+   \/ (C[g1:,lg1/g,in] ; A(in|ii|lg2))
+\end{verbatim}
