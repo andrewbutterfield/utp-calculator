@@ -826,7 +826,7 @@ given an enabling label or label-set.
    &\defs&
    \lnot(\setof{E,L} \textbf{ lsat } I)
 }
-We need a function that establishes when the invariant is not satisfies
+We need a function that establishes when the invariant is not satisfied
 for at least one invariant in a supplied list.
 \begin{code}
 someInvFails :: Dict
@@ -842,11 +842,6 @@ someInvFails d invs ena other = findFail (set [ena,other]) invs
     | otherwise               =  findFail lpair  invs
 \end{code}
 
-\HDRc{Coding $\W$}
-
-\begin{code}
-wp x = Comp "W" [x]
-\end{code}
 
 \HDRc{Coding Miracle}
 
@@ -865,7 +860,7 @@ ppMiracle d ms p mprs = pps styleRed $ ppa ("invalid-"++nMiracle)
 
 
 defnMiracle d []
- = ldefn nMiracle $ wp F
+ = ldefn nMiracle $ mkW F
 
 invMiracle = idisj [ielem inp, ielem out]
 
@@ -893,7 +888,7 @@ ppAtom sCP d p [pr] = ppbracket "<" (sCP 0 1 pr) ">"
 ppAtom _ _ _ _ = pps styleRed $ ppa ("invalid-"++nAtom)
 
 defnAtom d [a]
- = ldefn nAtom $ wp $ mkOr $ [mkSkip, mkA inp a out]
+ = ldefn nAtom $ mkW $ mkOr $ [mkSkip, mkA inp a out]
 
 invAtom = idisj [ielem inp, ielem out]
 
@@ -940,7 +935,7 @@ ppVSkip d ms p [] = ppa "<skip>"
 ppVSkip d ms p mprs = pps styleRed $ ppa ("invalid-"++nVSkip)
 
 defnVSkip d []
- = ldefn nVSkip $ wp $ mkOr $ [mkSkip, mkA inp ii out]
+ = ldefn nVSkip $ mkW $ mkOr $ [mkSkip, mkA inp ii out]
 
 invVSkip = idisj [ielem inp, ielem out]
 
@@ -996,7 +991,7 @@ ppVSeq sCP d p [pr1,pr2]
 ppVSeq _ _ _ _ = pps styleRed $ ppa ("invalid-"++shVSeq)
 
 defnVSeq d [p,q]
- = ldefn shVSeq $ wp $ mkOr [PSub p sub1, PSub q sub2]
+ = ldefn shVSeq $ mkW $ mkOr [PSub p sub1, PSub q sub2]
  where
    sub1 = [("g",g'1),("out",lg)]
    sub2 = [("g",g'2),("in",lg)]
@@ -1042,7 +1037,7 @@ ppVChc sCP d p [pr1,pr2]
 ppVChc _ _ _ _ = pps styleRed $ ppa ("invalid-"++shVChc)
 
 defnVChc d [p,q]
- = ldefn shVChc $ wp
+ = ldefn shVChc $ mkW
     $ mkOr [ mkA inp ii lg1
            , mkA inp ii lg2
            , PSub p sub1
@@ -1095,7 +1090,7 @@ ppVPar sCP d p [pr1,pr2]
 ppVPar _ _ _ _ = pps styleRed $ ppa ("invalid-"++shVPar)
 --
 defnVPar d [p,q]
- = ldefn shVPar $ wp
+ = ldefn shVPar $ mkW
     $ mkOr [ mkA inp ii (set [lg1,lg2])
            , PSub p sub1
            , PSub q sub2
@@ -1148,7 +1143,7 @@ ppVIter sCP d p [pr]
 ppVIter _ _ _ _ = pps styleRed $ ppa ("invalid-"++shVIter)
 --
 defnVIter d [p]
- = ldefn shVIter $ wp
+ = ldefn shVIter $ mkW
     $ mkOr [ mkA inp ii out
            , mkA inp ii lg
            , PSub p sub
@@ -1423,8 +1418,6 @@ vReduce d _ (PSub ab@(Comp ns [PVar a, PVar b]) sub)
    isStaticSub sub = null (map fst sub \\ vStatic)
 \end{code}
 
-
-
 \begin{eqnarray*}
    A \land (B \lor C) &=& (A \land B) \lor (A \land C)
 \end{eqnarray*}
@@ -1434,6 +1427,29 @@ vReduce d _ (Comp na [ pr, (Comp no prs) ])
       =  lred "and-or-distr" $ mkOr $ map f prs
  where f pr' = mkAnd [pr , pr']
 \end{code}
+
+\false\ is a zero for sequential composition
+\begin{eqnarray*}
+   \false \seq B &=~\false~=& A \seq \false
+\end{eqnarray*}
+\begin{code}
+vReduce d _ (Comp ns1 [ prA, prB ])
+ | ns1 == nSeq && ( prA == F || prB == F)
+     =  lred  ";-zero" $ F
+\end{code}
+
+\false\ is a unit for logical-or composition
+\begin{eqnarray*}
+   \false \lor A &=~A~=& A \lor \false
+\end{eqnarray*}
+\begin{code}
+vReduce d _ (Comp ns1 [ prA, prB ])
+ | ns1 == nOr && prA == F  =  lred  "or-l-unit" $ prB
+ | ns1 == nOr && prB == F  =  lred  "or-r-unit" $ prA
+\end{code}
+
+
+
 
 \begin{eqnarray*}
    A \seq (B \lor C) &=& (A \seq B) \lor (A \seq C)
